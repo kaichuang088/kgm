@@ -740,6 +740,87 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
  push('H31','動畫：換頁才播、同頁重畫不重播、播完不留隱藏；尊重「減少動態效果」；按鈕規則權重 0 不蓋原樣式',
    h31.style&&h31.reduced&&h31.zeroSpec&&h31.onNav>3&&h31.left===0&&h31.onRe===0,JSON.stringify(h31));
 
+
+ // H32 0927D Residence: fallback chosen from a cabin x fare table, submit goes straight to the next booking step, My Trips shows status and withdraws before the deadline
+ const h32=await p.evaluate(async()=>{
+   const oa=window.alert,oc=window.confirm;window.alert=function(){};window.confirm=function(){return true};
+   const out={};
+   try{
+     const u=(S.users||[]).find(x=>x.id==='KGMDEMO0911')||(S.users||[])[0];S.user=u;
+     const dep=new Date(Date.now()+25*86400000).toISOString().slice(0,10),ret=new Date(Date.now()+32*86400000).toISOString().slice(0,10);
+     S.search=Object.assign(S.search||{},{fr:'TPE',to:'LAX',dep:dep,ret:ret,type:'RT',cabin:'First',adults:1,children:0,infants:0,pax:1,useMiles:false});
+     S.outF=S.inbF=S.outC=S.inbC=null;S.phase='sel_out';S.view='booking';S.resBidSegR923=null;render();
+     const o=window.kgmResFlightsR161('TPE','LAX',dep)[0];
+     S.resModalR161={code:o.code,date:dep,step:2,seg:'out'};window.kgmResRepaintR161();
+     await new Promise(r=>setTimeout(r,400));
+     out.table=!!document.querySelector('.k927d-tbl');out.selHidden=(document.getElementById('k161alt')||{}).style.display==='none';
+     out.rows=document.querySelectorAll('.k927d-tbl tr').length;
+     const cell=[...document.querySelectorAll('.k927d-cell')].find(b=>!/超值|Value/.test((FARES[b.getAttribute('data-code')]||{}).tier||''));
+     out.picked=cell&&cell.getAttribute('data-code');cell.click();await new Promise(r=>setTimeout(r,150));
+     document.getElementById('k161amt').value=String(Math.max(400000,window.kgmResidenceMinBidR83(o,dep,1)+5000));
+     document.querySelector('.k161-go[onclick*="kgmResCashSubmitR161"]').click();await new Promise(r=>setTimeout(r,400));
+     out.phase1=S.phase;out.outC=S.outC;out.modalClosed=!S.resModalR161;
+     const pnr='V927D'+String(Date.now()).slice(-4);
+     const bk={pnr:pnr,userId:u.id,status:'confirmed',outF:S.outF,outC:S.outC,total:500000,paxList:[{last:'V',first:'T'}],cardLast4:'4242'};
+     S.bookings.push(bk);(S.residenceBidsR83||[]).forEach(x=>{if(x&&S.resBidSegR923&&x.id===S.resBidSegR923.out){x.pnr=pnr;bk.resBidsR923=[x.id]}});S.resBidSegR923=null;
+     window.kgmOpenTripR60(pnr);await new Promise(r=>setTimeout(r,1200));   /* 旅客從「我的行程」點進這筆訂位 */
+     const pn=document.querySelector('.k927d-trip');out.panel=!!pn;out.dbg={view:S.view,sub:(typeof window.kgmSubPageR60==='function')?window.kgmSubPageR60():null,mt:S.mtOnly,bids:window.kgmResTripBidsR927D?window.kgmResTripBidsR927D(bk).length:-1,col:!!document.querySelector('.k56-trip')};console.log('H32DBG '+JSON.stringify(out));out.status=pn&&/競標中|Open/.test(pn.innerText);
+     const wd=document.querySelector('.k927d-wd');if(wd){wd.click();await new Promise(r=>setTimeout(r,800))}
+     const b=(S.residenceBidsR83||[]).find(x=>x.pnr===pnr);out.after=b&&b.status;out.fee=b&&b.withdrawFeeR927D;out.keep=bk.outC;
+     S.bookings=S.bookings.filter(x=>x.pnr!==pnr);S.residenceBidsR83=(S.residenceBidsR83||[]).filter(x=>x.pnr!==pnr);
+     S.mtOnly=null;S.mgResult=null;S.view='home';S.outF=S.inbF=S.outC=S.inbC=null;S.phase='sel_out';render();
+   }catch(e){out.err=e.message}
+   window.alert=oa;window.confirm=oc;return out;
+ });
+ push('H32','Residence：備案用艙等×方案表格自己按；送出直接到下一步；行程管理顯示競標狀態、截止前可撤回',
+   h32.table&&h32.selHidden&&h32.rows>=3&&h32.picked&&h32.outC===h32.picked&&h32.phase1==='sel_inb'&&h32.modalClosed&&h32.panel&&h32.status&&h32.after==='withdrawn'&&h32.fee===1200&&h32.keep===h32.picked,JSON.stringify(h32));
+
+ // H33 0927D miles: both the outbound and the return earn miles; running the credit twice does not double
+ const h33=await p.evaluate(()=>{
+   const u=S.users.find(x=>x.id==='KGMDEMO0911')||S.users[0];const D=n=>new Date(Date.now()+n*864e5).toISOString().slice(0,10);
+   const o=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX180'),{date:D(-6)}),i=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX181'&&f.fr==='NRT'),{date:D(-3)});
+   S.bookings=S.bookings.filter(b=>b.pnr!=='H33RT');S.bookings.push({pnr:'H33RT',userId:u.id,status:'confirmed',outF:o,outC:'E-T',inbF:i,inbC:'E-T',paxList:[{kgmId:u.id,last:'A',first:'B'}],milesGranted:false});
+   const m0=S.users.find(x=>x.id===u.id).miles;checkAutoArrivals();const m1=S.users.find(x=>x.id===u.id).miles;checkAutoArrivals();const m2=S.users.find(x=>x.id===u.id).miles;
+   const want=calcMiles(distOf(o.fr,o.to),u.level,'E-T')+calcMiles(distOf(i.fr,i.to),u.level,'E-T');const b=S.bookings.find(x=>x.pnr==='H33RT');
+   const r={gained:m1-m0,want,again:m2-m1,out:b.out_mg,inb:b.inb_mg,all:b.milesGranted};S.bookings=S.bookings.filter(x=>x.pnr!=='H33RT');return r;
+ });
+ push('H33','里程：去程、回程都累積；重跑不重複入帳',h33.gained===h33.want&&h33.want>0&&h33.again===0&&h33.out&&h33.inb&&h33.all,JSON.stringify(h33));
+
+ // H34 0927D upgrade centre does not list flights that have already departed
+ const h34=await p.evaluate(async()=>{
+   const u=S.users.find(x=>x.id==='KGMDEMO0911')||S.users[0];S.user=u;const D=n=>new Date(Date.now()+n*864e5).toISOString().slice(0,10);
+   const o=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX180'),{date:D(-2)}),i=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX181'&&f.fr==='NRT'),{date:D(5)});
+   S.bookings=S.bookings.filter(b=>b.pnr!=='H34UP');S.bookings.push({pnr:'H34UP',userId:u.id,status:'confirmed',outF:o,outC:'E-T',inbF:i,inbC:'E-T',paxList:[{kgmId:u.id,last:'A',first:'B'}],total:30000});
+   S.upgradePick0813=null;S.upgradeSuccess0813=null;S.view='upgrade';render();await new Promise(r=>setTimeout(r,1200));
+   const t=document.getElementById('app').innerText;const lines=t.split('\n').filter(l=>/H34UP/.test(l));
+   const r={lines:lines.length,past:lines.length>1,future:lines.length>=1,fn:typeof kgmDepartedR927D};
+   S.bookings=S.bookings.filter(x=>x.pnr!=='H34UP');S.view='home';render();return r;
+ });
+ push('H34','艙位升等：已起飛的航班不列出，未起飛的照列',h34.lines===1&&h34.future&&h34.fn==='function',JSON.stringify(h34));
+
+ // H35 0927D crew: every Monday–Sunday week has at least one full day off (flights and deadheading both count)
+ const h35=await p.evaluate(async()=>{
+   const nx=kgmRestDayNextYmR927C(todayISO().slice(0,7));
+   const z=new Date(Date.UTC(+nx.slice(0,4),+nx.slice(5,7),0)).toISOString().slice(0,10);let last=z,g=0;
+   while(new Date(last+'T12:00:00Z').getUTCDay()!==0){const t=new Date(last+'T12:00:00Z');t.setUTCDate(t.getUTCDate()-1);last=t.toISOString().slice(0,10)}
+   while(!kgmCrewHasDayR121(last)&&g++<600){kgmCrewStepR121(150,last);await new Promise(r=>setTimeout(r,5))}
+   const ids=(S.staff||[]).filter(x=>x.role==='pilot'||x.role==='cabin').map(x=>x.empId);let hol=0,rest=0;
+   const det=[];ids.forEach(id=>{const r=kgmRestDayCalcR927C(id,nx);hol+=r.holidays.length;rest+=r.restDays.length;r.holidays.forEach(h=>{if(det.length<3){const w0=new Date(Date.parse(h.date)-6*864e5).toISOString().slice(0,10);const ch=kgmCrewChainR210(id,w0,7);det.push(id+' '+ch.map(c=>c.date.slice(5)+':'+(c.legs||[]).map(l=>l.code+(l.deadhead||l.dhR913||/DH/.test(l.remark||'')?'(DH)':'')+(l.fillR196?'(F)':'')).join('+')).join('|'))}})});
+   const layers={};try{if(det.length){const m=/^(\S+) /.exec(det[0]);const id=m[1];const parts=det[0].split(' ')[1].split('|');const bad=parts.filter(x=>/:\S/.test(x)).pop().split(':')[0];const d='2026-'+bad;
+     let fn=window.kgmCrewPlanR121,k=0;while(fn&&k<8){const pl=fn(d);const on=(pl.flights||[]).filter(f=>['pilots','cabin'].some(kk=>(f[kk]||[]).some(q=>q&&q.empId===id))).map(f=>f.code+JSON.stringify(((f.pilots||[]).concat(f.cabin||[])).filter(q=>q&&q.empId===id).map(q=>Object.keys(q).filter(z=>!/^(empId|name|rank|rankCode|seniority|role)$/.test(z)))));layers['L'+k+(fn.__r196?'r196':fn._rawR176?'r176':fn._rawR167?'r167':fn._rawR149?'r149':'')]=on;fn=fn._rawR196||fn._rawR176||fn._rawR167||fn._rawR149||fn._raw||null;k++}
+     layers.duty=Object.keys(kgmCrewDutyDatesR927D(id)).filter(x=>x>='2026-10-10'&&x<='2026-10-20');layers.reg=(window.KGM_EXTRA_DUTY_R927D||{})[id];layers.d=d;}}catch(e){layers.err=e.message}
+   return {nx,crew:ids.length,sevenDayWeeks:hol,restDays:rest,det,layers};
+ });
+ push('H35','組員：每週（一～日）至少一整天不排班（含調位日），例假出勤 0',h35.crew>300&&h35.sevenDayWeeks===0&&h35.restDays>0,JSON.stringify(h35));
+
+ // H36 0927D fleet: the B779 reserve registrations fly in the rotation; no aircraft (reserves included) is idle 7 days
+ const h36=await p.evaluate(()=>{
+   const T=todayISO(),E=new Date(Date.now()+60*864e5).toISOString().slice(0,10),o={};
+   ['B-58911','B-58912','B-58913'].forEach(t=>{o[t]=(S.tailAssign[t]||[]).filter(x=>x&&!x.noPax&&x.date>=T&&x.date<E).length});
+   const idle=kgmFleetIdleR922(60);o.idle7=idle.idle7;o.sample=idle.sample;return o;
+ });
+ push('H36','機隊：B779 備用機跟營運機輪流飛，全機隊（含備用）沒有連續空白 7 天',h36['B-58911']>=30&&h36['B-58912']>=30&&h36['B-58913']>=30&&h36.idle7===0,JSON.stringify(h36));
+
  console.log('---SUMMARY---');
  console.log(JSON.stringify({total:out.length,fail:out.filter(x=>!x.ok).map(x=>x.id)}));
  console.log('ERR',JSON.stringify(errs.slice(0,5)));
