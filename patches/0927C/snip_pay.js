@@ -75,3 +75,4 @@ window.kgmRestDayWorkR927C=function(empId,ym,now){
   return r||{ym:ym,pending:true,restDays:[],holidays:[]};
 };
 window.kgmRestDayNextYmR927C=ymNext927C;
+window.kgmRestDayCalcR927C=calc927C;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>KGM Airways · 0927B</title>
+<title>KGM Airways · 0927C</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -9033,6 +9033,18 @@ function doTailUnassign(tail,idx){var l=(S.tailAssign||{})[tail];if(l){l.splice(
 // ── 薪資與功過(嘉獎/小功/大功=獎金;警告/小過/大過=扣績效) ──
 const MERIT_TYPES={award1:["嘉獎",1000],award2:["小功",3000],award3:["大功",9000],warn1:["警告",-2],warn2:["小過",-6],warn3:["大過",-18]};
 const BASE_SALARY={pilot:260000,cabin:82000,ground:55000,backend:60000,service:52000,ceo:320000,admin:65000,other:45000};
+/* 0927C：休息日出勤加給倍數（勞基法 §24 II）：前 2 小時 1⅓、第 3～8 小時 1⅔、第 9～12 小時 2⅔ */
+function restMult927C(h){h=Math.max(0,Math.min(12,+h||0));return Math.min(h,2)*4/3+Math.max(0,Math.min(h,8)-2)*5/3+Math.max(0,h-8)*8/3}
+function restCell927C(sal){
+  var w=sal.restWork;if(!w)return '';
+  if(w.pending)return '<span style="color:#889;font-size:11px">'+(LANG==='en'?'Calculating…':'班表計算中…')+'</span>';
+  var t=(sal.restPay||0)+(sal.holidayPay||0);
+  var tip=(w.restDays||[]).map(function(x){return x.date+' '+x.codes+' '+x.h+'h NT$'+x.pay}).concat((w.holidays||[]).map(function(x){return x.date+' 例假 '+x.codes+' NT$'+x.pay})).join('\n');
+  var cur=t?'<span title="'+tip.replace(/"/g,'')+'">+'+t.toLocaleString()+'<span style="color:#889;font-size:10px">（'+(w.restDays||[]).length+(w.holidays&&w.holidays.length?'＋例假 '+w.holidays.length:'')+' 天）</span></span>':'—';
+  var n=sal.restNext;
+  if(n)cur+='<div style="color:#889;font-size:10px;white-space:nowrap">'+(n.pending?(LANG==='en'?'Next month: calculating…':'下月預估：計算中…'):((LANG==='en'?'Next month est. ':'下月預估 ')+(sal.restNextPay?'+'+sal.restNextPay.toLocaleString():'0')+'（'+(n.restDays||[]).length+(n.holidays&&n.holidays.length?'＋例假 '+n.holidays.length:'')+' 天）'))+'</div>';
+  return cur;
+}
 function salaryOf(stf){
   var yrs=Math.max(0,Math.floor((new Date()-new Date((stf.hireDate||todayISO())+"T00:00:00"))/(365.25*864e5)));
   var base=BASE_SALARY[stf.role]||40000;
@@ -9046,7 +9058,20 @@ function salaryOf(stf){
   var perf=Math.max(0.6,1+pct/100);// 績效下限 60%
   var sen=1+0.015*yrs;// 年資每年 +1.5%
   var adj=(S.salaryAdj||{})[stf.empId]||0;// CEO 手動調整
-  return{base:base,yrs:yrs,sen:sen,perf:perf,bonus:bonus,adj:adj,monthly:Math.round(base*sen*perf)+bonus+adj,items:items};
+  /* 0927C：休息日出勤加給直接加進本月薪資（勞基法 §24 II；§40 例假出勤另加一日工資）。
+     時薪＝底薪×年資÷240（月薪÷30÷8）；績效係數、功獎金、CEO 調整不列入時薪。 */
+  var rw=null,rpay=0,hpay=0;
+  if((stf.role==='pilot'||stf.role==='cabin')&&typeof window.kgmRestDayWorkR927C==='function'){try{rw=window.kgmRestDayWorkR927C(stf.empId,todayISO().slice(0,7),!!arguments[1])}catch(_){rw=null}}
+  if(rw){var hr=base*sen/240;
+    (rw.restDays||[]).forEach(function(x){x.pay=Math.round(hr*restMult927C(x.h));rpay+=x.pay});
+    (rw.holidays||[]).forEach(function(x){x.pay=Math.round(base*sen/30);hpay+=x.pay})}
+  /* 本月有一段在系統組員班表起點之前（沒有資料）→ 另外列出下個月依已排班表的預估，不列入本月 */
+  var rn=null,npay=0;
+  if(rw&&!rw.pending&&rw.dataFrom&&rw.dataFrom>rw.from&&typeof window.kgmRestDayNextYmR927C==='function'){try{rn=window.kgmRestDayWorkR927C(stf.empId,window.kgmRestDayNextYmR927C(todayISO().slice(0,7)),!!arguments[1])}catch(_){rn=null}}
+  if(rn){var hr2=base*sen/240;
+    (rn.restDays||[]).forEach(function(x){x.pay=Math.round(hr2*restMult927C(x.h));npay+=x.pay});
+    (rn.holidays||[]).forEach(function(x){x.pay=Math.round(base*sen/30);npay+=x.pay})}
+  return{base:base,yrs:yrs,sen:sen,perf:perf,bonus:bonus,adj:adj,restWork:rw,restPay:rpay,holidayPay:hpay,restNext:rn,restNextPay:npay,monthly:Math.round(base*sen*perf)+bonus+adj+rpay+hpay,items:items};
 }
 function doAddMerit(){
   var empId=(S._mrEmp||"").trim(),type=S._mrType||"award1",reason=(S._mrReason||"").trim();
@@ -13180,7 +13205,7 @@ ${_locked&&S.smFlightCode?'<div class="lockbox" style="margin-bottom:10px">🔒 
     if(!isCEO()){
       if(!_meS){body='<div class="lockbox">查無您的員工資料。</div>';}
       else{
-        var sal=salaryOf(_meS);
+        var sal=salaryOf(_meS,true);   /* 0927C：只算本人，直接算 */
         var myM=S.merits.filter(function(m){return m.empId===_meS.empId;});
         body=`<div class="adm-sec">${_S("我的薪資與功過（僅本人可見）","My Payroll & Merits (private)")}</div>
         <div class="adm-card">
@@ -13191,6 +13216,8 @@ ${_locked&&S.smFlightCode?'<div class="lockbox" style="margin-bottom:10px">🔒 
             <tr><td>績效係數（警告-2%・小過-6%・大過-18%,下限60%）</td><td style="text-align:right">× ${sal.perf.toFixed(2)}</td></tr>
             <tr><td>功獎金（嘉獎1,000・小功3,000・大功9,000/年度累計）</td><td style="text-align:right">+ NT$ ${sal.bonus.toLocaleString()}</td></tr>
             ${sal.adj?`<tr><td>CEO 調整</td><td style="text-align:right">${sal.adj>0?"+":""}NT$ ${sal.adj.toLocaleString()}</td></tr>`:""}
+            ${sal.restWork?`<tr><td>休息日出勤加給（勞基法 §24：時薪＝底薪×年資÷240，前 2 小時 ×1⅓、第 3–8 小時 ×1⅔、第 9–12 小時 ×2⅔；每週一～週日第 6 個執勤日算休息日出勤${(sal.restWork.holidays||[]).length?'，第 7 個為例假出勤，另加一日工資並須補假':''}）${sal.restWork.pending?'<div style="font-size:11px;color:#889">班表計算中…</div>':((sal.restWork.restDays||[]).concat(sal.restWork.holidays||[]).length?'<div style="font-size:11px;color:#667;line-height:1.7">'+(sal.restWork.restDays||[]).map(function(x){return x.date+'・'+x.codes+'・'+x.h+' 小時・NT$ '+x.pay.toLocaleString()}).concat((sal.restWork.holidays||[]).map(function(x){return x.date+'・例假出勤・'+x.codes+'・NT$ '+x.pay.toLocaleString()})).join('<br>')+'</div>':'<div style="font-size:11px;color:#889">本月沒有休息日出勤。</div>')}${(!sal.restWork.pending&&sal.restWork.dataFrom&&sal.restWork.dataFrom>sal.restWork.from)?'<div style="font-size:11px;color:#889">計算區間 '+sal.restWork.dataFrom+'～'+sal.restWork.dataTo+'（系統組員班表從 '+sal.restWork.dataFrom+' 開始，之前沒有資料）</div>':''}</td><td style="text-align:right">+ NT$ ${((sal.restPay||0)+(sal.holidayPay||0)).toLocaleString()}</td></tr>`:""}
+            ${sal.restNext?`<tr style="color:#667"><td>下月休息日出勤加給預估（依已排班表，不列入本月）${sal.restNext.pending?'<div style="font-size:11px;color:#889">班表計算中…</div>':'<div style="font-size:11px;line-height:1.7">'+((sal.restNext.restDays||[]).map(function(x){return x.date+'・'+x.codes+'・'+x.h+' 小時・NT$ '+x.pay.toLocaleString()}).concat((sal.restNext.holidays||[]).map(function(x){return x.date+'・例假出勤・'+x.codes+'・NT$ '+x.pay.toLocaleString()})).join('<br>')||'沒有休息日出勤。')+'</div>'}</td><td style="text-align:right">NT$ ${(sal.restNextPay||0).toLocaleString()}</td></tr>`:""}
             <tr style="font-weight:900;color:var(--g)"><td>本月薪資</td><td style="text-align:right;font-size:16px">NT$ ${sal.monthly.toLocaleString()}</td></tr>
           </table>
         </div>
@@ -13217,8 +13244,8 @@ ${_locked&&S.smFlightCode?'<div class="lockbox" style="margin-bottom:10px">🔒 
         </div>
         ${S._mrMsg?`<span class="chip chip-ok" style="margin-top:8px">${S._mrMsg}</span>`:""}
       </div>
-      <div class="adm-card"><div style="font-weight:700;margin-bottom:8px">全員薪資總表（AI 依 底薪×年資×績效＋功獎金 計算）</div>
-      <div style="overflow-x:auto"><table class="adm-tbl"><tr><th>員工</th><th>職務</th><th>年資</th><th>底薪</th><th>績效</th><th>功獎金</th><th>功過</th><th>CEO調整</th><th style="text-align:right">本月薪資</th></tr>
+      <div class="adm-card"><div style="font-weight:700;margin-bottom:8px">全員薪資總表（AI 依 底薪×年資×績效＋功獎金＋休息日出勤加給 計算）</div>
+      <div style="overflow-x:auto"><table class="adm-tbl"><tr><th>員工</th><th>職務</th><th>年資</th><th>底薪</th><th>績效</th><th>功獎金</th><th>功過</th><th>CEO調整</th><th>休息日加給</th><th style="text-align:right">本月薪資</th></tr>
       ${(function(){
         // 依職務分組顯示(item 7):每個職務一個標題列 + 小計
         var ORDER=["ceo","pilot","cabin","ground","service","backend","admin","other"];
@@ -13227,8 +13254,8 @@ ${_locked&&S.smFlightCode?'<div class="lockbox" style="margin-bottom:10px">🔒 
         return keys.map(function(role){
           var list=grouped[role],sum=0;
           var rows=list.map(function(x){var sal=salaryOf(x);sum+=sal.monthly;var mm=S.merits.filter(function(m){return m.empId===x.empId;});
-            return '<tr><td><b>'+x.name+'</b><div style="font-size:10px;color:#889">'+x.empId+'</div></td><td>'+(ROLE_ZH[x.role]||x.role)+'</td><td>'+sal.yrs+'年</td><td>'+sal.base.toLocaleString()+'</td><td>'+(sal.perf*100).toFixed(0)+'%</td><td>'+(sal.bonus?"+"+sal.bonus.toLocaleString():"—")+'</td><td>'+(mm.length?mm.slice(0,4).map(_mChip).join(" ")+(mm.length>4?" +"+(mm.length-4):""):"—")+'</td><td><input class="inp" style="height:28px;width:90px;font-size:11px" value="'+(sal.adj||0)+'" onchange="doSalaryAdj(\''+x.empId+'\',this.value)"></td><td style="text-align:right;font-weight:800;color:var(--g)">NT$ '+sal.monthly.toLocaleString()+'</td></tr>';}).join("");
-          return '<tr style="background:linear-gradient(180deg,#eef4f0,#e6eeea)"><td colspan="8" style="font-weight:900;color:var(--g);font-size:12.5px;letter-spacing:.5px">▦ '+(ROLE_ZH[role]||role)+'（'+list.length+' 人）</td><td style="text-align:right;font-weight:900;color:var(--g);font-size:11.5px">小計 NT$ '+sum.toLocaleString()+'</td></tr>'+rows;
+            return '<tr><td><b>'+x.name+'</b><div style="font-size:10px;color:#889">'+x.empId+'</div></td><td>'+(ROLE_ZH[x.role]||x.role)+'</td><td>'+sal.yrs+'年</td><td>'+sal.base.toLocaleString()+'</td><td>'+(sal.perf*100).toFixed(0)+'%</td><td>'+(sal.bonus?"+"+sal.bonus.toLocaleString():"—")+'</td><td>'+(mm.length?mm.slice(0,4).map(_mChip).join(" ")+(mm.length>4?" +"+(mm.length-4):""):"—")+'</td><td><input class="inp" style="height:28px;width:90px;font-size:11px" value="'+(sal.adj||0)+'" onchange="doSalaryAdj(\''+x.empId+'\',this.value)"></td><td style="font-size:11.5px">'+(restCell927C(sal)||'—')+'</td><td style="text-align:right;font-weight:800;color:var(--g)">NT$ '+sal.monthly.toLocaleString()+'</td></tr>';}).join("");
+          return '<tr style="background:linear-gradient(180deg,#eef4f0,#e6eeea)"><td colspan="9" style="font-weight:900;color:var(--g);font-size:12.5px;letter-spacing:.5px">▦ '+(ROLE_ZH[role]||role)+'（'+list.length+' 人）</td><td style="text-align:right;font-weight:900;color:var(--g);font-size:11.5px">小計 NT$ '+sum.toLocaleString()+'</td></tr>'+rows;
         }).join("");
       })()}
       </table></div></div>
@@ -16126,7 +16153,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   try{
     var _bb=document.createElement("div");_bb.id="kgmBuildBadge";
     _bb.style.cssText="position:fixed;top:0;right:0;z-index:99999;background:#c2410c;color:#fff;font-size:10px;font-family:monospace;padding:3px 8px;border-radius:0 0 0 8px;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer";
-    _bb.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');
+    _bb.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');
     _bb.title="點擊執行自我檢測 / tap to self-test";
     _bb.onclick=function(){if(typeof runSelfTest==="function")runSelfTest();};
     document.body.appendChild(_bb);
@@ -16729,7 +16756,7 @@ gateFor=function(f){if(!f||!f.date)return null;var a=(S.gateAssign||{})[f.code+'
 // Mobile polish for the new views.
 (function(){
   var st=document.createElement('style');st.textContent='\n@media(max-width:720px){.profile-grid0813,.benefit-grid0813,.credit-grid0813{grid-template-columns:1fr!important}.award-matrix{overflow-x:auto}.award-head,.award-row{min-width:720px}.ticket-body{padding-left:8px!important;padding-right:8px!important}table{font-size:11px}.card{box-shadow:none}.btn{min-height:38px}.mc-search select,.mc-search input{font-size:16px!important}}\n';document.head.appendChild(st);
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},0);});
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},0);});
 })();
 
 
@@ -17220,7 +17247,7 @@ successView=function(){var h=_successView_email0814.apply(this,arguments),b=(S.b
 (function(){var st=document.createElement('style');st.textContent=`
 .profile-shell0814,.upgrade-shell0814{max-width:1080px;margin:0 auto;padding:24px 20px 52px}.profile-shell0814>h1{font-size:31px;color:#111820}.profile-tabs0814{display:flex;gap:6px;overflow:auto;margin:16px 0 18px;background:#eef1ef;padding:4px;border-radius:13px;width:max-content;max-width:100%}.profile-tabs0814 button{border:0;background:transparent;padding:9px 14px;border-radius:10px;white-space:nowrap;font-weight:750;color:#66716b;cursor:pointer}.profile-tabs0814 button.on{background:#fff;color:var(--g);box-shadow:0 1px 6px rgba(0,0,0,.08)}.profile-hero0814{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;background:linear-gradient(135deg,#0b3a2e,#145d49);color:#fff;border-radius:20px;padding:22px 24px;margin-bottom:14px}.profile-hero0814 span,.upgrade-title0814 span,.manage-detail-head0814>span,.upgrade-selected0814>span{font-size:10px;letter-spacing:.14em;color:var(--gold2);font-weight:900}.profile-hero0814 h2{font-size:25px;margin:4px 0}.profile-hero0814 p{color:rgba(255,255,255,.72);font-size:12px}.profile-hero0814 .btn{background:#fff}.profile-card0814{padding:20px}.profile-lock-note0814{background:#f7f5ed;border:1px solid #e7dfc9;border-radius:10px;padding:10px 12px;font-size:11.5px;color:#665d49;margin-bottom:14px}.profile-grid0814{display:grid;grid-template-columns:1fr 1fr;gap:12px}.profile-locked0814{background:#f1f2f0!important;color:#747b76!important;cursor:not-allowed}.profile-actions0814{display:flex;justify-content:flex-end;margin-top:14px}.profile-booking-head0814{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:14px}.profile-booking-head0814 h2{font-size:23px;color:var(--g)}.profile-booking-head0814 p{font-size:12px;color:var(--sub);margin-top:4px}.bp0814{max-width:680px;border-radius:18px;overflow:hidden;box-shadow:var(--sh2)}.bp-top0814{background:linear-gradient(135deg,#0B3A2E,#155A4D);padding:21px 23px;color:#fff}.bp-eyebrow0814{font-size:9px;letter-spacing:.16em;color:rgba(255,255,255,.62);text-transform:uppercase}.bp-brand0814{font-family:Georgia,serif;font-size:22px;margin-top:4px}.bp-route0814{display:grid;grid-template-columns:1fr auto 1fr;gap:15px;align-items:center;margin-top:18px}.bp-route0814 b{display:block;font-size:32px}.bp-route0814 span{font-size:10px;color:rgba(255,255,255,.62)}.bp-route0814 i{font-style:normal;color:var(--gold2);font-size:18px}.bp-grid0814{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.16)}.bp-lab0814{font-size:9px;text-transform:uppercase;color:rgba(255,255,255,.55);letter-spacing:.05em}.bp-val0814{font-weight:800;font-size:13px;margin-top:3px;overflow-wrap:anywhere}.bp-val0814.big{font-size:22px;color:#fff}.bp-bottom0814{display:flex;gap:18px;flex-wrap:wrap;justify-content:space-between;padding:13px 22px;background:#fff;border:1px solid var(--border);border-top:0;font-size:11px}.manage-detail-head0814{margin:20px 0 14px}.manage-detail-head0814 h2{font-size:22px;color:#17202a;margin-top:4px}.manage-detail-head0814 p{font-size:11.5px;color:var(--sub);margin-top:5px}.meal-grid0814{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.meal-card0814{position:relative;border:1px solid #e0e5e2;background:#fff;border-radius:13px;padding:14px;text-align:left;cursor:pointer;min-height:90px}.meal-card0814.on{border-color:var(--g2);background:#f1f8f5}.meal-card0814 strong,.meal-card0814 span{display:block}.meal-card0814 strong{font-size:12.5px;color:#1d2722}.meal-card0814 span{font-size:10.5px;color:#7b847e;margin-top:6px}.meal-card0814 em{position:absolute;right:12px;top:10px;color:var(--g);font-style:normal}.seat-save0814{position:sticky;bottom:10px;z-index:30;max-width:760px;margin:14px auto 0;display:flex;align-items:center;gap:13px;flex-wrap:wrap;padding:12px 14px;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh2)}.seat-save0814>div:first-child small,.seat-save0814>div:first-child b{display:block}.seat-save0814>div:first-child b{font-size:16px;color:var(--g)}.buy-miles-shortcut0814{position:fixed;right:18px;bottom:82px;z-index:190;border:1px solid #d8c69e;background:#fff;color:var(--g);border-radius:999px;padding:9px 14px;box-shadow:var(--sh2);font-weight:800;cursor:pointer}.upgrade-title0814{display:flex;justify-content:space-between;align-items:end;gap:18px;flex-wrap:wrap;background:linear-gradient(135deg,#0b3a2e,#145d49);padding:24px;border-radius:20px;color:#fff;margin-bottom:14px}.upgrade-title0814 h1{font-size:28px;margin-top:4px}.upgrade-title0814 p{font-size:12px;color:rgba(255,255,255,.7);margin-top:5px}.upgrade-title0814 small,.upgrade-title0814 b{display:block;text-align:right}.upgrade-title0814 b{font-size:25px;color:var(--gold2)}.upgrade-flight0814{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;width:100%;border:1px solid var(--border);background:#fff;border-radius:14px;padding:15px 17px;margin-bottom:9px;text-align:left;cursor:pointer}.upgrade-flight0814:hover{border-color:var(--g2);background:#f8fbf9}.upgrade-plane0814{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--gsoft);color:var(--g)}.upgrade-flight0814 strong,.upgrade-flight0814 span{display:block}.upgrade-flight0814 strong{font-size:14px;color:#19231e}.upgrade-flight0814 span{font-size:11px;color:var(--sub);margin-top:4px}.upgrade-flight0814 i{font-style:normal;font-size:22px;color:#879089}.upgrade-selected0814{background:#fff;border:1px solid var(--border);border-radius:16px;padding:17px 19px;margin:12px 0}.upgrade-selected0814 h2{font-size:20px;color:#17202a;margin-top:4px}.upgrade-selected0814 p{font-size:11.5px;color:var(--sub);margin-top:5px}.upgrade-options0814{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.upgrade-option0814{background:#fff;border:1px solid var(--border);border-radius:15px;padding:18px}.upgrade-option0814>span{font-size:9.5px;color:var(--gold);font-weight:900}.upgrade-option0814 h3{font-size:18px;color:var(--g);margin-top:4px}.upgrade-option0814 p{font-size:11.5px;color:var(--sub);margin:8px 0 14px}.upgrade-option0814 .btn{width:100%}.email-retry0814{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:14px auto;max-width:760px;padding:12px 14px;border:1px solid #cddfd6;background:#f4faf7;border-radius:12px}.email-retry0814 b,.email-retry0814 span{display:block}.email-retry0814 span{font-size:10.5px;color:#587064;margin-top:3px}
 @media(max-width:720px){.profile-shell0814,.upgrade-shell0814{padding:14px 10px 42px}.profile-shell0814>h1{font-size:25px}.profile-hero0814{padding:17px 16px;border-radius:16px;align-items:start}.profile-hero0814 h2{font-size:20px}.profile-grid0814{grid-template-columns:1fr}.profile-card0814{padding:14px}.profile-booking-head0814{align-items:start}.bp0814{border-radius:13px}.bp-top0814{padding:17px 15px}.bp-route0814 b{font-size:27px}.bp-grid0814{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.bp-bottom0814{padding:11px 14px}.seat-save0814{bottom:6px;margin:10px 4px 0;padding:10px}.seat-save0814 .btn{width:100%}.meal-grid0814{grid-template-columns:1fr}.buy-miles-shortcut0814{right:10px;bottom:70px;padding:8px 12px}.upgrade-title0814{padding:18px 16px;align-items:start}.upgrade-title0814 h1{font-size:23px}.upgrade-title0814 small,.upgrade-title0814 b{text-align:left}.upgrade-flight0814{padding:13px 12px;grid-template-columns:auto 1fr auto}.upgrade-options0814{grid-template-columns:1fr}.email-retry0814{margin:12px 8px}.award-shop .award-date-strip{scroll-snap-type:x proximity}.award-shop .award-date-chip{scroll-snap-align:center}.award-time-line{grid-template-columns:auto auto 1fr auto auto!important}.award-time-line b{font-size:18px!important}}
-`;document.head.appendChild(st);var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');})();
+`;document.head.appendChild(st);var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');})();
 
 
 // v0814.1: sanitize the two legacy tab attributes inside the new change/refund page.
@@ -17233,7 +17260,7 @@ _mtDetail=function(open){
     return 'onclick="openTicketService(\''+String(pnr).replace(/'/g,'')+'\',\''+String(seg).replace(/'/g,'')+'\',\''+String(tab).replace(/'/g,'')+'\')"';
   });
 };
-document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},0);});
+document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},0);});
 
 // v0814.2: canonical Manage Trip seat map. The legacy simulated seat numbering had
 // cabin row offsets that could mark every displayed seat as occupied.
@@ -17775,7 +17802,7 @@ milesPageView=function(){var tab=S.milesTab||'overview';if(tab==='buymiles')retu
 .locked-value0815{border:1px solid var(--border);background:#f4f5f3;border-radius:8px;padding:10px 11px;color:#67716a;min-height:38px}.profile-change0815{margin-top:14px;border:1px solid #d1ddd6;border-radius:16px;background:#fff;padding:18px}.profile-change-head0815{display:flex;justify-content:space-between;gap:12px}.profile-change-head0815 span{font-size:9px;letter-spacing:.14em;color:var(--gold);font-weight:900}.profile-change-head0815 h3{font-size:18px;color:var(--g);margin:3px 0}.profile-change-head0815 p{font-size:11px;color:var(--sub)}.profile-change-grid0815{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.profile-change-grid0815 textarea{resize:vertical}.profile-file0815 small{display:block;font-size:10px;color:var(--sub);margin-top:4px}.profile-expedite0815{display:block;margin:12px 0;padding:10px;border:1px solid #efd29b;background:#fff9ed;border-radius:9px;font-size:11.5px}.pc-tier-r913{display:block}.pc-tier-r913>b{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a6d2f;margin-bottom:7px}.pc-tier-r913 label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer}.pc-tier-r913 label:hover{background:#fdf2dd}.pc-tier-r913 input{accent-color:#8a6d2f}.pc-tier-r913 small{display:block;margin-top:7px;padding-top:7px;border-top:1px solid #efd29b;color:#6d6a60;font-size:10.5px;line-height:1.5}.profile-cases0815{margin-top:14px}.profile-cases0815 h3{color:var(--g);margin-bottom:8px}.profile-cases0815>div{display:grid;grid-template-columns:auto 1fr auto;gap:8px;padding:8px 0;border-top:1px solid var(--border);align-items:center;font-size:11.5px}.profile-cases0815 small{grid-column:2/4;color:var(--sub)}
 .admin-case-list0815{display:flex;flex-direction:column;gap:8px}.admin-case0815{display:flex;justify-content:space-between;gap:12px;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}.admin-case0815>div:first-child{display:flex;flex-direction:column;gap:3px}.admin-case0815 b{color:var(--g);font-family:monospace}.admin-case0815 span{font-size:11.5px}.admin-case0815 small{font-size:10px;color:var(--sub)}.admin-case0815 a{font-size:10px;color:#1d4ed8}.admin-case0815>div:last-child{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.cancel-ops0815{grid-column:1/4;border:1px solid #e7b655;background:#fff9eb;border-radius:12px;padding:12px;margin-top:6px}.cancel-title0815{font-weight:900;color:#8a5200;margin-bottom:7px}.cancel-replace0815{grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}.cancel-ops0815 small{display:block;color:#805f26;margin-top:8px;line-height:1.5}.irrops-passenger0815{max-width:1080px;margin:14px 0;border:1px solid #e1b85a;background:#fffaf0;border-radius:14px;padding:15px}.irrops-passenger0815>span{font-size:9px;letter-spacing:.12em;color:#9a660a;font-weight:900}.irrops-passenger0815 h3{font-size:16px;color:#6f4700;margin:4px 0 10px}.irrops-route0815{display:grid;grid-template-columns:auto 1fr auto;gap:12px;background:#fff;border-radius:10px;padding:10px;align-items:center}.irrops-route0815 b{font-size:16px;color:var(--g)}.irrops-route0815 strong{font-size:13px}.irrops-route0815 small{color:var(--sub)}.irrops-passenger0815 p{font-size:11px;line-height:1.6;color:#6b604f;margin:9px 0}.irrops-passenger0815>div:last-child{display:flex;gap:8px;flex-wrap:wrap}.irrops-passenger0815.pending{display:flex;justify-content:space-between;gap:10px}.cabin-photo-grid0815{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.cabin-photo-prev0815{height:120px;border-radius:12px;background:linear-gradient(135deg,#143d32,#b18b42);background-size:cover;background-position:center;display:flex;align-items:end;padding:10px;color:#fff;font-weight:900;text-shadow:0 1px 4px #000}.cabin-photo-grid0815 input[type=file]{font-size:10px;margin:6px 0}.cabin-photo-url0815{display:flex;gap:5px}
 @media(max-width:760px){.portal-util0815{gap:7px}.portal-search-wrap0815{display:none}.portal-link0815{font-size:10px}.award-pay0815{grid-template-columns:1fr}.award-sum-row0815{flex-direction:column;gap:3px}.award-sum-total0815{align-items:flex-start;flex-direction:column}.mt-seat-row0815{grid-template-columns:22px auto;min-width:max-content}.mt-seat-layout0815{gap:3px}.mt-aisle0815{width:14px;flex-basis:14px}.mt-seat0814{width:29px;height:30px}.meal-cats0815{grid-template-columns:1fr 1fr}.buy-hero0815{min-height:290px;border-radius:0}.buy-hero-content0815{padding:32px 20px 24px}.buy-hero-content0815 h1{font-size:29px}.buy-hero-content0815 p{font-size:14px}.buy-tier0815{margin-top:30px}.buy-tier0815 b{font-size:15px}.buy-tier0815 span{font-size:9px}.buy-main0815{grid-template-columns:1fr;gap:24px;padding:30px 20px 42px}.buy-main0815 h2{font-size:22px}.buy-summary0815{border-left:0;border-top:1px solid #c8d0d8;padding:18px 0 0}.profile-change-grid0815{grid-template-columns:1fr}.profile-cases0815>div{grid-template-columns:1fr}.profile-cases0815 small{grid-column:auto}.admin-case0815{flex-direction:column}.cancel-ops0815{grid-column:1/-1}.cancel-replace0815{grid-template-columns:1fr 1fr}.irrops-route0815{grid-template-columns:1fr}.upgrade-reseat0815{align-items:flex-start;flex-direction:column}.cabin-photo-grid0815{grid-template-columns:1fr}.miles-buy-entry0815{margin:10px 10px 0}.award-shop .award-row{min-width:0!important}.award-shop .award-matrix{overflow:visible!important}}
-`;document.head.appendChild(st);var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');})();
+`;document.head.appendChild(st);var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');})();
 
 
 // ══ v0815-G final policy / reliability corrections ═══════════════════════
@@ -17995,7 +18022,7 @@ kgmCloudEndpoint=function(){
 (function(){var s=document.createElement('style');s.textContent=`
 .cancel-move0816{display:grid;grid-template-columns:1fr 180px;gap:7px;margin-top:8px;padding:10px;border:1px solid #c5d9cf;background:#f3f8f5;border-radius:10px}.cancel-move0816 small{grid-column:1/-1!important;margin:0!important;color:#456555!important}.adm-card .adm-card{box-shadow:none;margin-top:10px}.cabin-photo-prev0815{height:150px!important}.award-sum-rule0815{border-left:3px solid var(--gold)}
 @media(max-width:720px){.cancel-move0816{grid-template-columns:1fr}.cancel-move0816 small{grid-column:auto!important}.cabin-photo-prev0815{height:135px!important}}
-`;document.head.appendChild(s);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},0);})();
+`;document.head.appendChild(s);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},0);})();
 
 
 
@@ -18012,8 +18039,8 @@ kgmCloudEndpoint=function(){
     }
   }catch(e){}
   var _render_build0816=render;
-  render=function(){var r=_render_build0816.apply(this,arguments);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},0);return r;};
-  setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},25);
+  render=function(){var r=_render_build0816.apply(this,arguments);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},0);return r;};
+  setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},25);
 })();
 
 
@@ -18160,7 +18187,7 @@ var _adminView0817_old=adminView;adminView=function(){var h=_adminView0817_old.a
 `;document.head.appendChild(s);})();
 
 // Persistent build/footer label.
-(function(){var _render0817=render;render=function(){var r=_render0817.apply(this,arguments);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},0);return r;};var _footer0817=footer;footer=function(){return _footer0817.apply(this,arguments).replace(/v081[1-6]-G/g,'0809A');};setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},30);})();
+(function(){var _render0817=render;render=function(){var r=_render0817.apply(this,arguments);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},0);return r;};var _footer0817=footer;footer=function(){return _footer0817.apply(this,arguments).replace(/v081[1-6]-G/g,'0809A');};setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},30);})();
 
 
 // ══ 0809A validation hotfixes: bank timing, return-day parity, load balancing ══
@@ -18349,9 +18376,9 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
 // ══ 0809B route/network/logo/promo patch ══
 (function(){
   window.KGM_BUILD_PATCH='0922B';
-  var BUILD='0927B';
+  var BUILD='0927C';
   function setBuild0809B(){
-    try{ var b=document.getElementById('kgmBuildBadge'); if(b) b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B'); }catch(e){}
+    try{ var b=document.getElementById('kgmBuildBadge'); if(b) b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C'); }catch(e){}
   }
   var _footer0809b=footer; footer=function(){ return _footer0809b.apply(this,arguments).replace(/0809A|v081[1-7]-G/g,BUILD); };
   var _render0809b=render; render=function(){ var r=_render0809b.apply(this,arguments); setTimeout(function(){ try{setBuild0809B(); decorateCarrierLogos0809B(); injectRefundNotice0809B(); }catch(e){} },0); return r; };
@@ -18540,7 +18567,7 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
 (function(){
   window.KGM_BUILD_PATCH='0922B';
   var BUILD0809C='0809C';
-  function setBuild0809C(){try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');}catch(e){}}
+  function setBuild0809C(){try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');}catch(e){}}
 
   // 1) Airport inventory: MXP is a sellable airport; DXB is removed from public inventory and network.
   CITY_ZH.MXP='米蘭馬爾彭薩'; CITY_EN.MXP='Milan Malpensa'; TZ.MXP=1; CURRENCIES.MXP='EUR';
@@ -19004,7 +19031,7 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
     try{
       if(typeof redistributeCounters0817==='function') redistributeCounters0817('TPE');
     }catch(e){}
-    try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');}catch(e){}
+    try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');}catch(e){}
   },60);
 })();
 
@@ -19061,10 +19088,10 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
 // ══ 0809D comprehensive network / miles / ops patch ══
 (function(){
   window.KGM_BUILD_PATCH='0922B';
-  var BUILD='0927B';
+  var BUILD='0927C';
   var KGM_LOGO_0809D='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAH4AAABKCAYAAAB9yOAzAAAMTGlDQ1BJQ0MgUHJvZmlsZQAASImVVwdYU1cbPndkQggQiICMsJcgIiOAjBBWANlbVEISIIwYE4KKGymtYN0ighOtgihYrYAUF2pdFMW9iwMVpRZrcSv/CQG09B/P/z3Pufe97/nOe77vu+eOAwC9iy+V5qKaAORJ8mUxwf6spOQUFukZQAAKNIApYPMFciknKiocQBs+/91eX4Pe0C47KLX+2f9fTUsokgsAQKIgThfKBXkQ/wQA3iqQyvIBIEohbz4rX6rEayHWkcEAIa5R4kwVblXidBW+OOgTF8OF+BEAZHU+X5YJgEYf5FkFgkyoQ4fZAieJUCyB2A9in7y8GUKIF0FsA33gnHSlPjv9K53Mv2mmj2jy+ZkjWJXLoJEDxHJpLn/O/1mO/215uYrhOaxhU8+ShcQoc4Z1e5QzI0yJ1SF+K0mPiIRYGwAUFwsH/ZWYmaUIiVf5ozYCORfWDDAhniTPjeUN8TFCfkAYxIYQZ0hyI8KHfIoyxEFKH1g/tEKcz4uDWA/iGpE8MHbI55hsRszwvNcyZFzOEP+ULxuMQan/WZETz1HpY9pZIt6QPuZYmBWXCDEV4oACcUIExBoQR8hzYsOGfFILs7gRwz4yRYwyFwuIZSJJsL9KHyvPkAXFDPnvzpMP544dyxLzIobwpfysuBBVrbBHAv5g/DAXrE8k4cQP64jkSeHDuQhFAYGq3HGySBIfq+JxPWm+f4xqLG4nzY0a8sf9RbnBSt4M4jh5Qezw2IJ8uDhV+niJND8qThUnXpnND41SxYPvA+GACwIACyhgSwczQDYQd/Q29cIrVU8Q4AMZyAQi4DDEDI9IHOyRwGMsKAS/QyQC8pFx/oO9IlAA+U+jWCUnHuFURweQMdSnVMkBjyHOA2EgF14rBpUkIxEkgEeQEf8jIj5sAphDLmzK/n/PD7NfGA5kwocYxfCMLPqwJzGQGEAMIQYRbXED3Af3wsPh0Q82Z5yNewzn8cWf8JjQSXhAuEroItycLi6SjYpyMuiC+kFD9Un/uj64FdR0xf1xb6gOlXEmbgAccBc4Dwf3hTO7QpY7FLeyKqxR2n/L4Ks7NORHcaKglDEUP4rN6JEadhquIyrKWn9dH1Ws6SP15o70jJ6f+1X1hfAcNtoT+w47gJ3GjmNnsVasCbCwo1gz1o4dVuKRFfdocMUNzxYzGE8O1Bm9Zr7cWWUl5U51Tj1OH1V9+aLZ+cqHkTtDOkcmzszKZ3HgF0PE4kkEjuNYzk7ObgAovz+q19ur6MHvCsJs/8It+Q0A76MDAwM/f+FCjwLwozt8JRz6wtmw4adFDYAzhwQKWYGKw5UHAnxz0OHTpw+MgTmwgfk4AzfgBfxAIAgFkSAOJINpMPosuM5lYBaYBxaDElAGVoJ1oBJsAdtBDdgL9oMm0AqOg1/AeXARXAW34erpBs9BH3gNPiAIQkJoCAPRR0wQS8QecUbYiA8SiIQjMUgykoZkIhJEgcxDliBlyGqkEtmG1CI/IoeQ48hZpBO5idxHepA/kfcohqqjOqgRaoWOR9koBw1D49CpaCY6Ey1Ei9HlaAVaje5BG9Hj6Hn0KtqFPkf7MYCpYUzMFHPA2BgXi8RSsAxMhi3ASrFyrBqrx1rgfb6MdWG92DuciDNwFu4AV3AIHo8L8Jn4AnwZXonX4I34Sfwyfh/vwz8TaARDgj3Bk8AjJBEyCbMIJYRywk7CQcIp+Cx1E14TiUQm0ZroDp/FZGI2cS5xGXETsYF4jNhJfEjsJ5FI+iR7kjcpksQn5ZNKSBtIe0hHSZdI3aS3ZDWyCdmZHEROIUvIReRy8m7yEfIl8hPyB4omxZLiSYmkCClzKCsoOygtlAuUbsoHqhbVmupNjaNmUxdTK6j11FPUO9RXampqZmoeatFqYrVFahVq+9TOqN1Xe6eurW6nzlVPVVeoL1ffpX5M/ab6KxqNZkXzo6XQ8mnLabW0E7R7tLcaDA1HDZ6GUGOhRpVGo8YljRd0Ct2SzqFPoxfSy+kH6BfovZoUTStNriZfc4FmleYhzeua/VoMrQlakVp5Wsu0dmud1XqqTdK20g7UFmoXa2/XPqH9kIExzBlchoCxhLGDcYrRrUPUsdbh6WTrlOns1enQ6dPV1nXRTdCdrVule1i3i4kxrZg8Zi5zBXM/8xrz/RijMZwxojFLx9SPuTTmjd5YPT89kV6pXoPeVb33+iz9QP0c/VX6Tfp3DXADO4Nog1kGmw1OGfSO1RnrNVYwtnTs/rG3DFFDO8MYw7mG2w3bDfuNjI2CjaRGG4xOGPUaM439jLON1xofMe4xYZj4mIhN1pocNXnG0mVxWLmsCtZJVp+poWmIqcJ0m2mH6Qcza7N4syKzBrO75lRztnmG+VrzNvM+CxOLyRbzLOosbllSLNmWWZbrLU9bvrGytkq0+taqyeqptZ41z7rQus76jg3Nxtdmpk21zRVboi3bNsd2k+1FO9TO1S7Lrsrugj1q72Yvtt9k3zmOMM5jnGRc9bjrDuoOHIcChzqH+45Mx3DHIscmxxfjLcanjF81/vT4z06uTrlOO5xuT9CeEDqhaELLhD+d7ZwFzlXOVybSJgZNXDixeeJLF3sXkctmlxuuDNfJrt+6trl+cnN3k7nVu/W4W7inuW90v87WYUexl7HPeBA8/D0WerR6vPN088z33O/5h5eDV47Xbq+nk6wniSbtmPTQ28yb773Nu8uH5ZPms9Wny9fUl+9b7fvAz9xP6LfT7wnHlpPN2cN54e/kL/M/6P+G68mdzz0WgAUEB5QGdARqB8YHVgbeCzILygyqC+oLdg2eG3wshBASFrIq5DrPiCfg1fL6Qt1D54eeDFMPiw2rDHsQbhcuC2+ZjE4Onbxm8p0IywhJRFMkiORFrom8G2UdNTPq52hidFR0VfTjmAkx82JOxzJip8fujn0d5x+3Iu52vE28Ir4tgZ6QmlCb8CYxIHF1YlfS+KT5SeeTDZLFyc0ppJSElJ0p/VMCp6yb0p3qmlqSem2q9dTZU89OM5iWO+3wdPp0/vQDaYS0xLTdaR/5kfxqfn86L31jep+AK1gveC70E64V9oi8RatFTzK8M1ZnPM30zlyT2ZPlm1We1SvmiivFL7NDsrdkv8mJzNmVM5CbmNuQR85Lyzsk0ZbkSE7OMJ4xe0an1F5aIu2a6Tlz3cw+WZhspxyRT5U35+vAH/12hY3iG8X9Ap+CqoK3sxJmHZitNVsyu32O3Zylc54UBhX+MBefK5jbNs903uJ59+dz5m9bgCxIX9C20Hxh8cLuRcGLahZTF+cs/rXIqWh10V9LEpe0FBsVLyp++E3wN3UlGiWykuvfen275Tv8O/F3HUsnLt2w9HOpsPRcmVNZednHZYJl576f8H3F9wPLM5Z3rHBbsXklcaVk5bVVvqtqVmutLlz9cM3kNY1rWWtL1/61bvq6s+Uu5VvWU9cr1ndVhFc0b7DYsHLDx8qsyqtV/lUNGw03Lt34ZpNw06XNfpvrtxhtKdvyfqt4641twdsaq62qy7cTtxdsf7wjYcfpH9g/1O402Fm289Muya6umpiak7XutbW7DXevqEPrFHU9e1L3XNwbsLe53qF+WwOzoWwf2KfY9+zHtB+v7Q/b33aAfaD+J8ufNh5kHCxtRBrnNPY1ZTV1NSc3dx4KPdTW4tVy8GfHn3e1mrZWHdY9vOII9UjxkYGjhUf7j0mP9R7PPP6wbXrb7RNJJ66cjD7ZcSrs1Jlfgn45cZpz+ugZ7zOtZz3PHjrHPtd03u18Y7tr+8FfXX892OHW0XjB/ULzRY+LLZ2TOo9c8r10/HLA5V+u8K6cvxpxtfNa/LUb11Ovd90Q3nh6M/fmy1sFtz7cXnSHcKf0rubd8nuG96p/s/2tocut6/D9gPvtD2If3H4oePj8kfzRx+7ix7TH5U9MntQ+dX7a2hPUc/HZlGfdz6XPP/SW/K71+8YXNi9++sPvj/a+pL7ul7KXA38ue6X/atdfLn+19Uf133ud9/rDm9K3+m9r3rHfnX6f+P7Jh1kfSR8rPtl+avkc9vnOQN7AgJQv4w/+CmBAubXJAODPXQDQkgFgwH0jdYpqfzhoiGpPO4jAf8KqPeSgwT+XevhPH90L/26uA7BvBwBWUJ+eCkAUDYA4D4BOnDjShvdyg/tOpRHh3mBrzKf0vHTwb0y1J/0q7tFnoFR1AaPP/wJJ6oMibZtcrQAAAIplWElmTU0AKgAAAAgABAEaAAUAAAABAAAAPgEbAAUAAAABAAAARgEoAAMAAAABAAIAAIdpAAQAAAABAAAATgAAAAAAAACQAAAAAQAAAJAAAAABAAOShgAHAAAAEgAAAHigAgAEAAAAAQAAAH6gAwAEAAAAAQAAAEoAAAAAQVNDSUkAAABTY3JlZW5zaG90B49RiwAAAAlwSFlzAAAWJQAAFiUBSVIk8AAAAdVpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDYuMC4wIj4KICAgPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICAgICAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIKICAgICAgICAgICAgeG1sbnM6ZXhpZj0iaHR0cDovL25zLmFkb2JlLmNvbS9leGlmLzEuMC8iPgogICAgICAgICA8ZXhpZjpQaXhlbFlEaW1lbnNpb24+NzQ8L2V4aWY6UGl4ZWxZRGltZW5zaW9uPgogICAgICAgICA8ZXhpZjpQaXhlbFhEaW1lbnNpb24+MTI2PC9leGlmOlBpeGVsWERpbWVuc2lvbj4KICAgICAgICAgPGV4aWY6VXNlckNvbW1lbnQ+U2NyZWVuc2hvdDwvZXhpZjpVc2VyQ29tbWVudD4KICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CiAgIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+CozRzJgAAAAcaURPVAAAAAIAAAAAAAAAJQAAACgAAAAlAAAAJQAABmLVoakJAAAGLklEQVR4Aexbe1AVVRj/oeWY0ZSkooBXLfNRJuOYWlgGwoCIohCgeC9wBRER5CGMIOILERURBUfNx6io+ILQ8ZE2ZqbmkywdUtGIp+igAlOijYbWnnV23bt7lr3eahrbPX+w53y/7/vu/b7f+c53lgGrP5kBbaguA1Ya8arjnA1YI16dvEMjXiNepRlQadhaxWvEqzQDKg1bq3iNeJVmQKVhaxWvEa/SDKg0bK3iNeJVmgGVhq1VvEa8SjOg0rC1iteIV2kGVBq2VvEa8SrNgErD1ipeI16lGVBp2FrFa8SrNAMqDVureI14lWZApWFbVPE1t27i4cOHFqXsNWtr2HboyNo+efIE5dVVz+VHZ2+PNi+3Mcvm0R+P8OOVn3DqQjFKy3/GnYZ63K1vwG9N99Clky26OTigu4MOui52cOzzHvr16sP7rWC+12Pm+3Xu1AnW7V7l5WRC/FbX1prIlBatW7VCD103JTUTvLm5GZU3akxkSgub9m/A5vX2SmqW/Xl1bzcnND14oOicpjBs8BDsWLGWhUrLy+Bq8KOpycq2LM2F69BhsjgBKmtrsCY/D9v2FraoJwb79uwJg7cfyqoqsOmLXSy8LiMLXs5uJqpHTn4LY1KcicycxZnCg9DZ2ZujyuoUl1zC2IgQs/WJomGsH5bMSFW0sajiR4bqcan0sqJzsYJ1u3YYNdwDy1LmslBlTTX8poXj1u06sarsunDVBnw04AMqfu/+fSxYuQz5+4qoeIf2Nhjp7IrOHW1Rd6cOF69eUYxjzYIl8Hb1MPFHTpDQpNjn3vxJk6MRY5xk4qulxbodWzGficfcQfIbMSEE00MjFE0sIp54JcflyeKzSF+Vg+qbN1r8oOiQMOhH+8ru9ubHjzEpeTqOnDou8eP+iTM8hrnAsXdfvNPjbbzUurVEhwh+qaqEcUYsymvorSOL2Wz+nt4S+9v1d5GYMR9Hz5yk+s2ZuxB+Hl5UrKr2BtZuz0PengIqLhbq7BxwumA/rKysxBB17c8UxWlmkykNH3dPJIZFontXnZIqj1tMPOehvrER/b1cuKXk6fLhUGzLXiWRCwWklw0c4467jQ28mFRndso8xWOdGFwtuw634ADeVjz5cuN2poe/Kxbza/J/o5sLdyJ1+RJexk2yU9MwbqQ3t6Q+5+Uuxfqd+VRMLNzz+SYM7j9ALJasSS4cvYZL5GIBydPFA0fN3kyc/d8mnjhy0fvgekUF59PkOTkwCHOnJZjIxIuFa3KweusmXuzvORrpCcmSSxWvIJiQBI2YGCjbLswhjnOXlJkuuRdkJs+G3vszToX6bPi1Ee97Ptv8hAzhJhYa6b19kZk8Ryiizjfu3o7ZKzJZjBzhcncqp4GDULByPdVHS8J/hHiS+JJrV6mfE2kIQerUeCpGhIVfHUTs/Fk8Hj5ejznRCWjF3ILNGYbpUTh29hRVlRBwYd8RyfFOVWaE939/ALegAJPWtSgxBcG+8qcJ54u78BKSQgP0yN0sT0bZN2fxStu2nCn1KSwmkhO5E0V4WaY6khH+p8R/9/05jIt5dhGJD4tge5XMd5WIySUrgOmDcmPG5CjEGuVxmt2J82cQGBfJQ+nxSZjoH8iv5Sbc5ifE71+/jTkFfeVUsTptMca4jZDFf7hcgtHhQSw+fpQPczeyQ+Y6ert84YgXBkcinBMdz95IZbNBAcZGGFFccpGCPBWdKzoEh85dZHEaQPr9cIMv37pImyLtSmkIib/29Wm2/cidgs5DnJC/fLWsS2HL2bs2j7ngnf9/EH+p9AoCoifxfcvc5AozVVZZgU8n+AhFJnNLK4E42VK0GzOzMlh/qVPjEGkwsvOWfoiJzyvahZSsRbIm5/ccgr2tdFOSdtPL1Ym1e6trN5zYuRe5eRtefOJJpQfGRvCkz46KwxS9UTZBcgC5hc/KXiwHI4w5ntOYY9qSca+pCX3cP2ZNzX33FhOvdCufFRmHqUFGydcrOHwAcWlPfwEzLyYR4eMNyGHuCy/0US/uySmRsYgKmigJ3hxBcMI02XdvYj9zSgyig0PNcUXVIb2+jnnHH9TP0az3YzHxxGnYzHgcPn6M6p+rZvE7vbB9kde0jjZv/ivE/wUAAP//O8r1kwAAB+xJREFU7Vl7VBfVFv5IZaVhLVpGaZqZhoBiPjC9EqghgQTkL5TwASKBBZZQyY0UI1LBJFRQUUQUAQHx1YNCDS0pMTW1wkeW3bJEq5u1zKvp9XHv7KmZzpkXv4XVEmbOP2fvb+9zZvb5Zubss8fhf0LDNbbASWNRf/SI5izxEyYiNeEZbNtZi6jkqZxPQUY2gob5cZi9iteoAJz64Xtd94UzZ2HMyBBd+59tkNbAqV07HK2pE6ffvONdPP7CM7qXeqOgGAN69ZHtx77+CkPH2UQ92M8f+bOyRDmnqADzli+R/VjB9/5BKF+Yz0J2yQ5/B/Geru5IeDFF84Zqiivh3sNV02YE3jmkr5EZaxbkYdigIYY+f6ZRi/iL/72IPkHD8Z/z5zUvNdE2BhnJM2RbxtJcLClZKers/TdL4uWodISOLrdj6+oK3HqLs46HGj7363m4+hmTWlW4Bv3ce6kH/0WIFvF0qZnz52Ll+grNq9LX4eOq7Wh74424dOkSeo8cKj4ktCa7N1aj1Q03iONaJPEUGX2uSrLz0LpVK80FUoJnzv4CjwBfJczpFTnL4DNwMIexyvGGE/jhp9MsZLfcz6O36l71iN9/qB4hcZG6c+fPzkLwg/7Y+v57mPR8kuj3z8lPITE6Vh7TLImnvcqprRMqqjbJgWgJT46Pwswpz2qZVNjVq1fR5YH+KpwFFqdnwuY/koU4eWp6KjZsqeIwe5XtazagZ7funLse8ZRCDRkTgm9OnuD8JWX4YG+Uzl+C6OREvLNzhwjT2975jo6SC5ol8ZTcJccmYPSUWNDTb9QaI4sde9/DD+LHn39iIU5+aeo0xEVM4DBWmb8yH/llq3X3X9aXlT17uoOS0i4dO7Ew9IgnpyUlq5CxNIfzZxVK8kLjokTI7x8+KM5exJqbL/GU1VMGTotjRBZFW72yDH3cPLjAtZSgmPH45LNDWiYRS4ichBnxibp2yXDk2OdYUVne6Bfpudh4xI+bKO7H0li2NyL+21MnMTgsiHXXlQszFyBw6HDO3mzfeCKe2p5PD8D25CQuKKXSwflWIdlbi9s73KY0cfoc4Q3KE94kvRYWEIzctNl6ZhVOxy46fmm1gZ598Vp+kZZJxoyIJ6cxT8ehbt9e2V9LoGTvYPUOtGnThjM3e+IpmiIhw50hZLpGjRa6cvFyOLZx1HXbdeAjcfvQc6BFPLS5Fq1bt9Zz4fClpUWYnbeQwyQlItiG7OlpkqrZS8STsaHuY5XPus1VSHo5VYWzwJTIGEyP52sdZG8RxFMg9iRW40MfxbyUF8lds12+fBm9An0N9+jirFz4eRtn/9LkK9aWIi3nVUnl+sbuhZx9HnsE//r2uDhOi/iz587Bzd+bm1ep1Ja/hu5d71bCLYf4Xy9cQMjkCThy7JgqSBaY81wKosMiWIiTV29ci+mvZnIYqzziH4C89FdYSFe+VuLZSuIX23ahXdu2qmslzZqJddVvqnAC7u/bD5vytLeuFvPGU6BfHv8avmNHkWjYKhcVwHvAQE0fKnr4jrXpHpVo0OEttbil/c2a41nQiPhxoTZkpeh/6i9fuYKuPgPk6baVrINb93tlXRJq9+zC2KR4SeX63LQMhAVoJ4DXLfEjokbrvr0xoyMw61ntcq09+x6tjrKmza7Y/sMHERKrf2yzZ3+m+YyIDw8KxYLUl9nLcvJOIWkLF5I3qUn/JyRd6ukBGRDqrzrZsBU8yZftM5ctwuLiQhaSZXsST9mZEa65Vk/16HuGDWKm5EX3Hj1QXViuylQlL3v2e/JdPicLDw/3l4Zx/ZbadxGT8tvJgTP8rqQnTkPsY/oPBxVZ0nOzULC2TGs42B8mSocrQjEpIDpc9eBvK10Pt3t6KN2F8/wf9XjJaPRy0PwhsZGGR1d7v2rS9ahvEvH05J4WiidfNXyD7BXLGj2m0FOZMCFaPJ/fcZsLe31Q+dU3YpTqLeCcfleouBEXMR59PTzR/qabOBf6+5eQlqKb7NFbmzgxFnd3uUsed+HiRXFBM/NysbdenYlLjqkJSYgX7l9qFP+JUw34YP9elG5ar/tnko6UtocC4SXE397JSRxOdYMRUeHSVGK/pagCvV3dZIwS15NC3ePol1+gaGMl3ttdJ9u0hLs6dUZSzGR4CX/6ut7Z2a6TTJOI7zliiO4Ca90Yi21YWojB9/2xH5Jte937iJz2NOvWqPzhhrdV1bMT351C8tyXULtnt+54127d0Mmlo5AXNMhZuJYz/SgJGxmMaFs4SGbbvII85KxazkKGMn31aorXyz7sCYAqgZtXlcs2EtijIWewQ7G3ftEk4tkM1o574VzeLChB/16eHEZK8tx0lL1hXM9nB+17fSuUXw/JTvv+srIivLW9RoLs6okEOv4F+gwT30AHBwfNcUbJltYAipfillrNBzuwT7hHat79vfCAF79Vjnoi2vALJM2j1TeWiEpjmkS8NPh67+lTfuBwPfYfrMd3//4ep8/8jDO/nIWjoyM6ODvDWfgV3MnFBZ5Cidiju6tuOfZ6j7Mp99eiiW/KgphljEW8WZhWxGkRr1gQs6gW8WZhWhGnRbxiQcyiWsSbhWlFnBbxigUxi2oRbxamFXFaxCsWxCyqRbxZmFbEaRGvWBCzqBbxZmFaEadFvGJBzKJaxJuFaUWcFvGKBTGLahFvFqYVcVrEKxbELKpFvFmYVsRpEa9YELOo/wcfGIJ94elcmwAAAABJRU5ErkJggg==';
   function escD(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function setBuildD(){try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');}catch(e){}}
+  function setBuildD(){try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');}catch(e){}}
 
   // 1) Use supplied KGM wordmark in the public header; white background blends out naturally.
   var _headerD=header;
@@ -19307,10 +19334,10 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
 // ══ 0809E: partner network / connection / cancel clarity / admin review ══
 (function(){
   window.KGM_BUILD_PATCH='0922B';
-  var BUILD='0927B';
+  var BUILD='0927C';
   var KGM_FLIGHT_LOGO_0809E='data:image/png;base64,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';
   function escE(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function setBuildE(){try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');}catch(e){}}
+  function setBuildE(){try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');}catch(e){}}
 
   // Compatibility for old saved schedule code. 0809D accidentally called runsOn(), while the base function is flyOn().
   window.runsOn=function(f,date){
@@ -19549,7 +19576,7 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
   window.KGM_BUILD_PATCH='0922B';
   var BUILD_F='0809F';
   function escF(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function setBuildF(){try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');}catch(e){}}
+  function setBuildF(){try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');}catch(e){}}
   var _footerF=footer;footer=function(){return _footerF.apply(this,arguments).replace(/0809E|0809D|0809C|0809B|0809A|v081[1-7]-G/g,BUILD_F);};
 
   // ── 1. Refund = cancel the entire PNR, never a single RT segment ───────
@@ -19861,7 +19888,7 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
 // ══ 0809G: Member notifications / miles integrity / closed fleet rotations / ops fixes ══
 (function(){
   window.KGM_BUILD_PATCH='0922B';
-  var BUILD='0927B';
+  var BUILD='0927C';
   function hg(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function ag(v){return hg(v).replace(/`/g,'&#96;');}
   function memberByIdG(id){return (S.users||[]).find(function(u){return u.id===id;});}
@@ -20202,7 +20229,7 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
 
   // ── Post-render cleanup / build badge ─────────────────────────────────────
   function afterG(){
-    try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');}catch(e){}
+    try{var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');}catch(e){}
     // Dedicated miles-review tab is intentionally removed; the panel now lives below Members.
     if(S.adminAuthed)document.querySelectorAll('button').forEach(function(b){var oc=b.getAttribute('onclick')||'';if(oc.indexOf("milesverify")>=0)b.style.display='none';});
     // Nothing about Worker endpoint/email delivery belongs on the booking success confirmation.
@@ -20274,8 +20301,8 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
   .profile-shell0810h .profile-change0815{margin-top:14px}
   @media(max-width:720px){.profile-shell0810h{padding:0 10px;margin-top:12px}.portal-hero0810h{padding:19px;align-items:flex-start;flex-direction:column}.portal-stat0810h{text-align:left}.portal-fields0810h,.portal-settings-grid0810h{grid-template-columns:1fr}.portal-segs0810h>div{grid-template-columns:1fr}.portal-mile-balance0810h{align-items:flex-start;flex-direction:column}.portal-mile-actions0810h{justify-content:flex-start}.portal-mile-log0810h>div:not(.portal-table-head0810h){grid-template-columns:80px 70px 1fr}.portal-mile-log0810h em{grid-column:3}.portal-section-head0810h{flex-direction:column}}
   `;document.head.appendChild(st);
-  var _render0810H=render;render=function(){var r=_render0810H.apply(this,arguments);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},80);return r;};
-  setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},120);
+  var _render0810H=render;render=function(){var r=_render0810H.apply(this,arguments);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},80);return r;};
+  setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},120);
 })();
 
 
@@ -21180,7 +21207,7 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
   function postK(){
     try{
       if(S.view==='upgrade'||S.upgradePick0813||S.upgradeSuccess0813){document.querySelectorAll('button').forEach(function(b){var tx=(b.textContent||'').trim(),oc=b.getAttribute('onclick')||'';if((/購買哩程|Buy Miles/i.test(tx))&&(oc.indexOf('milesTab')>=0||oc.indexOf('openBuyMiles')>=0))b.remove();});}
-      var bb=document.getElementById('kgmBuildBadge');if(bb&&bb.textContent!=='BUILD 0812A')bb.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');
+      var bb=document.getElementById('kgmBuildBadge');if(bb&&bb.textContent!=='BUILD 0812A')bb.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');
     }catch(e){}
   }
   var _renderK=render;render=function(){var r=_renderK.apply(this,arguments);setTimeout(postK,20);return r;};setTimeout(postK,120);
@@ -21451,7 +21478,7 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
     @media(max-width:760px){.miles-input-grid0810l{grid-template-columns:1fr}.eight-sessions0810l{grid-template-columns:1fr}.gr-row0810l{grid-template-columns:1fr}.pc-name-row0810l>div{grid-template-columns:1fr}.ai-first0810l p{grid-template-columns:1fr}}
   `;
   if(!document.getElementById('kgm0810lStyle')){var st=document.createElement('style');st.id='kgm0810lStyle';st.textContent=cssL;document.head.appendChild(st);}
-  function postL(){purgeLegacyMilesChromeL();try{var b=document.getElementById('kgmBuildBadge');if(b&&b.textContent!=='BUILD 0812A')b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');}catch(e){}}
+  function postL(){purgeLegacyMilesChromeL();try{var b=document.getElementById('kgmBuildBadge');if(b&&b.textContent!=='BUILD 0812A')b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');}catch(e){}}
   var _renderL=render;render=function(){var r=_renderL.apply(this,arguments);setTimeout(postL,200);return r;};
 
   // Lightweight boot only. Heavy fleet/counter rebuilds are triggered by their modules, not every page load.
@@ -21709,7 +21736,7 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
     return header()+'<div style="min-height:80vh">'+body+'</div>'+footer()+modal;
   };
   var renderBaseM=render;
-  function forceBuild0810M(){try{var b=document.getElementById('kgmBuildBadge');if(b&&b.textContent!=='BUILD 0812A')b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');}catch(e){}}
+  function forceBuild0810M(){try{var b=document.getElementById('kgmBuildBadge');if(b&&b.textContent!=='BUILD 0812A')b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');}catch(e){}}
   render=function(){var r=renderBaseM.apply(this,arguments);setTimeout(function(){purgeFloatingM();forceBuild0810M();},50);setTimeout(forceBuild0810M,260);return r;};
 
   // Lightweight badge stamping only; no whole-document MutationObserver.
@@ -21815,7 +21842,7 @@ addonsView=function(){var h=_addonsView_before0815.apply(this,arguments);if(!(S.
   // --------------------------------------------------------------------------
   // 1) Build badge + remove the legacy blank Buy Miles / upgrade shell forever.
   // --------------------------------------------------------------------------
-  function stampP(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');}
+  function stampP(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');}
   function purgeLegacyMilesP(){
     try{
       document.querySelectorAll('.buy-miles-shortcut0814,.miles-buy-entry0815,.buymiles-quick0809a,.buy-tag0809b,[class*="miles-float"],[id*="buyMilesFloat"]').forEach(function(x){x.remove();});
@@ -22282,7 +22309,7 @@ window.kgmAudit0810P=function(){
    ======================================================================== */
 (function(){
   'use strict';
-  window.KGM_BUILD_ACCEPTANCE='0927B';
+  window.KGM_BUILD_ACCEPTANCE='0927C';
   var Z=function(){return LANG!=='en';};
   var hq=function(v){return esc(v==null?'':String(v));};
   var aq=function(v){return String(v==null?'':v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' ');};
@@ -22460,7 +22487,7 @@ window.kgmAudit0810P=function(){
 <script>
 (function(){
   'use strict';
-  window.KGM_BUILD_ACCEPTANCE='0927B';
+  window.KGM_BUILD_ACCEPTANCE='0927C';
   var Z=function(){return LANG!=='en';};
   var H=function(v){return typeof esc==='function'?esc(String(v==null?'':v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   var A=function(v){return H(v).replace(/'/g,'&#39;');};
@@ -22801,7 +22828,7 @@ saveR();try{await kgmNotify('member.profile_change_requested',{eventId:'profile:
   @media(max-width:760px){.r2-tier-row,.r2-tier-pay{grid-template-columns:1fr}}
   @media(max-width:760px){.r2-profile-grid,.r2-benefit>div,.r2-pax-grid,.r2-admin-review,.r2-review article>div,.r2-trip .r2-fare,.r2-passenger-line,.r2-baggage{grid-template-columns:1fr}.r2-phone{grid-template-columns:120px 1fr}.r2-profile-grid .wide,.r2-pax-grid .wide{grid-column:auto}.r2-admin-review{display:block}.r2-admin-review>nav{margin-bottom:10px}.r2-ground-task,.r2-segment{grid-template-columns:1fr}.r2-cancel{grid-template-columns:1fr!important}}
   `;document.head.appendChild(css);
-  var renderBaseR=render;render=function(){var x=renderBaseR.apply(this,arguments);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},30);return x;};
+  var renderBaseR=render;render=function(){var x=renderBaseR.apply(this,arguments);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},30);return x;};
 })();
 
 </script>
@@ -23239,8 +23266,8 @@ saveR();try{await kgmNotify('member.profile_change_requested',{eventId:'profile:
   (window.requestIdleCallback||function(fn){setTimeout(fn,1500)})(function(){
     try{refreshDailyPredictionsR4(false)}catch(e){}
   },{timeout:4000});
-  setInterval(function(){refreshDailyPredictionsR4(false);},60000);setTimeout(function(){enforceFleet4(todayISO(),35);var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},2200);
-  var renderR4=render;render=function(){var r=renderR4.apply(this,arguments);setTimeout(function(){document.querySelectorAll('.portal-search-wrap0815').forEach(function(x){x.remove();});var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},20);return r;};
+  setInterval(function(){refreshDailyPredictionsR4(false);},60000);setTimeout(function(){enforceFleet4(todayISO(),35);var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},2200);
+  var renderR4=render;render=function(){var r=renderR4.apply(this,arguments);setTimeout(function(){document.querySelectorAll('.portal-search-wrap0815').forEach(function(x){x.remove();});var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},20);return r;};
   window.kgmAudit0810PR4=function(){var cp=counterPlan4(todayISO(),1),fa=fleetAudit4(),u=S.user&&u4(S.user.id);return {build:R4,checks:{headerSearchRemoved:header().indexOf('portal-search-wrap0815')<0,headerNotification:header().indexOf('r4-notify-head')>=0,transferService:typeof window.transferMilesR4==='function',sourceSeparated:!!u?balance4(u,'self')+balance4(u,'non_self')===ensureLots4(u).reduce(function(n,l){return n+l.amount;},0):true,cabinPhotosRemoved:prepView().indexOf('<img')<0,baggageUSD140:baggage4().indexOf('USD 140')>=0,adminMilesCEO:(ROLE_TABS.ceo||[]).indexOf('milesverify')>=0,adminMilesService:(ROLE_TABS.service||[]).indexOf('milesverify')>=0,adminMilesBackend:(ROLE_TABS.backend||[]).indexOf('milesverify')<0,counterCoverage:cp.assigned===cp.total,counterStaffSixSeven:cp.rows.every(function(r){return r.staff.length===6||r.staff.length===7;}),counterOpenBy150:true,fleetNoDuplicates:fa.duplicates.length===0,fleetChainsComplete:fa.chainBreaks.length===0,a388Resident1A:true,a388FirstFive:true,seatHold20Minutes:true,dailyPrediction:true,tripDetailGated:true,bilingualEmailWorkerRequired:true},counter:cp,fleet:fa};};
 })();
 </script>
@@ -23455,9 +23482,9 @@ saveR();try{await kgmNotify('member.profile_change_requested',{eventId:'profile:
   adminView=adminBeforeA;
 
   /* Build label and strict 12-point audit. */
-  var renderBeforeA=render;render=function(){var r=renderBeforeA.apply(this,arguments);var stampA=function(){document.querySelectorAll('.portal-search-wrap0815').forEach(function(x){x.remove();});var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');};setTimeout(stampA,10);setTimeout(stampA,520);return r;};
+  var renderBeforeA=render;render=function(){var r=renderBeforeA.apply(this,arguments);var stampA=function(){document.querySelectorAll('.portal-search-wrap0815').forEach(function(x){x.remove();});var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');};setTimeout(stampA,10);setTimeout(stampA,520);return r;};
   window.kgmAudit0812A=function(){var korean=allFlights().filter(function(f){return f.fr==='TPE'&&['ICN','GMP','PUS','CJU'].indexOf(f.to)>=0;});var gp=groundPlan(todayISO()),badCode=allFlights().filter(function(f){return f.partner&&!/^KX9\d{3}$/.test(f.code);});var k62=specialRotation('KX50',todayISO()),k82=specialRotation('KX82',todayISO());var ah='';try{ah=String(adminView());}catch(e){}return {build:'0812A',checks:{notificationButton:typeof openNotifications0812A==='function',bookingPdfIcsWorker:true,pnrOnly:myTripView===manageView,mileageTransferHeader:header().indexOf('mileage-transfer-0812a')>=0,adminLegacyMerged:ah.indexOf('p-admin')>=0||ah.indexOf('adm-')>=0||!S.adminAuthed,codesharesKX9xxx:badCode.length===0,flightOpsOrganized:flightOps().indexOf('Complete passenger manifest')>=0||!S.opsCode0812A,groundByDate:gp.rows.every(function(x){return x.staff.length===7;}),koreaT1:korean.every(function(f){return terminal(f)==='T1';}),t1OnlyThree:gp.rows.filter(function(x){return x.term==='T1';}).every(function(x){return +x.counter>=1&&+x.counter<=3;}),closedKX62:k62.legs[0][2]===k62.legs[k62.legs.length-1][3],correctKX81Order:k82.legs.map(function(x){return x[2]+'>'+x[3];}).join('|')==='TPE>ATH|ATH>EWR|EWR>ATH|ATH>TPE',resident1AOnly:true,addonsPerSegment:true,retroContrast:true},evidence:{groundFlights:gp.rows.length,invalidCodeshares:badCode.map(function(x){return x.code;}),actualAircraftChanges:actualChanges()}};};
-  setTimeout(function(){normalizeCodeshares();var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},50);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927B');},3200);
+  setTimeout(function(){normalizeCodeshares();var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},50);setTimeout(function(){var b=document.getElementById('kgmBuildBadge');if(b)b.textContent='BUILD '+(window.KGM_BUILD_0814D||window.KGM_BUILD_0814C||'0927C');},3200);
 })();
 </script>
 <style id="kgm-0812a-r5-style">
@@ -24405,7 +24432,7 @@ var _pay922=Math.max(0,(+pr.total||0)-_off922);return '<main class="r7-shell"><h
 <script id="kgm-0814c-r10">
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){return LANG!=='en'}function e(v){return typeof esc==='function'?esc(v):String(v==null?'':v)}function q(v){return String(v==null?'':v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]/g,' ')}function h(s){var x=2166136261;for(var i=0;i<String(s).length;i++){x^=String(s).charCodeAt(i);x=Math.imul(x,16777619)}return x>>>0}
 window.KGM_BUILD_0814C=BUILD;try{document.title='KGM Airways · '+BUILD}catch(_e){}
 window.doAdminLogout=window.doAdminLogout||function(){S.adminAuthed=false;S.adminUser=null;S.adminTab='status';S.view='home';save();render()};
@@ -24584,7 +24611,7 @@ window.kgmValidation0814C=function(){var d1='2027-03-08',a=sortedFlights('TPE','
    pages, trip layouts, tail-swap list, fleet lookup, Resident cabin.
    Everything not listed above is left exactly as it was.
    ══════════════════════════════════════════════════════════════════ */
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){return typeof LANG!=='undefined'&&LANG!=='en'}
 function E(v){try{return typeof esc==='function'?esc(v):String(v==null?'':v)}catch(_){return String(v==null?'':v)}}
 function Q(v){return String(v==null?'':v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]/g,' ')}
@@ -33553,7 +33580,7 @@ try{console.log('KGM 0816A r37 Sky Couch long-haul only loaded')}catch(_){}
 (function(){
 'use strict';
 function z(){return typeof LANG!=='undefined'&&LANG!=='en'}
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
 function mins(t){var q=String(t||'0:0').split(':');return (+q[0])*60+(+q[1]||0)}
@@ -33773,7 +33800,7 @@ try{console.log('KGM '+BUILD+' r38 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 function z(){return typeof LANG!=='undefined'&&LANG!=='en'}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -34381,7 +34408,7 @@ try{console.log('KGM '+BUILD+' r39 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 /* every legacy badge writer reads these two globals, so retagging them once
    stops the top-right badge flickering back to an older build on each render */
@@ -34882,7 +34909,7 @@ try{console.log('KGM '+BUILD+' r40 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 try{window.KGM_BUILD_0814D=BUILD;window.KGM_BUILD_0814C=BUILD;
     window.KGM_BUILD_0812A=BUILD;window.KGM_BUILD_ACCEPTANCE=BUILD;}catch(_){}
@@ -35325,7 +35352,7 @@ try{console.log('KGM '+BUILD+' r41 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 try{window.KGM_BUILD_0814D=BUILD;window.KGM_BUILD_0814C=BUILD;
     window.KGM_BUILD_0812A=BUILD;window.KGM_BUILD_ACCEPTANCE=BUILD;}catch(_){}
@@ -36017,7 +36044,7 @@ try{console.log('KGM '+BUILD+' r42 ground ops loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 try{window.KGM_BUILD_0814D=BUILD;window.KGM_BUILD_0814C=BUILD;
     window.KGM_BUILD_0812A=BUILD;window.KGM_BUILD_ACCEPTANCE=BUILD;}catch(_){}
@@ -36718,7 +36745,7 @@ try{console.log('KGM '+BUILD+' r43 schedule integrity loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 try{window.KGM_BUILD_0814D=BUILD;window.KGM_BUILD_0814C=BUILD;
     window.KGM_BUILD_0812A=BUILD;window.KGM_BUILD_ACCEPTANCE=BUILD;}catch(_){}
@@ -36922,7 +36949,7 @@ try{console.log('KGM '+BUILD+' r44 perf loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 try{window.KGM_BUILD_0814D=BUILD;window.KGM_BUILD_0814C=BUILD;
     window.KGM_BUILD_0812A=BUILD;window.KGM_BUILD_ACCEPTANCE=BUILD;}catch(_){}
@@ -37831,7 +37858,7 @@ try{console.log('KGM r47 checkout review loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 function z(){return typeof LANG!=='undefined'&&LANG!=='en'}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -38205,7 +38232,7 @@ setTimeout(function(){try{post48();window.kgmSurveyScanR48();console.log('KGM '+
 <script id="kgm-0819e-r49">
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 function z(){return typeof LANG!=='undefined'&&LANG!=='en'}
 function E(v){try{return typeof esc==='function'?esc(String(v==null?'':v)):String(v==null?'':v)}catch(_){return String(v==null?'':v)}}
@@ -38527,7 +38554,7 @@ window.kgmDirectMiles49=function(){var d=S.deskR45||{},b=booking49(d.pnr),amt=+(
 function deskTools49(){return '<section class="r49-desk-tools"><div><h3>'+(z()?'自動帶入請款項目':'Charge presets')+'</h3><div class="r49-inline"><select id="r49ChargeKind" class="inp"><option value="seat">'+(z()?'選位費用':'Seat fee')+'</option><option value="bag">'+(z()?'額外行李（USD 140）':'Extra bag (USD 140)')+'</option><option value="order">'+(z()?'整筆訂單':'Entire order')+'</option></select><select id="r49ChargeScope" class="inp"><option value="oneway">'+(z()?'單趟':'One way')+'</option><option value="roundtrip">'+(z()?'來回':'Round trip')+'</option></select><select id="r49ChargeCur" class="inp"><option>TWD</option><option>USD</option><option>JPY</option><option>EUR</option></select><button class="btn" onclick="kgmChargePreset49()">'+(z()?'帶入':'Apply')+'</button></div><p>'+(z()?'退費案件僅供客服建立；標準案件扣 5% 客服處理費，加急另扣 USD 20。':'Refund cases are created by service staff only. Standard handling deducts 5%; expedited handling also deducts USD 20.')+'</p></div><div><h3>'+(z()?'直接歸還里程':'Return miles now')+'</h3><div class="r49-inline"><input id="r49MilesAmt" class="inp" type="number" min="1" placeholder="Miles"><button class="btn" onclick="kgmDirectMiles49()">'+(z()?'歸還並入帳':'Return now')+'</button></div></div></section>'}
 
 /* ═══ 0819G · repair layer: preserve the established interface ═══ */
-window.KGM_BUILD_LABEL='0927B';
+window.KGM_BUILD_LABEL='0927C';
 try{state().news=state().news.filter(function(n,i,a){return n&&n.id&&a.findIndex(function(x){return x.id===n.id})===i});state().news.forEach(function(n){if(/親愛的會員：[\s\S]*KGM 航空已完成相關系統與作業流程更新/.test(n.body||'')){n.summary='本公告整理適用期間、會員權益、旅客需要完成的步驟與查詢方式。';n.body='重點說明\n'+n.title+'\n\n適用對象與期間\n請依公告日期、航班與會員資格確認適用範圍。\n\n會員需要做什麼\n登入會員中心確認近期旅程與帳戶活動；需要處理的項目會顯示明確期限與服務入口。\n\n通知與查詢方式\n航班、付款、退費及里程異動均以 Email 通知，並保留於會員活動明細。'}});if(state().newsDraft&&/親愛的會員：[\s\S]*KGM 航空已完成相關系統與作業流程更新/.test(state().newsDraft.body||''))state().newsDraft=null;persist()}catch(_){ }
 
 /* Correct physical row plans.  The final exit is behind the final row, never inside it. */
@@ -39023,7 +39050,7 @@ window.kgmApi0819G={
 <script>
 (function(){
 'use strict';
-window.KGM_BUILD_LABEL='0927B';
+window.KGM_BUILD_LABEL='0927C';
 
 /* ------------------------------------------------------------------
    Shared helpers
@@ -39327,7 +39354,7 @@ try{finalPostH()}catch(_){ }
 <script>
 (function(){
 'use strict';
-window.KGM_BUILD_LABEL='0927B';
+window.KGM_BUILD_LABEL='0927C';
 var HAPI=window.kgmApi0819G||{};
 var oldProfile0819H=profileView,oldMiles0819H=milesPageView,oldAdmin0819H=adminView;
 var oldNotif0819H=notifView,oldSorted0819H=sortedFlights,oldSend0819H=window.sendAI||sendAI;
@@ -39538,7 +39565,7 @@ setTimeout(function(){try{post0819H();hs()}catch(e){console.warn(e)}},120);
 <script>
 (function(){
 'use strict';
-window.KGM_BUILD_LABEL='0927B';
+window.KGM_BUILD_LABEL='0927C';
 var IAPI=window.kgmApi0819G||{};
 var DAY_I=86400000;
 function izI(){return typeof LANG==='undefined'||LANG!=='en'}
@@ -40143,7 +40170,7 @@ setTimeout(function(){cleanChatsI();if(S.ai49)S.ai49.open=false;postI();ipI()},1
 <script>
 (function(){
 'use strict';
-window.KGM_BUILD_LABEL='0927B';
+window.KGM_BUILD_LABEL='0927C';
 var JAPI=window.kgmApi0819G||{},QAPI=window.kgmQualityApi0819G||{};
 function ZJ(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function EJ(v){try{return E(v==null?'':v)}catch(_){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]})}}
@@ -40989,7 +41016,7 @@ window.markSkySeatsR29=function(){try{var key=S.seatPhase||'out',f=phaseFlightJ(
 /* Static notifications, no header count; no Admin AI audit or standalone AI. */
 var headerBaseJ=header;header=function(){var h=String(headerBaseJ.apply(this,arguments));h=h.replace(/(<[^>]+(?:notif|通知)[^>]*>)([\s\S]*?)(<\/[^>]+>)/gi,function(_,a,b,c){return a+(ZJ()?'🔔 通知':'🔔 Notifications')+c});h=h.replace(/<[^>]*class="[^"]*(?:badge|count)[^"]*"[^>]*>\s*\d+\s*<\/[^>]+>/gi,'');return h.replace(/animation\s*:[^;"']+;?/gi,'')};
 var footerBaseJ=footer;footer=function(){return String(footerBaseJ.apply(this,arguments)).replace(/0819I/g,'0819J')};
-function postJ(){try{document.title='KGM Airways · 0927B';window.KGM_BUILD_LABEL='0927B';window.KGM_BUILD_0814D='0927B';window.KGM_BUILD_0814C='0927B';window.KGM_BUILD_0812A='0927B';window.KGM_BUILD_ACCEPTANCE='0927B';document.documentElement.setAttribute('data-kgm-build','0927B');document.documentElement.style.overflowX='hidden';document.body.style.overflowX='hidden';/* 0913B：這一行原本把 .kgm-i-menu 從 DOM 整個移除 —— 那正是 AI 客服的開場選單。
+function postJ(){try{document.title='KGM Airways · 0927C';window.KGM_BUILD_LABEL='0927C';window.KGM_BUILD_0814D='0927C';window.KGM_BUILD_0814C='0927C';window.KGM_BUILD_0812A='0927C';window.KGM_BUILD_ACCEPTANCE='0927C';document.documentElement.setAttribute('data-kgm-build','0927C');document.documentElement.style.overflowX='hidden';document.body.style.overflowX='hidden';/* 0913B：這一行原本把 .kgm-i-menu 從 DOM 整個移除 —— 那正是 AI 客服的開場選單。
    0913A 只改了 CSS，這裡照樣刪掉節點，所以開場畫面還是不見。兩邊都要修。
    另外「剩餘座位查詢／Availability」是酬賓與升等的空位查詢入口，使用者要它回來。 */
 document.querySelectorAll('.r49-ai-cover,[data-ai-audit],.h-ai-admin').forEach(function(n){n.remove()});document.querySelectorAll('#app a,#app button,#app li').forEach(function(n){var t=String(n.textContent||'').replace(/\s+/g,' ').trim();if(/^(No AI 對話紀錄|AI 對話紀錄)$/.test(t))n.remove();if(/通知|Notifications/.test(t)){n.style.animation='none';var bd=n.querySelector('.badge,[class*=count]');if(bd)bd.remove()}});var p=document.querySelector('.r29-sky');if(p){p.innerHTML=p.innerHTML.replace(/限 O[／\/]S 艙|O [\/] S class only|O\/S class only/g,ZJ()?'限超值／豪華方案':'Value / Deluxe only').replace(/僅 O 艙與 S 艙可選[^<]*/g,'經濟艙超值或豪華方案可選，並須為長程或紅眼短程航段。')}decorateSkyR29();markSkySeatsR29();var b=document.getElementById('kgmBadgeR48')||document.getElementById('kgmBuildBadge');if(b)b.textContent='KGM 0920C';if(S.ai49)S.ai49.open=false;/* 0927A：每次重畫最後都用舊版 J 畫一次 AI 視窗，開著的時候對話會被換回舊版歡迎頁、Enter 也改送到舊版。啟動器開的是 0819I，這裡改成畫同一個。 */if(typeof window.drawAi0819I==='function')window.drawAi0819I();else drawJ()}catch(e){console.warn('0913B post',e)}}
@@ -41022,7 +41049,7 @@ setTimeout(function(){postJ();saveJ()},160);
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 var STALE_K=/0819[A-K]|0818[A-C]|0817[A-C]|0816[A-F]|0814[A-D]|0812A|0810P/g;
 function ZK(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
@@ -41328,7 +41355,7 @@ try{console.log('KGM '+BUILD+' r51 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E2(v){try{return E(v==null?'':v)}catch(_){return String(v==null?'':v)
@@ -41714,7 +41741,7 @@ try{console.log('KGM '+BUILD+' r52 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 window.KGM_BUILD_LABEL=BUILD;
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 
@@ -42126,7 +42153,7 @@ try{console.log('KGM '+BUILD+' r53 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 
 /* ═══ 1 · 非 EQV 的航班不該每天換機型 ═══════════════════════════════
@@ -42897,7 +42924,7 @@ try{console.log('KGM '+BUILD+' r54 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function H(s){var h=0,k=String(s||'');for(var i=0;i<k.length;i++)h=((h*31)+k.charCodeAt(i))>>>0;return h}
 function E5(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
@@ -43917,7 +43944,7 @@ try{console.log('KGM '+BUILD+' r55 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E6(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -44316,7 +44343,7 @@ try{console.log('KGM '+BUILD+' r56 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E7(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -45066,7 +45093,7 @@ try{console.log('KGM '+BUILD+' r57 loaded')}catch(_){}
    ===================================================================== */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E8(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -45320,7 +45347,7 @@ try{console.log('KGM '+BUILD+' r58 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 
 /* ── 1 · 訂位旅客表單：S.paxList 比畫面上的欄位短時，內嵌的
@@ -46418,7 +46445,7 @@ setTimeout(function(){try{fixMap59()}catch(_){}},1500);
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function A(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]/g,' ')}
@@ -47421,7 +47448,7 @@ try{
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 
@@ -48018,7 +48045,7 @@ try{console.log('KGM '+BUILD+' r61 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
 
 /* ── 1 · acftNameOf 少了日期 ─────────────────────────────────────────
@@ -48148,7 +48175,7 @@ try{console.log('KGM '+BUILD+' r62 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
@@ -48459,7 +48486,7 @@ try{console.log('KGM '+BUILD+' r63 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function A(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]/g,' ')}
@@ -48951,7 +48978,7 @@ try{console.log('KGM '+BUILD+' r64 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function A(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]/g,' ')}
@@ -50101,7 +50128,7 @@ try{console.log('KGM '+BUILD+' r65 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function allF(){try{return [].concat(FLIGHTS,(S.customFlights||[]))}catch(_){return FLIGHTS||[]}}
 function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
@@ -50377,7 +50404,7 @@ try{console.log('KGM '+BUILD+' r66 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function A(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]/g,' ')}
@@ -50879,7 +50906,7 @@ try{console.log('KGM '+BUILD+' r67 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function A(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]/g,' ')}
@@ -51347,7 +51374,7 @@ try{console.log('KGM '+BUILD+' r68 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function A(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]/g,' ')}
@@ -51838,7 +51865,7 @@ try{console.log('KGM '+BUILD+' r69 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
 function allF(){try{return [].concat(FLIGHTS,(S.customFlights||[]))}catch(_){return FLIGHTS||[]}}
@@ -52093,7 +52120,7 @@ try{console.log('KGM '+BUILD+' r70 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function allF(){try{return [].concat(FLIGHTS,(S.customFlights||[]))}catch(_){return FLIGHTS||[]}}
 function dist71(fr,to){try{return +distOf(fr,to)||0}catch(_){return 0}}
@@ -52613,7 +52640,7 @@ try{console.log('KGM '+BUILD+' r71 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
 function D(d,n){try{return addDays(d,n)}catch(_){return d}}
 function allF(){try{return [].concat(FLIGHTS,(S.customFlights||[]))}catch(_){return FLIGHTS||[]}}
@@ -52736,7 +52763,8 @@ function legsOn72(type,date){
   });
   return (LEGC72[k]=out);
 }
-window.kgmClearRotationCacheR72=function(){LEGC72={};DAYC72={};ROT72={};THRU72=null;SEC72=null;flight72.cache={}};
+window.kgmClearRotationCacheR72=function(){LEGC72={};DAYC72={};ROT72={};THRU72=null;SEC72=null;flight72.cache={};
+  try{if(window.kgmMixedPairClearR927C)window.kgmMixedPairClearR927C()}catch(_){}};   /* 0927C：共飛機型配對也要重算 */
 
 /* ── 輪轉產生器 ───────────────────────────────────────────────────
    把窗期（含暖機）所有航段依「實際起飛時刻（UTC 分）」排好，一段一段
@@ -52830,6 +52858,11 @@ window.kgmBuildRotationsR72=function(type,start,days){
       fr:x.f.fr,to:x.f.to,auto:true,r72:1});
   }
   /* 第五航權：這一段是整段的前段 → 直接把後段接出來（同機續飛，不另外派） */
+  /* 0927C：多段班後段原本只看「第一個時間接得上的日子」有沒有飛，沒飛就放棄 ——
+     冬季 KX29 YYZ→YVR 整季都接不到 YVR→TPE。改成往後最多 3 天找第一個「有飛、而且
+     還沒被別天的前段接走」的後段（SECUSE927C 記錄已被接走的後段，一班後段只給一架）。 */
+  var SECUSE927C={};
+  function onDay927C(c,cd){try{return !!flyOn(c,new Date(cd+'T12:00:00'))}catch(_){return true}}
   function nextLegOf(x){
     if(x._nx!==undefined)return x._nx;
     x._nx=null;
@@ -52838,9 +52871,10 @@ window.kgmBuildRotationsR72=function(type,start,days){
     var cands=secList72(x.f.code),sec=null,secK=0,secDep=0,only=null;
     for(var q=0;q<cands.length;q++){
       var raw=cands[q],k0=0,cd=D(w0,x.di),c=window.kgmSeasonFlightR48?window.kgmSeasonFlightR48(raw,cd):raw,baseEpoch=Math.floor(Date.parse(w0+'T00:00:00Z')/60000),dep0=epoch72(cd,c.dep,c.fr)-baseEpoch;
-      while(dep0<x.arrAbs+75&&k0<3){k0++;cd=D(w0,x.di+k0);c=window.kgmSeasonFlightR48?window.kgmSeasonFlightR48(raw,cd):raw;dep0=epoch72(cd,c.dep,c.fr)-baseEpoch}
+      while(k0<3&&(dep0<x.arrAbs+75||!onDay927C(c,cd)||SECUSE927C[raw.code+'|'+raw.fr+'|'+raw.to+'|'+cd])){k0++;cd=D(w0,x.di+k0);c=window.kgmSeasonFlightR48?window.kgmSeasonFlightR48(raw,cd):raw;dep0=epoch72(cd,c.dep,c.fr)-baseEpoch}
       c=Object.assign({},c);c.dur=_fUTC(c,cd,'arr')-_fUTC(c,cd,'dep');
       if(dep0<x.arrAbs+75)continue;
+      if(SECUSE927C[raw.code+'|'+raw.fr+'|'+raw.to+'|'+cd])continue;
       var cd=D(w0,x.di+k0),on=true;
       try{on=flyOn(c,new Date(cd+'T12:00:00'))}catch(_){on=true}
       if(!on)continue;
@@ -52852,6 +52886,7 @@ window.kgmBuildRotationsR72=function(type,start,days){
     /* 找不到同機型的後段就用唯一那一條——第五航權寧可同機續飛，也不要拆機 */
     if(!sec&&only&&cands.length===1){sec=only.c;secK=only.k;secDep=only.dep}
     if(!sec)return null;
+    SECUSE927C[sec.code+'|'+sec.fr+'|'+sec.to+'|'+D(w0,x.di+secK)]=1;   /* 0927C：這班後段已經有前段接走 */
     return (x._nx={f:sec,date:D(w0,x.di+secK),di:x.di+secK,depAbs:secDep,
       arrAbs:secDep+durOn72(sec,D(w0,x.di+secK)),u:0,synthR72:1});
   }
@@ -52959,6 +52994,9 @@ window.kgmBuildRotationsR72=function(type,start,days){
   });
   blocks=blocks.concat(rescueBlocks);
   /* 0927B：B789 在多倫多等 8～10 天、B78X 停在沖繩一整個月的原因。
+     0927C 更正：下面「時刻表進出不平衡」是錯的（那個數字把調機也算進去了，時刻表是每週進 9 班、出 9 班）。
+     真正的原因是共飛航線回程機型各自雜湊（r136 prevLeg927C）與冬季後段接不上（上面 nextLegOf），0927C 已修；
+     這一段切開保留當作最後的保險。以下是 0927B 原文：
      第一輪排班「外站只能由剛飛對號去程的同一架接回」，而時刻表本身進出不平衡
      （例：60 天內 B789 飛進 YYZ 99 班、飛出的營收班只有 77 班），多出來的飛機只能排隊，
      於是一個勤務裡夾著一段好幾天的外站空等，那架飛機整段時間都不能飛別的班。
@@ -53818,7 +53856,7 @@ try{console.log('KGM '+BUILD+' r72 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function allF(){try{return [].concat(FLIGHTS,(S.customFlights||[]))}catch(_){return FLIGHTS||[]}}
 function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
 function sta(a){return (a==='TSA')?'TPE':a}
@@ -53872,7 +53910,8 @@ try{
             if(!(sub&&sub.sub)){
               _busy72=1;
               var t=null;
-              try{t=_ac72.call(this,P.lead,D(date,-P.k))}finally{_busy72=0}
+              /* 0927C：去程問最外層（含所有上限規則）＝實際派出去的那一架；回程跟它一樣 */
+              try{var top72=(typeof window.acftOfFlight==='function')?window.acftOfFlight:_ac72;t=top72.call(this,P.lead,D(date,-P.k),P.to,P.fr)}finally{_busy72=0}
               if(t&&t!=='EQV')return t;
             }
           }
@@ -53896,7 +53935,7 @@ try{console.log('KGM '+BUILD+' r72-B loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function N(n){try{return Number(n||0).toLocaleString()}catch(_){return String(n||0)}}
 function bk73(pnr){
@@ -54049,7 +54088,7 @@ try{console.log('KGM '+BUILD+' r73 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -55306,7 +55345,7 @@ try{console.log('KGM '+BUILD+' r74 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -55496,7 +55535,7 @@ try{console.log('KGM '+BUILD+' r75 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function allF(){try{return [].concat(FLIGHTS,(S.customFlights||[]))}catch(_){return FLIGHTS||[]}}
 var LEG76=null;
 function legType76(code,fr,to){
@@ -55559,7 +55598,7 @@ try{console.log('KGM '+BUILD+' r76 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function allF(){try{return [].concat(FLIGHTS,(S.customFlights||[]))}catch(_){return FLIGHTS||[]}}
 function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
 function num(c){var m=/(\d+)/.exec(String(c||''));return m?+m[1]:-1}
@@ -55782,7 +55821,7 @@ try{console.log('KGM '+BUILD+' r77 loaded, '+LOG77.length+' timetable day fixes'
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -56024,7 +56063,7 @@ try{console.log('KGM '+BUILD+' r78 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function allF(){try{return [].concat(FLIGHTS,(S.customFlights||[]))}catch(_){return FLIGHTS||[]}}
 function num(c){var m=/(\d+)/.exec(String(c||''));return m?+m[1]:-1}
 function hash79(s){var h=2166136261;s=String(s||'');
@@ -56244,7 +56283,7 @@ try{console.log('KGM '+BUILD+' r79 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 
 /* ── ① 選位費用：每一段都用當天實際機型與該段自己的票種 ───────────── */
@@ -56419,7 +56458,7 @@ try{console.log('KGM '+BUILD+' r80 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -56697,7 +56736,7 @@ try{console.log('KGM '+BUILD+' r81 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -57300,7 +57339,7 @@ try{console.log('KGM '+BUILD+' r82 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -57645,7 +57684,7 @@ try{console.log('KGM '+BUILD+' r83 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -58198,7 +58237,7 @@ try{console.log('KGM '+BUILD+' r84 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -58649,7 +58688,7 @@ try{console.log('KGM '+BUILD+' r85 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -59436,7 +59475,7 @@ try{console.log('KGM '+BUILD+' r86 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -59814,7 +59853,7 @@ try{console.log('KGM '+BUILD+' r87 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function allF(){try{return [].concat(FLIGHTS,(S.customFlights||[]))}catch(_){return FLIGHTS||[]}}
 
@@ -60009,7 +60048,7 @@ try{console.log('KGM '+BUILD+' r88 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -60403,7 +60442,7 @@ try{console.log('KGM '+BUILD+' r89 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -60765,7 +60804,7 @@ try{console.log('KGM '+BUILD+' r90 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function N(n){try{return Number(n||0).toLocaleString()}catch(_){return String(n||0)}}
 
@@ -60947,7 +60986,7 @@ try{console.log('KGM '+BUILD+' r91 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -61237,7 +61276,7 @@ try{console.log('KGM '+BUILD+' r92 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 
 /* ── ① 移除上排那顆按鈕，並讓 r84 不再重新插入 ─────────────────── */
@@ -61551,7 +61590,7 @@ try{console.log('KGM '+BUILD+' r93 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -61863,7 +61902,7 @@ try{console.log('KGM '+BUILD+' r94 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 
 /* ── ① 四張卡片各自進到真正的頁面 ─────────────────────────────── */
@@ -62043,7 +62082,7 @@ try{console.log('KGM '+BUILD+' r95 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -62291,7 +62330,7 @@ try{console.log('KGM '+BUILD+' r96 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -62657,7 +62696,7 @@ try{console.log('KGM '+BUILD+' r97 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 
 /* ── 桃園：官方表一 ─────────────────────────────────────────────── */
 /* 每個停機位的最大機型（ICAO 代碼），直接照表 */
@@ -62899,7 +62938,7 @@ try{console.log('KGM '+BUILD+' r98 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -63440,7 +63479,7 @@ try{console.log('KGM '+BUILD+' r99 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 
 /* ── ① 版號徽章鎖定 ─────────────────────────────────────────────── */
@@ -63669,7 +63708,7 @@ try{console.log('KGM '+BUILD+' r100 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 
 /* ── ① 手續費 ─────────────────────────────────────────────────── */
@@ -63787,7 +63826,7 @@ try{console.log('KGM '+BUILD+' r101 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -64092,7 +64131,7 @@ try{console.log('KGM '+BUILD+' r102 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -64319,7 +64358,7 @@ try{console.log('KGM '+BUILD+' r103 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 
 /* ── ① 黑名單按鈕歸位 ─────────────────────────────────────────── */
@@ -64482,7 +64521,7 @@ try{console.log('KGM '+BUILD+' r104 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -64868,7 +64907,7 @@ try{console.log('KGM '+BUILD+' r105 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function mins106(t){var p=String(t||'00:00').split(':');return (+p[0]||0)*60+(+p[1]||0)}
 function clock106(m){m=((m%1440)+1440)%1440;
@@ -65086,7 +65125,7 @@ try{console.log('KGM '+BUILD+' r106 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -65351,7 +65390,7 @@ try{console.log('KGM '+BUILD+' r107 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function h108(s){var h=2166136261;s=String(s||'');
   for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*16777619)>>>0}return h>>>0}
@@ -65538,7 +65577,7 @@ try{console.log('KGM '+BUILD+' r108 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -65805,7 +65844,7 @@ try{console.log('KGM '+BUILD+' r109 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 try{window.KGM_UI_BUILD=BUILD}catch(_){}   /* 右上角與頁尾版號交給 r100 的鎖統一顯示 */
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
@@ -71088,7 +71127,7 @@ try{console.log('KGM 0903B r124 loaded')}catch(_){}
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 "use strict";
-var V='0927B';
+var V='0927C';
 try{window.KGM_UI_BUILD=V}catch(_){}
 try{if(typeof BUILD!=='undefined')BUILD=V}catch(_){}
 
@@ -73703,7 +73742,7 @@ window.kgmAuditR134=function(){
    ============================================================ */
 (function(){
 'use strict';
-var V='0927B';
+var V='0927C';
 try{window.KGM_UI_BUILD=V}catch(_){}
 try{if(typeof BUILD!=='undefined')BUILD=V}catch(_){}
 function fix135(root){
@@ -74071,6 +74110,61 @@ function drop136(){
   return n;
 }
 
+/* 0927C：兩種機型共飛的航線，回程要跟去程同一架飛機。原本回程自己用日期雜湊選機型，
+   去程 B789、回程 A339L 的日子，B789 就被困在外站（一年一千多段調機的主因）。
+   這裡找出「把飛機帶進這一站的那一段」：同航班號的前段優先（KX81 ATH→TPE ← KX81 EWR→ATH），
+   沒有才找對號去程（KX79 ← KX80）；落地＋55 分（最短過站）之後才能接，先到的先飛。
+   台北出發的那一段維持原本的日期雜湊，所以兩種機型仍然各飛一半。 */
+var PAIRC927C={},DEPTH927C=0;
+window.kgmMixedPairClearR927C=function(){PAIRC927C={}};
+function num927C(c){var m=/(\d+)/.exec(String(c||''));return m?+m[1]:-1}
+function day927C(d,k){return new Date(Date.parse(d+'T00:00:00Z')+k*864e5).toISOString().slice(0,10)}
+function prevLeg927C(k,date){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date)))return null;
+  var ck=k+'|'+date;
+  if(Object.prototype.hasOwnProperty.call(PAIRC927C,ck))return PAIRC927C[ck];
+  var res=null;
+  try{
+    var p=k.split('|');
+    var L=p[1]==='TPE'?null:rows(p[0],p[1],p[2])[0];
+    /* 經停整段列（KX49 SYD→TPE）沒有自己的實體航段：跟同一天同號、同起點的第一段（KX49 SYD→BKK）同機型 */
+    if(!L&&p[1]!=='TPE')Object.keys(MIXED136).some(function(q){var r=q.split('|');
+      if(q!==k&&r[0]===p[0]&&r[1]===p[1]&&rows(r[0],r[1],r[2])[0]){res={code:r[0],fr:r[1],to:r[2],date:date};return true}});
+    if(L){
+      var sea=window.kgmSeasonFlightR48||function(f){return f};
+      var n0=num927C(p[0]),same=[],pair=[];
+      Object.keys(MIXED136).forEach(function(q){
+        var r=q.split('|');if(q===k||r[2]!==p[1])return;
+        if(r[0]===p[0])same.push(r);else if(n0>=0&&Math.abs(num927C(r[0])-n0)===1)pair.push(r);
+      });
+      /* 先到先飛（跟排班器的「等最久的先派」一致）：從 14 天前開始模擬這一站的進出，
+         每一班 L 起飛時，派給已落地＋55 分、最早到的那一架。這樣 KX96（二四五日）／KX95（一三五六）
+         這種班期不對稱的航線也是一班配一班，不會兩班回程搶同一架去程。 */
+      var ev=[],cand=same.length?same:pair,Lrow=L;
+      for(var j=14;j>=-1;j--){
+        var d2=day927C(date,-j);
+        cand.forEach(function(r){
+          var P=rows(r[0],r[1],r[2])[0];if(!P)return;
+          var Ps=sea(P,d2),on=true;try{on=flyOn(Ps,new Date(d2+'T12:00:00'))}catch(_){on=true}
+          if(on)ev.push({t:_fUTC(Ps,d2,'arr')+55,a:{code:r[0],fr:r[1],to:r[2],date:d2}});
+        });
+        if(j>=0){var Ls=sea(Lrow,d2),on2=true;try{on2=flyOn(Ls,new Date(d2+'T12:00:00'))}catch(_){on2=true}
+          if(on2||d2===date)ev.push({t:_fUTC(Ls,d2,'dep'),l:d2});}
+      }
+      ev.sort(function(x,y){return x.t-y.t||(x.a?-1:1)-(y.a?-1:1)});
+      var q=[];
+      for(var e=0;e<ev.length;e++){
+        if(ev[e].a){q.push(ev[e].a);continue}
+        var got=q.length?q.shift():null;
+        if(ev[e].l===date){res=got;break}
+      }
+    }
+  }catch(_){res=null}
+  PAIRC927C[ck]=res;
+  return res;
+}
+window.kgmMixedPrevLegR927C=function(code,fr,to,date){return prevLeg927C(code+'|'+fr+'|'+to,date)};
+
 /* ── ④ 機型顯示「A21N/B78X」 ──────────────────────────────
    這四班實際上兩種機型都會派，時刻表的機型欄要寫成 A21N/B78X。
    App 內部仍然要解析成單一機型（座位圖、餐點都靠它），所以只加標籤。 */
@@ -74100,6 +74194,9 @@ function mixed136(){
           if(p[0]===code&&(!fr||p[1]===fr)&&(!to||p[2]===to)){l=MIXED136[k];break}
         }
         if(l.length){
+          /* 0927C：不是從台北出發的那一段，機型＝把飛機帶進這一站的那一段（同號前段優先，其次對號去程） */
+          var pv=DEPTH927C<6?prevLeg927C(k,date):null;
+          if(pv){DEPTH927C++;try{return fn(pv.code,pv.date,pv.fr,pv.to)}finally{DEPTH927C--}}
           var h=0,s=String(code)+'|'+String(date);
           for(var i=0;i<s.length;i++)h=((h*33)^s.charCodeAt(i))>>>0;
           return l[h%l.length];
@@ -74126,6 +74223,12 @@ function icnFixed136(){
     });
   }catch(_){}
   return n;
+}
+/* 0927C：首爾線對號班（偶數去、奇數回：KX104 TPE→ICN ↔ KX103 ICN→TPE） */
+function icnPartner927C(k){
+  var p=String(k||'').split('|'),m=/(\d+)/.exec(p[0]||'');if(!m||p.length<3)return '';
+  var n=+m[1],q=n%2?n+1:n-1;
+  return p[0].replace(/\d+/,String(q))+'|'+p[2]+'|'+p[1];
 }
 function icnCap136(){
   if(window.kgmIcnCapR136)return false;
@@ -74159,7 +74262,11 @@ function icnCap136(){
           if(prev.call(this,p[0],date,p[1],p[2])==='A388'){first=l[i];break}
         }
         /* 一天只留第一班 A388，其餘換成 B779 */
-        if(first&&first!==me)return 'B779';
+        if(first&&first!==me){
+          /* 0927C：「每天最多一架 A388」是一架飛機 —— 同一架飛出去的班和飛回來的對號班（KX104↔KX103）都保留 A388 */
+          if(me===icnPartner927C(first))return r;
+          return 'B779';
+        }
       }
     }catch(_){}
     return r;
@@ -74173,14 +74280,16 @@ window.kgmIcnA388AuditR136=function(days){
   days=days||14;var bad=[],tot=0;
   try{
     for(var i=0;i<days;i++){
-      var d=addDays(todayISO(),i),dt=new Date(d+'T12:00:00'),n=0;
+      var d=addDays(todayISO(),i),dt=new Date(d+'T12:00:00'),n=0,a388=[];
       FLIGHTS.forEach(function(f){
         if(!f||f.via||f.partner)return;
         if(f.fr!=='ICN'&&f.to!=='ICN')return;
         if(!flyOn(f,dt))return;
         tot++;
-        if(acftOfFlight(f.code,d,f.fr,f.to)==='A388')n++;
+        if(acftOfFlight(f.code,d,f.fr,f.to)==='A388')a388.push(f.code+'|'+f.fr+'|'+f.to);
       });
+      /* 0927C：算「架」—— 回程的對號去程也是 A388 就是同一架 */
+      n=a388.filter(function(k){return !(k.split('|')[1]==='ICN'&&a388.indexOf(icnPartner927C(k))>=0)}).length;
       if(n>1)bad.push(d+':'+n);
     }
   }catch(e){return {err:e.message}}
@@ -75505,7 +75614,7 @@ window.kgmAuditR140=function(){
 /* 0906A r142 —— 版號收尾 */
 (function(){
 'use strict';
-var V='0927B';
+var V='0927C';
 try{window.KGM_UI_BUILD=V}catch(_){}
 try{if(typeof BUILD!=='undefined')BUILD=V}catch(_){}
 function fix(root){
@@ -80919,7 +81028,7 @@ window.kgmAuditR160=function(){
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -81830,7 +81939,7 @@ try{console.log('KGM '+BUILD+' r161 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -82054,7 +82163,7 @@ try{console.log('KGM '+BUILD+' r162 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -82257,7 +82366,7 @@ try{console.log('KGM '+BUILD+' r163 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -82576,7 +82685,7 @@ try{console.log('KGM '+BUILD+' r164 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -82811,7 +82920,7 @@ try{console.log('KGM '+BUILD+' r165 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -83012,7 +83121,7 @@ try{console.log('KGM '+BUILD+' r166 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -83431,7 +83540,7 @@ try{console.log('KGM '+BUILD+' r167 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
 function D(d,n){try{return addDays(d,n)}catch(_){var t=new Date(d+'T12:00:00');
@@ -83922,7 +84031,7 @@ try{console.log('KGM '+BUILD+' r168 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -84269,7 +84378,7 @@ try{console.log('KGM '+BUILD+' r169 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -84497,7 +84606,7 @@ try{console.log('KGM '+BUILD+' r170 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -84849,7 +84958,7 @@ try{console.log('KGM '+BUILD+' r171 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -85188,7 +85297,7 @@ try{console.log('KGM '+BUILD+' r172 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -85549,7 +85658,7 @@ try{console.log('KGM '+BUILD+' r173 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -85858,7 +85967,7 @@ try{console.log('KGM '+BUILD+' r174 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
 function hm(v){v=((Math.round(v)%1440)+1440)%1440;
@@ -86147,7 +86256,7 @@ try{console.log('KGM '+BUILD+' r175 loaded')}catch(_){}
    ============================================================ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function z(){try{return LANG!=='en'}catch(_){return true}}
 function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
 function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
@@ -87014,7 +87123,7 @@ window.kgmAuditR179=function(){
    ────────────────────────────────────────────────────────────────────────── */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 var CABINS=[['Economy','經濟艙','Economy'],['Premium','豪華經濟艙','Premium Economy'],
             ['Business','商務艙','Business'],['First','頭等艙','First']];
 window.KGM_STAFF_CABINS_R180=CABINS;
@@ -95782,7 +95891,7 @@ window.kgmAuditR204=function(){
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function T205(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
 function sea205(d){
@@ -95989,7 +96098,7 @@ try{console.log('KGM '+BUILD+' r205 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var V='0927B';
+var V='0927C';
 try{window.KGM_UI_BUILD=V}catch(_){}
 try{if(typeof BUILD!=='undefined')BUILD=V}catch(_){}
 var BASE='KGM Airways';
@@ -96058,7 +96167,7 @@ try{console.log('KGM '+V+' r206 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function N207(n){return Number(n||0).toLocaleString('en-US')}
 function bkOf(x){
@@ -96254,7 +96363,7 @@ try{console.log('KGM '+BUILD+' r207 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E8(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -96571,7 +96680,7 @@ try{console.log('KGM '+BUILD+' r208 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function T209(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
 function D209(d,n){try{return addDays(d,n)}catch(_){return d}}
@@ -96787,7 +96896,7 @@ try{console.log('KGM '+BUILD+' r209 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -96877,6 +96986,84 @@ function chainDhR913(empId,fr,to,date,nextDepUTC){
     acft:'—',type:'—',remark:(typeof z==='function'&&z()?'DH · 組員調位（以旅客身分返回）':'DH · crew positioning'),
     deadhead:true,dhR913:true};
 }
+/* 0927C：休息日出勤（勞基法 §24 II）。週期取週一～週日，週日落在哪個月就算哪個月的薪水。
+   資料＝組員班表（kgmCrewChainR210，組員自己看到的同一份）。
+   · 只讀組員班表已經算好的日子：問更早、還沒算過的日期會讓 kgmCrewPlanR121 把整份快取倒掉重算
+     （實測 7～8 秒，而且未來的班表會跟著重排），所以系統班表起點之前的日子不算，畫面註明起點。
+   · 還沒排到的未來日子，在瀏覽器空檔一小段一小段往後補（跟組員班表分頁同一個方法），
+     只在〈薪資功過〉分頁開著時做，算完重畫一次；380 位組員約 1.5 秒，分段做不鎖畫面。 */
+var RDW927C={stamp:'',m:{},q:[],busy:false};
+function ymEnd927C(ym){var y=+ym.slice(0,4),m=+ym.slice(5,7);return new Date(Date.UTC(y,m,0)).toISOString().slice(0,10)}
+function ymNext927C(ym){var y=+ym.slice(0,4),m=+ym.slice(5,7);return new Date(Date.UTC(y,m,1)).toISOString().slice(0,7)}
+function suns927C(ym){var s=ym+'-01',z=ymEnd927C(ym),out=[];while(new Date(s+'T12:00:00Z').getUTCDay()!==0)s=D(s,1);for(;s<=z;s=D(s,7))out.push(s);return out}
+function stamp927C(){var st='';try{st=window.kgmRosterStampR121?String(window.kgmRosterStampR121()):''}catch(_){}return st}
+function bucket927C(ym){var st=stamp927C();if(RDW927C.stamp!==st){RDW927C.stamp=st;RDW927C.m={};RDW927C.q=[]}return (RDW927C.m[ym]=RDW927C.m[ym]||{})}
+function has927C(d){try{return !!(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(d))}catch(_){return false}}
+function range927C(ym){
+  var su=suns927C(ym);if(!su.length)return null;
+  var from=D(su[0],-6),to=su[su.length-1],a=from;
+  while(a<=to&&!has927C(a))a=D(a,1);
+  var b=a;if(a<=to)while(b<to&&has927C(D(b,1)))b=D(b,1);
+  return {su:su,from:from,to:to,a:a<=to?a:null,b:a<=to?b:null};
+}
+function calc927C(empId,ym){
+  var r=range927C(ym);if(!r)return {ym:ym,restDays:[],holidays:[],from:'',to:''};
+  var res={ym:ym,restDays:[],holidays:[],from:r.from,to:r.to,dataFrom:r.a,dataTo:r.b,pending:!r.a||r.b<r.to};
+  if(!r.a)return res;
+  var n=Math.round((Date.parse(r.b)-Date.parse(r.a))/864e5)+1,by={};
+  (window.kgmCrewChainR210(empId,r.a,n)||[]).forEach(function(x){
+    var L=(x&&x.legs)||[];if(!L.length)return;
+    var rep=Infinity,rel=-Infinity;
+    L.forEach(function(l){var a=+l.reportUTC||((+l.depUTC||0)-60),b=+l.releaseUTC||((+l.arrUTC||0)+30);if(a<rep)rep=a;if(b>rel)rel=b});
+    by[x.date]={h:Math.round(Math.max(0,Math.min(12,(rel-rep)/60))*10)/10,codes:L.map(function(l){return l.code}).join('+')};
+  });
+  r.su.forEach(function(sun){
+    var w=[];for(var i=6;i>=0;i--){var d=D(sun,-i);if(by[d])w.push({date:d,h:by[d].h,codes:by[d].codes})}
+    if(w.length>=6)res.restDays.push(w[5]);     /* 第 6 個執勤日＝休息日出勤 */
+    if(w.length>=7)res.holidays.push(w[6]);     /* 第 7 個執勤日＝例假出勤 */
+  });
+  return res;
+}
+function crew927C(){return (S.staff||[]).filter(function(x){return x&&(x.role==='pilot'||x.role==='cabin')&&x.empId}).map(function(x){return x.empId})}
+function run927C(){
+  if(RDW927C.busy)return;
+  RDW927C.busy=true;
+  var idle=function(f){if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:400});else setTimeout(f,40)};
+  function slice(){
+    if(!(S.view==='admin'&&S.adminTab==='salary')){RDW927C.busy=false;return}   /* 離開〈薪資功過〉就停，回來再接著算 */
+    var st=stamp927C();if(RDW927C.stamp!==st){RDW927C.stamp=st;RDW927C.m={};RDW927C.q=[];RDW927C.busy=false;try{render()}catch(_){}return}
+    if(!RDW927C.q.length){RDW927C.busy=false;try{render()}catch(_){}return}
+    /* 要算的月份最後一個週日，組員班表還沒排到 → 先往後補一小段 */
+    var to='';RDW927C.q.forEach(function(j){var su=suns927C(j[0]);if(su.length&&su[su.length-1]>to)to=su[su.length-1]});
+    try{var cur=window.kgmCrewCursorR121?window.kgmCrewCursorR121():null;
+      if(to&&!has927C(to)&&(!cur||cur<to)){window.kgmCrewStepR121(120,to);idle(slice);return}}catch(_){}
+    var t0=Date.now();
+    while(RDW927C.q.length&&Date.now()-t0<120){
+      var j=RDW927C.q.shift(),b=RDW927C.m[j[0]]=RDW927C.m[j[0]]||{};
+      var tr=((b[j[1]]||{}).tries||0)+1;
+      try{b[j[1]]=calc927C(j[1],j[0])}catch(_){b[j[1]]={ym:j[0],restDays:[],holidays:[],err:1}}
+      b[j[1]].tries=tr;
+    }
+    idle(slice);
+  }
+  idle(slice);
+}
+function want927C(ym,ids){
+  var b=bucket927C(ym),seen={};
+  RDW927C.q.forEach(function(j){seen[j[0]+'|'+j[1]]=1});
+  ids.forEach(function(id){var r=b[id];if((!r||(r.pending&&(r.tries||0)<2))&&!seen[ym+'|'+id])RDW927C.q.push([ym,id])});   /* 算兩次還排不到就不再重排，避免空轉 */
+  if(RDW927C.q.length)run927C();
+}
+window.kgmRestDayWorkR927C=function(empId,ym,now){
+  ym=ym||T().slice(0,7);
+  var b=bucket927C(ym),r=b[empId];
+  if(r&&!r.pending)return r;
+  if(now&&!r){try{r=b[empId]=calc927C(empId,ym)}catch(_){r=null}}   /* 本人：只讀已算好的日子，很快 */
+  if(!r||(r.pending&&(r.tries||0)<2))want927C(ym,now?[empId]:crew927C());
+  return r||{ym:ym,pending:true,restDays:[],holidays:[]};
+};
+window.kgmRestDayNextYmR927C=ymNext927C;
+window.kgmRestDayCalcR927C=calc927C;
 window.kgmCrewChainR210=function(empId,startDate,days){
   var n=Math.max(1,Math.min(366,Number(days)||60)),out=[],staff=(S.staff||[]).find(function(p){return p.empId===empId})||{},home=staff.base||'TPE',at=home;
   window.kgmCrewPlanR121(D(startDate,n-1));
@@ -97238,7 +97425,7 @@ try{console.log('KGM '+BUILD+' r210 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
 function D(d,n){try{return addDays(d,n)}catch(_){return d}}
@@ -97438,7 +97625,7 @@ try{console.log('KGM '+BUILD+' r211 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 var FEE_USD=20;
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
@@ -97771,7 +97958,7 @@ try{console.log('KGM '+BUILD+' r212 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 var AWARD_CHG_FEE_MI=1000;                 /* 整筆一次，不是每航段 */
 window.KGM_AWARD_CHANGE_FEE_MILES_R213=AWARD_CHG_FEE_MI;
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
@@ -97995,7 +98182,7 @@ try{console.log('KGM '+BUILD+' r213 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function PAIRNO(code){
   var n=parseInt(String(code).replace(/\D/g,''),10)||0;
@@ -98105,7 +98292,7 @@ try{console.log('KGM '+BUILD+' r214 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 var ADD=[
   {ev:'booking.name_change_requested',who:'ext',zh:'旅客姓名更改：待付款',en:'Name change requested',
    when:'客服／地勤在票務中心送出姓名更改（USD 20，付款連結隨信寄出）'},
@@ -98175,7 +98362,7 @@ try{console.log('KGM '+BUILD+' r215 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function rows(){
   try{return [].concat(typeof FLIGHTS!=='undefined'?FLIGHTS:[],(S.customFlights||[]))}catch(_){return []}
 }
@@ -98290,7 +98477,7 @@ try{console.log('KGM '+BUILD+' r216 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -98889,7 +99076,7 @@ try{console.log('KGM '+BUILD+' r217 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -99109,7 +99296,7 @@ try{console.log('KGM '+BUILD+' r218 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function main(){return document.querySelector('#app .p-admin-main')||null}
 function tab(){try{return String(S.adminTab||'')}catch(_){return ''}}
@@ -99247,7 +99434,7 @@ try{console.log('KGM '+BUILD+' r219 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 var LAST=0;
 function guard(){var t=Date.now();if(t-LAST<260)return false;LAST=t;return true}
 function onDown(e){
@@ -99357,7 +99544,7 @@ try{console.log('KGM '+BUILD+' r220 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function app(){return document.getElementById('app')}
 function onList(){
@@ -99662,7 +99849,7 @@ try{console.log('KGM '+BUILD+' r221 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function app(){return document.getElementById('app')}
 function onManage(){
@@ -99896,7 +100083,7 @@ try{console.log('KGM '+BUILD+' r222 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 var PREFIX=/^\s*<div class="r6-shell" style="margin-bottom:-10px"><div class="r6-checkpoint">[\s\S]*?<\/div><\/div>/;
 window.KGM_PAYBANNER_STRIPPED_R223=0;
 function strip(h){
@@ -100015,7 +100202,7 @@ try{console.log('KGM '+BUILD+' r223 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function box(){return document.getElementById('k158q')}
 function pop(){var e=box();return e?(e.closest('.k158-pop')||null):null}
@@ -100182,7 +100369,7 @@ try{console.log('KGM '+BUILD+' r224 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -100387,7 +100574,7 @@ try{console.log('KGM '+BUILD+' r225 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function app(){return document.getElementById('app')}
 function onManage(){try{return S.view==='manage'}catch(_){return false}}
@@ -100499,7 +100686,7 @@ try{console.log('KGM '+BUILD+' r226 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -100731,7 +100918,7 @@ try{console.log('KGM '+BUILD+' r227 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function app(){return document.getElementById('app')}
 /* ── ① 關掉 r221 的逐段票價步驟頁 ─────────────────────────────── */
@@ -100925,7 +101112,7 @@ try{console.log('KGM '+BUILD+' r228 loaded')}catch(_){}
    ═════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-var BUILD='0927B';
+var BUILD='0927C';
 function Z(){try{return typeof z==='function'?z():LANG!=='en'}catch(_){return true}}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -103371,6 +103558,90 @@ window.kgmAuditR921C=function(){
   }catch(e){o.err=e.message}
   return o;
 };
+/* ── 0927C：全站動畫（使用者：「可以的話網站加一點動畫，不論是按鈕、滑動等等」） ─────────────
+   · 按鈕：滑過微微浮起＋陰影、按下輕壓（所有規則用 :where()，權重 0，不會蓋掉原本任何樣式）。
+   · 卡片：目的地卡、航班列滑過浮起。
+   · 換頁：主內容淡入；往下滑時，區塊與卡片依序浮現（IntersectionObserver）。
+   · 只有「換頁」才播：同一頁因為背景排班重畫（render）不會重播、也不會閃。
+   · 等待浮現的區塊只設 opacity:0，不留位移，版面量測（重疊、跳站檢查）不受影響；播完就把 class 拿掉。
+   · 系統設定「減少動態效果」時完全不播。 */
+(function(){
+  var CSS927C=
+   '@media (prefers-reduced-motion: no-preference){'
+  +':where(button,.btn,a.btn,[role="button"],.daychip,.ntab,.portal-link0815,.r11-dest,.fl-row){transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .24s ease,transform .18s cubic-bezier(.2,.7,.2,1),opacity .18s ease}'
+  +':where(.btn,.btn-g,.apbig,.r11-cta,.r31-detail-btn,.daychip,.k171-idbtn):hover{transform:translateY(-1px)}'
+  +':where(.btn-g,.apbig,.r11-cta):hover{box-shadow:0 8px 18px -10px rgba(10,46,36,.55)}'
+  +':where(button,.btn,a.btn,[role="button"],.daychip,.ntab):active{transform:translateY(0) scale(.97);transition-duration:.07s}'
+  +':where(.r11-dest):hover{transform:translateY(-5px);box-shadow:0 22px 40px -22px rgba(6,36,28,.6)}'
+  +':where(.fl-row):hover{box-shadow:0 14px 30px -22px rgba(6,36,28,.5)}'
+  +'.kgm-enter927c{animation:kgmFade927c .28s ease both}'
+  +'.kgm-rv927c{opacity:0}'
+  +'.kgm-in927c{animation:kgmRise927c .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--kgm-d927c,0ms)}'
+  +'@keyframes kgmFade927c{from{opacity:0}to{opacity:1}}'
+  +'@keyframes kgmRise927c{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}'
+  +'}';
+  function reduced(){try{return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(_){return false}}
+  function css(){
+    if(document.getElementById('kgm-motion-927c'))return;
+    var st=document.createElement('style');st.id='kgm-motion-927c';st.textContent=CSS927C;
+    (document.head||document.documentElement).appendChild(st);
+  }
+  var LAST='',IO=null,RAF=0;
+  function sig(){try{return [S.view||'',S.view==='admin'?(S.adminTab||''):(S.phase||''),S.view==='admin'?(S.adminAuthed?1:0):''].join('|')}catch(_){return ''}}
+  function done(e){var el=e.currentTarget;if(!el||!el.classList||e.target!==el)return;   /* 裡面元素自己的動畫結束也會冒泡上來，不算 */
+    el.classList.remove('kgm-in927c','kgm-rv927c','kgm-enter927c');el.style.removeProperty('--kgm-d927c');el.removeEventListener('animationend',done)}
+  function play(el,delay){
+    el.classList.remove('kgm-rv927c');
+    if(delay)el.style.setProperty('--kgm-d927c',delay+'ms');
+    el.addEventListener('animationend',done);
+    el.classList.add('kgm-in927c');
+  }
+  function mainOf(app){
+    var m=app.querySelector('.p-admin-main');if(m)return {el:m,admin:true};
+    var k=app.children,seen=false;
+    for(var i=0;i<k.length;i++){if(k[i].tagName==='HEADER'){seen=true;continue}if(seen&&k[i].tagName==='DIV')return {el:k[i],admin:false}}
+    return null;
+  }
+  function run(){
+    RAF=0;
+    var app=document.getElementById('app');if(!app)return;
+    var s=sig();if(s===LAST)return;          /* 同一頁重畫：不重播 */
+    var m=mainOf(app);if(!m||!m.el.children.length)return;   /* 還沒畫出來（載入中）就等下一次 */
+    LAST=s;
+    if(reduced())return;
+    if(IO){try{IO.disconnect()}catch(_){}IO=null}
+    var main=m.el;
+    main.addEventListener('animationend',done);
+    main.classList.add('kgm-enter927c');
+    if(m.admin)return;                        /* 後台資料頁只淡入，不逐塊浮現（資料多，要快） */
+    var cards=[].slice.call(main.querySelectorAll('.r11-dest,.fl-row,.card,.daychip'),0,48);
+    var blocks=[].slice.call(main.children).filter(function(b){return cards.indexOf(b)<0&&!cards.some(function(c){return b.contains(c)})});
+    var list=blocks.concat(cards).filter(function(el){return el.offsetParent!==null&&el.getBoundingClientRect().height>0});
+    var vh=window.innerHeight||800,n=0,wait=[];
+    list.forEach(function(el){
+      var r=el.getBoundingClientRect();
+      if(r.top<vh*0.96)play(el,Math.min(n++*40,280));   /* 畫面內：依序浮現 */
+      else{el.classList.add('kgm-rv927c');wait.push(el)}  /* 畫面外：滑到才浮現 */
+    });
+    if(!wait.length)return;
+    if(typeof IntersectionObserver!=='function'){wait.forEach(function(el){el.classList.remove('kgm-rv927c')});return}
+    var k=0;
+    IO=new IntersectionObserver(function(es){
+      es.forEach(function(e){if(!e.isIntersecting)return;IO.unobserve(e.target);play(e.target,(k++%4)*60)});
+    },{rootMargin:'0px 0px -6% 0px',threshold:0.01});
+    wait.forEach(function(el){IO.observe(el)});
+  }
+  function hook(){
+    var app=document.getElementById('app');if(!app||app.__kgmMotion927c)return !!app;
+    app.__kgmMotion927c=1;
+    css();
+    new MutationObserver(function(){if(!RAF)RAF=requestAnimationFrame(run)}).observe(app,{childList:true});
+    RAF=requestAnimationFrame(run);
+    return true;
+  }
+  if(!hook())document.addEventListener('DOMContentLoaded',hook);
+  window.kgmMotionR927C={sig:sig,last:function(){return LAST}};
+})();
 try{console.log('KGM '+BUILD+' r229 loaded')}catch(_){}
 })();
 

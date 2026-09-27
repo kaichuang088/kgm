@@ -607,11 +607,15 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    S.residenceBidsR83.push({id:'H22C',code:A.f.code,date:A.d,amount:500000,status:'open',placedAt:new Date().toISOString(),userId:u.id});
    S.resMileBidsR161.push({id:'H22M1',kind:'miles',userId:u.id,code:A.f.code,date:A.d,miles:900000,fallback:'refund',status:'open',placedAt:new Date().toISOString()});
    S.resMileBidsR161.push({id:'H22M2',kind:'miles',userId:u.id,code:B.f.code,date:B.d,miles:900000,fallback:'refund',status:'open',placedAt:new Date().toISOString()});
-   kgmAutoSettleAuctionsR923();
+   /* 0927C：後台〈競標管理〉會替 A388 班產生模擬現金出價；B 要測「沒有現金出價」，先把 B 那一班的模擬現金出價暫時拿開，測完放回去 */
+   const stashB=(S.residenceBidsR83||[]).filter(x=>x&&x.code===B.f.code&&x.date===B.d&&!/^H22/.test(x.id));
+   S.residenceBidsR83=S.residenceBidsR83.filter(x=>stashB.indexOf(x)<0);
+   const r0=kgmAutoSettleAuctionsR923();
    const m1=S.resMileBidsR161.find(x=>x.id==='H22M1'),m2=S.resMileBidsR161.find(x=>x.id==='H22M2'),c=S.residenceBidsR83.find(x=>x.id==='H22C');
    const note=(S.notifs||[]).some(n=>n.type==='residence'&&n.title.indexOf(A.f.code)>=0&&/現金出價一律優先/.test(n.message));
-   const out={c:c.status,m1:m1.status,why:m1.lostReasonR927,m2:m2.status,note,biz:kgmResEligR922('A388','B-T'),first:kgmResEligR922('A388','F-X'),prem:kgmResEligR922('A388','P-F')};
-   S.residenceBidsR83=S.residenceBidsR83.filter(x=>!/^H22/.test(x.id));S.resMileBidsR161=S.resMileBidsR161.filter(x=>!/^H22/.test(x.id));
+   const out={c:c.status,m1:m1.status,why:m1.lostReasonR927,m2:m2.status,note,biz:kgmResEligR922('A388','B-T'),first:kgmResEligR922('A388','F-X'),prem:kgmResEligR922('A388','P-F'),
+     A:A.f.code+' '+A.d,B:B.f.code+' '+B.d,m2why:m2.lostReasonR927||'',settled:r0,cashB:(S.residenceBidsR83||[]).filter(x=>x.code===B.f.code&&x.date===B.d).map(x=>x.id+':'+x.status)};
+   S.residenceBidsR83=S.residenceBidsR83.filter(x=>!/^H22/.test(x.id)).concat(stashB);S.resMileBidsR161=S.resMileBidsR161.filter(x=>!/^H22/.test(x.id));
    return out;
  });
  push('H22','Residence：14 天有現金出價即結標並通知里程未得標；沒有現金等 7 天；商務與頭等都可出價',
@@ -661,10 +665,80 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    Object.keys(S.tailAssign).forEach(tl=>{if(_typeOfTail(tl)!=='B78X')return;const has={};(S.tailAssign[tl]||[]).forEach(x=>{if(x&&(x.tsaFixedR830||/TSA/.test((x.fr||'')+(x.to||'')+(x.route||''))))has[x.date]=1});
      for(let i=0;i<60;i++){const d=D(T,i),inWin=(W[tl]||[]).some(w=>d>=w.in&&d<=(w.out||'9999'));if(has[d]&&!inWin)tsaNoPlan++;if(inWin&&!has[d])planNoTsa++}});
    const idle=kgmFleetIdleR922(60);
-   return {nzdt:kgmDurOnR927(f,'2026-10-15'),nzst:kgmDurOnR927(f,'2027-05-10'),tsaNoPlan,planNoTsa,idle7:idle.idle7,worst:idle.worst};
+   /* 0927C：備用登記（B-58911～913 等）不在營運輪轉裡，閒置照實列出，不算營運機的空白 */
+   const RSV=['B-58911','B-58912','B-58913','B-58921','B-58931'];   /* r72 RESERVE72 的備用登記 */
+   const isR=x=>RSV.indexOf(String(x).split(' ')[0])>=0;
+   const opIdle=idle.sample.filter(x=>!isR(x)).length+(idle.idle7>idle.sample.length?idle.idle7-idle.sample.length:0);
+   return {nzdt:kgmDurOnR927(f,'2026-10-15'),nzst:kgmDurOnR927(f,'2027-05-10'),tsaNoPlan,planNoTsa,idle7:idle.idle7,worst:idle.worst,opIdle7:opIdle,reserveIdle:idle.sample.filter(isR)};
  });
- push('H26','機隊：日光節約落地時間正確、松山只有一份計畫、沒有連續空白 7 天的飛機',
-   h26.nzdt===675&&h26.nzst===615&&h26.tsaNoPlan===0&&h26.planNoTsa===0&&h26.idle7===0,JSON.stringify(h26));
+ push('H26','機隊：日光節約落地時間正確、松山只有一份計畫、營運中的飛機沒有連續空白 7 天（備用機閒置照實列出）',
+   h26.nzdt===675&&h26.nzst===615&&h26.tsaNoPlan===0&&h26.planNoTsa===0&&h26.opIdle7===0,JSON.stringify(h26));
+
+ // H27 0927C mixed-type routes: the return leg is the same type as the aircraft that flew in (FIFO, one return per inbound)
+ const h27=await p.evaluate(()=>{
+   const M=window.KGM_MIXED_R136||{},T=todayISO(),D=(d,n)=>{const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
+   let n=0,bad=[],dup=0;const used={};
+   Object.keys(M).forEach(k=>{const [c,fr,to]=k.split('|');if(fr==='TPE')return;const row=[].concat(FLIGHTS).find(f=>f&&f.code===c&&f.fr===fr&&f.to===to&&!f.via);if(!row)return;
+     for(let i=0;i<30;i++){const d=D(T,i);let on=true;try{on=flyOn(kgmSeasonFlightR48(row,d),new Date(d+'T12:00:00'))}catch(_){}if(!on)continue;
+       const pv=kgmMixedPrevLegR927C(c,fr,to,d);if(!pv)continue;n++;
+       const uk=pv.code+'|'+pv.fr+'|'+pv.to+'|'+pv.date+'>'+c;const pk=pv.code+'|'+pv.fr+'|'+pv.to+'|'+pv.date+'|'+c+'|'+fr;if(used[pk])dup++;used[pk]=1;
+       const a=acftOfFlight(c,d,fr,to),b=acftOfFlight(pv.code,pv.date,pv.fr,pv.to);if(a!==b&&bad.length<5)bad.push(d+' '+k+' '+a+' ← '+pv.date+' '+pv.code+' '+b);}});
+   return {checked:n,bad:bad.length,dup,sample:bad};
+ });
+ push('H27','共飛航線（KX80/79、KX16/15、KX82/81、KX96/95、KX50/49）：回程機型＝飛進來那一架，一班配一班',h27.checked>100&&h27.bad===0&&h27.dup===0,JSON.stringify(h27));
+
+ // H28 0927C EQV pairs use the outermost outbound type; ICN "one A388 per day" = one aircraft (outbound + its return)
+ const h28=await p.evaluate(()=>{
+   const P=window.KGM_EQV_PAIRS_R72||{},T=todayISO(),D=(d,n)=>{const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
+   let n=0,bad=[];
+   Object.keys(P).forEach(code=>{const q=P[code];const row=[].concat(FLIGHTS).find(f=>f&&f.code===code&&f.fr===q.fr&&f.to===q.to&&!f.via);const lead=[].concat(FLIGHTS).find(f=>f&&f.code===q.lead&&f.fr===q.to&&f.to===q.fr&&!f.via);if(!row||!lead)return;
+     for(let i=0;i<30;i++){const d=D(T,i);let on=true;try{on=flyOn(row,new Date(d+'T12:00:00'))}catch(_){}if(!on)continue;
+       const ld=D(d,-q.k);const sub=(c,dd)=>Object.keys(S.acftSub||{}).some(k=>k.indexOf(c+'_'+dd)===0);if(sub(code,d)||sub(q.lead,ld))continue;n++;   /* 有換機紀錄（後台或覆蓋補救）的班照紀錄飛，不算配對錯誤 */
+       const a=acftOfFlight(code,d,q.fr,q.to),b=acftOfFlight(q.lead,ld,q.to,q.fr);if(a!==b&&bad.length<6)bad.push(ld+' '+q.lead+' '+b+' → '+d+' '+code+' '+a+' subs:'+Object.keys(S.acftSub||{}).filter(k=>k.indexOf(code+'_'+d)===0||k.indexOf(q.lead+'_'+ld)===0).join(','))}});
+   const icn=kgmIcnA388AuditR136(30);
+   let pairs=0,lone=0,loneS=[];for(let i=0;i<30;i++){const d=D(T,i);[].concat(FLIGHTS).filter(f=>f&&!f.via&&!f.partner&&f.fr==='TPE'&&f.to==='ICN').forEach(f=>{const m=/(\d+)/.exec(f.code);const r='KX'+(+m[1]-1);if(Object.keys(S.acftSub||{}).some(k=>k.indexOf(r+'_'+d)===0||k.indexOf(f.code+'_'+d)===0))return;if(acftOfFlight(f.code,d,'TPE','ICN')==='A388'){if(acftOfFlight(r,d,'ICN','TPE')==='A388')pairs++;else{lone++;loneS.push(d+' '+f.code+'/'+r+' '+acftOfFlight(r,d,'ICN','TPE')+' subs:'+Object.keys(S.acftSub||{}).filter(k=>k.indexOf(r+'_'+d)===0||k.indexOf(f.code+'_'+d)===0).join(','))}}})}
+   return {checked:n,bad:bad.length,sample:bad,icnBad:icn.bad,icnPairs:pairs,icnLone:lone,loneS,pageSec:Math.round(performance.now()/1000)};
+ });
+ push('H28','EQV 去回程用最外層去程機型（含隔天回程）；首爾線每天一架 A388＝去回同一架',h28.checked>300&&h28.bad===0&&h28.icnBad===0&&h28.icnLone===0,JSON.stringify(h28));
+
+ // H29 0927C ferries: positioning (no-pax) legs over the published year are a small residue (0927B: 1,842 + 577 split)
+ const h29=await p.evaluate(()=>{const T=todayISO();let ferry=0,split=0,by={};Object.keys(S.tailAssign).forEach(t=>(S.tailAssign[t]||[]).forEach(x=>{if(!x||x.date<T)return;if(x.splitR927)split++;else if(x.noPax||x.positioningR830){ferry++;const k=_typeOfTail(t)+' '+x.route;by[k]=(by[k]||0)+1}}));
+   const r=kgmAuditRotAllR922(true);return {ferry,split,gap:r.gap,overlap:r.overlap,type:r.type,cover:kgmLiveCoverR135().missing,top:Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,5)}});
+ push('H29','調機：一年不載客調機段數大幅下降（0927B 1,842＋577），排班無空檔跳站、無重疊、覆蓋 100%',h29.ferry+h29.split<300&&h29.gap===0&&h29.overlap===0&&h29.type===0&&h29.cover===0,JSON.stringify(h29));
+
+ // H30 0927C rest-day pay goes straight into salary (Labour Standards Act §24 II; §40 for a 7th day)
+ const h30=await p.evaluate(async()=>{
+   const st=(S.staff||[]).filter(x=>x.role==='cabin'),ym=todayISO().slice(0,7),nx=kgmRestDayNextYmR927C(ym);
+   /* 等下個月的組員班表排好（最多 60 秒，一小段一小段往後補） */
+   const su=(()=>{let s=nx+'-01';const z=new Date(Date.UTC(+nx.slice(0,4),+nx.slice(5,7),0)).toISOString().slice(0,10),o=[];while(new Date(s+'T12:00:00Z').getUTCDay()!==0){const t=new Date(s+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+1);s=t.toISOString().slice(0,10)}for(;s<=z;){o.push(s);const t=new Date(s+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+7);s=t.toISOString().slice(0,10)}return o})();
+   const last=su[su.length-1];let g=0;while(!kgmCrewHasDayR121(last)&&g++<400){kgmCrewStepR121(150,last);await new Promise(r=>setTimeout(r,10))}
+   let checked=0,bad=[],days=0,hol=0;
+   st.slice(0,40).forEach(x=>{const r=kgmRestDayCalcR927C(x.empId,nx);
+     /* 自己重算：同一份組員班表，每週一～週日第 6 個執勤日 */
+     const ch=kgmCrewChainR210(x.empId,r.dataFrom,Math.round((Date.parse(r.dataTo)-Date.parse(r.dataFrom))/864e5)+1)||[];const on={};ch.forEach(c=>{if((c.legs||[]).length)on[c.date]=1});
+     const mine=[];su.forEach(s=>{const w=[];for(let i=6;i>=0;i--){const t=new Date(s+'T12:00:00Z');t.setUTCDate(t.getUTCDate()-i);const d=t.toISOString().slice(0,10);if(on[d])w.push(d)}if(w.length>=6)mine.push(w[5])});
+     checked++;days+=r.restDays.length;hol+=r.holidays.length;
+     if(mine.join()!==r.restDays.map(q=>q.date).join()&&bad.length<3)bad.push(x.empId+' '+mine.join()+' vs '+r.restDays.map(q=>q.date).join());
+     if(r.restDays.some(q=>q.h>12||q.h<0))bad.push(x.empId+' hours');});
+   const s=salaryOf(st[0]);const sum=Math.round(s.base*s.sen*s.perf)+s.bonus+s.adj+s.restPay+s.holidayPay;
+   return {nx,checked,bad:bad.length,sample:bad,restDays:days,holidays:hol,mult10:restMult927C(10),mult2:restMult927C(2),monthlyOk:s.monthly===sum,hasField:'restPay' in s};
+ });
+ push('H30','薪資：休息日出勤加給（勞基法 §24：1⅓／1⅔／2⅔）直接加進本月薪資；與組員班表逐週重算一致',
+   h30.checked===40&&h30.bad===0&&h30.restDays>0&&Math.abs(h30.mult10-18)<1e-9&&Math.abs(h30.mult2-8/3)<1e-9&&h30.monthlyOk&&h30.hasField,JSON.stringify(h30));
+
+ // H31 0927C motion: styles injected (reduced-motion respected), page change animates, same-page re-render does not, nothing left hidden
+ const h31=await p.evaluate(async()=>{
+   const q=s=>document.querySelectorAll(s).length,st=document.getElementById('kgm-motion-927c');
+   S.adminAuthed=false;S.view='home';render();await new Promise(r=>setTimeout(r,1500));
+   const d=new Date(Date.now()+20*864e5).toISOString().slice(0,10);S.view='booking';S.phase='sel_out';S.search=Object.assign(S.search||{},{fr:'TPE',to:'NRT',dep:d,type:'OW',pax:1});render();
+   await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,20)));const onNav=q('.kgm-in927c,.kgm-enter927c');
+   await new Promise(r=>setTimeout(r,1600));const left=q('.kgm-in927c,.kgm-enter927c');
+   render();await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,20)));const onRe=q('.kgm-in927c,.kgm-enter927c,.kgm-rv927c');
+   S.view='home';render();
+   return {style:!!st,reduced:!!(st&&/prefers-reduced-motion: no-preference/.test(st.textContent)),zeroSpec:!!(st&&/:where\(button/.test(st.textContent)),onNav,left,onRe};
+ });
+ push('H31','動畫：換頁才播、同頁重畫不重播、播完不留隱藏；尊重「減少動態效果」；按鈕規則權重 0 不蓋原樣式',
+   h31.style&&h31.reduced&&h31.zeroSpec&&h31.onNav>3&&h31.left===0&&h31.onRe===0,JSON.stringify(h31));
 
  console.log('---SUMMARY---');
  console.log(JSON.stringify({total:out.length,fail:out.filter(x=>!x.ok).map(x=>x.id)}));
