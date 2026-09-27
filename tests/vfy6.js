@@ -549,8 +549,122 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    return {n,total:Object.values(n).reduce((a,b)=>a+b,0),ghosts,missing:cov.missing,expected:cov.expected,gap:rot.gap,overlap:rot.overlap,type:rot.type,idle7:idle.idle7,idleSample:idle.sample};
  });
  push('H19','機隊縮編：A339 維持 28、無幽靈機身、覆蓋率 100%、輪轉乾淨',
-   h19.n.A339L+h19.n.A339R===28&&h19.n.A388===10&&h19.n.B789===30&&h19.n.A359===24&&h19.n.B779===49
+   h19.n.A339L+h19.n.A339R===28&&h19.n.A388===10&&h19.n.B789===30&&h19.n.A359===24&&h19.n.B779===46
    &&h19.ghosts===0&&h19.missing===0&&h19.expected>100000&&h19.gap===0&&h19.overlap===0&&h19.type===0,JSON.stringify(h19));
+
+ // ── 0927B ────────────────────────────────────────────────────────────
+ // H20 staff tickets: 48h lock-in, ID25 = 7.5折, friend class ID50/ID25 only, policy text
+ const h20=await p.evaluate(()=>{
+   const f=[].concat(FLIGHTS).find(x=>x.code==='KX188')||FLIGHTS[0];
+   const a25=stxFareAmount(10000,f,null,{plan:'ID25',pax:1,familyCount:0}),a50=stxFareAmount(10000,f,null,{plan:'ID50',pax:1,familyCount:0});
+   const pol=JSON.stringify(window.KGM_STAFF_POLICY_R913||[]);
+   return {lockH:window.KGM_STAFF_LOCK_H_R927,id25:!!TIX_TYPES.ID25,a25,a50,
+     friendPlans:(window.KGM_FRIEND_PLANS_R927||[]).join(','),hasFriend:kgmStxHasFriendR927({stx:{fam:[{relation:'friend'}]}}),
+     pol48:/48 小時/.test(pol),pol72:/72 小時/.test(pol),polFriend:/同性朋友/.test(pol)};
+ });
+ push('H20','員工票：48 小時定案、ID25 七五折、同性朋友僅 ID50／ID25、管理辦法已更新',
+   h20.lockH===48&&h20.id25&&h20.a25===7500&&h20.a50===5000&&h20.friendPlans==='ID50,ID25'&&h20.hasFriend&&h20.pol48&&!h20.pol72&&h20.polFriend,JSON.stringify(h20));
+
+ // H21 new dependant / friend must be verified by the back office before travelling
+ const h21=await p.evaluate(async()=>{
+   const st=(S.staff||[]).filter(x=>x&&x.role&&x.password&&x.empId&&x.active!==false&&(x.famOnFile||[]).length)[0];
+   const d=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+   st.famOnFile=(st.famOnFile||[]).filter(r=>r.relation!=='friend'&&!r.pendR927);
+   S.promoCode=st.empId;S.stx=null;S.stxConfirmVerified=false;S.staffVerifiedR10=false;
+   S.view='booking';S.phase='sel_out';S.search=Object.assign(S.search||{},{fr:'TPE',to:'NRT',dep:d,type:'OW',pax:1});render();
+   await new Promise(r=>setTimeout(r,900));
+   const set=(id,v)=>{const e=document.getElementById(id);if(e){e.value=v;return true}return false};
+   set('k55FamLast','H21');set('k55FamFirst','FRIEND');set('k55FamRel','friend');set('k55FamDob','1990-01-02');set('k55FamPass','H2100001');
+   kgmStaffAddFamilyK5();await new Promise(r=>setTimeout(r,900));
+   kgmStaffWhoToggleK5('dependent');
+   const pendLocked=[...document.querySelectorAll('.k55-famck[data-pend]')].length===1&&[...document.querySelectorAll('.k55-famck[data-pend]')].every(c=>c.disabled);
+   const pend=kgmFamPendingR927().filter(x=>x.st.empId===st.empId).length;
+   const i=kgmFamPendingR927().filter(x=>x.st.empId===st.empId)[0].i;
+   kgmFamReviewR927(st.empId,i,true);
+   const after=kgmFamPendingR927().filter(x=>x.st.empId===st.empId).length;
+   const fi=st.famOnFile.findIndex(r=>r.relation==='friend');
+   S.view='booking';S.phase='sel_out';S.stx=null;render();await new Promise(r=>setTimeout(r,900));
+   set('k55EmpId',st.empId);set('k55EmpPw',st.password);set('k55Plan','ID90');set('k55Who','dependent');kgmStaffWhoToggleK5('dependent');
+   document.querySelectorAll('.k55-famck').forEach(c=>{c.checked=(+c.getAttribute('data-i')===fi)});
+   set('k169fr','TPE');set('k169to','NRT');set('k169dep',d);
+   kgmStaffGateVerifyK5();const id90=S.stx?S.stx.plan:null;
+   set('k55Plan','ID25');document.querySelectorAll('.k55-famck').forEach(c=>{c.checked=(+c.getAttribute('data-i')===fi)});
+   kgmStaffGateVerifyK5();const id25=S.stx?S.stx.plan:null;
+   st.famOnFile=st.famOnFile.filter(r=>r.relation!=='friend');S.stx=null;S.promoCode='';S.view='home';render();
+   return {pendLocked,pend,after,id90,id25};
+ });
+ push('H21','新登記眷屬／同性朋友須後台核對才可同行；朋友同行擋 ID90、放行 ID25',
+   h21.pendLocked&&h21.pend===1&&h21.after===0&&h21.id90===null&&h21.id25==='ID25',JSON.stringify(h21));
+
+ // H22 Residence: cash bid present -> settle at 14 days and notify miles bidders; no cash -> wait for 7 days; Business and First may bid
+ const h22=await p.evaluate(()=>{
+   const dAt=n=>new Date(Date.now()+n*86400000).toISOString().slice(0,10);
+   const all=[].concat(FLIGHTS,S.customFlights||[]).filter(f=>f&&!f.via);
+   function a388On(n){const d=dAt(n);for(const f of all){try{if(acftOfFlight(f.code,d)==='A388'&&(typeof flightOperatesOn!=='function'||flightOperatesOn(f,new Date(d+'T12:00:00'))))return {f,d}}catch(_){}}return null}
+   const A=a388On(12),B=a388On(10);if(!A||!B)return {err:'no A388'};
+   const u=S.users[0];
+   S.residenceBidsR83=(S.residenceBidsR83||[]).filter(x=>!/^H22/.test(x.id));S.resMileBidsR161=(S.resMileBidsR161||[]).filter(x=>!/^H22/.test(x.id));
+   S.residenceBidsR83.push({id:'H22C',code:A.f.code,date:A.d,amount:500000,status:'open',placedAt:new Date().toISOString(),userId:u.id});
+   S.resMileBidsR161.push({id:'H22M1',kind:'miles',userId:u.id,code:A.f.code,date:A.d,miles:900000,fallback:'refund',status:'open',placedAt:new Date().toISOString()});
+   S.resMileBidsR161.push({id:'H22M2',kind:'miles',userId:u.id,code:B.f.code,date:B.d,miles:900000,fallback:'refund',status:'open',placedAt:new Date().toISOString()});
+   kgmAutoSettleAuctionsR923();
+   const m1=S.resMileBidsR161.find(x=>x.id==='H22M1'),m2=S.resMileBidsR161.find(x=>x.id==='H22M2'),c=S.residenceBidsR83.find(x=>x.id==='H22C');
+   const note=(S.notifs||[]).some(n=>n.type==='residence'&&n.title.indexOf(A.f.code)>=0&&/現金出價一律優先/.test(n.message));
+   const out={c:c.status,m1:m1.status,why:m1.lostReasonR927,m2:m2.status,note,biz:kgmResEligR922('A388','B-T'),first:kgmResEligR922('A388','F-X'),prem:kgmResEligR922('A388','P-F')};
+   S.residenceBidsR83=S.residenceBidsR83.filter(x=>!/^H22/.test(x.id));S.resMileBidsR161=S.resMileBidsR161.filter(x=>!/^H22/.test(x.id));
+   return out;
+ });
+ push('H22','Residence：14 天有現金出價即結標並通知里程未得標；沒有現金等 7 天；商務與頭等都可出價',
+   h22.c==='won'&&h22.m1==='lost'&&h22.why==='cash_priority'&&h22.m2==='open'&&h22.note&&h22.biz&&h22.first&&!h22.prem,JSON.stringify(h22));
+
+ // H23 check-in counters: every counter 2–3 flights when the slot has more than one; no duplicate counter numbers; A388 rule kept
+ const h23=await p.evaluate(()=>{
+   let single=0,dup=0,a388=0,tot=0;
+   for(const ap of ['TPE','TSA'])for(let d=0;d<3;d++){const date=new Date(Date.now()+d*86400000).toISOString().slice(0,10);
+     for(let s=0;s<8;s++){const o=window.kgmCounterAllocR74(ap,date,s),rows=(o&&o.rows)||[],byT={},seen={};
+       rows.forEach(r=>{byT[r.term]=(byT[r.term]||0)+(r.flights||[]).length});
+       rows.forEach(r=>{const fl=r.flights||[],k=r.term+'#'+r.counter;tot++;if(seen[k])dup++;seen[k]=1;
+         if(fl.length===1&&byT[r.term]>1)single++;if(fl.length>3)single++;
+         const big=fl.filter(f=>/A388/.test(f.type||'')).length;if(big>=2||(big&&fl.length>2))a388++})}}
+   return {tot,single,dup,a388};
+ });
+ push('H23','報到櫃檯：每櫃 2–3 班（該時段只有一班除外）、櫃號不重複、A388 規則照舊',h23.tot>50&&h23.single===0&&h23.dup===0&&h23.a388===0,JSON.stringify(h23));
+
+ // H24 crew: cabin crew = CAA minimum ceil(seats/50) + 1–2; rest per CAA (30 h in any 7 days, rest after FDP)
+ const h24=await p.evaluate(()=>{
+   const c=t=>kgmCabinCrewR927(t);
+   const T=todayISO(),crew=(S.staff||[]).filter(x=>x&&x.active!==false&&(x.role==='cabin'||x.role==='pilot')).slice(0,40);
+   let restBad=0,winBad=0,people=0,maxRun=0;
+   crew.forEach(p=>{let ch=null;try{ch=kgmCrewChainR210(p.empId,T,21)}catch(_){return}if(!ch)return;people++;const ds=[];let run=0;
+     ch.forEach(day=>{const op=(day.legs||[]).filter(l=>!(l.dhR913||l.deadhead)&&isFinite(+l.depUTC));if(!op.length){run=0;return}run++;maxRun=Math.max(maxRun,run);op.sort((a,b)=>a.depUTC-b.depUTC);ds.push({rep:op[0].depUTC-60,rel:op[op.length-1].arrUTC+30})});
+     for(let i=1;i<ds.length;i++){const fdp=ds[i-1].rel-ds[i-1].rep,need=fdp<=480?540:fdp<=720?720:fdp<=960?1200:1440;if(ds[i].rep-ds[i-1].rel<need)restBad++}
+     const t0=Date.parse(T+'T00:00:00+08:00')/60000;
+     ds.forEach(x=>{const end=x.rel,from=end-10080;if(from<t0)return;let cur=from,best=0;ds.forEach(y=>{if(y.rel<=from||y.rep>end)return;best=Math.max(best,y.rep-cur);cur=Math.max(cur,y.rel)});if(Math.max(best,end-cur)<1800)winBad++})});
+   return {A388:c('A388').crew,A388legal:c('A388').legal,B779:c('B779').crew,A21N:c('A21N').crew,min:_cabinMin('B789'),people,restBad,winBad,maxRun};
+ });
+ push('H24','組員：客艙人數＝民航局下限＋1～2 位；休息符合民航局規定（任 7 日連續 30 小時、執勤後休息）',
+   h24.A388===13&&h24.A388legal===11&&h24.B779===10&&h24.A21N===6&&h24.min===8&&h24.people>=30&&h24.restBad===0&&h24.winBad===0&&h24.maxRun<=6,JSON.stringify(h24));
+
+ // H25 UKB: KX160/KX159 on the A21X special are compliant and not reported as type changes
+ const h25=await p.evaluate(()=>{
+   let d=null;for(let i=0;i<7&&!d;i++){const x=new Date(Date.now()+i*86400000).toISOString().slice(0,10);const f=[].concat(FLIGHTS).find(q=>q.code==='KX160');const op=(()=>{try{return typeof flightOperatesOn==='function'?flightOperatesOn(f,new Date(x+'T12:00:00')):true}catch(_){return true}})();if(f&&op)d=x}
+   const ch=[];for(let i=0;i<7;i++){const x=new Date(Date.now()+i*86400000).toISOString().slice(0,10);(kgmActualAircraftChangesR6(x)||[]).forEach(c=>{if(/UKB/.test(c.route))ch.push(x+' '+c.code)})}
+   return {d,kx160:acftOfFlight('KX160',d),kx158:acftOfFlight('KX158',d),ukbChanges:ch.length};
+ });
+ push('H25','UKB：KX160／KX159 用 A21X 特別版算符合，不列為機型異動',h25.kx160==='A21X'&&h25.kx158==='A21N'&&h25.ukbChanges===0,JSON.stringify(h25));
+
+ // H26 fleet: DST-correct arrival (KX55 in NZDT), one TSA plan (legs match windows), no ≥7-day blank tails
+ const h26=await p.evaluate(()=>{
+   const f=[].concat(FLIGHTS).find(x=>x.code==='KX55');
+   const T=todayISO(),D=(d,n)=>{const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
+   let tsaNoPlan=0,planNoTsa=0;const W=S.tsaWindowsR913||{};
+   Object.keys(S.tailAssign).forEach(tl=>{if(_typeOfTail(tl)!=='B78X')return;const has={};(S.tailAssign[tl]||[]).forEach(x=>{if(x&&(x.tsaFixedR830||/TSA/.test((x.fr||'')+(x.to||'')+(x.route||''))))has[x.date]=1});
+     for(let i=0;i<60;i++){const d=D(T,i),inWin=(W[tl]||[]).some(w=>d>=w.in&&d<=(w.out||'9999'));if(has[d]&&!inWin)tsaNoPlan++;if(inWin&&!has[d])planNoTsa++}});
+   const idle=kgmFleetIdleR922(60);
+   return {nzdt:kgmDurOnR927(f,'2026-10-15'),nzst:kgmDurOnR927(f,'2027-05-10'),tsaNoPlan,planNoTsa,idle7:idle.idle7,worst:idle.worst};
+ });
+ push('H26','機隊：日光節約落地時間正確、松山只有一份計畫、沒有連續空白 7 天的飛機',
+   h26.nzdt===675&&h26.nzst===615&&h26.tsaNoPlan===0&&h26.planNoTsa===0&&h26.idle7===0,JSON.stringify(h26));
 
  console.log('---SUMMARY---');
  console.log(JSON.stringify({total:out.length,fail:out.filter(x=>!x.ok).map(x=>x.id)}));

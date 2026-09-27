@@ -1,7 +1,7 @@
 # KGM Airways — 專案規則（給 Claude Code）
 
 KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一個自包含的 HTML 檔**（約 8.4 MB）。
-版號由使用者指定（目前是 0927A，下一版由使用者命名）。
+版號由使用者指定（目前是 0927B，下一版由使用者命名）。
 
 ## 使用者的固定要求（逐字，一律遵守）
 
@@ -38,17 +38,17 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/0927A/.test(t)` 改成新版號
-4. `node vfy1.js`（24 項）、`vfy2`（8）、`vfy3`（8）、`vfy4`（8）、`vfy5`（6）、`vfy6`（38）全部 PASS
-5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_0927A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
+3. 版號更新（見下），並把 `vfy1.js` 的 `/0927B/.test(t)` 改成新版號
+4. `node vfy1.js`（24 項）、`vfy2`（8）、`vfy3`（8）、`vfy4`（8）、`vfy5`（6）、`vfy6`（45）全部 PASS
+5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_0927B.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 78 裡大部分只是回傳診斷物件、不是失敗；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
 7. `node t_sched922.js`（組員班表延遲）、`node t_admlag.js`（後台 27 個分頁逐頁量）
 8. 不要同時平行跑多支測試（CPU 搶資源會讓效能門檻誤判）
 9. 量機隊輪轉要等背景重建跑完（至少 110 秒，`W=110000 node t_fl1.js`）；太早量會抓到重建到一半的狀態、誤報重疊
 
-## 版號更新位置（目前 0927A → 新版號，用 regex 精準替換，不要全域取代）
+## 版號更新位置（目前 0927B → 新版號，用 regex 精準替換，不要全域取代）
 
-`||'0927A')` ×29、`var BUILD='0927A'` ×118、`var V='0927A';` ×4、`KGM_BUILD_*='0927A'` ×12、
-`'data-kgm-build','0927A')` ×1、`· 0927A</title>` ×1、`· 0927A'`（document.title）×1，合計 166 處。
+`||'0927B')` ×29、`var BUILD='0927B'` ×118、`var V='0927B';` ×4、`KGM_BUILD_*='0927B'` ×12、
+`'data-kgm-build','0927B')` ×1、`· 0927B</title>` ×1、`· 0927B'`（document.title）×1，合計 166 處（`patches/0927B/p_ver.js`、`p_ver2.js` 是現成的替換腳本）。
 其他出現的舊版號都是歷史註解，**不要動**。
