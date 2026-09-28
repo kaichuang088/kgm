@@ -14,3 +14,4 @@ RL('r160 keep admin acft','kgm-0905b-r160',
 R('season save marks admin acft',
 "    o[sea]={dep:dep,arr:arr,dd:dd,acft:acft,days:dayVal};",
 "    o[sea]={dep:dep,arr:arr,dd:dd,acft:acft,days:dayVal,acftUserR928:1};   /* 0928B：標記為管理端親自選的機型，r160 不再改回基準列 */",1);
+RL('r160 audit admin acft','kgm-0905b-r160',"if(v[s]&&v[s].acft&&v[s].acft!==f.acft)bad.push(K(f)+' '+s+' '+v[s].acft+'≠'+f.acft);","if(v[s]&&(v[s].acftUserR928||(v.userR928B&&s==='winter')))return;   /* 0928B：與同步規則一致——管理端親自選的季節機型（KX240／239 冬季 EQV）不算不一致 */\n          if(v[s]&&v[s].acft&&v[s].acft!==f.acft)bad.push(K(f)+' '+s+' '+v[s].acft+'≠'+f.acft);",1);

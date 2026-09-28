@@ -41,6 +41,7 @@ RL('staff manage lock','kgm-0909E-r229',
 +"  function wrap(name,allow){\n"
 +"    var f=window[name];if(typeof f!=='function'||f.__stx928)return;\n"
 +"    var w=function(pnr,seg,kind){var b=bkOf(pnr);if(window.kgmIsStaffBkR928(b)&&!allow(kind)){deny();return}return f.apply(this,arguments)};\n"
++"    try{Object.keys(f).forEach(function(k){if(!(k in w))w[k]=f[k]})}catch(_){}   /* 0928B：前面各層掛的標記（__r213 等）一起帶上，稽核才認得 */\n"
 +"    w.__stx928=1;window[name]=w;try{if(name==='tripSvcR25')tripSvcR25=w}catch(_){}\n"
 +"  }\n"
 +"  function install(){\n"
