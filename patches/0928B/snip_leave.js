@@ -1,0 +1,44 @@
+  /* 0928B：請假申請表正式化＋可附多張證明照片（使用者：「後台請假申請系統不正式，也要可以放上>1張照片」） */
+  (function(){
+    function Z(){try{return LANG!=='en'}catch(_){return true}}
+    function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+    function dr(){return (window.__lvDraft928=window.__lvDraft928||{photos:[]})}
+    window.kgmLeavePickR928=function(inp){
+      var files=[].slice.call((inp&&inp.files)||[]),d=dr(),left=6-d.photos.length;if(!files.length)return;
+      if(left<=0){alert(Z()?'最多 6 張。':'Up to 6 photos.');return}
+      files.slice(0,left).forEach(function(f){if(!/^image\//.test(f.type)){alert((Z()?'只接受圖片檔：':'Images only: ')+f.name);return}
+        var rd=new FileReader();rd.onload=function(){var img=new Image();img.onload=function(){var m=1200,k=Math.min(1,m/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);d.photos.push({name:f.name,src:c.toDataURL('image/jpeg',.72)});try{render()}catch(_){}};img.src=rd.result};rd.readAsDataURL(f)});
+      try{inp.value=''}catch(_){}
+    };
+    window.kgmLeaveDropR928=function(i){dr().photos.splice(i,1);try{render()}catch(_){}};
+    window.kgmPhotoShowR928=function(src,name){var o=document.createElement('div');o.className='k928-rb-view';o.onclick=function(){o.remove()};o.innerHTML='<img src="'+src+'" alt=""><span>'+E(name||'')+'　'+(Z()?'點一下關閉':'Click to close')+'</span>';document.body.appendChild(o)};
+    window.kgmLeaveShowR928=function(i,j){var l=(S.leave||[])[i],p=l&&l.photos&&l.photos[j];if(p)window.kgmPhotoShowR928(p.src,p.name)};
+    window.kgmLeaveDraftShowR928=function(j){var p=dr().photos[j];if(p)window.kgmPhotoShowR928(p.src,p.name)};
+    window.kgmLeaveDaysR928=function(){var a=S._lvStart||todayISO(),b=S._lvEnd||a;if(b<a)return 0;return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/864e5)+1};
+    window.kgmLeaveFormR928=function(){
+      var d=dr(),T=[["annual","特休"],["sick","病假"],["personal","事假"],["menstrual","生理假"]],me=S.adminUser||{},n=window.kgmLeaveDaysR928();
+      return '<div class="adm-card k928-lv"><div class="k928-lv-h"><b>'+(Z()?'請假申請書':'Leave application')+'</b><small>'+(Z()?'送出後產生案件編號，由 CEO 審核；核准後組員班表自動重排並通知。':'A case number is issued; the CEO reviews it.')+'</small></div>'
+        +'<div class="k928-lv-g">'
+        +'<label>'+(Z()?'申請人':'Applicant')+'<input class="inp" value="'+E(me.name?me.name+'（'+me.empId+'）':'')+'" disabled></label>'
+        +'<label>'+(Z()?'假別':'Type')+'<select class="inp" onchange="S._lvType=this.value">'+T.map(function(t){return '<option value="'+t[0]+'"'+((S._lvType||'annual')===t[0]?' selected':'')+'>'+t[1]+'</option>'}).join('')+'</select></label>'
+        +'<label>'+(Z()?'開始日期':'From')+'<input type="date" class="inp" value="'+E(S._lvStart||todayISO())+'" onchange="S._lvStart=this.value;render()"></label>'
+        +'<label>'+(Z()?'結束日期':'To')+'<input type="date" class="inp" value="'+E(S._lvEnd||S._lvStart||todayISO())+'" onchange="S._lvEnd=this.value;render()"></label>'
+        +'<label>'+(Z()?'天數':'Days')+'<input class="inp" value="'+(n>0?n+(Z()?' 天':' days'):(Z()?'日期有誤':'Invalid'))+'" disabled></label>'
+        +'<label>'+(Z()?'職務代理人（選填）':'Deputy (optional)')+'<input class="inp" placeholder="K60012" value="'+E(S._lvProxy||'')+'" oninput="S._lvProxy=this.value.toUpperCase().trim()"></label>'
+        +'<label class="wide">'+(Z()?'事由（必填）':'Reason (required)')+'<textarea class="inp" rows="2" oninput="S._lvReason=this.value">'+E(S._lvReason||'')+'</textarea></label>'
+        +'<label class="wide">'+(Z()?'證明文件照片（診斷證明、喜帖、公文等，可多張，最多 6 張；病假 3 天以上請附）':'Supporting photos (up to 6)')+'<input type="file" accept="image/*" multiple onchange="kgmLeavePickR928(this)"></label>'
+        +(d.photos.length?'<div class="wide k928-rb-th">'+d.photos.map(function(p,i){return '<span><button type="button" onclick="kgmLeaveDraftShowR928('+i+')"><img src="'+p.src+'" alt=""></button><i onclick="kgmLeaveDropR928('+i+')">×</i></span>'}).join('')+'</div>':'')
+        +'</div><div class="k928-lv-go"><button class="btn btn-g" onclick="doFileLeave2()">'+(Z()?'送出請假申請':'Submit')+'</button>'+(S._lvMsg?'<span class="chip chip-ok">'+E(S._lvMsg)+'</span>':'')+'</div></div>';
+    };
+    window.kgmLeavePhotosR928=function(i){var l=(S.leave||[])[i];if(!l)return '';var ph=l.photos||[];
+      return (l.proxy?'<div style="font-size:11.5px;color:#556;margin-top:5px">'+(Z()?'職務代理人：':'Deputy: ')+'<b>'+E(l.proxy)+'</b></div>':'')
+        +(ph.length?'<div class="k928-rb-th" style="margin:6px 0 0">'+ph.map(function(p,j){return '<button type="button" title="'+E(p.name)+'" onclick="kgmLeaveShowR928('+i+','+j+')"><img src="'+p.src+'" alt=""></button>'}).join('')+'<small style="align-self:center;color:#889;font-size:11px">'+ph.length+(Z()?' 張證明':' photos')+'</small></div>':'');};
+    try{if(!document.getElementById('k928-lv-css')){var cs=document.createElement('style');cs.id='k928-lv-css';cs.textContent=
+      '.k928-lv-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}.k928-lv-h b{font-size:14px;color:var(--g)}.k928-lv-h small{font-size:11px;color:#889}'
+      +'.k928-lv-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.k928-lv-g label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:#5e6a64}.k928-lv-g .wide{grid-column:1/-1}.k928-lv-g textarea{resize:vertical;min-height:56px}'
+      +'.k928-lv-go{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}'
+      +'.k928-rb-th{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.k928-rb-th span{position:relative}.k928-rb-th button{border:1px solid #dcd6c8;border-radius:8px;padding:0;background:#fff;cursor:zoom-in;overflow:hidden;width:72px;height:72px}.k928-rb-th img{width:100%;height:100%;object-fit:cover;display:block}'
+      +'.k928-rb-th i{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#b4472f;color:#fff;font-style:normal;font-size:12px;line-height:18px;text-align:center;cursor:pointer}'
+      +'.k928-rb-view{position:fixed;inset:0;z-index:99999;background:rgba(10,20,16,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:zoom-out}.k928-rb-view img{max-width:92vw;max-height:84vh;border-radius:10px}.k928-rb-view span{color:#fff;font-size:12px}'
+      +'@media(max-width:760px){.k928-lv-g{grid-template-columns:1fr}}';document.head.appendChild(cs)}}catch(_){}
+  })();
