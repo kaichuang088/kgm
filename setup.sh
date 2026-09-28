@@ -5,8 +5,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p /tmp/j
 cp "$HERE"/tests/*.js /tmp/j/
 cp "$HERE"/baselines/*.out /tmp/j/
-# 工作檔：預設用已驗證的 0928A；也可以傳入其他 HTML 路徑
-SRC="${1:-$HERE/build/KGM_Airways_0928A.html}"
+# 工作檔：預設用已驗證的 0928B；也可以傳入其他 HTML 路徑
+SRC="${1:-$HERE/build/KGM_Airways_0928B.html}"
 cp "$SRC" /tmp/j/kgm.html
 cd /tmp/j
 node -e "require.resolve('playwright')" >/dev/null 2>&1 || { [ -f package.json ] || npm init -y >/dev/null 2>&1; npm i playwright; }

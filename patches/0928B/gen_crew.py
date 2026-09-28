@@ -22,6 +22,13 @@ var CITY928={TPE:'TPE',TSA:'TPE',NRT:'TYO',HND:'TYO',KIX:'OSA',UKB:'OSA',ICN:'SE
 var SIS928={};Object.keys(CITY928).forEach(function(a){Object.keys(CITY928).forEach(function(b){if(a!==b&&CITY928[a]===CITY928[b])(SIS928[a]=SIS928[a]||[]).push(b)})});
 function sameCity928(a,b){return a===b||(!!CITY928[a]&&CITY928[a]===CITY928[b])}
 window.kgmSameCityR928=sameCity928;window.KGM_CITY_R928=CITY928;
+/* 0928B：地面轉場是 r121 派班當下記的；r176／r196 之後換人時要一起收掉，不然會留下沒有航班的轉場（班表冒出假的調位、每週休假日被吃掉） */
+window.KGM_GT_KEYS_R928=window.KGM_GT_KEYS_R928||{};
+window.kgmGtPruneR928=function(plan,date){var P=S.crewPositioningR121,ks=window.KGM_GT_KEYS_R928[date];if(!P||!plan||!ks||!ks.length)return 0;var n=0,dep=plan.__dep928;
+  if(!dep){dep={};(plan.flights||[]).forEach(function(f){(f.pilots||[]).concat(f.cabin||[]).forEach(function(q){if(q&&q.empId)(dep[q.empId]=dep[q.empId]||{})[f.fr]=1})});try{Object.defineProperty(plan,'__dep928',{value:dep,enumerable:false,configurable:true})}catch(_){}}
+  ks.forEach(function(k){var arr=P[k];if(!arr)return;var to=k.split('|')[3],keep=arr.filter(function(q){return q&&dep[q.empId]&&dep[q.empId][to]});n+=arr.length-keep.length;if(keep.length)P[k]=keep;else delete P[k]});
+  window.KGM_GT_KEYS_R928[date]=ks.filter(function(k){return !!P[k]});
+  return n};
 window.kgmCrewPinOkR928=function(id,date,f){var pn=pinOf928(date),v=pn&&pn[id];return !v||('|'+v+'|').indexOf('|'+f.code+'@'+f.fr+'|')>=0};   /* 0928B：其他層（r196 補人）也要看已公布／指定的班 */
 function off928(id,date){try{return !!(window.kgmCrewOffR928&&window.kgmCrewOffR928(id,date))}catch(_){return false}}
 function pinOf928(date){try{var fz=(S.crewFreezeR928||{})[date],pn=(S.crewPinR928||{})[date];if(!fz&&!pn)return null;return Object.assign({},fz||{},pn||{})}catch(_){return null}}   /* 0928B：已公布的班表先凍結（只改必要的人），AI 換班的指定優先 */""")
@@ -56,7 +63,7 @@ RL('crew surface',L,
       if(!st.initial&&st.at&&st.at!==f.fr&&sameCity928(st.at,f.fr)){try{
         var gtArr=f.depUTC-75,gtDep=gtArr-120,gt={date:date,dep:gtDep,report:gtDep,release:gtArr,block:0,code:'地面轉場',fr:st.at,to:f.fr,deadhead:true,surfaceR928:true};
         st.days.push(gt);
-        var gk=[date,'GT',st.at,f.fr].join('|');S.crewPositioningR121=S.crewPositioningR121||{};
+        var gk=[date,'GT',st.at,f.fr].join('|');S.crewPositioningR121=S.crewPositioningR121||{};var GK=window.KGM_GT_KEYS_R928=window.KGM_GT_KEYS_R928||{};if(!S.crewPositioningR121[gk])(GK[date]=GK[date]||[]).push(gk);
         var hm=function(u,ap){try{return (typeof hhmmLocalR913==='function')?hhmmLocalR913(u,ap):''}catch(_){return ''}};
         (S.crewPositioningR121[gk]=S.crewPositioningR121[gk]||[]).push({empId:p.empId,name:p.name,role:p.role,cabin:'—',seat:'',surfaceR928:true,
           flight:{code:'地面轉場',fr:st.at,to:f.fr,date:date,arrDate:date,dep:'',arr:'',depUTC:gtDep,arrUTC:gtArr,reportUTC:gtDep,releaseUTC:gtArr,dd:0,block:0,blockStr:'地面',acft:'—',type:'—',deadhead:true,operating:false,surfaceR928:true,remark:z()?'地面轉場（同城機場）':'Ground transfer (same city)'}});
@@ -94,6 +101,18 @@ RL('crew r196 pin b','kgm-0907A-r196',
 """            if(weekFull927D(c.empId,date))continue;   /* 0927D：每週一定有一整天不排班 */""",
 """            if(weekFull927D(c.empId,date))continue;   /* 0927D：每週一定有一整天不排班 */
             if(window.kgmCrewPinOkR928&&!window.kgmCrewPinOkR928(c.empId,date,f))continue;   /* 0928B：已公布休假或指定別班的人不能拿來補 */""")
+RL('crew gt prune','kgm-0907A-r196',
+"""      if(PLANMEM196[d])return PLANMEM196[d];
+      var plan=_cp196.apply(this,arguments);
+      try{capOneFlight196(plan,d)}catch(_){}
+      try{weekGuard927D(plan,d)}catch(_){}   /* 0927D：每週一定有一整天不排班 */
+""",
+"""      if(PLANMEM196[d]){try{if(window.kgmGtPruneR928)window.kgmGtPruneR928(PLANMEM196[d],d)}catch(_){}return PLANMEM196[d]}   /* 0928B：背景補排可能又記了轉場，回傳前再收一次 */
+      var plan=_cp196.apply(this,arguments);
+      try{capOneFlight196(plan,d)}catch(_){}
+      try{weekGuard927D(plan,d)}catch(_){}   /* 0927D：每週一定有一整天不排班 */
+      try{if(window.kgmGtPruneR928)window.kgmGtPruneR928(plan,d)}catch(_){}   /* 0928B：換人之後，沒有接航班的地面轉場收掉 */
+""")
 open('p_e_crew.js','w').write(hdr+'\n'.join(out)+'\n')
 snip=open('snip_crew.js').read()
 RL('crew tools','kgm-0909E-r229',
