@@ -5,7 +5,7 @@
 | 路徑 | 內容 |
 |---|---|
 | `CLAUDE.md` | 固定規則、測試關卡、版號更新位置。Claude Code 開啟資料夾時會自動讀 |
-| `build/KGM_Airways_0928B.html` | 目前版本，關卡結果見 `notes/0928B-pass107-notes.md` |
+| `build/KGM_Airways_0928B.html` | 目前版本（關卡結果見 `notes/0928B-pass107-notes.md`；vfy1 C4 與 0928A 相同失敗、vfy6 H29 偶發超標，都寫在 notes） |
 | `build/KGM_Airways_0928A.html` | 上一版（0928B 的重建基底） |
 | `patches/0928B/` | 0928A→0928B 的逐字替換腳本；`patches/0928B/build.sh <0928A.html> <out.html>` 可重建出一模一樣的檔案（`gen_*.py` 產生 `p_e_*.js`） |
 | `patches/0928A/`、`patches/0927C/`、`patches/0927B/` | 前幾版（留著查歷史） |
