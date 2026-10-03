@@ -106040,12 +106040,12 @@ window.kgmAuditRotR922=function(){
    作法：
    · 介面跟前台 KGM AI 同一個版型（右下角圓鈕＋對話視窗），但圖示是 Claude 的放射狀標誌、標題註明 Claude Opus 5.5；
      只在管理後台出現；對話依員工編號存在 localStorage 'kgm_adminai929'，跟前台的對話完全分開。
-   · 先把需求送到 Worker 的 /ai/admin（Worker 轉給 Anthropic，模型 claude-opus-5-5，失敗再用 claude-sonnet-5），
+   · 先把需求送到 Worker 的 /ai/admin（Worker 轉給 Anthropic，模型 claude-opus-5-5，失敗再用 claude-sonnet-5-5），
      模型回傳要執行的工具與參數；連不上 Worker 時，改用站內規則引擎解析中文指令（回覆裡會老實註明）。
    · 每一個工具都對應一個後台分頁權限（kgmPermR123）：沒有「使用」權限就回覆「無權限」，不會執行。
      「直接修改任何資料」（set_state）只開放系統人員與 CEO。 */
 (function adminAiR929(){
-  var MODEL='claude-opus-5-5',MODEL2='claude-sonnet-5';
+  var MODEL='claude-opus-5-5',MODEL2='claude-sonnet-5-5';
   function z(){try{return LANG!=='en'}catch(_){return true}}
   function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function N(n){return Math.round(+n||0).toLocaleString('en-US')}

@@ -64,7 +64,7 @@ async function handleAdminAi(request, env) {
   }
 
   const primary = b.model || "claude-opus-5-5";
-  const fallback = b.fallbackModel || "claude-sonnet-5";
+  const fallback = b.fallbackModel || "claude-sonnet-5-5";
   let j, used = primary;
   try { j = await call(primary); }
   catch (e1) {

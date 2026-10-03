@@ -106,7 +106,7 @@ Base: 0928B（`build/KGM_Airways_0928B.html`）。同一個 HTML 檔，241 層 `
 - 0928B 交付時說「AI 換班已實測」，但那次只測了 S.staff 裡的 380 位真人；排班池 2.8 萬名組員（例：K202094）其實查不到。
   0929A 的後台通用 AI 已改用與排班引擎相同的來源。這一條是 0928B 的報告不實，照實記錄。
 
-## 關卡結果（最終版 = t56，`build/KGM_Airways_1004A.html`；由 repo `patches/1004A/build.sh` 重建，逐位元組相同）
+## 關卡結果（最終版 = t57（t56 ＋ 後台 AI 備援模型 ID 改成 claude-sonnet-5-5，只差這兩行；t57 另跑 syn／層數／vfy1 24/24／vfy2 8/8），`build/KGM_Airways_1004A.html`；由 repo `patches/1004A/build.sh` 重建，逐位元組相同）
 
 | 關卡 | 結果 |
 |---|---|
