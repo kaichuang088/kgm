@@ -80,7 +80,9 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
  await p.waitForTimeout(800);
  const d2b=await p.evaluate(()=>{
    const set=(id,v)=>{const e=document.getElementById(id);if(e){e.value=v;return true}return false};
-   const f1=set('r20Pnr','SNC7V3SD');
+   /* 1004A：使用者 0929A #31 —— 隱私權政策改成跟其他辦法一樣要打開、滑到底、按我同意；姓名必填、核對後才判斷是不是員工票 */
+   try{kgmPolicySetAgreedR914('KGM-PRV-014',true)}catch(e){}
+   const f1=set('r20Pnr','SNC7V3SD');set('r20First','SHI');set('r20Last','CHANG');
    const cs=document.getElementById('r20Agree');if(cs)cs.checked=true;
    if(!f1)return {err:'form-missing'};
    S.staffUnverifiedMsgR922='';
@@ -428,7 +430,9 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    const mk=f=>({pnr:'M2',outF:Object.assign({},f,{date:d}),outC:'O',paxList:[{last:'A',first:'B'}]});
    return {longTwoMeals:window.kgmTwoMealsR923(mk(lo),'out'),
      shortTwoMeals:window.kgmTwoMealsR923(mk(sh),'out'),
-     surveyWhy:/沒有這一班|does not operate/.test(window.kgmFbWhyEmptyR923('KX188','2026-08-07')||''),
+     /* 1004A：使用者 0929A #17 把 KX188 改成每天飛，原本的例子（KX188 2026-08-07 沒飛）不成立；改挑一班「真的沒飛的日子」 */
+     surveyWhy:(()=>{const g=FLIGHTS.filter(x=>x&&!x.via&&!x.partner&&Array.isArray(x.days)&&x.days.length<7)[0];if(!g)return false;
+       for(let i=1;i<10;i++){const x=new Date(Date.now()+i*86400000).toISOString().slice(0,10);if(!flyOn(g,new Date(x+'T12:00:00')))return /沒有這一班|does not operate/.test(window.kgmFbWhyEmptyR923(g.code,x)||'')}return false})(),
      lookupAnother:typeof window.kgmLookupAnotherR923};
  });
  push('H11','長程兩餐、問卷查無資料會說明原因、可退出查別的訂位',
@@ -647,7 +651,8 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    return {A388:c('A388').crew,A388legal:c('A388').legal,B779:c('B779').crew,A21N:c('A21N').crew,min:_cabinMin('B789'),people,restBad,winBad,maxRun};
  });
  push('H24','組員：客艙人數＝民航局下限＋1～2 位；休息符合民航局規定（任 7 日連續 30 小時、執勤後休息）',
-   h24.A388===13&&h24.A388legal===11&&h24.B779===10&&h24.A21N===6&&h24.min===8&&h24.people>=30&&h24.restBad===0&&h24.winBad===0&&h24.maxRun<=6,JSON.stringify(h24));
+   /* 1004A：使用者 0929A #8「長程 B777 大約 16 個、不只一位座艙長」→ 客艙人數＝max(法規下限＋1～2, 機型服務編制)：A388 24、B779 16、B789 12、A21N 6 */
+   h24.A388===24&&h24.A388legal===11&&h24.B779===16&&h24.A21N===6&&h24.min===12&&h24.people>=30&&h24.restBad===0&&h24.winBad===0&&h24.maxRun<=6,JSON.stringify(h24));
 
  // H25 UKB: KX160/KX159 on the A21X special are compliant and not reported as type changes
  const h25=await p.evaluate(()=>{

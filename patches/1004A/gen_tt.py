@@ -1,0 +1,159 @@
+import json
+out=[]
+def J(x):return json.dumps(x,ensure_ascii=False)
+def R(label,old,new,cnt=1):out.append('R(%s,%s,%s,%d);'%(J(label),J(old),J(new),cnt))
+def RL(label,layer,old,new,cnt=1):out.append('RL(%s,%s,%s,%s,%d);'%(J(label),J(layer),J(old),J(new),cnt))
+hdr='''/* 1004A · 班表調整（使用者指定）
+   (夏) KX237 DPS→TPE 14:05–18:55（冬季自行調整：14:55–19:50，KX238 落地後 75 分鐘）
+   KX188／KX187 改每日；KX102／KX101 改週二四五日
+   (夏) KX104 07:40–10:50 EQV，KX103 在 ICN 停 75 分鐘 → 12:05–13:10
+   KX106／KX105 延後一小時，改成只在旺季飛（春節 1/20–2/15、暑假 7–8 月、國慶連假 10/1–10/10），旺季每週四班（一四五日）
+   (夏) KX108 15:05–18:15 EQV，KX107 在 ICN 停 75 分鐘 → 19:30–20:35
+   (夏) KX44 TPE–ICN 19:05–22:15 A359（一四六）、ICN–LAS 23:45–19:05（一四六）；KX43 LAS–ICN 01:20–06:10+1（二五日）、ICN–TPE 08:10–09:15（一三六）
+   冬季：使用者只指定夏季的班次，冬季照原本「冬季早 15～20 分鐘」的慣例推，ICN 過站照夏季（75 分鐘）；
+   冬季區間時間不能跟夏季完全一樣（r131 會自動錯開 5 分鐘、跟固定值互相改來改去），所以冬季都跟夏季差 5 分鐘以上。 */
+'''
+# ---- base rows (main) ----
+R('tt kx30 kx29 via','["KX31","YYZ","TPE","19:40","05:10","B789","MWFSSU","YVR",1]','["KX31","YYZ","TPE","19:40","05:10","B789","MWFSSU","YVR",1],\n  /* 1004A：KX30 台北→溫哥華→多倫多、KX29 多倫多→溫哥華→台北原本沒有整段列，訂位搜尋台北→多倫多找不到 KX30 */\n  ["KX30","TPE","YYZ","01:15","05:50","B789","MTTHS","YVR",0],\n  ["KX29","YYZ","TPE","08:10","15:40","B789","MTTHS","YVR",1]')
+R('tt 237','["KX237","DPS","TPE","16:55","21:45","B779","daily",null,0],','["KX237","DPS","TPE","14:05","18:55","B779","daily",null,0],')
+R('tt 102','["KX102","TPE","ICN","02:10","05:20","A21N","daily",null,0],','["KX102","TPE","ICN","02:10","05:20","A21N","TTHFSU",null,0],')
+R('tt 101','["KX101","ICN","TPE","09:05","10:10","A21N","daily",null,0],','["KX101","ICN","TPE","09:05","10:10","A21N","TTHFSU",null,0],')
+R('tt 104','["KX104","TPE","ICN","07:20","10:30","A359","daily",null,0],','["KX104","TPE","ICN","07:40","10:50","A359","daily",null,0],')
+R('tt 103','["KX103","ICN","TPE","11:30","12:35","A359","daily",null,0],','["KX103","ICN","TPE","12:05","13:10","A359","daily",null,0],')
+R('tt 43/44',
+'["KX44","TPE","NRT","17:25","21:25","A359","MWF",null,0],\n["KX44","NRT","LAS","22:30","17:35","A359","MWF",null,0],\n["KX43","LAS","NRT","01:10","05:25","A359","TTHS",null,1],\n["KX43","NRT","TPE","07:25","09:25","A359","TTHS",null,0],\n["KX44","TPE","LAS","17:25","17:35","A359","MWF","NRT",0],\n["KX43","LAS","TPE","01:10","09:25","A359","TTHS","NRT",1],',
+'["KX44","TPE","ICN","19:05","22:15","A359","MTHS",null,0],\n["KX44","ICN","LAS","23:45","19:05","A359","MTHS",null,0],\n["KX43","LAS","ICN","01:20","06:10","A359","TFSU",null,1],\n["KX43","ICN","TPE","08:10","09:15","A359","MWS",null,0],\n["KX44","TPE","LAS","19:05","19:05","A359","MTHS","ICN",0],\n["KX43","LAS","TPE","01:20","09:15","A359","TFSU","ICN",1],')
+# ---- r70 Korea times ----
+RL('tt r70','kgm-0823m-r70',
+"  setTimes70('KX106','TPE','ICN','10:20','13:30',0);\n  setTimes70('KX105','ICN','TPE','14:35','15:40',0);\n  shift70('KX108','TPE','ICN',-60);\n  shift70('KX107','ICN','TPE',-60);",
+"  setTimes70('KX106','TPE','ICN','11:20','14:30',0);   /* 1004A：延後一小時 */\n  setTimes70('KX105','ICN','TPE','15:35','16:40',0);\n  setTimes70('KX108','TPE','ICN','15:05','18:15',0);   /* 1004A：使用者指定 */\n  setTimes70('KX107','ICN','TPE','19:30','20:35',0);   /* 1004A：ICN 停 75 分鐘 */")
+# ---- r132: KX188/KX187 no longer complement KX44/KX43 (they are daily, KX44/43 now go via ICN) ----
+RL('tt r132 mate','kgm-0904a-r132',
+"var MATE132={'KX188':{mate:'KX44',fr:'TPE',to:'NRT'},'KX187':{mate:'KX43',fr:'NRT',to:'TPE'}};",
+"var MATE132={};   /* 1004A：KX44／KX43 改經首爾，KX188／KX187 改每日，不再互補 */")
+# ---- r136: KX43 base times; Seoul EQV rule exempts the LAS through flight ----
+RL('tt r136 set','kgm-0905a-r136',"  {code:'KX43', fr:'NRT',to:'TPE',dep:'07:25',arr:'09:25',dd:0}","  {code:'KX43', fr:'ICN',to:'TPE',dep:'08:10',arr:'09:15',dd:0}   /* 1004A */")
+RL('tt r136 eqv','kgm-0905a-r136',
+"      if(f.code==='KX102'||f.code==='KX101')return;\n      if(f.acft!=='EQV'){f.acft='EQV';n++;log('首爾線 '+f.code+' → EQV')}",
+"      if(f.code==='KX102'||f.code==='KX101')return;\n      if(f.code==='KX44'||f.code==='KX43')return;   /* 1004A：拉斯維加斯直通班固定 A359 */\n      if(f.acft!=='EQV'){f.acft='EQV';n++;log('首爾線 '+f.code+' → EQV')}")
+RL('tt r136 eqv audit','kgm-0905a-r136',
+"    if(f.code==='KX102'||f.code==='KX101')return;\n    if(f.acft!=='EQV')o.icnNonEqv.push(f.code)})}catch(_){}",
+"    if(f.code==='KX102'||f.code==='KX101'||f.code==='KX44'||f.code==='KX43')return;\n    if(f.acft!=='EQV')o.icnNonEqv.push(f.code)})}catch(_){}")
+# ---- r96 KX43 fixed rows ----
+RL('tt r96','kgm-0901a-r96',
+"var FIX96=[\n  {code:'KX43',fr:'LAS',to:'NRT',via:null, dep:'01:10',arr:'05:25',dd:1,dur:735},\n  {code:'KX43',fr:'NRT',to:'TPE',via:null, dep:'07:25',arr:'09:25',dd:0,dur:180},\n  {code:'KX43',fr:'LAS',to:'TPE',via:'NRT',dep:'01:10',arr:'09:25',dd:1,dur:1035,ground:120}\n];",
+"var FIX96=[   /* 1004A：改經首爾（使用者指定） */\n  {code:'KX43',fr:'LAS',to:'ICN',via:null, dep:'01:20',arr:'06:10',dd:1,dur:710},\n  {code:'KX43',fr:'ICN',to:'TPE',via:null, dep:'08:10',arr:'09:15',dd:0,dur:125},\n  {code:'KX43',fr:'LAS',to:'TPE',via:'ICN',dep:'01:20',arr:'09:15',dd:1,dur:955,ground:120}\n];")
+RL('tt r96 audit','kgm-0901a-r96',"  out.chain=window.kgmFifthChainR96('KX43','LAS','NRT');","  out.chain=window.kgmFifthChainR96('KX43','LAS','ICN');")
+# ---- r160 KX43 season ----
+RL('tt r160','kgm-0905b-r160',
+"var KX43_R160={\n  'KX43|LAS|NRT':{summer:{dep:'01:10',arr:'05:25',dd:1},\n                  winter:{dep:'01:00',arr:'05:10',dd:1}},\n  'KX43|NRT|TPE':{summer:{dep:'07:25',arr:'09:25',dd:0},\n                  winter:{dep:'07:10',arr:'09:05',dd:0}}\n};",
+"var KX43_R160={   /* 1004A：改經首爾（夏季使用者指定；冬季照慣例推） */\n  'KX43|LAS|ICN':{summer:{dep:'01:20',arr:'06:10',dd:1},\n                  winter:{dep:'01:20',arr:'07:25',dd:1}},\n  'KX43|ICN|TPE':{summer:{dep:'08:10',arr:'09:15',dd:0},\n                  winter:{dep:'08:40',arr:'09:40',dd:0}}\n};")
+RL('tt r162 audit','kgm-0905b-r162',"  o.finalKX43=window.kgmFinalDestR162('KX43','NRT');","  o.finalKX43=window.kgmFinalDestR162('KX43','ICN');")
+# ---- peak-season-only operation (KX106/KX105) ----
+R('tt peak fn','function kgmPeakCoreR928(d){',
+"/* 1004A：只在旺季營運的航班用的旺季（跟票價的旺季同一組：春節、暑假、國慶連假） */\nfunction kgmPeakOpsR929(d){var m=+String(d).slice(5,7),x=+String(d).slice(8,10);return (m===1&&x>=20)||(m===2&&x<=15)||m===7||m===8||(m===10&&x<=10)}\nwindow.KGM_PEAK_OPS_TEXT_R929='春節 1/20–2/15、暑假 7–8 月、國慶連假 10/1–10/10';\nfunction kgmPeakCoreR928(d){")
+R('tt peak flyOn','  if(f.noOpDatesR928&&f.noOpDatesR928.length){',
+"  if(f.peakOnlyR929){const _dp929=d.getFullYear()+\"-\"+String(d.getMonth()+1).padStart(2,\"0\")+\"-\"+String(d.getDate()).padStart(2,\"0\");if(!kgmPeakOpsR929(_dp929))return false;}// 1004A：只在旺季營運\n  if(f.noOpDatesR928&&f.noOpDatesR928.length){")
+# ---- explicit season table (same block as the 0928A Bali change) ----
+anchor="    var nyepi928=['2027-03-08','2028-02-26'];"
+table="""    /* 1004A：使用者指定的班表（夏季）＋冬季推算；標成人工排定，其他層不再自動位移 */
+    var tt929={
+      'KX237|DPS|TPE':{summer:['14:05','18:55',0,'daily','B779'],winter:['14:55','19:50',0,'daily','B779']},
+      'KX188|TPE|NRT':{summer:['18:05','22:05',0,'daily','EQV'],winter:['17:20','21:10',0,'daily','EQV']},
+      'KX187|NRT|TPE':{summer:['08:05','10:05',0,'daily','EQV'],winter:['07:20','09:10',0,'daily','EQV']},
+      'KX102|TPE|ICN':{summer:['02:10','05:20',0,[2,4,5,7],'A21N'],winter:['01:50','04:55',0,[2,4,5,7],'A21N']},
+      'KX101|ICN|TPE':{summer:['09:05','10:10',0,[2,4,5,7],'A21N'],winter:['08:45','09:45',0,[2,4,5,7],'A21N']},
+      'KX104|TPE|ICN':{summer:['07:40','10:50',0,'daily','EQV'],winter:['07:20','10:25',0,'daily','EQV']},
+      'KX103|ICN|TPE':{summer:['12:05','13:10',0,'daily','EQV'],winter:['11:40','12:40',0,'daily','EQV']},
+      'KX106|TPE|ICN':{summer:['11:20','14:30',0,[1,4,5,7],'EQV'],winter:['11:00','14:05',0,[1,4,5,7],'EQV'],peak:1},
+      'KX105|ICN|TPE':{summer:['15:35','16:40',0,[1,4,5,7],'EQV'],winter:['15:15','16:15',0,[1,4,5,7],'EQV'],peak:1},
+      'KX108|TPE|ICN':{summer:['15:05','18:15',0,'daily','EQV'],winter:['14:45','17:50',0,'daily','EQV']},
+      'KX107|ICN|TPE':{summer:['19:30','20:35',0,'daily','EQV'],winter:['19:05','20:05',0,'daily','EQV']},
+      'KX44|TPE|ICN':{summer:['19:05','22:15',0,[1,4,6],'A359'],winter:['18:50','21:55',0,[1,4,6],'A359']},
+      'KX44|ICN|LAS':{summer:['23:45','19:05',0,[1,4,6],'A359'],winter:['23:30','18:05',0,[1,4,6],'A359']},
+      'KX44|TPE|LAS':{summer:['19:05','19:05',0,[1,4,6],'A359'],winter:['18:50','18:05',0,[1,4,6],'A359']},
+      'KX43|LAS|ICN':{summer:['01:20','06:10',1,[2,5,7],'A359'],winter:['01:20','07:25',1,[2,5,7],'A359']},
+      'KX43|ICN|TPE':{summer:['08:10','09:15',0,[1,3,6],'A359'],winter:['08:40','09:40',0,[1,3,6],'A359']},
+      'KX43|LAS|TPE':{summer:['01:20','09:15',1,[2,5,7],'A359'],winter:['01:20','09:40',1,[2,5,7],'A359']},
+      /* 1004A：松山（愛媛）去程一四日、回程原本一二五 → 週四去要等到週五、週日去要等到週一才回來。使用者：同天去同天回 */
+      'KX199|MYJ|TPE':{summer:['14:20','16:30',0,[1,4,7],'A21N'],winter:['14:35','16:35',0,[1,4,7],'A21N']},   /* 1004A：使用者把 KX3167 改為 KX199 */
+      /* 1004A：歐洲回程冬季原本會被「去程冬季時刻來回跳」連帶推來推去（r132 過站規則只會往後推、不會推回），
+         結果每次開網站算出來不一樣；鎖成使用者手上時刻表 PDF 印的時間（去程冬季現在固定 23:20 落地，過站 100 分以上） */
+      'KX79|BUD|TPE':{summer:['00:45','16:15',0,[1,2,4,6],'A339L'],winter:['01:00','17:15',0,[1,2,4,6],'A339L']},
+      'KX63|MXP|TPE':{summer:['00:55','18:55',0,[3,5,7],'B789'],winter:['02:00','20:45',0,[3,5,7],'B789']},
+      'KX97|HEL|TPE':{summer:['01:15','15:20',0,[1,3,5,7],'A339L'],winter:['01:50','16:40',0,[1,3,5,7],'A339L']},
+      /* 1004A：加拿大線 KX29／KX30 是「續飛」（時刻表標 through service，中停 1～2 小時），但營運日錯開一天：
+         KX29 多倫多→溫哥華 一二四六 10:10 落地、溫哥華→台北卻是 二三五日 11:10 → 飛機在溫哥華多等 25 小時；
+         KX30 台北→溫哥華 一二四六 出發、前一天 21:10 落地，溫哥華→多倫多卻排在當地 一二四六 23:15 → 又多等 26 小時。
+         營運日改成同一天續飛（KX29 溫哥華→台北 一二四六；KX30 溫哥華→多倫多 夏季當地 一三五日）。
+         補上整段列之後，中停時間跟 KX31／KX32 一樣照站內續飛規則 90 分鐘（r106／r179）：
+         KX30 夏 22:40（冬 00:20，溫哥華 22:50 落地）、KX29 夏 11:40（冬 11:45，溫哥華 10:15 落地）。 */
+      'KX29|YVR|TPE':{summer:['11:40','15:40',1,[1,2,4,6],'B789'],winter:['11:45','16:30',1,[1,2,4,6],'B789']},
+      'KX30|YVR|YYZ':{summer:['22:40','05:50',1,[1,3,5,7],'B789'],winter:['00:20','07:15',0,[1,2,4,6],'B789']},
+      'KX30|TPE|YYZ':{summer:['01:15','05:50',0,[1,2,4,6],'B789'],winter:['02:10','07:15',0,[1,2,4,6],'B789']},
+      'KX29|YYZ|TPE':{summer:['08:10','15:40',1,[1,2,4,6],'B789'],winter:['08:25','16:30',1,[1,2,4,6],'B789']}
+    };
+    /* KX44／KX43 原本經成田的季節列一起收掉（不然航線管理、排班會讀到兩套） */
+    ['KX44|TPE|NRT','KX44|NRT|LAS','KX43|LAS|NRT','KX43|NRT|TPE','KX3168|TPE|MYJ','KX3167|MYJ|TPE'].forEach(function(k){if(S.seasonSchedulesR48[k]&&!S.seasonSchedulesR48[k].userR929A)delete S.seasonSchedulesR48[k]});
+    Object.keys(tt929).forEach(function(k){
+      var v=tt929[k],p=k.split('|');function rec(a){return {dep:a[0],arr:a[1],dd:a[2],days:Array.isArray(a[3])?a[3].slice():a[3],acft:a[4]}}
+      var old=S.seasonSchedulesR48[k];
+      if(!(old&&old.userR929A))S.seasonSchedulesR48[k]={summer:rec(v.summer),winter:rec(v.winter),seededR57:0,winterBlockR68:0,pinnedR179:1,userR928A:1,userR928B:1,userR929A:1,updatedAt:new Date().toISOString()};
+      allF().forEach(function(f){if(!f||f.partner||f.code!==p[0]||f.fr!==p[1]||f.to!==p[2])return;
+        var s=v.summer;f.dep=s[0];f.arr=s[1];f.dd=s[2];f.days=Array.isArray(s[3])?s[3].slice():s[3];f.acft=s[4];
+        if(v.peak)f.peakOnlyR929=1;
+        try{f.dur=blockMin(f.fr,f.to,f.dep,f.arr,f.dd||0);f.durStr=durStr(f.dur)}catch(_){}
+        if(!f.via&&window.kgmClearDerivedOverridesR57){window.kgmClearDerivedOverridesR57(f,'summer');window.kgmClearDerivedOverridesR57(f,'winter')}});
+    });
+    /* 1004A：奧克蘭線只改冬季時刻（冬季本來不飛奧克蘭；只有 10/25～10/31 冬季時刻已生效、奧克蘭線依月份還在飛的那幾天會用到）。
+       原本冬季奧克蘭→雪梨 18:30 落地、雪梨→台北 18:35 起飛只隔 5 分鐘，同一班 KX51 只能拆兩架飛。
+       改成跟冬季基督城線同一個節奏：雪梨 09:35 出發，奧克蘭 15:40 回程、雪梨 17:10 落地，接 18:35 飛台北。夏季、營運日都不動。 */
+    [['KX52|SYD|AKL',['09:35','14:35',0]],['KX51|AKL|SYD',['15:40','17:10',0]],['KX52|TPE|AKL',['21:15','14:35',1]],['KX51|AKL|TPE',['15:40','23:10',0]]].forEach(function(e){
+      var o=S.seasonSchedulesR48[e[0]];if(!o||!o.winter||o.userR929A)return;
+      o.winter=Object.assign({},o.winter,{dep:e[1][0],arr:e[1][1],dd:e[1][2]});
+      o.seededR57=0;o.winterBlockR68=0;o.pinnedR179=1;o.userR928A=1;o.userR928B=1;o.userR929A=1;o.updatedAt=new Date().toISOString();
+    });
+"""
+RL('tt season table','kgm-0823p-r77',anchor,table+anchor)
+RL('tt r179 via stale','kgm-0907B-r179',
+"""    var bad=window.kgmFifthGroundR179().some(function(x){
+      return !x.exempt&&(x.ground<GROUND_MIN||x.ground>GROUND_MAX)});""",
+"""    var bad=window.kgmFifthGroundR179().some(function(x){
+      return !x.exempt&&(x.ground<GROUND_MIN||x.ground>GROUND_MAX)});
+    /* 1004A：整段列（例：KX43 LAS–ICN–TPE）要跟兩段一致；別層後來改了某一段，就重建一次整段列 */
+    if(!bad){var cnt929={};all().forEach(function(V){if(V&&V.via&&!V.partner)cnt929[K(V)]=(cnt929[K(V)]||0)+1});   /* 同一個班號＋起訖有兩種經停（例：KX49 經 BNE／BKK）共用一筆季節列，不比 */
+    bad=all().some(function(V){if(!V||!V.via||V.partner||cnt929[K(V)]>1)return false;var L1=leg(V.code,V.fr,V.via),L2=leg(V.code,V.via,V.to),o=ST()[K(V)];if(!L1||!L2||!o)return false;
+      return ['summer','winter'].some(function(sea){var r=o[sea],t1=times(L1,sea),t2=times(L2,sea);return r&&(r.dep!==t1.dep||r.arr!==t2.arr)})});}""")
+open('p_f_tt.js','w').write(hdr+'\n'.join(out)+'\n')
+# ---- 1004A：兩組層互相改寫冬季時刻（每次重繪來回跳），財務因此一直重算、前台冬季時間忽前忽後 ----
+out2=[]
+R('eu land wins over r68 reseed',"      if(o.seededR57&&o.summer&&o.winter){\n        var pair=[f.fr,f.to].sort().join('|'),steps=[-45,-30,-20,-10,15,25,40,55];",
+"      /* 1004A：歐洲線冬季已被 r143「當天 23:20 前落地」改過的，不再依夏季＋位移重算（兩層互改，KX80／88／98／64 冬季時刻每次重繪來回跳） */\n      if(o.seededR57&&o.summer&&o.winter&&!o.winter.euLandR929){\n        var pair=[f.fr,f.to].sort().join('|'),steps=[-45,-30,-20,-10,15,25,40,55];")
+R('eu land flag',"        r.dep=hm(newDep);r.arr=hm(newArr);r.dd=0;\n        n++;log(f.code+' '+f.fr+'-'+f.to+' '+which+' 改成當天 '+r.arr+' 落地（起飛 '+r.dep+'）');",
+"        r.dep=hm(newDep);r.arr=hm(newArr);r.dd=0;r.euLandR929=1;   /* 1004A：標記，r68 不再把它改回去 */\n        n++;log(f.code+' '+f.fr+'-'+f.to+' '+which+' 改成當天 '+r.arr+' 落地（起飛 '+r.dep+'）');")
+R('r132 skip through',"  outs.forEach(function(o){\n    var ins=pairOf132(o);if(!ins)return;",
+"  outs.forEach(function(o){\n    /* 1004A：第五航權續飛（KX76 台北→曼谷→阿姆斯特丹）的飛機不會在外站折返成 KX75，不能用「外站過站」去推回程；\n       原本這裡跟 r179「中停 90 分」互相改寫 KX75 曼谷→台北冬季時刻（每次重繪來回跳）。 */\n    if(FLIGHTS.some(function(x){return x&&x.via&&(x.code===o.code||x.code==='KX'+(num132(o.code)-1))}))return;\n    var ins=pairOf132(o);if(!ins)return;")
+R('r106 skip eu land',"        var r=rec0819H(f,sea)||recR48(f,sea);\n        if(!r||!r.dep)return;\n        var shift=mins106(r.dep)-mins106(f.dep);",
+"        var r=rec0819H(f,sea)||recR48(f,sea);\n        if(!r||!r.dep)return;\n        try{var _e929=recR48(f,sea);if((_e929&&_e929.euLandR929)||r.euLandR929)return}catch(_){}   /* 1004A：歐洲線冬季是刻意「抵達固定 23:20、起飛往前拉」，不是忘了調抵達 */\n        var shift=mins106(r.dep)-mins106(f.dep);")
+# ---- 1004A：KX3168／KX3167 改為 KX200／KX199（松山愛媛線，一四日同天去回）----
+R('1004 KX3168→KX200','["KX3168","TPE","MYJ","09:40","13:20","A21N","MTHSU",null,0],','["KX200","TPE","MYJ","09:40","13:20","A21N","MTHSU",null,0],')
+R('1004 KX3167→KX199','["KX3167","MYJ","TPE","14:20","16:30","A21N","MTHSU",null,0],','["KX199","MYJ","TPE","14:20","16:30","A21N","MTHSU",null,0],')
+# 1004A：r179 的中停分鐘數把「抵達日 −1」（跨換日線，例：KX30 台北 01:15 → 溫哥華前一天 21:10）多算 1440 分鐘
+RL('r179 ground dd-1','kgm-0907B-r179',"""  var g=mn(t2.dep)-(mn(t1.arr)+((+t1.dd||0)*1440));
+  while(g<0)g+=1440;
+  return g;""","""  var g=mn(t2.dep)-(mn(t1.arr)+((+t1.dd||0)*1440));
+  while(g<0)g+=1440;
+  while(g>=1440)g-=1440;   /* 1004A：抵達日 −1（跨換日線）時原本多算一整天：KX30 溫哥華 21:10 到、22:40 走被當成 1530 分鐘，背景每 5 秒重鎖一次 */
+  return g;""")
+# 1004A：r132 稽核的折返檢查要跟 fixTurn132 同一個規則（第五航權續飛在中間站不是同一架折返）；KX187／188 依使用者改為每天飛
+RL('r132 audit skip through','kgm-0904a-r132',"""    if(BASE132.indexOf(o.fr)<0||BASE132.indexOf(o.to)>=0)return;
+    var ins=pairOf132(o);if(!ins)return;""","""    if(BASE132.indexOf(o.fr)<0||BASE132.indexOf(o.to)>=0)return;
+    /* 1004A：跟 fixTurn132 同一個規則 —— 第五航權續飛（KX76 經曼谷、KX50 經曼谷）在中間站不是同一架飛機折返，
+       原本把「KX76 台北→曼谷 10:10 到」配「KX75 曼谷→台北 10:25 走」報成過站 15 分（KX75 的飛機是從阿姆斯特丹來的，曼谷中停 90 分） */
+    if(FLIGHTS.some(function(x){return x&&x.via&&(x.code===o.code||x.code==='KX'+(num132(o.code)-1))}))return;
+    var ins=pairOf132(o);if(!ins)return;""")
+RL('r132 audit KX187/188 daily','kgm-0904a-r132',"""    &&o.dow&&o.dow.KX188==='2,4,6,7'&&o.dow.KX187==='1,3,5,7'
+    &&String(o.days.KX188)==='2,4,6,7'&&String(o.days.KX187)==='1,3,5,7'""","""    /* 1004A：使用者把 KX188／KX187 改成每天飛 */
+    &&o.dow&&o.dow.KX188==='1,2,3,4,5,6,7'&&o.dow.KX187==='1,2,3,4,5,6,7'
+    &&String(o.days.KX188)==='daily'&&String(o.days.KX187)==='daily'""")
+open('p_f_tt.js','w').write(hdr+'\n'.join(out)+'\n')
