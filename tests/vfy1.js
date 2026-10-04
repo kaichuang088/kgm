@@ -12,7 +12,7 @@ const {chromium}=require('playwright');
   const u=(S.users||[]).find(x=>x.id==='KGMDEMO0911'); if(u)S.user=u;
 
   /* ── 版本與結構 ─────────────────────────── */
-  T('A1','版號一致',()=>{const t=document.title;return {ok:/1004A/.test(t),info:t}});
+  T('A1','版號一致',()=>{const t=document.title;return {ok:/1004B/.test(t),info:t}});
   T('A2','所有稽核函式不 throw',()=>{
     const ns=Object.keys(window).filter(k=>/^kgmAudit/i.test(k)&&typeof window[k]==='function');
     let th=[];ns.forEach(n=>{try{window[n]()}catch(e){th.push(n)}});

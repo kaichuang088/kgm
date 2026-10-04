@@ -124,13 +124,34 @@ R('B alloc map',"    W.__r116=1;window.kgmCounterAllocR74=W;",
 R('B trip label',"            var tz=String(tl||'').replace(/^T/,'');\n            var v=(Z()?((tz?('第 '+tz+' 航廈'):'')+(c&&c.counter?('　櫃檯 '+c.counter):'　櫃檯依機場公告')):((tl?('Terminal '+tz):'')+(c&&c.counter?(' · Counter '+c.counter):' · see airport screens')));",
   "            var tz=String(tl||'').replace(/^T/,'');\n"
   "            var v=(Z()?((tz?('第 '+tz+' 航廈'):'')+(c&&c.counter?('　櫃檯 '+c.counter):'　櫃檯依機場公告')):((tl?('Terminal '+tz):'')+(c&&c.counter?(' · Counter '+c.counter):' · see airport screens')));\n"
-  "            try{var lb1004B=window.kgmCheckinLabelR1004B?window.kgmCheckinLabelR1004B(s.fr,tl,c,Z()):null;if(lb1004B)v=lb1004B}catch(_){}")
+  "            try{var lb1004B=window.kgmCheckinLabelR1004B?window.kgmCheckinLabelR1004B(s.fr,tl,c,Z(),s.code):null;if(lb1004B)v=lb1004B}catch(_){}")
 
 R('B fix98 SIN',"  SIN:'T3',BKK:'Main',SHA:'T1',PVG:'T2',PEK:'T3E',","  SIN:'T1'/* 1004B：A380 機位 A2–B7 在第 1 航廈 */,BKK:'Main',SHA:'T1',PVG:'T2',PEK:'T3E',")
 R('A r200 keep tl',"    if(!tagTrip200())return 0;\n    var n=0;\n    document.querySelectorAll('.k124-help,.k124-tl').forEach(function(e){e.remove();n++});",
   "    /* 1004B：反過來 —— 查到訂位之後只收掉六格說明卡，「出發當天的時間點」留在行程下面 */\n    if(!tagTrip200())return 0;\n    var n=0;\n    document.querySelectorAll('.k124-help').forEach(function(e){e.remove();n++});")
 R('A r200 css',"  +'body[data-kgm-trip=\"1\"] .k124-help,body[data-kgm-trip=\"1\"] .k124-tl{display:none!important}'",
   "  +'body[data-kgm-trip=\"1\"] .k124-help,body[data-kgm-trip=\"0\"] .k124-tl,body[data-kgm-trip=\"0\"] .k226-hint{display:none!important}'")
+
+# ── B2. 外站聯營航段的航廈：用執飛航空實際的航廈（行程頁出發／抵達、登機證、各處 _aiTerminal 共用） ──
+R('B partner terminal',"function _aiTerminal(airport,seed,toAp){\n  var byRoute=toAp?_aiTerminalForRoute(airport,toAp):null;",
+  "function _aiTerminal(airport,seed,toAp){\n  try{var op1004B=window.kgmPartnerOpR1004B?window.kgmPartnerOpR1004B(airport,String(seed||''),toAp):null;if(op1004B&&op1004B.term)return op1004B.term}catch(_){}   /* 1004B：外站聯營航段用執飛航空的航廈 */\n  var byRoute=toAp?_aiTerminalForRoute(airport,toAp):null;")
+# ── I. S.r49（KGM 航空新聞、臨時航班、報到紀錄、新聞／AI 對話）從來沒有存檔 —— 後台發的新聞重新整理就不見，拆成兩個檔之後前台也收不到 ──
+R('I r49 load','  bookings:LS.get("kgmbk4",[]),','  bookings:LS.get("kgmbk4",[]),r49:LS.get("kgm_r49",{}),   /* 1004B：新聞等資料原本沒有存檔 */')
+R('I r49 save','LS.set("kgmbk4",S.bookings);','LS.set("kgmbk4",S.bookings);LS.set("kgm_r49",S.r49);')
+# ── H23：A388 單獨一櫃 —— 同時段另一區有 3 班的櫃，借一班過來變 2＋2 ──
+R('H23 borrow for lone A388',"      if(best){best.push(f);best.sort(function(a,b){return a.open-b.open});mine.splice(i,1)}\n    }\n  });\n  return gl.concat(gs).sort(function(a,b){return a[0].open-b[0].open});",
+  "      if(best){best.push(f);best.sort(function(a,b){return a.open-b.open});mine.splice(i,1)}\n    }\n  });\n"
+  "  /* 1004B：仍然只有一班的櫃（實測都是 A388：長程區兩班 A388＋一班，A388 不能同櫃，有 A388 的櫃又最多 2 班）——\n"
+  "     向另一區已經排 3 班的櫃借開櫃時間最近的一班，變成 2＋2；使用者規則「每個櫃檯至少兩到三個航班」，A388 規則照樣檢查。 */\n"
+  "  [[gl,gs],[gs,gl]].forEach(function(p){\n"
+  "    var mine=p[0],other=p[1];\n"
+  "    mine.forEach(function(g){\n"
+  "      if(g.length!==1)return;var best=null,bg=null,bd=1e9;\n"
+  "      other.forEach(function(o){if(o.length<3)return;o.forEach(function(x){if(!cap(g,x))return;var d=Math.abs(x.open-g[0].open);if(d<bd){bd=d;best=x;bg=o}})});\n"
+  "      if(best){bg.splice(bg.indexOf(best),1);g.push(best);g.sort(function(a,b){return a.open-b.open})}\n"
+  "    });\n"
+  "  });\n"
+  "  return gl.concat(gs).sort(function(a,b){return a[0].open-b[0].open});")
 # ── 樣式：票務中心只留一個作業區；改票費小字 ──
 R('css',".k929-more:empty{display:none}",
   ".k929-more:empty{display:none}\n"

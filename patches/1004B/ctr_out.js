@@ -42,14 +42,47 @@ window.kgmTermLabelR1004B=function(ap,t,zhOn){
   if((m=/^(\d)([A-Z])$/.exec(t)))return zhOn?('第 '+m[1]+' 航廈 '+m[2]+' 廳'):('Terminal '+m[1]+m[2]);
   if((m=/^(\d)$/.exec(t)))return ap==='AMS'?(zhOn?('第 '+m[1]+' 出境大廳'):('Departure Hall '+m[1])):ap==='ZRH'?(zhOn?('第 '+m[1]+' 報到大廳'):('Check-in '+m[1])):(zhOn?('第 '+m[1]+' 航廈'):('Terminal '+m[1]));
   var NM={TBIT:['湯姆布萊德利國際航廈（TBIT）','Tom Bradley International Terminal'],TB:['湯姆布萊德利國際航廈（TBIT）','Tom Bradley International Terminal'],I:['國際航廈','International Terminal'],INT:['國際線航廈','International Terminal'],
-    M:['主航廈','Main Terminal'],Main:['主航廈','Main Terminal'],North:['北航廈','North Terminal'],S:['主航廈','Main Terminal']};
+    M:['主航廈','Main Terminal'],Main:['主航廈','Main Terminal'],North:['北航廈','North Terminal'],S:['主航廈','Main Terminal'],DOM:['國內線航廈','Domestic Terminal']};
   if(NM[t])return zhOn?NM[t][0]:NM[t][1];
   if(/^[A-H]$/.test(t))return zhOn?(t+' 航廈'):('Terminal '+t);
   return t;
 };
-window.kgmCheckinLabelR1004B=function(ap,tl,c,zhOn){
+window.kgmCheckinLabelR1004B=function(ap,tl,c,zhOn,code){
   if(ap==='TPE'||ap==='TSA')return null;
+  /* 1004B：聯營（他航執飛）的航段在外站是到執飛航空自己的櫃檯報到 —— KGM 不能替它編櫃號 */
+  var op=code?window.kgmPartnerOpR1004B(ap,code):null;
+  if(op)return window.kgmTermLabelR1004B(ap,op.term||AP_TERM_MAP[ap]||tl,zhOn)+(zhOn?('　'+op.zh+'報到櫃檯（依機場看板）'):(' · '+op.en+' check-in (see airport screens)'));
   var x=c&&c.counterZH?c:(c?window.kgmOutCtrR1004B(ap,c,''):null);
   var term=(x&&x.term)||AP_TERM_MAP[ap]||tl;
   return window.kgmTermLabelR1004B(ap,term,zhOn)+(zhOn?'　':' · ')+(x?(zhOn?x.counterZH:x.counterEN):(zhOn?'櫃檯依機場公告':'see airport screens'));
+};
+/* 1004B：外站聯營航段 —— 執飛航空在該機場實際使用的航廈（只列確定的；沒列的沿用機場預設航廈）。
+   例：日航、國泰在成田是第 2 航廈（KGM 自己的班機在第 1 航廈）；阿提哈德在希斯洛第 4、戴高樂第 1 航廈；
+   美國航空在甘迺迪第 8、洛杉磯第 4、芝加哥第 3 航廈；澳航國內線在雪梨第 3、墨爾本第 1 航廈。 */
+var OPTERM1004B={
+  'Japan Airlines':{zh:'日本航空',en:'Japan Airlines',t:{NRT:'T2',HND:'T3',JFK:'T8'}},
+  'Cathay Pacific':{zh:'國泰航空',en:'Cathay Pacific',t:{NRT:'T2'}},
+  'Etihad Airways':{zh:'阿提哈德航空',en:'Etihad Airways',t:{LHR:'T4',CDG:'1'}},
+  'American Airlines':{zh:'美國航空',en:'American Airlines',t:{JFK:'T8',LAX:'T4',ORD:'T3',LAS:'T1',MIA:'North'}},
+  'Alaska Airlines':{zh:'阿拉斯加航空',en:'Alaska Airlines',t:{}},
+  'Qantas':{zh:'澳洲航空',en:'Qantas',t:{SYD:'T1',MEL:'T2',BNE:'INT',AKL:'INT'},dom:{SYD:'T3',MEL:'T1',BNE:'DOM',CNS:'DOM'}},
+  'Malaysia Airlines':{zh:'馬來西亞航空',en:'Malaysia Airlines',t:{}}
+};
+var PIDX1004B=null;
+var AU1004B={SYD:1,MEL:1,BNE:1,ADL:1,CNS:1,PER:1,OOL:1,CBR:1,DRW:1,HBA:1};
+window.kgmPartnerOpR1004B=function(ap,code,other){
+  if(!ap||ap==='TPE'||ap==='TSA'||!code)return null;
+  try{
+    /* _aiTerminal 在排班迴圈裡呼叫很多次：聯營班號先建索引（KGM 自己的班號直接回 null） */
+    var nAll=FLIGHTS.length+((S.customFlights||[]).length);
+    if(!PIDX1004B||PIDX1004B.n!==nAll){PIDX1004B={n:nAll,m:{}};[].concat(FLIGHTS,(S.customFlights||[])).forEach(function(x){if(x&&x.partner&&x.code)(PIDX1004B.m[x.code]=PIDX1004B.m[x.code]||[]).push(x)})}
+    var L=PIDX1004B.m[code];if(!L)return null;
+    var f=null;
+    for(var i=0;i<L.length;i++){var x=L[i];if(x.fr===ap||x.to===ap){if(!other||x.fr===other||x.to===other){f=x;break}}}
+    if(!f)return null;
+    var cfg=OPTERM1004B[f.operator]||null,o=f.fr===ap?f.to:f.fr;
+    var dom=!!(AU1004B[ap]&&AU1004B[o]);
+    var t=cfg?((dom&&cfg.dom&&cfg.dom[ap])||(!dom&&cfg.t[ap])||''):'';
+    return {term:t,zh:(cfg&&cfg.zh)||f.operator||'',en:(cfg&&cfg.en)||f.operator||'',operator:f.operator,flight:f.operatorFlight||''};
+  }catch(_){return null}
 };

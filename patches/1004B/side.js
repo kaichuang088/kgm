@@ -36,7 +36,14 @@
   function revOf(k){try{return +String(_get.call(localStorage,'kgmrev:'+k)||'0').split('|')[0]||0}catch(_){return 0}}
   var IDK=['pnr','id','empId','code','key','reqId','caseId','no'];
   function idOf(x){if(!x||typeof x!=='object')return null;for(var i=0;i<IDK.length;i++){var v=x[IDK[i]];if(v!=null&&v!=='')return IDK[i]+':'+v}return null}
-  function merge(mine,theirs){
+  function merge(mine,theirs,depth){
+    /* 1004B：整包物件（例如 S.r49 = 新聞＋報到＋對話）也要逐欄合併 —— 原本物件直接用對方的，
+       後台剛發的新聞若遇到前台同時存檔就被蓋掉（實測兩次裡一次發生） */
+    if(!Array.isArray(mine)&&!Array.isArray(theirs)&&mine&&theirs&&typeof mine==='object'&&typeof theirs==='object'&&(depth||0)<2){
+      var o={};Object.keys(theirs).forEach(function(k){o[k]=(k in mine)?merge(mine[k],theirs[k],(depth||0)+1):theirs[k]});
+      Object.keys(mine).forEach(function(k){if(!(k in theirs))o[k]=mine[k]});
+      return o;
+    }
     if(!Array.isArray(mine)||!Array.isArray(theirs))return theirs;
     var seen={},out=theirs.slice(),ok=true;
     theirs.forEach(function(x){var k=idOf(x);if(k==null)ok=false;else seen[k]=1});
@@ -118,7 +125,13 @@
     try{document.documentElement.classList.add('kgm-side-admin')}catch(_){}
     /* 1004B：後台檔不需要前台的 KGM AI。原本是每次重畫後才由後台 AI 的 draw() 把 #aiChat 藏起來，
        換分頁時中間那一下就會閃出來（使用者：「換 tab 他就會閃一下」）。改成一開始就用樣式永久藏住。 */
-    try{var st0=document.createElement('style');st0.id='kgm-side-admin-css';st0.textContent='html.kgm-side-admin #aiChat,html.kgm-side-admin #aiWindow{display:none!important}';(document.head||document.documentElement).appendChild(st0)}catch(_){}
+    try{var st0=document.createElement('style');st0.id='kgm-side-admin-css';st0.textContent='html.kgm-side-admin #aiChat,html.kgm-side-admin #aiWindow{display:none!important}'
+      /* 1004B：後台檔的表頭不放前台導覽（優惠與訂票／行程管理／飛行準備／無限萬哩遊）、旅客通知與 Member Portal；語言切換保留 */
+      +'html.kgm-side-admin header:has(>div>.portal-util0815)>div:nth-child(2){display:none!important}'   /* 只限網站表頭；後台頁自己的 <header>（管理後台、CEO、PDF）不能動 */
+      +'html.kgm-side-admin header .portal-util0815>.r4-notify-head,html.kgm-side-admin header .portal-util0815>.portal-link0815:last-child{display:none!important}';(document.head||document.documentElement).appendChild(st0)}catch(_){}
     try{if(S.view!=='admin'){S.view='admin';render()}}catch(_){}
+    /* 後台檔點左上角 KGM AIRWAYS（原本回前台首頁）→ 回後台 */
+    var _ra=render;
+    render=window.render=function(){try{if(S.view==='home')S.view='admin'}catch(_){}return _ra.apply(this,arguments)};
   }
 })();
