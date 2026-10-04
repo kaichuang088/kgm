@@ -58,14 +58,21 @@ window.kgmStxStatusPageR1004B=function(){
   if(!fr&&!to&&!code)fr='TPE';
   /* DH 來自組員排班引擎（S.crewPositioningR121）；那一天還沒算過就在背景算一次再重畫。
      引擎一天要 2–6 秒，只自動算到 21 天內；更遠的日期組員班表本來就還沒排。 */
-  var dhKnown=Object.keys(S.crewPositioningR121||{}).some(function(k){return k.slice(0,10)===d});
+  var dhKnown=(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(d))||Object.keys(S.crewPositioningR121||{}).some(function(k){return k.slice(0,10)===d});
   var dhFar=d>addDays(T(),21),dhBusy=false;
   if(!dhKnown&&!dhFar&&typeof window.crewOnFlight==='function'){
     dhBusy=true;
-    if(!DHP1004B[d]){DHP1004B[d]=1;setTimeout(function(){
-      try{window.crewOnFlight('KX20',d)}catch(_){}
+    /* 1004B：原本一次同步算整天（t_admlag 實測主執行緒卡 16.5 秒）。改用引擎自己的分段 API（kgmCrewStepR121）一天一天補，
+       每段約 80ms、中間讓出畫面；游標已經超過這一天（快取被清過）才退回原本的整份計算。算出來的班表一模一樣。 */
+    if(!DHP1004B[d]){DHP1004B[d]=1;(function step(){
+      try{
+        if(!window.kgmCrewHasDayR121(d)){
+          var n=window.kgmCrewStepR121(80,d);
+          if(!window.kgmCrewHasDayR121(d)){if(n>0){setTimeout(step,30);return}window.crewOnFlight('KX20',d)}
+        }
+      }catch(_){}
       sbCache1004B={};try{if(S.view==='admin'&&S.adminTab==='stxstatus')render()}catch(_){}
-    },300)}
+    })()}
   }
   /* 引擎的 DH 有了之後，再把組員鏈補出來的 DH 也算到這一天（分段，算完重畫） */
   if(dhKnown&&!dhFar&&window.kgmDhWarmR1004B&&!window.kgmDhWarmR1004B(d))dhBusy=true;
