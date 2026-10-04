@@ -371,7 +371,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
  push('H7','里程升等只升一階，且撤回會改回原艙等',
    h7.econOptions.length===1&&h7.econOptions[0]==='Premium'&&h7.clsAfterWithdraw==='O',JSON.stringify(h7));
 
- // H8 Sky Couch is a single row; A380 first business row is the paid special cabin
+ // H8 1004B：使用者「Sky Couch不是只有一排吧」—— Sky Couch 用整組（A388 第 69–75 排 7 排、B779 第 48–51 排 4 排）；A380 第一排商務艙為加價的特別版
  const h8=await p.evaluate(()=>{
    const sky={};Object.keys(AC||{}).forEach(k=>{const r=window.kgmSkyRowsR29(k);if(r&&r.length)sky[k]=r.length});
    S.search=Object.assign(S.search||{},{fr:'TPE',to:'LAX'});
@@ -379,8 +379,8 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    return {skyRowCounts:sky,specialRow:row,feeAtRow:seatFee(row,'A','biz','A388'),
      feeNextRow:seatFee(row+1,'A','biz','A388')};
  });
- push('H8','Sky Couch 只有一排；A380 第一排商務艙為加價的特別版',
-   Object.values(h8.skyRowCounts).every(n=>n===1)&&h8.feeAtRow>0&&h8.feeNextRow===0,JSON.stringify(h8));
+ push('H8','Sky Couch 整組排數（A388 7 排、B779 4 排）；A380 第一排商務艙為加價的特別版',
+   h8.skyRowCounts.A388===7&&h8.skyRowCounts.B779===4&&Object.keys(h8.skyRowCounts).length===2&&h8.feeAtRow>0&&h8.feeNextRow===0,JSON.stringify(h8));
 
  // H9 fares: long-haul business round trip is in the 160-175k band, short haul unchanged
  const h9=await p.evaluate(()=>{

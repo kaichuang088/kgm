@@ -44,7 +44,8 @@ const {chromium}=require('playwright');
     const r={},bad=[];
     [['TPE','UKB','KX160'],['UKB','TPE','KX159'],['TPE','MLE','KX210'],['MLE','TPE','KX209']].forEach(([a,c,code])=>{
       let days=0,okDays=0;
-      for(let i=20;i<70;i++){
+      /* 1004B：神戶線冬季停飛（UKB_DAYS66 winter:'none'），固定看第 20–69 天在 10 月以後會整段落在停飛期（0/0）—— 改成往後找有飛的日子，取前 25 個班次日 */
+      for(let i=20;i<400&&days<25;i++){
         const d=D(i),f=(sortedFlights(a,c,d)||[]).find(x=>x.code===code);
         if(!f)continue;days++;
         let st=null;try{st=awardStatus(code,d,'Premium',1,Object.assign({},f,{date:d}))}catch(e){}
