@@ -1,5 +1,5 @@
 import json
-SRC=open('/tmp/j/kgm1004B_t13.html',encoding='utf-8').read()   # 已含 p_g_bk 之前的全部 1004B 修補
+SRC=open('/tmp/j/kgm1004B_pre_b2.html',encoding='utf-8').read()   # 已含 p_g_bk 之前的全部 1004B 修補
 out=[]
 def J(x):return json.dumps(x,ensure_ascii=False)
 def R(label,old,new,cnt=1):
