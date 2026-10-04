@@ -1,1 +1,1 @@
-p_g_rot.js p_g_side.js p_g_sb.js p_g_dh.js p_g_ai.js p_g_mv.js p_g_fb.js p_g_auc.js p_g_hr.js p_g_fa.js p_g_bk.js
+p_g_rot.js p_g_side.js p_g_sb.js p_g_dh.js p_g_ai.js p_g_mv.js p_g_fb.js p_g_auc.js p_g_hr.js p_g_fa.js p_g_bk.js p_g_b2.js
