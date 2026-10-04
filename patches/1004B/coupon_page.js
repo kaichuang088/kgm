@@ -4,7 +4,7 @@
     var _cnt4b={on:0,off:0,exp:0,full:0},_used4b=0;_cps.forEach(function(c){_cnt4b[_st4b(c)]++;_used4b+=(+c.usedCount||0)});
     var _lab4b={on:'使用中',off:'已停用',exp:'已到期',full:'已用完'};
     body='<section class="k4b-cp">'
-      +'<header><div><small>MARKETING · PROMO CODES</small><h2>優惠碼</h2><p>建立折扣碼，旅客在訂票確認頁輸入即可折抵。購買里程的加贈／折扣活動已移到「里程購買審查 › 里程購買優惠」。</p></div>'
+      +'<header><div><small>MARKETING · PROMO CODES</small><h2>優惠碼</h2><p>建立折扣碼，旅客在訂票確認頁輸入即可折抵。購買里程的加贈／折扣活動已移到「會員服務」底下的里程頁（頁面上方切到「優惠」）。</p></div>'
       +'<div class="k4b-cp-kpi"><span><i>使用中</i><b>'+_cnt4b.on+'</b></span><span><i>已到期／用完</i><b>'+(_cnt4b.exp+_cnt4b.full)+'</b></span><span><i>已停用</i><b>'+_cnt4b.off+'</b></span><span><i>累計使用次數</i><b>'+_used4b+'</b></span></div></header>'
       +'<div class="k4b-cp-body"><div class="k4b-cp-form"><h3>建立新的優惠碼</h3>'
         +'<label>折扣碼 Code<input id="cpCode" class="inp" style="text-transform:uppercase" placeholder="SUMMER25"></label>'
