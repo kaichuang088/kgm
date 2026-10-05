@@ -14,3 +14,5 @@ p_h_rate.js
 p_h_load.js
 p_h_ai6b.js
 p_h_auc.js
+p_h_sal.js
+p_h_staffid.js
