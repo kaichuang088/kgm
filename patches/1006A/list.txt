@@ -20,3 +20,4 @@ p_h_gros.js
 p_h_gate.js
 p_h_fifth.js
 p_h_cs.js
+p_h_logo.js
