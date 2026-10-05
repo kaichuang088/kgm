@@ -3,7 +3,8 @@ import json
 # ══ 1006A #27：聯營航班顯示真的航空公司 logo，不是文字 CX／JL ══
 #   根因：logo 是執行時才去外部網站抓（Google favicon／Clearbit）；預覽框或沒有外網時一律失敗，退回文字縮寫。
 #   改成把各家 logo 內嵌在檔案裡（取自 MIT 授權的 airlogos 套件，128×128 PNG），外部網址只當備援。
-M=json.load(open('/tmp/claude-0/-home-user-kgm/1b8a8568-8f05-5001-a981-2589b9539787/scratchpad/logos/map.json'))
+import os
+M=json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'assets','partner_logos.json')))
 R('logo map',
  "  var FINAL_LOGO_DOMAIN_0809C={",
  "  /* 1006A：內嵌的聯營夥伴 logo（不必連外網） */\n"
