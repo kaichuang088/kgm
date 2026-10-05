@@ -16,3 +16,5 @@ p_h_ai6b.js
 p_h_auc.js
 p_h_sal.js
 p_h_staffid.js
+p_h_gros.js
+p_h_gate.js
