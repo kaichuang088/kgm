@@ -9,3 +9,6 @@ p_h_seat.js
 p_h_miles.js
 p_h_case.js
 p_h_promo.js
+p_h_crewpos.js
+p_h_rate.js
+p_h_load.js
