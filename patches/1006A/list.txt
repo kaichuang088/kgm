@@ -12,3 +12,4 @@ p_h_promo.js
 p_h_crewpos.js
 p_h_rate.js
 p_h_load.js
+p_h_ai6b.js
