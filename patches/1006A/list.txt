@@ -1,3 +1,9 @@
 p_h_ops.js
 p_h_side.js
 p_h_perf.js
+p_h_dd.js
+p_h_mv.js
+p_h_ai.js
+p_h_trip.js
+p_h_seat.js
+p_h_miles.js

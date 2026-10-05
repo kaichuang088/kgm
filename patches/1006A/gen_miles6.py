@@ -1,0 +1,146 @@
+from common import *
+# ══ 1006A #32：里程來源視窗「自有 24,000／非自有 0」vs 會員首頁「120,000／67,200」 ══
+# 根因 1：r4 與 0809G 兩層各從里程批次扣一次 → 批次被扣兩倍（u.miles 只扣一次）。
+RL('r4 deduct once','kgm0810pR4',
+ "var ok=deductR4.apply(this,arguments);if(!ok){u.mileageLots0809G=JSON.parse(snapshot);return false;}",
+ "var after6=JSON.stringify(u.mileageLots0809G||[]);\n"
+ "    var ok=deductR4.apply(this,arguments);if(!ok){u.mileageLots0809G=JSON.parse(snapshot);return false;}\n"
+ "    /* 1006A：0809G 那層會用同一筆金額再扣一次批次 → 批次被扣兩倍（帳戶 120,000、選里程來源只剩 24,000）。以本層（分自有／非自有）的結果為準，退款紀錄也改成本層的批次 */\n"
+ "    var u6=u4(uid)||u;u6.mileageLots0809G=JSON.parse(after6);\n"
+ "    try{var dl6=(S.mileageDebits0809G||{})[uid],last6=dl6&&dl6[dl6.length-1];if(last6&&last6.reason===reason&&!last6.refunded)last6.parts=parts.map(function(p){return {amount:p.amount,expiry:p.expiry,source:p.source}});}catch(_){}")
+# 單一來源：u.miles 是總額，批次是明細；兩者對不上時以 u.miles 為準補齊批次（舊資料修復＋防呆）
+RL('r4 sync+view','kgm0810pR4',
+ "window.kgmMileageBalanceR4=function(source){var u=S.user&&u4(S.user.id);return u?balance4(u,source,false):0;};",
+ "window.kgmMileageBalanceR4=function(source){var u=S.user&&u4(S.user.id);return u?balance4(u,source,false):0;};\n"
+ "  /* 1006A：u.miles（總額）與里程批次（自有／非自有明細）對齊；舊版只退 u.miles 不退批次留下的差額在這裡補回 */\n"
+ "  window.kgmMilesSyncR1006A=function(u){\n"
+ "    if(!u||!Array.isArray(u.mileageLots0809G)||!u.mileageLots0809G.length)return 0;\n"
+ "    var lots=ensureLots4(u),sum=lots.reduce(function(n,l){return n+(+l.amount||0)},0),d=(+u.miles||0)-sum;\n"
+ "    if(!d)return 0;\n"
+ "    if(d>0)lots.push({amount:d,expiry:plusYears4(todayISO(),3),source:'reconcile_1006A',ownership:'self',transferable:true});\n"
+ "    else consume4(u,-d,{});\n"
+ "    return d;\n"
+ "  };\n"
+ "  window.kgmMilesViewR1006A=function(uid){\n"
+ "    var u=u4(uid);if(!u)return null;window.kgmMilesSyncR1006A(u);\n"
+ "    var d6=new Date(todayISO()+'T12:00:00');d6.setMonth(d6.getMonth()+6);var lim=d6.toISOString().slice(0,10);\n"
+ "    var lots=ensureLots4(u),exp=lots.reduce(function(n,l){return n+((l.expiry&&l.expiry<=lim)?(+l.amount||0):0)},0);\n"
+ "    return {self:balance4(u,'self'),other:balance4(u,'non_self'),exp:exp};\n"
+ "  };\n"
+ "  setTimeout(function(){try{var ch=0;(S.users||[]).forEach(function(u){if(window.kgmMilesSyncR1006A(u))ch++});if(ch)save4();}catch(_){}},1800);")
+# 升等選里程來源：用同一份批次（同步後）
+R('r5 balances from ledger',
+ "function balances5(){var u=S.user||{},self=0,other=0;",
+ "function balances5(){var u=S.user||{},self=0,other=0;\n"
+ "    /* 1006A：跟帳戶頁同一個來源（批次＋總額對齊） */\n"
+ "    try{if(window.kgmMilesViewR1006A&&u.id){var v6=window.kgmMilesViewR1006A(u.id);if(v6)return {self:v6.self,other:v6.other,total:v6.self+v6.other};}}catch(_){}\n"
+ "    ")
+# 根因 2：會員首頁的「非自有里程」其實是「晉升資格計算」（u.qualMiles||里程×0.56＝67,200）被文字替換改名
+R('portal hero view','var miles=+u.miles||0,qual=+u.qualMiles||Math.max(0,Math.round(miles*.56))',
+ 'var mv6=(window.kgmMilesViewR1006A&&u&&u.id)?window.kgmMilesViewR1006A(u.id):null,miles=+u.miles||0,qual=+u.qualMiles||Math.max(0,Math.round(miles*.56))')
+R('portal hero self',
+ "<small>'+(Z()?'獎勵里程':'REWARD MILES')+'</small><b>'+miles.toLocaleString()+' <em>'+(Z()?'哩':'mi')+'</em></b><span>0 '+(Z()?'哩將在 6 個月內到期':'miles expiring in 6 months')+'</span>",
+ "<small>'+(Z()?'自有里程':'SELF-OWNED MILES')+'</small><b>'+(mv6?mv6.self:miles).toLocaleString()+' <em>'+(Z()?'哩':'mi')+'</em></b><span>'+(mv6?mv6.exp:0).toLocaleString()+' '+(Z()?'哩將在 6 個月內到期':'miles expiring in 6 months')+'</span>")
+R('portal hero non-self',
+ "<small>'+(Z()?'晉升資格計算':'TIER QUALIFICATION')+'</small><b>'+qual.toLocaleString()+' <em>",
+ "<small>'+(Z()?'非自有里程':'TRANSFERRED-IN MILES')+'</small><b>'+(mv6?mv6.other:0).toLocaleString()+' <em>")
+# 根因 3：取消／撤回升等只加回 u.miles，沒退批次
+R('K export restore',"  function restoreUpgradeMilesK(req,b){",
+ "  window.kgmRestoreUpgradeMilesR1006A=function(req,b){return restoreUpgradeMilesK(req,b)};/* 1006A */\n  function restoreUpgradeMilesK(req,b){")
+R('K legacy refund lots',"total=+req.miles||0;u.miles=(+u.miles||0)+total;",
+ "total=+req.miles||0;u.miles=(+u.miles||0)+total;try{window.kgmMilesSyncR1006A&&window.kgmMilesSyncR1006A(u)}catch(_){}/* 1006A：舊申請沒有批次明細，退回的里程也要進批次 */")
+R('r10 cancel upgrade via ledger',
+ "r.status='cancelled';var u=(S.users||[]).find(function(x){return S.user&&x.id===S.user.id});if(u)u.miles=(+u.miles||0)+(+r.miles||0);save();render()};",
+ "r.status='cancelled';var u=(S.users||[]).find(function(x){return S.user&&x.id===S.user.id});\n"
+ "/* 1006A：依原扣除的批次（含效期、自有／非自有）退回，不是只加 u.miles；已確認的升等同時改回原艙等並自動配位 */\n"
+ "var b6=(S.bookings||[]).find(function(x){return x.pnr===r.pnr}),got6=0;\n"
+ "try{if(b6&&window.kgmRestoreUpgradeMilesR1006A)got6=+window.kgmRestoreUpgradeMilesR1006A(r,b6)||0}catch(_){}\n"
+ "if(!got6&&!r.refundDone0810K&&u){u.miles=(+u.miles||0)+(+r.miles||0);r.refundDone0810K=true}\n"
+ "u=(S.users||[]).find(function(x){return S.user&&x.id===S.user.id})||u;try{window.kgmMilesSyncR1006A&&window.kgmMilesSyncR1006A(u)}catch(_){}\n"
+ "try{var sg6=r.seg||'out';if(b6&&r.fromClass&&b6.upgraded&&b6.upgraded[sg6]&&b6.upgraded[sg6].id===r.id){if(sg6==='inb')b6.inbC=r.fromClass;else b6.outC=r.fromClass;delete b6.upgraded[sg6];b6.seats=b6.seats||{};b6.seats[sg6]={};try{autoAssignSeat(b6,sg6)}catch(_){}}}catch(_){}\n"
+ "r.refundedMiles=got6||(+r.miles||0);\n"
+ "save();render()};")
+RL('r49 withdraw ledger','kgm-0819e-r49',
+ "if(u){u.miles=(+u.miles||0)+back;",
+ "if(u){u.miles=(+u.miles||0)+back;r.refundDone0810K=true;try{window.kgmMilesSyncR1006A&&window.kgmMilesSyncR1006A(u)}catch(_){}/* 1006A：退回的里程同步進批次 */")
+
+# ══ 1006A #33：累積比例調整過（0913A 起 ×0.4），卡級門檻與航段要跟著調整；全站卡級規則統一成一份 ══
+R('earn pct mile 0',"  if(pct==null)pct=(FARES[fareCode]&&FARES[fareCode].mile)||100;",
+ "  if(pct==null){var fm6=FARES[fareCode]&&FARES[fareCode].mile;pct=(fm6!=null)?+fm6:((typeof AWARD_FARES!=='undefined'&&AWARD_FARES[fareCode])?0:100);}/* 1006A：mile 0（員工票）原本被當成 100%；酬賓票 0 */")
+R('calcMiles unify',
+ "function calcMiles(dist,level,fareCode){\n  const pct=(FARES[fareCode]?.mile||0)/100;if(pct===0)return 0;",
+ "function calcMiles(dist,level,fareCode){\n"
+ "  /* 1006A：入帳統一用 earnMiles（距離區間×0.4 換算係數×票價家族比率）；這裡原本另一套公式、少了 0.4，入帳是畫面顯示的 2.5 倍 */\n"
+ "  if(typeof earnMiles==='function'&&(EARN_PCT[fareCode]!=null||(FARES[fareCode]&&FARES[fareCode].mile)))return earnMiles(fareCode,dist,level);\n"
+ "  const pct=(FARES[fareCode]?.mile||0)/100;if(pct===0)return 0;")
+# r20：唯一的卡級規則表（年度 1/1–12/31；資格哩程或航段擇一）
+RL('r20 year filter','kgm-0814d-r20',
+ "      if(!sg||!sg.date||sg.date>T())return;               /* flown only */",
+ "      if(!sg||!sg.date||sg.date>T())return;               /* flown only */\n"
+ "      if(String(sg.date).slice(0,4)!==String(T()).slice(0,4))return;   /* 1006A：年度門檻，每年 1/1–12/31 */")
+RL('r20 qual miles via earn','kgm-0814d-r20',
+ "      miles+=Math.round(d*0.621371*(pct/100));",
+ "      /* 1006A：資格哩程＝實際入帳的搭乘哩程（基本卡級、不含卡級加成），跟入帳同一個公式 */\n"
+ "      try{miles+=(typeof earnMiles==='function')?(earnMiles(code,d,'Bronze')||0):Math.round(d*0.621371*(pct/100)*0.4)}catch(_){}")
+RL('r20 tiers','kgm-0814d-r20',
+ "var TIERS=[['Bronze',0,0],['Silver',30000,15],['Gold',60000,30],['Diamond',100000,50],['Black',150000,80]];",
+ "/* 1006A：0913A 起累積 ×0.4，門檻同步 ×0.4（25,000→10,000 等）；航段以全網平均每段約 840 資格哩程換算，兩條路要飛的量相當。\n"
+ "   全站唯一一份：會員頁、AI、卡級計算、規章都讀這裡。Black＝Diamond（tierOf 同一級） */\n"
+ "var TIERS=[['Bronze',0,0],['Silver',10000,12],['Gold',20000,24],['Diamond',40000,48]];\n"
+ "window.KGM_TIERS_R1006A=TIERS;\n"
+ "window.kgmTierEvalR1006A=function(u){\n"
+ "  var f=flownStats(u||{}),best='Bronze';\n"
+ "  TIERS.forEach(function(t){if(t[1]&&(f.miles>=t[1]||f.sectors>=t[2]))best=t[0]});\n"
+ "  return {tier:best,miles:f.miles,sectors:f.sectors};\n"
+ "};")
+RL('r20 next tier alias','kgm-0814d-r20',
+ "  var i=TIERS.findIndex(function(t){return t[0]===cur});",
+ "  try{cur=(typeof tierOf==='function')?tierOf(cur):cur}catch(_){}\n  var i=TIERS.findIndex(function(t){return t[0]===cur});")
+RL('r20 note or','kgm-0814d-r20',
+ "?('升等至 <b>'+E(nt[0])+'</b> 所需的資格，僅計算本人實際搭乘 KGM 航班累積的里程與航段。')",
+ "?('升等至 <b>'+E(nt[0])+'</b>：'+(new Date().getFullYear())+' 年度（1/1–12/31）資格哩程 '+N(nt[1])+' 哩<b>或</b> '+nt[2]+' 個航段，擇一達成即可；只計本人實際搭乘 KGM 航班。')")
+# 其他算卡級的地方一律改用同一份規則（只升不降）
+for lab,old in [('recompute decl',"function recomputeTier(u){\n  if(!u)return;"),
+                ('recompute 0813',"recomputeTier=function(u){\n  if(!u)return;")]:
+    R(lab,old,old+"\n  /* 1006A：卡級統一由 r20 規則表決定（年度資格哩程或航段擇一），只升不降 */\n"
+      "  if(window.kgmTierEvalR1006A){var ev6=window.kgmTierEvalR1006A(u),ord6=['Bronze','Silver','Gold','Diamond'],c6=ord6.indexOf(tierOf(u.level));if(c6<0)c6=0;if(ord6.indexOf(ev6.tier)>c6)u.level=ev6.tier;else if(!u.level)u.level='Bronze';return;}")
+R('creditMiles level',
+ "const newLevel=newMiles>=90000&&flightCount>=35?\"Diamond\":newMiles>=60000&&flightCount>=17?\"Gold\":newMiles>=30000&&flightCount>=9?\"Silver\":\"Bronze\";",
+ "let newLevel=S.users[idx].level||\"Bronze\";/* 1006A：卡級不再看里程餘額（買的里程會讓人升卡、餘額少了會降卡），改用統一規則、只升不降 */try{const _t6={...S.users[idx],miles:newMiles};recomputeTier(_t6);newLevel=_t6.level||newLevel}catch(_){}")
+R('pay level',
+ "const u=S.user;const newLevel=u.miles>=90000?\"Diamond\":u.miles>=60000?\"Gold\":u.miles>=30000?\"Silver\":\"Bronze\";",
+ "const u=S.user;let newLevel=u.level;try{const _p6=S.users.find(x=>x.id===u.id);if(_p6){const _t6={..._p6};recomputeTier(_t6);newLevel=_t6.level||newLevel}}catch(_){}/* 1006A：同一份卡級規則 */")
+R('old nxtMap','const nxtMap={Bronze:{nm:"Silver",need:30000},Silver:{nm:"Gold",need:60000},Gold:{nm:"Diamond",need:90000}};',
+ 'const nxtMap={Bronze:{nm:"Silver",need:10000},Silver:{nm:"Gold",need:20000},Gold:{nm:"Diamond",need:40000}};/* 1006A */')
+R('old _req','const _req={Silver:{mi:30000,seg:8,prem:0},Gold:{mi:50000,seg:15,prem:2},Black:{mi:80000,seg:30,prem:6}}[nextLvl]||null;',
+ 'const _req={Silver:{mi:10000,seg:12,prem:0},Gold:{mi:20000,seg:24,prem:0},Black:{mi:40000,seg:48,prem:0}}[nextLvl]||null;/* 1006A */')
+R('ai lvls 0','var lvls=[["Bronze","0-29,999mi","95折票價 · 基本里程累積"],','var lvls=[["Bronze","0–9,999 資格哩程","95折票價 · 基本里程累積"],')
+R('ai lvls s','["Silver","30,000mi",','["Silver","10,000 資格哩程或 12 航段",')
+R('ai lvls g','["Gold","60,000mi",','["Gold","20,000 資格哩程或 24 航段",')
+R('ai lvls d','["Diamond","90,000mi",','["Diamond","40,000 資格哩程或 48 航段",')
+R('ai text zh',"會員等級：Bronze(免費)→Silver(30,000哩)→Gold(60,000哩)→Black(90,000哩)。等級依累積哩程，只升不降。",
+ "會員等級：Bronze(免費)→Silver(10,000 資格哩程或 12 航段)→Gold(20,000 或 24 航段)→Black/Diamond(40,000 或 48 航段)。資格以每年 1/1–12/31 實際搭乘 KGM 航班計算（購買、受讓的里程不列入），只升不降。")
+R('ai text en',"Tiers: Bronze (free) → Silver (30,000 mi) → Gold (60,000 mi) → Black (90,000 mi). Based on cumulative miles, never downgrades.",
+ "Tiers: Bronze (free) → Silver (10,000 qualifying miles or 12 sectors) → Gold (20,000 or 24) → Black/Diamond (40,000 or 48). Counted per calendar year on KGM flights actually flown; purchased or transferred miles do not qualify. Never downgrades.")
+# 會員權益頁（兩份定義都改，後面那份才是實際生效的）
+R('ben s mi',"'1 年內至少持有 30,000 哩'","'每年 1/1–12/31 搭乘 KGM 累積 10,000 資格哩程，或 12 個航段（擇一）'",2)
+R('ben g mi',"'1 年內至少持有 50,000 哩'","'每年 1/1–12/31 搭乘 KGM 累積 20,000 資格哩程，或 24 個航段（擇一）'",2)
+R('ben b mi',"'1 年內至少持有 80,000 哩'","'每年 1/1–12/31 搭乘 KGM 累積 40,000 資格哩程，或 48 個航段（擇一）'",2)
+R('ben s seg',"'1 年內搭乘 KGM 至少 5 個航班'","'資格哩程僅計本人實際搭乘 KGM 航班；購買、受讓、酬賓及員工票不列入'",2)
+R('ben g seg',"'1 年內搭乘 KGM 至少 15 個航班'","'資格哩程僅計本人實際搭乘 KGM 航班；購買、受讓、酬賓及員工票不列入'",2)
+R('ben b seg1',"'1 年內搭乘 KGM 至少 30 個航班；或 oneworld 至少 70 個航班且其中 KGM 至少 17 個'","'資格哩程僅計本人實際搭乘 KGM 航班；購買、受讓、酬賓及員工票不列入'")
+R('ben b seg2',"'1 年內搭乘 KGM 至少 30 個航班；或 oneworld 至少 70 個航班且 KGM 至少 17 個'","'資格哩程僅計本人實際搭乘 KGM 航班；購買、受讓、酬賓及員工票不列入'")
+R('ben g prem1',"'1 年內至少 2 個 KGM 豪華經濟艙或以上航班',","")
+R('ben g prem2',"'1 年內至少 2 個 KGM 豪華經濟艙或以上航班（不限距離）',","")
+R('ben b prem1',"'1 年內至少 6 個 KGM 豪華經濟艙或以上航班',","")
+R('ben b prem2',"'1 年內至少 6 個 KGM 豪華經濟艙或以上航班（不限距離）',","")
+R('ben s maint',"'次年度至少搭乘 KGM 10 個航班，或達成 Gold Explorer 升等條件'","'次年度再達成 Silver 門檻（10,000 資格哩程或 12 個航段），或達成 Gold Explorer 升等條件'",2)
+R('ben g maint',"'次年度至少搭乘 KGM 15 個航班，或達成 Black Explorer 升等條件'","'次年度再達成 Gold 門檻（20,000 資格哩程或 24 個航段），或達成 Black Explorer 升等條件'",2)
+R('ben b maint',"'次年度至少搭乘 KGM 30 個航班'","'次年度再達成 Black 門檻（40,000 資格哩程或 48 個航段）'",2)
+# 站內規章 KGM-FFP-011（與 ZIP 內 PDF 同步改）
+R('pol silver','<td>銀卡 Silver</td><td>25,000 哩或 20 航段</td>','<td>銀卡 Silver</td><td>10,000 哩或 12 航段</td>')
+R('pol gold','<td>金卡 Gold</td><td>50,000 哩或 40 航段</td>','<td>金卡 Gold</td><td>20,000 哩或 24 航段</td>')
+R('pol diamond','<td>尊爵卡 Diamond</td><td>100,000 哩或 80 航段</td>','<td>尊爵卡 Diamond</td><td>40,000 哩或 48 航段</td>')
+R('pol accrual','哩程依實際搭乘航段之飛航距離乘以票價家族累積比率計算：',
+ '哩程依實際搭乘航段之基礎哩程乘以票價家族累積比率計算；基礎哩程依航段距離區間及卡等計算，並乘以換算係數 0.4（配合第二條哩程價值調整）。卡等門檻之哩程以本條計算之搭乘哩程為準，購買、受讓、酬賓及員工票哩程不列入：')
+save('p_h_miles.js','/* 1006A · 里程單一來源＋卡級門檻 */\n')
