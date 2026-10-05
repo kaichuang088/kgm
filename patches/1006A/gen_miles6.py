@@ -27,7 +27,24 @@ RL('r4 sync+view','kgm0810pR4',
  "    var lots=ensureLots4(u),exp=lots.reduce(function(n,l){return n+((l.expiry&&l.expiry<=lim)?(+l.amount||0):0)},0);\n"
  "    return {self:balance4(u,'self'),other:balance4(u,'non_self'),exp:exp};\n"
  "  };\n"
- "  setTimeout(function(){try{var ch=0;(S.users||[]).forEach(function(u){if(window.kgmMilesSyncR1006A(u))ch++});if(ch)save4();}catch(_){}},1800);")
+ "  /* 1006A：里程明細的說明改成中文、看得懂是哪一筆 */\n"
+ "  window.kgmMilesReasonR1006A=function(x){\n"
+ "    var t=String((x&&(x.reason||x.desc))||'');if(typeof LANG!=='undefined'&&LANG==='en')return t;\n"
+ "    var m=t.match(/^Upgrade ([A-Z0-9]{5,8}) (out|inb|out2|inb2)/);if(m)return '里程升等扣除 · PNR '+m[1]+'（'+(/^inb/.test(m[2])?'回程':'去程')+'）';\n"
+ "    m=t.match(/^(?:Legacy )?[Uu]pgrade waitlist refund (\\S+)/);if(m)return '里程升等取消／未遞補 · 退回（申請 '+m[1]+'，原效期）';\n"
+ "    m=t.match(/^Award ticket ([A-Z0-9]{5,8})/);if(m)return '酬賓機票扣除 · PNR '+m[1];\n"
+ "    if(/^Demo opening balance/.test(t))return '開戶贈送里程';\n"
+ "    return t;\n"
+ "  };\n"
+ "  setTimeout(function(){try{var ch=0;\n"
+ "    /* 1006A：舊版取消升等只加回 u.miles、沒有寫明細 → 補一筆「已退回」紀錄（不重複加里程） */\n"
+ "    (S.upgradeReqs||[]).forEach(function(r){\n"
+ "      if(!r||r.status!=='cancelled'||r.refundDone0810K||r.refundLog1006A)return;\n"
+ "      var u=u4(r.memberId);if(!u)return;\n"
+ "      u.milesLog=[{date:todayISO(),type:'credit',amount:+r.miles||0,reason:'Upgrade waitlist refund '+r.id,balance:+u.miles||0}].concat(u.milesLog||[]);\n"
+ "      r.refundDone0810K=true;r.refundLog1006A=true;ch++;\n"
+ "    });\n"
+ "    (S.users||[]).forEach(function(u){if(window.kgmMilesSyncR1006A(u))ch++});if(ch)save4();}catch(_){}},1800);")
 # 升等選里程來源：用同一份批次（同步後）
 R('r5 balances from ledger',
  "function balances5(){var u=S.user||{},self=0,other=0;",

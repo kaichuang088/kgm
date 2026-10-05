@@ -7,3 +7,5 @@ p_h_ai.js
 p_h_trip.js
 p_h_seat.js
 p_h_miles.js
+p_h_case.js
+p_h_promo.js
