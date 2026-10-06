@@ -193,4 +193,29 @@ R('front AI parseDate',
  "  /* 1006A：「11/24」「11-24」「11月24日」都聽得懂；沒寫年份而且已經過了就是明年；句子裡有「2027年」「(2027)」就用那一年 */\n"
  "  var yy=(t.match(/(?:^|[^\\d])(20\\d{2})\\s*(?:年|\\)|）)/)||[])[1];m=t.match(/(\\d{1,2})\\s*月\\s*(\\d{1,2})\\s*[日號号]?/)||t.match(/(?:^|[^\\dA-Za-z])(\\d{1,2})\\s*[\\/\\-.]\\s*(\\d{1,2})(?![\\d%])/);\n"
  "  if(m&&+m[1]>=1&&+m[1]<=12&&+m[2]>=1&&+m[2]<=31){var today=itI(),Y=yy?+yy:+today.slice(0,4),d=Y+'-'+String(m[1]).padStart(2,'0')+'-'+String(m[2]).padStart(2,'0');if(!yy&&d<today)d=(Y+1)+d.slice(4);return d}")
+# ══ 1006A #15（第二輪）：後台 AI 接 Claude 的兩個結構問題 ══
+#   ① Claude 回了一段文字、但沒有要執行的動作時（回答問題），後面還會被補一句「我還看不懂這個需求」。
+#   ② Claude 拿不到任何網站資料，「今天營運概況如何」只能說看不懂 → 請求附上一份精簡營運摘要（待處理事項已依職務過濾、
+#      今天航班數、機隊缺段／拆機、關閉中的票價家族、特殊票價規則數）。Worker 端同步改版（見 worker_ai_admin_1006A.txt）。
+RL('admin ai no 看不懂 when replied',L,
+ "    if(!acts.length)lines.push(z()?'我還看不懂這個需求。",
+ "    if(!acts.length&&!reply)lines.push(z()?'我還看不懂這個需求。")
+RL('admin ai context fn',L,
+ "  async function remote(text){",
+ "  /* 1006A #15：給 Claude 的即時營運摘要（只放登入者看得到的） */\n"
+ "  function ctx6(){\n"
+ "    var o=[];\n"
+ "    try{o.push((z()?'登入者：':'User: ')+roleZh()+' '+(me().empId||'')+'；今天 '+T())}catch(_){}\n"
+ "    try{var d=new Date(T()+'T12:00:00'),n=[].concat(FLIGHTS,S.customFlights||[]).filter(function(f){return f&&!f.partner&&!f.via&&!f.codeshare&&flyOn(f,d)}).length;o.push('今天自營航班 '+n+' 段')}catch(_){}\n"
+ "    try{var sm=window.KGM_ROT_SUM_R72;if(sm)o.push('機隊整年輪轉：已排 '+sm.assigned+'／'+sm.total+' 段，孤立 '+(sm.orphan||0)+'、拆機 '+(sm.split||0))}catch(_){}\n"
+ "    try{var cv=(window.KGM_COVER_CACHE_R914||{}).v;if(cv)o.push('無機可派 '+cv.missing+' 段')}catch(_){}\n"
+ "    try{var fr=(S.fareRulesR929||[]).filter(function(r){return r&&!r.off}).length,fb=(S.fareBucketsR1006A||[]).filter(function(x){return x&&!x.off});o.push('特殊票價規則 '+fr+' 條；關閉中的票價家族 '+fb.length+' 筆'+(fb.length?'（'+fb.slice(0,6).map(function(x){return (x.cabin||'全艙')+' '+x.family+' '+(x.from||'')+'~'+(x.to||'')}).join('、')+'）':''))}catch(_){}\n"
+ "    try{var po=pending1004B();if(po&&po.msg)o.push('待處理事項：\\n'+String(po.msg).slice(0,1400))}catch(_){}\n"
+ "    return o.join('\\n').slice(0,2400);\n"
+ "  }\n"
+ "  async function remote(text){")
+RL('admin ai send context',L,
+ "body:JSON.stringify({model:MODEL,fallbackModel:MODEL2,text:text,role:roleOf(),empId:me().empId||'',today:T(),",
+ "body:JSON.stringify({model:MODEL,fallbackModel:MODEL2,text:text,role:roleOf(),empId:me().empId||'',today:T(),context:ctx6(),")
+
 save('p_h_ai6b.js','/* 1006A · 後台 AI：日期、票價家族、換班方案 */\n')
