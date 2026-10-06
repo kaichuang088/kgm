@@ -455,7 +455,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    const txt=(document.querySelector('#app .q-member-body')||{}).innerText||'';
    return {rows:new Set(tops).size,btns:tops.length,listed:/UGV6000001/.test(txt)&&/里程升等/.test(txt)};
  });
- push('H12','會員中心分頁一排、我的案件列出里程升等',h12.rows===1&&h12.btns>=5&&h12.listed,JSON.stringify(h12));
+ push('H12','會員中心分頁一排；1006A #35「里程升等不用建立案件」→ 我的案件不列出里程升等',h12.rows===1&&h12.btns>=5&&!h12.listed,JSON.stringify(h12));
 
  // H13 AI launcher gradient: exactly one gradient definition, launcher star painted
  const h13=await p.evaluate(()=>{S.view='home';render();
@@ -475,6 +475,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    const o=window.kgmResFlightsR161('TPE','LAX',dep)[0],i=window.kgmResFlightsR161('LAX','TPE',ret)[0];
    const res={};
    try{
+     S.policyAgreedR914=Object.assign(S.policyAgreedR914||{},{'KGM-RSB-016':{at:new Date().toISOString(),ver:'vfy'}});   /* 1006A：Residence 出價前要先同意《Residence 御璽套房競標辦法》—— 這裡模擬旅客已同意 */
      S.resModalR161={code:o.code,date:dep,step:2,seg:'out'};
      const amtO=Math.max(400000,(window.kgmResidenceMinBidR83(o,dep,1)||0)+5000),amtI=Math.max(400000,(window.kgmResidenceMinBidR83(i,ret,1)||0)+5000);res.amtI=amtI;
      let box=document.createElement('div');box.innerHTML='<input id="k161amt" value="'+amtO+'"><select id="k161alt"><option value="business" selected>b</option></select>';document.body.appendChild(box);
@@ -756,6 +757,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
      S.search=Object.assign(S.search||{},{fr:'TPE',to:'LAX',dep:dep,ret:ret,type:'RT',cabin:'First',adults:1,children:0,infants:0,pax:1,useMiles:false});
      S.outF=S.inbF=S.outC=S.inbC=null;S.phase='sel_out';S.view='booking';S.resBidSegR923=null;render();
      const o=window.kgmResFlightsR161('TPE','LAX',dep)[0];
+     S.policyAgreedR914=Object.assign(S.policyAgreedR914||{},{'KGM-RSB-016':{at:new Date().toISOString(),ver:'vfy'}});   /* 1006A：Residence 出價前要先同意《Residence 御璽套房競標辦法》—— 這裡模擬旅客已同意 */
      S.resModalR161={code:o.code,date:dep,step:2,seg:'out'};window.kgmResRepaintR161();
      await new Promise(r=>setTimeout(r,400));
      out.table=!!document.querySelector('.k927d-tbl');out.selHidden=(document.getElementById('k161alt')||{}).style.display==='none';
