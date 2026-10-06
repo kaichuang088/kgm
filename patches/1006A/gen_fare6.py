@@ -110,6 +110,7 @@ RL('fare attrs + align','kgm-0909E-r229',
  "      document.querySelectorAll('#app .k929-fare').forEach(function(a){var p=a.parentElement;if(!p)return;var g=groups.filter(function(x){return x.p===p})[0];if(!g){g={p:p,a:[]};groups.push(g)}g.a.push(a)});\n"
  "      groups.forEach(function(g){\n"
  "        if(g.a.length<2)return;\n"
+ "        if(!g.a[0].offsetParent)return;   /* 收合（隱藏）中的卡量不到高度，展開後再對齊 */\n"
  "        var parts=[['.k929-hd'],['.k929-fr']];\n"
  "        var hd=g.a.map(function(c){return c.querySelector('.k929-hd')}).filter(Boolean);\n"
  "        hd.forEach(function(x){x.style.minHeight=''});\n"
@@ -124,6 +125,8 @@ RL('fare attrs + align','kgm-0909E-r229',
  "  window.kgmFareEqR1006A=eq;\n"
  "  if(typeof render==='function'){var rd6=render;render=window.render=function(){var r=rd6.apply(this,arguments);setTimeout(eq,0);setTimeout(eq,250);return r}}\n"
  "  try{window.addEventListener('resize',function(){setTimeout(eq,50)})}catch(_){}\n"
+ "  /* 票價卡在重畫時就全部建好、只是收合；展開「選擇票價」只切換顯示，不經過 render()。點擊之後（展開、切換日期、艙等…）再對齊一次看得到的卡 */\n"
+ "  try{document.addEventListener('click',function(){setTimeout(eq,60);setTimeout(eq,400)},true)}catch(_){}\n"
  "})();\n"
  "/* 把暫扣的里程改掛到改票後的新日期 */\nwindow.kgmMileMoveR923=function(id,newDate,newCode){")
 # ── 轉機（兩段）票價卡：同樣換幣別、地勤費率依方案、優先登機／Wi-Fi 寫「不可」 ──
