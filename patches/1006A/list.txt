@@ -27,3 +27,4 @@ p_h_clear.js
 p_h_tsa.js
 p_h_res.js
 p_h_first.js
+p_h_stxst.js
