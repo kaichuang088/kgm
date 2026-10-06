@@ -55,7 +55,7 @@ RL('schedule72 stale','kgm-0823o-r72',"""  if(!S.adminAuthed)return;
 RL('boot60 stale','kgm-0823o-r72',"""setTimeout(function(){
   try{window.kgmRebuildFleetR72(T(),60,true)}catch(e){try{console.warn('r72 boot',e)}catch(_){}}
 },2600);""","""setTimeout(function(){
-  if(window.KGM_FULLDONE_1006A)return;   /* 1006A：主執行緒被別的工作卡住、這個計時器晚到時，整年重排已經做完就不再蓋掉前 60 天 */
+  if(window.KGM_FULLDONE_1006A||window.KGM_FINALRUN_1006A)return;   /* 1006A：主執行緒被別的工作卡住、這個計時器晚到時，整年重排已經做完（或正在分段準備）就不再蓋掉前 60 天 */
   try{window.kgmRebuildFleetR72(T(),60,true)}catch(e){try{console.warn('r72 boot',e)}catch(_){}}
 },2600);""")
 R('seed203 defer',"""  try{
@@ -65,7 +65,7 @@ R('seed203 defer',"""  try{
     }
   }catch(e){try{console.warn('r203 rebuild',e)}catch(_){}}""","""  try{
     /* 1006A：整年重排由收尾那一次負責（季節班期定案之後）；收尾還沒跑就交給它，已經跑過就不再重排一次（實測多鎖 30 秒） */
-    if(window.KGM_SIDE!=='front'&&(!window.KGM_ROT_FINAL_R913||window.KGM_FULLDONE_1006A))return 0;
+    if(window.KGM_SIDE!=='front'&&(!window.KGM_ROT_FINAL_R913||window.KGM_FULLDONE_1006A||window.KGM_FINALRUN_1006A))return 0;
     if(typeof window.kgmRebuildFleetR72==='function'){
       window.kgmRebuildFleetR72(todayISO(),365,true);
       return 1;
@@ -114,4 +114,94 @@ RL('cover fixer mark','kgm-0904a-r135',"    out.covered++;\n    out.fixed.push(m
  "    iv[best].sort(function(p,q){return p.a-q.a});\n"
  "  });\n"
  "  out.left=out.missing-out.covered;")
+# ── 1006A #14（第二輪）：後台檔開檔 20 秒後的「收尾整年重排」仍是一個 15 秒的同步工作（實測 17.8 秒長任務）→ 這段期間點什麼都沒反應，
+#    慢一點的電腦就會跳「網頁沒有回應」。CPU 取樣：每天航段＋機型（dayOf72，整年約 33 萬次機型查詢）6 秒、各機型排班 1.6 秒，其餘是合併與補位。
+#    改成：先分小段（每段約 0.15 秒，中間讓出主執行緒處理點擊）把「每天航段＋機型」和「各機型排班」算好放進原本就有的快取（DAYC72／ROT72），
+#    最後才跑原本那一次整年重排，它直接用快取。準備前先做重排開頭同樣的步驟（刪自動補位替換、清快取、松山派駐計畫），
+#    查機型時讓舊層看到「重排時已清空」的班表（0810J 那層會先查目前排在哪架飛機），所以快取的內容跟原本重排當下算的一樣。
+#    準備期間機隊、替換、維修、時刻表、手動排班只要有變動（簽章不同），最後那次就照原本方式清掉快取從頭算 —— 結果永遠以原本算法為準。
+RL('r72 export day/seed/types','kgm-0823o-r72',
+ "window.kgmClearRotationCacheR72=function(){LEGC72={};DAYC72={};",
+ "/* 1006A #14：收尾重排分段準備用 */\n"
+ "window.kgmDayOf72R1006A=function(d){return dayOf72(d)};window.kgmSeedTsa72R1006A=function(a,b,c){return seedTsa72(a,b,c)};\n"
+ "window.kgmTypes72R1006A=function(){return typesWithTails72()};window.kgmRange72R1006A=function(st,dy){return {w0:D(st,-WARM72),n:WARM72+dy+COOL72,end:D(st,dy)}};\n"
+ "window.kgmSig72R1006A=function(st,dy){try{var man=[];Object.keys(S.tailAssign||{}).forEach(function(tl){(S.tailAssign[tl]||[]).forEach(function(x){if(x&&x.manualR69)man.push(tl+'|'+x.date+'|'+x.code+'|'+x.route)})});\n"
+ "  return JSON.stringify([st,dy,T(),S.acftSub||{},S.tailStatus||{},S.fleetAddedR928||null,S.fleetRetiredR928||null,S.fleetMaintenanceR830||null,S.customFlights||[],FLIGHTS,man])}catch(_){return 'x'+Math.random()}};\n"
+ "window.kgmClearRotationCacheR72=function(){LEGC72={};DAYC72={};")
+RL('r72 keep cache when prepared','kgm-0823o-r72',
+ "if(force){Object.keys(S.acftSub||{}).forEach(function(k){var x=S.acftSub[k];if(x&&x.coverageR830&&x.auto)delete S.acftSub[k]});window.kgmClearRotationCacheR72();}",
+ "if(force){Object.keys(S.acftSub||{}).forEach(function(k){var x=S.acftSub[k];if(x&&x.coverageR830&&x.auto)delete S.acftSub[k]});\n"
+ "    /* 1006A #14：收尾重排已分段算好快取、而且輸入完全沒變 → 沿用；否則照原本清掉重算 */\n"
+ "    if(window.KGM_KEEP72_1006A&&window.KGM_KEEP72_1006A===window.kgmSig72R1006A(start,days))window.KGM_KEPT72_1006A=(window.KGM_KEPT72_1006A||0)+1;\n"
+ "    else window.kgmClearRotationCacheR72();}")
+RL('r72 final rebuild sliced','kgm-0823o-r72',
+"""    if(window.KGM_ROT_FINAL_R913)return;
+    if(window.KGM_SIDE==='front')return;   /* 1004B：前台不跑整年重排（只有後台用得到，實測獨佔主執行緒 30 秒以上） */
+    window.KGM_ROT_FINAL_R913=true;
+    var t0=Date.now();
+    window.kgmRebuildFleetR72(T(),366,true);
+    try{if(window.kgmPairReturnR1004B)window.kgmPairReturnR1004B()}catch(_){}   /* 1004B：外站對號回程配對 */
+    window.KGM_ROT_FINAL_MS_R913=Date.now()-t0;
+    try{if(window.kgmCrewResetR121)window.kgmCrewResetR121()}catch(_){}
+    try{if(window.kgmPlanCacheClearR196)window.kgmPlanCacheClearR196()}catch(_){}
+    try{render()}catch(_){}""",
+"""    if(window.KGM_ROT_FINAL_R913||window.KGM_FINALRUN_1006A)return;
+    if(window.KGM_SIDE==='front')return;   /* 1004B：前台不跑整年重排（只有後台用得到，實測獨佔主執行緒 30 秒以上） */
+    /* 1006A #14：先分段準備（每段約 0.15 秒、段與段之間讓出主執行緒），最後才跑原本那一次整年重排 */
+    window.KGM_FINALRUN_1006A=true;
+    var st6=D(T(),-3),dy6=369,rg6=window.kgmRange72R1006A(st6,dy6),view6=null,sig6=null,ty6=[],di6=0,ti6=0,tp6=Date.now();
+    function hide6(fn){var real=S.tailAssign;S.tailAssign=view6;try{return fn()}finally{S.tailAssign=real}}
+    function next6(f){setTimeout(function(){try{f()}catch(e){try{console.warn('r72 final prep',e)}catch(_){}finish6()}},0)}
+    function prep6(){
+      try{if(window.kgmRepairTimetableR77)window.kgmRepairTimetableR77()}catch(_){}
+      Object.keys(S.acftSub||{}).forEach(function(k){var x=S.acftSub[k];if(x&&x.coverageR830&&x.auto)delete S.acftSub[k]});
+      window.kgmClearRotationCacheR72();
+      view6={};Object.keys(S.tailAssign||{}).forEach(function(tl){view6[tl]=(S.tailAssign[tl]||[]).filter(function(x){return x&&x.manualR69&&(x.date<st6||x.date>=rg6.end)})});
+      var pool=[];try{pool=(tailsFor('B78X')||[]).slice(0,4)}catch(_){}
+      S.tsaFleet={};pool.forEach(function(t){S.tsaFleet[t]=1});
+      hide6(function(){window.kgmSeedTsa72R1006A(st6,dy6,true)});
+      sig6=window.kgmSig72R1006A(st6,dy6);ty6=window.kgmTypes72R1006A();
+      next6(days6);
+    }
+    function days6(){var t=Date.now();hide6(function(){while(di6<rg6.n&&Date.now()-t<150){window.kgmDayOf72R1006A(D(rg6.w0,di6));di6++}});
+      if(di6<rg6.n)next6(days6);else next6(types6)}
+    function types6(){if(ti6<ty6.length){var tp=ty6[ti6++];hide6(function(){window.kgmBuildRotationsR72(tp,st6,dy6)});next6(types6)}else next6(finish6)}
+    function finish6(){
+      if(window.KGM_ROT_FINAL_R913)return;
+      window.KGM_ROT_FINAL_R913=true;window.KGM_FINALPREP_MS_1006A=Date.now()-tp6;
+      var t0=Date.now();
+      window.KGM_KEEP72_1006A=sig6;
+      try{window.kgmRebuildFleetR72(T(),366,true)}catch(e){try{console.warn('r913 final rotation',e)}catch(_){}}
+      window.KGM_KEEP72_1006A=null;window.KGM_FINALRUN_1006A=false;
+      window.KGM_ROT_FINAL_MS_R913=Date.now()-t0;
+      setTimeout(function(){
+        try{if(window.kgmPairReturnR1004B)window.kgmPairReturnR1004B()}catch(_){}   /* 1004B：外站對號回程配對 */
+        setTimeout(function(){
+          try{if(window.kgmCrewResetR121)window.kgmCrewResetR121()}catch(_){}
+          try{if(window.kgmPlanCacheClearR196)window.kgmPlanCacheClearR196()}catch(_){}
+          try{render()}catch(_){}
+        },0);
+      },0);
+    }
+    next6(prep6);""")
+
+# 1006A #14：r77 修時刻表結尾無條件清機隊排班快取，而收尾重排外面的 r92 會先呼叫它 → 分段準備好的快取在合併前一刻被清空。
+#   收尾重排要用快取的那一刻（KGM_KEEP72_1006A 有值）交給重排本身判斷：r77 真的改了時刻表，簽章就不同，重排照樣清掉從頭算。
+RL('r77 no clear while keeping','kgm-0823p-r77',
+ "  try{if(window.kgmClearRotationCacheR72)window.kgmClearRotationCacheR72()}catch(_){}\n  try{if(window.kgmClearLegTypeR76)",
+ "  try{if(window.kgmClearRotationCacheR72&&!window.KGM_KEEP72_1006A)window.kgmClearRotationCacheR72()}catch(_){}   /* 1006A #14 */\n  try{if(window.kgmClearLegTypeR76)")
+
+# 1006A #14：補位修復的 cont928（是不是接對號班）每檢查一架候選飛機，就把那架整年約 600 段掃一遍找「前一段」（約 1.8 秒）。
+#   這個函式裡改班表只有 push（長度變）、filter（換新陣列）、還原舊陣列 → 同一個陣列、長度沒變時用「出發時間 → 第一筆符合的航段」對照表，
+#   跟逐筆掃到的第一筆完全相同；對照表只活在這一次補位修復裡。KGM_NOMEMO_1006A=true 可關閉（驗證用）。
+RL('coverage cont928 index','kgm-0823o-r72',
+ "  var end=D(start,days),expected=[],have={},seq=0,recovered=0,byType={},ivals={},loads={};",
+ "  var end=D(start,days),expected=[],have={},seq=0,recovered=0,byType={},ivals={},loads={},FE6=new WeakMap();\n"
+ "  function first6(t,ep){var ar=S.tailAssign[t]||[];if(window.KGM_NOMEMO_1006A)return ar.filter(function(x){return x&&!x.noPax&&rowEpoch72(x)===ep})[0];\n"
+ "    var m=FE6.get(ar);if(!m||m.n!==ar.length){m={n:ar.length,map:new Map()};for(var i=0;i<ar.length;i++){var x=ar[i];if(x&&!x.noPax){var e=rowEpoch72(x);if(!m.map.has(e))m.map.set(e,x)}}FE6.set(ar,m)}\n"
+ "    return m.map.get(ep)}")
+RL('coverage cont928 use index','kgm-0823o-r72',
+ "        var q=(S.tailAssign[t]||[]).filter(function(x){return x&&!x.noPax&&rowEpoch72(x)===prev[0]})[0];if(!q)return false;",
+ "        var q=first6(t,prev[0]);if(!q)return false;")
+
 save('p_h_perf.js','/* 1006A · 整年機隊重排加速（結果不變） */\n')

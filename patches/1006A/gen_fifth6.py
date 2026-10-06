@@ -50,4 +50,32 @@ R('KX43 r96 ICN-TPE',"{code:'KX43',fr:'ICN',to:'TPE',via:null, dep:'08:10',arr:'
 R('KX43 r96 LAS-TPE',"{code:'KX43',fr:'LAS',to:'TPE',via:'ICN',dep:'01:20',arr:'09:15',dd:1,dur:955,ground:120}","{code:'KX43',fr:'LAS',to:'TPE',via:'ICN',dep:'01:20',arr:'08:30',dd:1,dur:910,ground:75}")
 R('KX43 r136',"{code:'KX43', fr:'ICN',to:'TPE',dep:'08:10',arr:'09:15',dd:0}","{code:'KX43', fr:'ICN',to:'TPE',dep:'07:25',arr:'08:30',dd:0}")
 R('KX43 r160',"'KX43|ICN|TPE':{summer:{dep:'08:10',arr:'09:15',dd:0},","'KX43|ICN|TPE':{summer:{dep:'07:25',arr:'08:30',dd:0},")
+# 1006A #46（第二輪）：r106 的 kgmViaGroundR106（開站 2.5／9／20 秒各跑一次）用不分夏冬季的主表時刻算中停，
+#   不在 45–120 分就改成 90 分、還直接改後段起飛時間（KX51 雪梨段同屬 CHC-SYD-TPE 與 AKL-SYD-TPE，被改成 18:30 又改回 19:55）；
+#   在範圍內也把主表算出的值（KX44／KX30 是 90）寫進 __groundR34，蓋掉 r179／r34 依季節算好的 75。
+#   兩套規則互相蓋 → 時刻表、後台「中途過站」、機隊輪轉都看開站第幾秒。中停由 r179 唯一決定；這裡只回報、不再寫任何欄位。
+RL('r106 via ground report only','kgm-0902a-r106',
+ "      if(g>max||g<45){\n        var nd=clock106(arr+sug);",
+ "      /* 1006A #46：中停由 r179 唯一決定（一律 75 分、回台北段 07:00 以後、夏冬季分開算）；這裡只回報，不改時刻、不寫中停欄位 */\n"
+ "      if(window.KGM_VIA_GROUND_FIX_R106!==true){if(g>max||g<45)out.fixed.push(t.code+' '+t.fr+'-'+t.via+'-'+t.to+' '+g+'min（主表；實際依 r179）');else out.ok++;return}\n"
+ "      if(g>max||g<45){\n        var nd=clock106(arr+sug);")
+
+# 1006A #46（第二輪）：r77 的 kgmRepairTimetableR77 有自己寫死的時刻（KX44 仁川→拉斯維加斯 23:45＝中停 90 分），
+#   每次機隊重排前都會跑 → 重排當下用的是 90 分版本，r179 之後又改回 75 分。比照 r160 的作法：r77 修完立刻在同一個呼叫裡再套一次 r179。
+RL('r179 after r77','kgm-0907B-r179',
+ "window.kgmFixFifthGroundR179=run179;\nrun179();",
+ "window.kgmFixFifthGroundR179=run179;\n"
+ "/* 1006A #46：r77 修時刻表會把第五航權中停改回 90 分 —— 修完立刻再鎖回 75 分（同一個同步呼叫，重排看到的就是 75 分） */\n"
+ "try{if(typeof window.kgmRepairTimetableR77==='function'&&!window.kgmRepairTimetableR77.__r179){var p77x=window.kgmRepairTimetableR77;\n"
+ "  var w77x=function(){var r=p77x.apply(this,arguments);try{run179()}catch(_){}return r};w77x.__r179=1;window.kgmRepairTimetableR77=w77x}}catch(_){}\n"
+ "run179();")
+
+# 1006A #46（第二輪）：r77 寫死的 KX44／KX30／KX29 時刻是中停 90 分的舊版本（每次機隊重排前都會寫回主表），改成 r179 的 75 分版本，兩邊同一份數字
+RL('r77 75min 0','kgm-0823p-r77',"'KX44|ICN|LAS':{summer:['23:45','19:05',0,[1,4,6],'A359'],winter:['23:30','18:05',0,[1,4,6],'A359']}","'KX44|ICN|LAS':{summer:['23:30','18:50',0,[1,4,6],'A359'],winter:['23:10','17:45',0,[1,4,6],'A359']}")
+RL('r77 75min 1','kgm-0823p-r77',"'KX44|TPE|LAS':{summer:['19:05','19:05',0,[1,4,6],'A359'],winter:['18:50','18:05',0,[1,4,6],'A359']}","'KX44|TPE|LAS':{summer:['19:05','18:50',0,[1,4,6],'A359'],winter:['18:50','17:45',0,[1,4,6],'A359']}")
+RL('r77 75min 2','kgm-0823p-r77',"'KX29|YVR|TPE':{summer:['11:40','15:40',1,[1,2,4,6],'B789'],winter:['11:45','16:30',1,[1,2,4,6],'B789']}","'KX29|YVR|TPE':{summer:['11:25','15:25',1,[1,2,4,6],'B789'],winter:['11:30','16:15',1,[1,2,4,6],'B789']}")
+RL('r77 75min 3','kgm-0823p-r77',"'KX30|YVR|YYZ':{summer:['22:40','05:50',1,[1,3,5,7],'B789'],winter:['00:20','07:15',0,[1,2,4,6],'B789']}","'KX30|YVR|YYZ':{summer:['22:25','05:35',1,[1,3,5,7],'B789'],winter:['00:05','07:00',0,[1,2,4,6],'B789']}")
+RL('r77 75min 4','kgm-0823p-r77',"'KX30|TPE|YYZ':{summer:['01:15','05:50',0,[1,2,4,6],'B789'],winter:['02:10','07:15',0,[1,2,4,6],'B789']}","'KX30|TPE|YYZ':{summer:['01:15','05:35',0,[1,2,4,6],'B789'],winter:['02:10','07:00',0,[1,2,4,6],'B789']}")
+RL('r77 75min 5','kgm-0823p-r77',"'KX29|YYZ|TPE':{summer:['08:10','15:40',1,[1,2,4,6],'B789'],winter:['08:25','16:30',1,[1,2,4,6],'B789']}","'KX29|YYZ|TPE':{summer:['08:10','15:25',1,[1,2,4,6],'B789'],winter:['08:25','16:15',1,[1,2,4,6],'B789']}")
+
 save('p_h_fifth.js','/* 1006A · 第五航權中停 75 分、回台北段 07:00 以後 */\n')
