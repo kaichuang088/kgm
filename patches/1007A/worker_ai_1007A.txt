@@ -1,4 +1,5 @@
-// ===== 1006A：KGM Airways Worker 的兩個 AI 路由 —— 後台 /ai/admin（1004B 版本整段換掉）＋ 前台 /ai/front（新增）=====
+// ===== 1007A（內容即 1006A 版；1006A 沒有單獨交付）：KGM Airways Worker 的兩個 AI 路由 —— 後台 /ai/admin（1004B 版本整段換掉）＋ 前台 /ai/front（新增）=====
+// 1007A 網站端新增的功能不需要改 Worker（網站送來、但這裡沒有寫參數的工具會自動建立）。
 // 貼進現有 Worker：把下面整段放在檔案最上面（或原本 1004B 那段 ADMIN_AI_TOOLS／handleAdminAi 的位置，整段取代），
 // 再到 export default { async fetch(request, env) { ... } } 的最前面加三行（見檔案最下面）。
 // 需要的 Secret：ANTHROPIC_API_KEY（Cloudflare 後台 → Worker → Settings → Variables）。選用：ALLOWED_ORIGIN。

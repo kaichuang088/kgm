@@ -40,3 +40,5 @@ p_h_a339.js
 p_h_hol.js
 p_h_fai.js
 p_h_pol.js
+p_h_sync.js
+p_h_dh7.js
