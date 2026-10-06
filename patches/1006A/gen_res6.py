@@ -189,4 +189,39 @@ RL('opening label','kgm-0905b-r161',
  "(z()?'頭等艙票價 ×1.30':'First fare ×1.30')",
  "(function(){var mu=window.kgmResOpenMulR1006A?window.kgmResOpenMulR1006A(f):1.3;   /* 1006A：短程 ×1.10、長程 ×1.30 */\n"
  "        return z()?('頭等艙票價 ×'+mu.toFixed(2)+(mu<1.3?'（短程）':'')):('First fare ×'+mu.toFixed(2))})()")
+# ══ 1006A #24：「為什麼就算我選擇11月的票A388也不能訂Residence？？現在才10/05欸連14天截止日都還沒到」 ══
+#   根因：Residence 入口只有一個 —— 頭等艙票價面板裡的「升等 Resident」卡。A388 頭等只有 5 席，
+#   頭等對這次人數售完（例：KX18 11/20 頭等剩 1 席、2 人搜尋）時整列只剩「所選艙等售罄」、面板打不開，
+#   Residence 入口跟著消失 —— 但 Residence 是另外一間、還在競標期內。
+#   改成：搜尋頭等艙、這一班頭等售完、而這一班 Residence 還可以競標時，在售罄那一格直接放 Residence 競標入口。
+R('res entry when first sold out',
+ "<div style=\"font-size:9px;color:var(--sub);margin-bottom:5px\">${minP?curr:(LANG===\"en\"?\"No other cabin substituted\":\"不會改配其他艙等\")}</div>",
+ "<div style=\"font-size:9px;color:var(--sub);margin-bottom:5px\">${minP?curr:(LANG===\"en\"?\"No other cabin substituted\":\"不會改配其他艙等\")}</div>\n"
+ "      ${(function(){   /* 1006A #24：頭等艙售完時 Residence 入口不能跟著消失 */\n"
+ "        try{if(minP||(S.search.cabin||\"\")!==\"First\"||!(window.kgmResSellableR161&&window.kgmResSellableR161(f.code,date)))return \"\";}catch(_e6){return \"\";}\n"
+ "        return `<button class=\"k6-res-entry\" onclick=\"event.stopPropagation();openResidentFromRowR39(this)\" style=\"display:block;width:100%;margin:2px 0 6px;border:1px solid var(--gold);background:linear-gradient(180deg,#fffaf0,#f8eedb);color:#7a5a17;border-radius:8px;padding:6px 8px;font-size:10.5px;font-weight:800;letter-spacing:.02em;cursor:pointer;text-align:center\">${LANG===\"en\"?\"The Residence is still open for bids →\":\"Residence 仍可競標 →\"}</button>`;\n"
+ "      })()}")
+
+#   第二個擋點（2 人一定送不出去）：Residence 是「1–2 人同價」，畫面印的起標價用 1 人算（kgmResidenceMinBidR83(f,date,1)），
+#   送出檢查卻用 kgmResidenceMinBidR83(f,date,2) → 頭等票價與 NT$100,000 下限都乘 2（KX18 11/20：畫面 386,400、檢查 772,700），
+#   照畫面金額出價一律被擋「出價不得低於起標價」。改成起標價不隨人數加倍。
+RL('res min bid not per pax','kgm-0907B-r182',
+ "  window.kgmResidenceMinBidR83=function(f,date,pax){\n    pax=pax||1;\n    var first=0;",
+ "  window.kgmResidenceMinBidR83=function(f,date,pax){\n    pax=1;   /* 1006A：Residence 1–2 人同價，起標價不隨人數加倍（原本 2 人時檢查用 2 倍、畫面印 1 人價，出價一律被擋） */\n    var first=0;")
+
+#   2 人同價之後的連帶：2 人的備案（例：2 張頭等 NT$630,228）可能比 Residence 出價（NT$409,700）還貴，
+#   原本得標只「補收」差額（不會是負的）→ 得標反而比沒得標多付。改成多退少補：出價低於已付備案時退差額。
+RL('win diff refund','kgm-0905b-r161',
+ "var diff=b.alt==='refund'?0:Math.max(0,(+b.amount||0)-paid);",
+ "var diff=b.alt==='refund'?0:((+b.amount||0)-paid);   /* 1006A：多退少補 —— 1–2 人同價，2 人時出價可能低於已付的 2 席備案 */")
+RL('win diff alert','kgm-0907B-r182',
+ "+(z()?'\\n得標時：只補收差額 NT$':'\\nIf it wins: difference NT$')\n        +N(Math.max(0,(+r.bid.amount||0)-((ap&&ap.price)||0)))",
+ "+((+r.bid.amount||0)<((ap&&ap.price)||0)   /* 1006A：多退少補 */\n          ?(z()?'\\n得標時：退還差額 NT$':'\\nIf it wins: refund NT$')+N(((ap&&ap.price)||0)-(+r.bid.amount||0))\n          :(z()?'\\n得標時：只補收差額 NT$':'\\nIf it wins: difference NT$')+N(Math.max(0,(+r.bid.amount||0)-((ap&&ap.price)||0))))")
+RL('win diff card text','kgm-0905b-r161',
+ "'得標時只補收「出價－已付備案票價」的差額，並且<b>直接用這次訂位付款的同一張卡</b>，不需要另外輸入卡片資料。'",
+ "'得標時依「出價－已付備案票價」多退少補（Residence 1–2 人同價，2 人時出價可能低於 2 席備案，差額退回），並且<b>直接用這次訂位付款的同一張卡</b>，不需要另外輸入卡片資料。'")
+RL('win diff table text','kgm-0907B-r182',
+ "＝本次結帳金額；得標只補收差額（同一張卡），未得標不再扣款。",
+ "＝本次結帳金額；得標時多退少補（同一張卡），未得標不再扣款。")
+
 save('p_h_res.js','/* 1006A · Residence：有現金出價 → 里程立即自動結標、競標辦法須滑到底同意、短程起標價調降 */\n')
