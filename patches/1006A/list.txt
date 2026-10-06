@@ -33,3 +33,6 @@ p_h_rate6.js
 p_h_desk.js
 p_h_fare.js
 p_h_bkt.js
+p_h_dest.js
+p_h_stx6.js
+p_h_cs20.js
