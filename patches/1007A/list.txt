@@ -43,3 +43,4 @@ p_h_pol.js
 p_h_sync.js
 p_h_dh7.js
 p_h_perf7.js
+p_h_r7b.js
