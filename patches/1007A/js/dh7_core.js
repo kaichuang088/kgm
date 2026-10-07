@@ -3,7 +3,7 @@
             「如果商務艙或是豪經艙沒有位置 優先讓那些里程升等的退回里程 然後在來是酬賓機票 會自動往下一個倉等（如果沒有豪經的短程算經濟喔）
               然後退還里程差（這里程差截止日期要延長就是不是原本日期）真的還有要搭的機長或是組員 才會去優先處理購買基本方案的旅客（隨機處理）
               然後先非自願降倉等 然後真的沒位置就要可以「免費」換航班 不一定要沒有位置可以 旅客想換到下一班的商務艙也要可以免費改簽」
-     · 坐哪一艙：機長（CAPT）商務艙；座艙長（CP）豪華經濟艙；其他組員經濟艙，經濟艙滿了改豪華經濟艙。不賣豪經的短程航線一律經濟艙。
+     · 坐哪一艙：機長（排班名單的正機師 CP）商務艙；座艙長（PU）豪華經濟艙；其他組員經濟艙，經濟艙滿了改豪華經濟艙。不賣豪經的短程航線一律經濟艙。
        經濟艙、豪經都滿而商務艙還有空位時，一般組員改坐商務艙（不為了一般組員請旅客下飛機）。
        排班引擎「這一班還有沒有位子讓組員調位」的判斷不動（組員班表結果不變），只決定坐哪一艙、哪一個位子；同一班的 DH 不會分到同一個座位。
      · 要坐的艙等滿了 → 起飛前 72 小時內自動騰位，依序：
@@ -36,6 +36,14 @@
     if(r.role==='cabin')return z7()?({PU:'座艙長',DPU:'副座艙長',FA:'空服員'}[r.rank]||'客艙組員'):({PU:'Purser',DPU:'Assistant purser',FA:'Flight attendant'}[r.rank]||'Cabin crew');return r.role||''}
   window.kgmDhTitleR1007A=dhTitle7;
   /* 排班引擎呼叫：slot0＝原本（經濟→豪經→商務）找到的座位；回傳這位組員實際要坐的艙等與座位 */
+  /* 排班引擎一次排一整天、同一班會問很多次 → 同一批次（同一個 JS 工作）內快取庫存結果，批次結束就清掉（不跨越任何訂位或使用者操作） */
+  var IC7=null;
+  function inv7(m,date,c){
+    var k=[m.code,date,m.fr,m.to,c].join('|');
+    if(!IC7){IC7={};setTimeout(function(){IC7=null},0)}
+    return IC7[k]||(IC7[k]=window.kgmCabinInventory54(Object.assign({},m,{date:date}),date,c));
+  }
+  window.kgmDhInvR1007A=inv7;   /* 排班引擎「這班還有沒有位子」的判斷也走同一份快取（同一班原本每位候選組員都重算一次庫存） */
   window.kgmDhSlotR1007A=function(p,m,date,slot0){
     try{
       if(!p||!m||!m.code||m.code==='DH'||m.code==='GT'||m.code==='地面轉場')return slot0;
@@ -43,9 +51,10 @@
       var key=[date,m.code,m.fr,m.to].join('|'),lst=(S.crewPositioningR121||{})[key]||[],taken={},inC={};
       lst.forEach(function(q){if(!q||q.empId===p.empId)return;if(q.seat)taken[q.seat]=1;inC[q.cabin]=(inC[q.cabin]||0)+1});
       for(var i=0;i<w.list.length;i++){
-        var c=w.list[i],inv=window.kgmCabinInventory54(Object.assign({},m,{date:date}),date,c);
-        var free=(inv.seats||[]).filter(function(s){return !taken[s]});
-        if((+inv.left||0)-(inC[c]||0)>0&&free.length)return {cabin:c,seat:free[0]};
+        var c=w.list[i],inv=inv7(m,date,c);
+        /* 快取的庫存可能是這班其他 DH 入座前或入座後算的：空位先扣掉其他 DH 的座位，可售數用「座位數－已售－其他 DH」，兩者取小 */
+        var free=(inv.seats||[]).filter(function(s){return !taken[s]}),cap=(+inv.capacity||0)-(+inv.sold||0)-(inC[c]||0);
+        if(cap>0&&free.length)return {cabin:c,seat:free[0]};
       }
       /* 機長要商務、座艙長要豪經而該艙已滿 → 先記艙等，座位由起飛前 72 小時的騰位處理。
          一般組員連商務都沒有空位 → hardR1007A：排班引擎改找下一班（原本引擎不扣其他 DH，同一班會塞進超過座位數的組員） */
@@ -171,7 +180,7 @@
         (rec.actions||[]).forEach(function(a){if(a&&a.status==='open'&&a.forDh&&!cur[a.forDh]){revert7(a,f,date,key,now);rev++}});
         if(rev)m=manifest7(f,date)}
       var need=m.filter(function(x){return x.dhR929&&!x.seat});
-      if(!need.length){if(rev){try{save()}catch(_){}setTimeout(function(){try{render()}catch(_){}},40)}return 0}
+      if(!need.length){if(rev){try{save()}catch(_){}setTimeout(rr7,40)}return 0}
       rec=S.dhBumpR1007A[key]=rec||{actions:[],dhSeats:{},code:f.code,date:date,fr:f.fr,to:f.to};
       var occ={},slots={};m.forEach(function(x){if(x.seat&&!x.offloadR929)occ[x.seat]=x.id});
       seatsFlat7(type7(f,date)).forEach(function(s){if(!s.resident)(slots[s.cabin]=slots[s.cabin]||[]).push(s.id)});
@@ -201,19 +210,24 @@
         if(want.length)rec.short=(rec.short||0)+want.length;   /* 連基本方案都沒有了：記下來，航班資料會標紅 */
       });
       if(n||rev){rec.at=now;try{logAct(z7()?'DH 自動騰位':'DH seat release',f.code+' '+date+'：'+rec.actions.length+(z7()?' 筆':' actions'))}catch(_){}
-        try{save()}catch(_){}setTimeout(function(){try{render()}catch(_){}},40)}
+        try{save()}catch(_){}setTimeout(rr7,40)}
       return n;
     }catch(e){try{console.warn('dh7',e)}catch(_){}return 0}
   };
   /* 航班資料打開某一班時排一次（不在重畫當中執行）；另外每 10 分鐘掃一次已排出 DH、72 小時內起飛的航班 */
   var Q7={};
+  /* 騰位是背景作業：只有正在看航班資料／訂位／櫃檯的頁面才重畫（原本每騰一次就整頁重畫，
+     而每次重畫都會讓組員班表背景補排多算一天 —— 組員班表頁會因此一直卡） */
+  function rr7(){try{if(S.view==='admin'&&['seatmap','bookings','desk','ticketing'].indexOf(S.adminTab||'')<0)return;render()}catch(_){}}
   function dhQueue7(f,date,m){try{if(String(window.KGM_SIDE||'')==='front')return;var k=opKey(f,date),sig=(m||[]).filter(function(x){return x.dhR929&&!x.seat}).map(function(x){return x.id}).join(',');
     if(!sig||Q7[k]===sig)return;Q7[k]=sig;setTimeout(function(){window.kgmDhBumpR1007A(f,date)},60)}catch(_){}}
+  /* 組員班表頁正在背景補排時先不掃：掃描會建立 DH 訂位、訂位筆數一變，頁面巡檢（r111）就多觸發一次補排，班表頁因此一直卡 */
+  function busy7(){try{return S.view==='admin'&&S.adminTab==='sched'&&!!window.kgmRosterReadyR196&&window.kgmRosterReadyR196()<60}catch(_){return false}}
   function scan7(){
     try{if(String(window.KGM_SIDE||'')==='front')return;var o=S.crewPositioningR121||{},t=todayISO(),lim=addDays(t,3),list=[];
       Object.keys(o).forEach(function(k){var p=k.split('|');if(p[1]==='GT'||p[0]<t||p[0]>lim||!(o[k]||[]).length)return;
         var f=(matches7(p[1],p[0])||[]).filter(function(x){return x.fr===p[2]&&x.to===p[3]})[0];if(f)list.push([f,p[0]])});
-      var i=0;(function step(){if(i>=list.length)return;try{window.kgmDhBumpR1007A(list[i][0],list[i][1])}catch(_){}i++;setTimeout(step,120)})();
+      var i=0;(function step(){if(i>=list.length)return;if(busy7()){setTimeout(step,15000);return}try{window.kgmDhBumpR1007A(list[i][0],list[i][1])}catch(_){}i++;setTimeout(step,120)})();
     }catch(_){}
   }
   setTimeout(scan7,75000);setInterval(scan7,600000);
