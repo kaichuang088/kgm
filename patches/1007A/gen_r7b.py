@@ -124,6 +124,17 @@ RC('r44 expose price cache clear','kgm-0818a-r44',
    "function flushR44(){C_SF={};C_AC={};C_OW={}} /* state actually changed */\n"
    "window.kgmPriceCacheClearR1007A=clearR44;   /* 1007A：付款前重算報價用 */\n")
 
+# 會員「我的案件」的說明文字補上地勤／客服建立的行李與服務案件（清單本來就會列出，只是說明沒寫到）
+RW('mycases intro',
+   "以您的會員帳號建立的所有案件：里程升等、會員資料變更、請款與退款、現場改票、航班異常與里程購買。",
+   "以您的會員帳號建立的所有案件：里程升等、會員資料變更、請款與退款、現場改票、航班異常、里程購買，以及機場地勤／客服為您建立的行李與服務案件。")
+
+# 後台側欄「模擬資料」出現兩次：r41 用程式插一顆，後來的層又在側欄放了正式的那一顆（兩顆都開同一頁）。側欄已經有就不再插。
+RC('r41 sim dup','kgm-0816e-r41',
+   "    if(app.querySelector('[data-r41-sim]'))return;\n",
+   "    if(app.querySelector('[data-r41-sim]'))return;\n"
+   "    if(app.querySelector('.p-admin-side [onclick*=simdata]'))return;   /* 1007A：側欄已經有「模擬資料」就不重複插 */\n")
+
 # ── 4. 員工入口＋報價保護（最後一層尾端） ─────────────────────────────────
 SOLD=('/* 1007A：營收管理用的「過去 24 小時真實售出」（同一個工作內只掃一次訂位） */\n'
  '(function(){var SOLD7=null;window.kgmRmSoldR1007A=function(f,date){\n'

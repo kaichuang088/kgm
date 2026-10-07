@@ -25,7 +25,7 @@ function modal(o){
     var up=o.up!==false,Z=zh();
     d.innerHTML='<div class="k7f-dlg'+(up?'':' k7f-dn')+'" role="dialog" aria-modal="true"><div class="k7f-ic">'+(up?'!':'✓')+'</div>'
       +'<h3>'+E(up?(Z?'很抱歉，票價已更新':'Sorry — the fare has changed'):(Z?'好消息，票價已調降':'Good news — the fare went down'))+'</h3>'
-      +'<p>'+E(o.lead||(Z?'在您確認的這段時間，票價依即時的座位銷售情況調整了。':'While you were completing this step, the fare was updated based on live seat sales.'))+'</p>'
+      +'<p>'+E(o.lead||(Z?'在您確認的這段時間，這個航班的票價已更新（即時座位銷售或票價調整）。':'While you were completing this step, the fare for this flight was updated (live seat sales or a fare adjustment).'))+'</p>'
       +'<div class="k7f-cmp"><div><small>'+(Z?'原報價':'Previous quote')+'</small><b>'+E(o.oldTxt)+'</b></div><span>→</span>'
       +'<div class="k7f-new"><small>'+(Z?'目前價格':'Current price')+'</small><b>'+E(o.newTxt)+'</b></div></div>'
       +(o.diffTxt?'<div class="k7f-diff">'+E((up?(Z?'多 ':'+'):(Z?'少 ':'−'))+o.diffTxt)+'</div>':'')
