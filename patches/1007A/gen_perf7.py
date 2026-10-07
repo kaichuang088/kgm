@@ -53,11 +53,26 @@ RC('perf7 first tail date store','kgm-0908B-r210',
 RC('perf7 lazy remaining','kgm-0903b-r121',
    "var remaining=(buckets[fam121(f.type)+'|'+role]||[]).filter(function(p){return !used[p.empId]&&!_inL921[p.empId]&&eligible(p,f,rank,true)}).sort(function(a,b){return monthLoads[a.empId]-monthLoads[b.empId]});for(var k=0,tr6=0;k<remaining.length&&list.length<n&&tr6<24;k++){tr6++;if(reposition(remaining[k],f))list.push(remaining[k])}}",
    "var remaining=(buckets[fam121(f.type)+'|'+role]||[]).filter(function(p){return !used[p.empId]&&!_inL921[p.empId]}).sort(function(a,b){return monthLoads[a.empId]-monthLoads[b.empId]});for(var k=0,tr6=0;k<remaining.length&&list.length<n&&tr6<24;k++){if(!eligible(remaining[k],f,rank,true))continue;tr6++;if(reposition(remaining[k],f))list.push(remaining[k])}}   /* 1007A：先排序、逐一判資格，試滿 24 位就停（穩定排序，挑到的人與原本「全部判完再排序」完全相同；原本人手不足時整個機型幾千人每位都判一次） */")
-# 第三個、也是主要的原因（t_sched922 一次凍結 48～56 秒）：1006A 為了「我飛過的航班」把暖機檢查的起點改成「班表第一天」（kgmCrewNeedDayR1006A），
-#   但真正計算時仍從「今天往前 N 天」開始 —— 班表第一天之前那幾天從沒算過，一被問到 inval121 就把整份組員計畫作廢、從頭同步重算。
-#   計算起點改成跟檢查起點一致（班表第一天之前沒有航班，結果相同）。
-RC('perf7 chain start = need day','kgm-0908B-r210',
-   "var chain=window.kgmCrewChainR210(empId,D(T(),-days),days);",
-   "var st7=window.kgmCrewNeedDayR1006A?window.kgmCrewNeedDayR1006A(days):D(T(),-days),n7=Math.max(0,Math.round((Date.parse(T()+'T00:00:00Z')-Date.parse(st7+'T00:00:00Z'))/864e5));\n"
-   "      var chain=window.kgmCrewChainR210(empId,st7,n7);   /* 1007A：起點跟上面的檢查一致；原本從今天往前 N 天開始，班表第一天之前的日子會讓整份組員計畫作廢重算（一次凍結 48～56 秒） */")
+# 1007A：組員歷史（「我飛過的航班：給旅客評分」要過去 30 天）——三個地方要用同一個起點：
+#   ① 排班引擎第一次開算的游標，② 歷史「備好了沒」的檢查（kgmCrewNeedDayR1006A），③ 實際取歷史的鏈（今天往前 30 天）。
+#   1006A 把 ② 改成「機隊第一天」（只往回 3～5 天），③ 仍是 30 天 → 一問歷史就把整份組員計畫作廢重算（凍結 48～56 秒）。
+#   這裡讓 ① 從「機隊第一天」與「今天往前 30 天」較早的那天開始（更早的日子 r914 以四週後同星期幾的實際派機鏡像，0915A 起就有），
+#   ② 也用同一天。歷史回到 30 天，而且不會再觸發整份重算。
+RC('perf7 cursor start plan','kgm-0903b-r121',
+   "if(!CURSOR121){var first=date;",
+   "if(!CURSOR121){var first=date;try{var h7=D(T(),-30);if(h7<first)first=h7}catch(_){}   /* 1007A：至少從今天往前 30 天開始（組員歷史） */\n  ")
+RC('perf7 cursor start step','kgm-0903b-r121',
+   "var first=T();Object.keys(S.tailAssign||{})",
+   "var first=T();try{var h7=D(T(),-30);if(h7<first)first=h7}catch(_){}   /* 1007A：同上 */\n  Object.keys(S.tailAssign||{})")
+RC('perf7 need day = cursor start','kgm-0908B-r210',
+   "NEED6={};NEED6[k]=first",
+   "NEED6={};var h7=D(T(),-30);NEED6[k]=(first<h7?first:h7)")
+# 1006A #46 漏改：第五航權中停改成一律 75 分之後，r216 的檢查仍是舊的 90–105 分 ——
+#   每 7 秒判定 68 班全部「超出範圍」並重跑一次修正（白做工，時刻不會變，因為 r179 已鎖在 75 分），稽核也一直報紅。改成 75 分。
+RC('perf7 r216 range 75','kgm-0908B-r216',
+   "(x.ground<90||x.ground>105)",
+   "(x.ground!==75)",3)
+RC('perf7 r216 msg 75','kgm-0908B-r216',
+   "第五航權中停仍未落在 90–105 分鐘 (",
+   "第五航權中停不是 75 分鐘（1006A 起一律 75 分）(")
 save('p_h_perf7.js','/* 1007A · 組員班表建置效能：每月執勤日數改為快取 */\n')
