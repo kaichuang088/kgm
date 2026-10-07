@@ -86,6 +86,8 @@ function mkPay(inner){
     var self=this;
     function go(t){pass7=true;try{return inner.call(self,t,curr)}finally{pass7=false}}
     if(pass7)return inner.apply(self,arguments);
+    /* 先過規章同意（跟 r914 閘門同一個檢查、同兩份文件），再查票價：旅客不會在還沒同意條款時就看到改價視窗 */
+    try{if(typeof window.kgmPolicyGateR914==='function'&&!window.kgmPolicyGateR914(['KGM-GC-001','KGM-CON-006']))return}catch(_){}
     try{
       if(S.view==='booking'&&!(S.stx&&S.stx.plan)&&!S.seatOnly){
         var cu=curJ();
@@ -114,6 +116,7 @@ function mkPay(inner){
     return go(total);
   };
   w.__r1007aQ=1;w.__inner914=inner;   /* __inner914：讓政策閘門與里程折抵看得到裡面那層，不會再補包一次 */
+  w.__gate914=1;w._rawGate914=inner;  /* 這一層本身就做規章閘門檢查（上面），所以也是閘門層 */
   return w;
 }
 /* 別層之後還會再包 doPay（政策閘門、里程折抵），所以這層要在它們之後維持在最外面：

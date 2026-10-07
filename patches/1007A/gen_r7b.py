@@ -135,6 +135,14 @@ RC('r41 sim dup','kgm-0816e-r41',
    "    if(app.querySelector('[data-r41-sim]'))return;\n"
    "    if(app.querySelector('.p-admin-side [onclick*=simdata]'))return;   /* 1007A：側欄已經有「模擬資料」就不重複插 */\n")
 
+# 組員班表被「作廢重排」：評分面板（r195）列出鏡像出來的過去航班（機隊第一天之前），逐班算旅客名單時，
+#   名單裡的 DH 清單（dhList929）會呼叫 crewOnFlight(那天) —— 排班引擎因此從 30 天前整份重排（實測游標 10-29 → 09-08，約 70 秒）。
+#   機隊第一天之前的日子本來就沒有真的排班（只有鏡像），DH 清單不必、也不該去強迫計算。
+RC('dh list no backfill','kgm-r7-admin-ops',
+   "    if(!(o[key]&&o[key].length)&&!DHDATE929[date]){DHDATE929[date]=1;",
+   "    var ws7='';try{ws7=window.kgmCrewNeedDayR1006A?window.kgmCrewNeedDayR1006A(30):''}catch(_){}   /* 1007A：排班視窗之前的日子不強迫重算 */\n"
+   "    if(!(o[key]&&o[key].length)&&!DHDATE929[date]&&!(ws7&&date<ws7)){DHDATE929[date]=1;")
+
 # ── 4. 員工入口＋報價保護（最後一層尾端） ─────────────────────────────────
 SOLD=('/* 1007A：營收管理用的「過去 24 小時真實售出」（同一個工作內只掃一次訂位） */\n'
  '(function(){var SOLD7=null;window.kgmRmSoldR1007A=function(f,date){\n'
