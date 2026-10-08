@@ -63,6 +63,16 @@
 - 加上 `fallbacks: "default"`；被婉拒時回傳明確錯誤。
 - 前台備援模型由舊的帶日期型號改為 `claude-haiku-5-5`。
 
-## 三、交付關卡
+## 三、交付關卡（最終版 w3，合併檔，依序執行、沒有平行）
 
-（跑完後填入）
+- syn：scripts checked 248 errors 0；`<script id>` 241 層；版號 1008B（`var BUILD='1008B'` ×118、title `· 1008B`）；vfy1 版號判斷改為 `/1008B/`。
+- vfy1 24/24、vfy3 8/8、vfy4 8/8、vfy6 54/55（B1：跟 1007A／1008A 同一項，整頁字數量法）。這次 H16 通過。
+- vfy2 5/8：N1、F2、O1 —— 跟 1008A 報告同一個原因（KX160 夏季班 10-23 後停飛、測試從今天＋18 天起找）。`vfy2d.js`（日期挪到 2027 年 4 月）**8/8**。
+- vfy5 5/6：AC1「48 小時內報到打得開」—— **1008A 在同一時刻跑也一樣失敗**（02:19 UTC）。原因是測試用「現在＋20 小時」的 UTC 日期建訂位，但報到判斷用 KX180 時刻表的 07:50（台北）；在 UTC 00:00–約 04:00 之間跑，那天的 KX180 已經起飛，所以「網路報到已截止」是對的。改成＋44 小時（`tests/vfy5d.js`）：**6/6**。
+- t_crewrule：twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0。
+- t_sched922：ready 60、最大延遲 4.84 秒。
+- t_admlag：29 個分頁都量到、沒有錯誤，最長長任務 3.8 秒。
+- t_fl1（W=110000）：overlap 0、orphan 0。
+- 台北時區（tz8）：無機可派 0／115088（跟 UTC 相同）、時刻表有但沒排 0、第五航權拆機 0。
+- 後台 AI 直連（ai9t）：真實 API 401（CORS 通）、模擬成功執行工具、模擬失敗原因正確。
+- reg2：notOk 80，與 1008A 基準**完全相同**；view errors 0、PAGE ERRORS 0。輸出存為 `baselines/reg_1008B.out`。
