@@ -429,6 +429,15 @@ RC('split fix partial b','kgm-0823o-r72',"        var toA=B.slice(j),toB=L.slice
    "          seq[ta]=L.slice(0,i+1).concat(sg10.b,sg10.ra);seq[best.tl]=B.slice(0,j).concat(sg10.a,sg10.rb);\n"
    "          stat.partialR1010A=(stat.partialR1010A||0)+1;changed++;stat.swapped++;where();continue;\n"
    "        }")
+# ── 機型變更通知：沒有 Email 的訂位不寄信（頁面錯誤「找不到收件 Email」）────────────────────────────
+#   1010A 起模擬旅客會轉成正式訂位（退票模擬資料、定位管理查到的模擬 PNR），這些訂位沒有 Email；
+#   r34 對機型變更的訂位寄信時，最底層回傳失敗、這裡沒有接住，變成未處理的錯誤（t_admlag 實測 3 次都有，1009B 沒有）。
+#   站內通知照留，只是不寄信。
+RC('r34 no email','kgm-0816a-r34',"      if(typeof kgmNotify==='function')\n        kgmNotify('flight.aircraft_changed',{pnr:b.pnr,email:(b.contactEmail||b.email||''),",
+   "      if(typeof kgmNotify==='function'&&(b.contactEmail||b.email))   /* 1010A：沒有 Email 的訂位（模擬旅客轉入）不寄信，站內通知照留 */\n        kgmNotify('flight.aircraft_changed',{pnr:b.pnr,email:(b.contactEmail||b.email||''),")
+# ── 競標：已經全部結標的那一組不再顯示「立即結標」（起飛後補回的紀錄也是已結標）──────────────────────
+RC('auc settle btn hide','kgm-0823h-r61',"+((can&&settle)?('<button class=\"btn btn-sm\" onclick=\"kgmAuctionSettleR920(",
+   "+((can&&settle&&list.some(function(x){return x&&(!x.status||x.status==='open')}))?('<button class=\"btn btn-sm\" onclick=\"kgmAuctionSettleR920(")   # 1010A
 RW('0810J plan no tail',"var a=actualTailType0810J(code,date);return a||_acftOfFlight0810J.apply(this,arguments);};",
    "var a=(window.KGM_PLAN_R1010A&&!mix10(code))?null:actualTailType0810J(code,date);/* 1010A：排班時不看目前派到哪一架；多機型共同營運的班（r143 MIX143，例 KX50/KX49 B789/B78X）照舊看 —— 飛哪一型都不算換機，不看的話第五航權前後段會被排成兩架不同的 B78X（實測 3 段拆機） */return a||_acftOfFlight0810J.apply(this,arguments);};\n"
    "  function mix10(code){var M=window.KGM_MIX_R143;if(!M)return false;for(var k in M){if(k.split('|')[0]===code)return true}return false}")

@@ -119,7 +119,7 @@ CELLFONT = {"code": ("bold", 5.66, INK), "days": ("mono", 5.66, INK), "time": ("
             "type": ("reg", 5.66, INK), "per": ("reg", 5.53, INK2)}
 def edit_cell(page, row, col, cell, text, mapy, sup=None):
     """把某一格改成新值：白框蓋掉原本的字（含上標 +1），新字以原本的中心對齊、同字型同字級"""
-    ss = [s for s in row["spans"] if cell_of(s, col) == cell]
+    ss = [s for s in row["spans"] if cell_of(s, col) == cell and not (cell == "time" and re.match(r"^[AB]\d", s["text"].strip()))]   # 1010A：「B789/B78X」這種長機型字起點偏左，會被算進時刻格（改時刻時被一起遮掉、時刻也算偏）
     main = [s for s in ss if s["font"] != "Helvetica" and s["size"] > 5]
     u = fitz.Rect(ss[0]["bbox"])
     for s in ss[1:]: u |= fitz.Rect(s["bbox"])
