@@ -349,6 +349,14 @@ RC('kx43 r77','kgm-0823p-r77',"      'KX43|LAS|ICN':{summer:['01:20','06:10',1,[
 
 RC('r131 skip fixed block','kgm-0903b-r131',"    if(o.summer.viaR179||o.winter.viaR179)return;",
    "    if(o.summer.viaR179||o.winter.viaR179)return;\n    if(o.blockFixedR1010A)return;   /* 1010A：成田／羽田 3h05、KX20 3h30 是使用者指定，冬夏一樣，不再拉開 */")
+# 稽核同步：reg2 的 kgmAuditR131 把「冬夏 block 一樣」一律算失敗；上面那 10 班是使用者指定冬夏同一個飛行時間，另外列出、不算失敗
+RC('r131 audit user fixed','kgm-0903b-r131',"      if(v.summer.viaR179||v.winter.viaR179){viaFixed++;return}",
+   "      if(v.summer.viaR179||v.winter.viaR179){viaFixed++;return}\n"
+   "      if(v.blockFixedR1010A){userFixed10++;return}   /* 1010A：使用者指定冬夏同一個飛行時間（成田／羽田 3h05、KX20 3h30、KX240 5h00），另外列出 */")
+RC('r131 audit user fixed v','kgm-0903b-r131',"    var st=S.seasonSchedulesR48||{},same=0,diff=0,viaFixed=0;",
+   "    var st=S.seasonSchedulesR48||{},same=0,diff=0,viaFixed=0,userFixed10=0;")
+RC('r131 audit user fixed b','kgm-0903b-r131',"    o.blockSameSeason=same;o.blockDiffSeason=diff;o.blockViaFixedR179=viaFixed;",
+   "    o.blockSameSeason=same;o.blockDiffSeason=diff;o.blockViaFixedR179=viaFixed;o.blockUserFixedR1010A=userFixed10;")
 
 # ── #6 機隊：常態機型調整、不用 A388 補位、換機紀錄照實際派機重對 ─────────────────────────────
 #   實測（w9，一年）：每天換機最多的是 A330 家族（A339L/A339R 共 28 架）在午後一波短程同時出發時不夠用，
@@ -375,7 +383,7 @@ RC('r72 no A388 move','kgm-0823o-r72',"typesWithTails72().some(function(t){var c
 #   排班時只看時刻表（含 EQV 機型池、人工換機、維修），不看自己上一輪的結果。
 RC('r72 plan type no feedback','kgm-0823o-r72',"    try{t=acftOfFlight(f.code,date,f.fr,f.to)||f.acft}catch(_){t=f.acft}",
    "    /* 1010A：排班用的機型不看上一輪的派機結果（實際機身、系統自動換機紀錄），否則一次補位就會變成永久換機 */\n"
-   "    var sv10=S.acftSub;S.acftSub=planSub10(sv10);window.KGM_PLAN_R1010A=(window.KGM_PLAN_R1010A||0)+1;\n"
+   "    var sv10=S.acftSub;S.acftSub=ps10||(ps10=planSub10(sv10));window.KGM_PLAN_R1010A=(window.KGM_PLAN_R1010A||0)+1;   /* 一天只過濾一次（每班都過濾一次，整年重排累計 11 秒） */\n"
    "    try{t=acftOfFlight(f.code,date,f.fr,f.to)||f.acft}catch(_){t=f.acft}finally{window.KGM_PLAN_R1010A--;S.acftSub=sv10}")
 RC('r72 plan sub fn','kgm-0823o-r72',"function dayOf72(date){",
    "var PS10={src:null,n:-1,out:null};\n"
@@ -384,9 +392,46 @@ RC('r72 plan sub fn','kgm-0823o-r72',"function dayOf72(date){",
    "  var o={};Object.keys(src).forEach(function(k){var x=src[k];if(!x)return;if((x.auto||x.auto0810J||x.coverageR830)&&!x.manual&&!x.maint&&!x.mx)return;o[k]=x});\n"
    "  PS10.src=src;PS10.n=n;PS10.out=o;return o;\n"
    "}\n"
-   "function dayOf72(date){")
+   "function dayOf72(date){\n  var ps10=null;")
+# ── #6 第五航權拆機（w21 實測 3 段：12-06 KX50、12-07 KX49、02-02 KX50，全部是 B78X）──────────────
+#   這輪把新加坡／宿霧／峴港／名古屋改成 B78X 常態機型後，B78X 空檔變少：KX50 前段那一架飛到曼谷，後面接的是松山輪值（凍結），
+#   r72 kgmFixSplitR929 只會「從這裡以後整串互換」，碰到凍結就放棄 → 前段飛機空機調回台北、另一架空機飛去曼谷接後段。
+#   補一個退一步的做法：只互換「到兩架各自回到台北為止」那一小段，兩架後面原本的勤務（含松山輪值）不動；過站時間照樣檢查。
+RC('split fix partial a','kgm-0823o-r72',"  function frozen(q){return q.tsaFixedR830||q.manualR69}\n  for(var pass=0;pass<6;pass++){",
+   "  function frozen(q){return q.tsaFixedR830||q.manualR69}\n"
+   "  /* 1010A：整串互換被凍結（松山輪值／手動）或停飛日擋下時，只換到兩架各自回到台北為止的那一段 */\n"
+   "  function seg10(L,i1,B,j,ta,tb){\n"
+   "    function end(Q,k){for(;k<Q.length;k++){if(toOf(Q[k])==='TPE')return k}return -1}\n"
+   "    var ka=end(L,i1),kb=end(B,j);if(ka<0||kb<0)return null;\n"
+   "    var a=L.slice(i1,ka+1),b=B.slice(j,kb+1),ra=L.slice(ka+1),rb=B.slice(kb+1);\n"
+   "    if(a.some(frozen)||b.some(frozen))return null;\n"
+   "    if(b.some(function(q){return unavailable72(ta,q.date)})||a.some(function(q){return unavailable72(tb,q.date)}))return null;\n"
+   "    if(ra.length&&(frOf(ra[0])!=='TPE'||arrOf(b[b.length-1])+TURN72>ra[0]._e929))return null;\n"
+   "    if(rb.length&&(frOf(rb[0])!=='TPE'||arrOf(a[a.length-1])+TURN72>rb[0]._e929))return null;\n"
+   "    return {a:a,b:b,ra:ra,rb:rb};\n"
+   "  }\n"
+   "  for(var pass=0;pass<6;pass++){")
+RC('split fix partial b','kgm-0823o-r72',"        var toA=B.slice(j),toB=L.slice(i+1);\n        if(toA.some(frozen)||toB.some(frozen))continue;\n        if(toA.some(function(q){return unavailable72(ta,q.date)})||toB.some(function(q){return unavailable72(best.tl,q.date)}))continue;",
+   "        var toA=B.slice(j),toB=L.slice(i+1);\n"
+   "        if(toA.some(frozen)||toB.some(frozen)||toA.some(function(q){return unavailable72(ta,q.date)})||toB.some(function(q){return unavailable72(best.tl,q.date)})){\n"
+   "          var sg10=seg10(L,i+1,B,j,ta,best.tl);\n"
+   "          if(!sg10){\n"
+   "            /* 1010A：再退一步 —— B 機本來就是空機調過去中停站（pb 是調機、起訖跟前段一樣）：前段直接交給 B 機飛、取代那段調機；\n"
+   "               A 機不飛前段，落地後那段空機調回（nx）也一起拿掉。A 機前一段落地站要接得上 A 機之後的勤務。 */\n"
+   "            var pv=L[i-1],nn=L[i+2],pbb=B[j-2];\n"
+   "            var okMove=pb.positioningR830&&!frozen(pb)&&!frozen(x)&&frOf(pb)===fr&&nx.positioningR830&&!frozen(nx)&&toOf(nx)===fr\n"
+   "              &&(!pbb||arrOf(pbb)+TURN72<=x._e929)&&arrOf(x)+TURN72<=B[j]._e929&&!unavailable72(best.tl,x.date)\n"
+   "              &&(!pv||toOf(pv)===fr)&&(!nn||frOf(nn)===fr)&&(!pv||!nn||arrOf(pv)+TURN72<=nn._e929);\n"
+   "            if(!okMove)continue;\n"
+   "            seq[ta]=L.slice(0,i).concat(L.slice(i+2));seq[best.tl]=B.slice(0,j-1).concat([x],B.slice(j));\n"
+   "            stat.moveR1010A=(stat.moveR1010A||0)+1;changed++;stat.swapped++;where();continue;\n"
+   "          }\n"
+   "          seq[ta]=L.slice(0,i+1).concat(sg10.b,sg10.ra);seq[best.tl]=B.slice(0,j).concat(sg10.a,sg10.rb);\n"
+   "          stat.partialR1010A=(stat.partialR1010A||0)+1;changed++;stat.swapped++;where();continue;\n"
+   "        }")
 RW('0810J plan no tail',"var a=actualTailType0810J(code,date);return a||_acftOfFlight0810J.apply(this,arguments);};",
-   "var a=window.KGM_PLAN_R1010A?null:actualTailType0810J(code,date);/* 1010A：排班時不看目前派到哪一架 */return a||_acftOfFlight0810J.apply(this,arguments);};")
+   "var a=(window.KGM_PLAN_R1010A&&!mix10(code))?null:actualTailType0810J(code,date);/* 1010A：排班時不看目前派到哪一架；多機型共同營運的班（r143 MIX143，例 KX50/KX49 B789/B78X）照舊看 —— 飛哪一型都不算換機，不看的話第五航權前後段會被排成兩架不同的 B78X（實測 3 段拆機） */return a||_acftOfFlight0810J.apply(this,arguments);};\n"
+   "  function mix10(code){var M=window.KGM_MIX_R143;if(!M)return false;for(var k in M){if(k.split('|')[0]===code)return true}return false}")
 
 RC('sub clean',R229,"    window.kgmCrewUpdateR928=function(){",
    open('js/sub10a.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
