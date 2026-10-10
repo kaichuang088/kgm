@@ -129,6 +129,7 @@ RC('ai plan crew/ground',R229,"    if(/(排班更新|重新排班|重排班表|�
    "    if(/(排班更新|重新排班|重排班表|立即重算)/.test(t))return [{tool:'crew_update'}];\n"
    "    /* 1010A：員工編號＋換班／班別 */\n"
    "    var who10=crIds.map(function(id){var x=(S.staff||[]).filter(function(x){return x&&String(x.empId).toUpperCase()===id})[0];if(!x){try{var K=window.kgmCrewSwapKitR1006A,A=K&&K.crewAll();x=A&&A[id]}catch(_){}}return x}).filter(Boolean)[0];   /* 排班池的組員也算 */\n"
+   "    if(!who10&&crIds.length&&/(早班|午班|中班|晚班|夜班|清晨班|大夜|換班|換掉|換成|換到|調班|不想飛|不要飛|代班)/.test(t))return [{tool:'ground_shift',args:{empId:crIds[0],band:'mid'}}];   /* 1010A：員工編號不存在 → 明講查無此人，不要回「看不懂」 */\n"
    "    if(who10&&who10.role==='ground'&&/(早班|午班|中班|晚班|夜班|清晨班|大夜|下午班|早上班)/.test(t)){\n"
    "      var bd10=/(清晨|大夜)/.test(t)?'early':/(午班|中班|下午)/.test(t)?'mid':/(晚班|夜班)/.test(t)?'late':'day',rg10=rangeOf(t);\n"
    "      return [{tool:'ground_shift',args:{empId:who10.empId,band:bd10,from:rg10.from,to:rg10.to}}];\n"
@@ -156,7 +157,7 @@ RC('ai ground fn',R229,"    window.kgmCrewUpdateR928=function(){",
    "    (function tryWrap(n){if(!gbWrap10()&&n<40)setTimeout(function(){tryWrap(n+1)},500)})(0);\n"
    "    window.kgmGroundShiftSetR1010A=function(a){\n"
    "      a=a||{};var st=(S.staff||[]).filter(function(x){return x&&String(x.empId).toUpperCase()===String(a.empId||'').toUpperCase()})[0];\n"
-   "      if(!st)return {ok:false,msg:'找不到員工編號 '+(a.empId||'')+'。'};if(st.role!=='ground')return {ok:false,msg:st.name+'（'+st.empId+'）不是地勤，班別調整只適用地勤；空勤組員請說「換班」。'};\n"
+   "      if(!st)return {ok:false,msg:'找不到員工編號 '+(a.empId||'')+'（員工管理與組員排班名單裡都沒有這個編號），請確認編號是否正確。'};if(st.role!=='ground')return {ok:false,msg:st.name+'（'+st.empId+'）不是地勤，班別調整只適用地勤；空勤組員請說「換班」。'};\n"
    "      var b=BAND10[a.band]?a.band:'mid',from=/^\\d{4}-\\d{2}-\\d{2}$/.test(a.from||'')?a.from:AD(todayISO(),1),to=/^\\d{4}-\\d{2}-\\d{2}$/.test(a.to||'')&&a.to>=from?a.to:AD(from,13);\n"
    "      gbWrap10();S.groundBandOvR1010A=S.groundBandOvR1010A||{};(S.groundBandOvR1010A[st.empId]=S.groundBandOvR1010A[st.empId]||[]).push({from:from,to:to,band:b,at:new Date().toISOString(),by:(S.adminUser||{}).empId||''});\n"
    "      try{if(window.kgmGroundPlanClearR1008A)window.kgmGroundPlanClearR1008A()}catch(_){}\n"
@@ -225,7 +226,7 @@ RC('webci sim',R7,"    /* 0920D：模擬旅客也要有報到資料。櫃檯起�
 RC('webci th',R7,"<th>'+(z()?'座位（可改）':'Seat (editable)')+'</th><th>'+(z()?'實體報到':'Physical CI')+'</th>",
    "<th>'+(z()?'座位（可改）':'Seat (editable)')+'</th><th>'+(z()?'網路報到':'Web CI')+'</th><th>'+(z()?'實體報到':'Physical CI')+'</th>")
 RC('webci td',R7,"'+seatNote+'</td><td><input type=\"checkbox\" '+(x.physical?'checked':'')+'",
-   "'+seatNote+'</td><td style=\"text-align:center\"><input type=\"checkbox\" disabled '+(x.webCI?'checked title=\"'+(z()?'已於起飛前網路報到':'Checked in online')+'\"':'title=\"'+(z()?'未網路報到':'Not checked in online')+'\"')+'></td><td><input type=\"checkbox\" '+(x.physical?'checked':'')+'")
+   "'+seatNote+'</td><td style=\"text-align:center\">'+(x.webCI?'<span title=\"'+(z()?'已於起飛前網路報到':'Checked in online')+'\" style=\"display:inline-block;min-width:22px;padding:1px 6px;border-radius:999px;background:#E8F0ED;color:#1F4E46;font-weight:900;font-size:11px\">✓</span>':'<span title=\"'+(z()?'未網路報到':'Not checked in online')+'\" style=\"color:#C9C2B3\">—</span>')+'</td><td><input type=\"checkbox\" '+(x.physical?'checked':'')+'")   # 網路報到是唯讀資料：用勾號標示，不用可以點的 checkbox（有一層會把 disabled 拿掉）
 
 # ── #17 員工票狀態：沒賣豪經的航段，豪經座位併進經濟艙算（DH 仍可坐豪經）；「候補名單」改成就地預覽 ─────────────
 RW('stx prem merge',"  var UP1004B=['Economy','Premium','Business','First'];\n  function near(c){for(var i=Math.max(0,UP1004B.indexOf(c));i<UP1004B.length;i++)if(cap[UP1004B[i]])return UP1004B[i];return c}",

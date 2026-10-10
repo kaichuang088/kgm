@@ -139,6 +139,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    const st=(S.staff||[]).filter(x=>x&&x.role&&x.password&&x.empId)[0];
    if(!st)return {err:'no staff'};
    const d=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+   S.user=(S.users||[]).find(u=>u&&u.id==='KGMDEMO0911')||S.user;S.staffLinkR1010A=S.staffLinkR1010A||{};S.staffLinkR1010A[st.empId]={userId:S.user&&S.user.id};   /* 1010A：員工票要先登入已綁定員工編號的會員帳號 */
    S.promoCode=st.empId;S.stx=null;S.stxConfirmVerified=false;S.staffVerifiedR10=false;
    S.view='booking';S.phase='sel_out';S.search=Object.assign(S.search||{},{fr:'TPE',to:'NRT',dep:d,type:'OW'});
    render();
@@ -575,6 +576,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    const st=(S.staff||[]).filter(x=>x&&x.role&&x.password&&x.empId&&x.active!==false&&(x.famOnFile||[]).length)[0];
    const d=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
    st.famOnFile=(st.famOnFile||[]).filter(r=>r.relation!=='friend'&&!r.pendR927);
+   S.user=(S.users||[]).find(u=>u&&u.id==='KGMDEMO0911')||S.user;S.staffLinkR1010A=S.staffLinkR1010A||{};S.staffLinkR1010A[st.empId]={userId:S.user&&S.user.id};   /* 1010A：員工票要先登入已綁定員工編號的會員帳號 */
    S.promoCode=st.empId;S.stx=null;S.stxConfirmVerified=false;S.staffVerifiedR10=false;
    S.view='booking';S.phase='sel_out';S.search=Object.assign(S.search||{},{fr:'TPE',to:'NRT',dep:d,type:'OW',pax:1});render();
    await new Promise(r=>setTimeout(r,900));

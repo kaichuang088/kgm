@@ -92,7 +92,8 @@ const {chromium}=require('playwright');
  await p.waitForTimeout(6000);
  const s1b=await p.evaluate(()=>{
    const rows=[...document.querySelectorAll('.r7-manifest tbody tr')].filter(tr=>tr.querySelector('input[type=checkbox]'));
-   const ci=rows.filter(tr=>{const c=tr.querySelectorAll('input[type=checkbox]');return c[0]&&c[0].checked}).length;
+   const ths=[...document.querySelectorAll('.r7-manifest thead th')],pi=ths.findIndex(th=>/實體報到|Physical CI/.test(th.textContent));   /* 1010A：實體報到前面多了一欄「網路報到」，改用欄名找實體報到那一欄 */
+   const ci=rows.filter(tr=>{const td=pi>=0?tr.children[pi]:null,c=td?td.querySelector('input[type=checkbox]'):tr.querySelector('input[type=checkbox]');return c&&c.checked}).length;
    const lb=document.querySelector('.r7-loadbal');
    return {pax:rows.length,ci,lb:!!lb,idx:(lb?lb.innerText.match(/建議裝載指數\s*([\d.]+)%/):null)};});
  push('S1','航班資料有 mock 報到資料',s1b.pax>0&&s1b.ci>s1b.pax*0.8,'flight='+s1+' pax='+s1b.pax+' ci='+s1b.ci);

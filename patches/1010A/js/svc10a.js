@@ -110,16 +110,19 @@
     window.kgmRefundSimSeedR1010A=function(force){
       try{
         if(!force&&S.refundSimR1010A&&S.refundSimR1010A.v)return 0;
-        var st=window.kgmRefundStoreR113&&window.kgmRefundStoreR113();if(!st||!window.kgmOpenCaseR84||!window.manifest7)return 0;
+        var st=window.kgmRefundStoreR113&&window.kgmRefundStoreR113();if(!st||!window.kgmOpenCaseR84||!window.simManifest)return 0;
         var T=todayISO(),plan=[[4,'pending',30],[7,'pending',9],[11,'pending',52],[16,'pending',3],[9,'rejected',120],[13,'withdrawn',75]],made=[];
         plan.forEach(function(q,qi){
           var d=AD10(T,q[0]),L=[];try{L=(kgmDayOf72R1006A(d)||[]).filter(function(x){return x&&x.f&&!x.f.partner&&!x.f.codeshare&&!x.f.via})}catch(_){}
           if(!L.length)return;
           var hh=0,key='rf10|'+d+'|'+qi;for(var i=0;i<key.length;i++)hh=(hh*31+key.charCodeAt(i))>>>0;
           var x0=L[hh%L.length],f=x0.f,rows=[];
-          try{rows=(window.manifest7(f,d)||[]).filter(function(r){return r&&!r.real&&/^[A-Z0-9]{6}$/.test(r.pnr||'')&&!/^(SB:|DH\|)/.test(String(r.id||''))&&r.cabin!=='Resident'&&!st[r.pnr]})}catch(_){}
+          /* 1010A：這裡原本用 manifest7（完整航班名單），它會先把那一天的組員班表整個排出來（實測 18 秒卡住畫面，組員班表延遲回歸）。
+             改用模擬旅客名單 simManifest（1 毫秒）；座位不帶過去（完整名單會重新配位，帶過去可能跟別人重複），轉成正式訂位後照一般訂位配位。 */
+          try{var ff=Object.assign({},f,{acft:x0.t||f.acft});rows=(window.simManifest(f.code,d,ff)||[]).filter(function(r){return r&&!r.real&&/^[A-Z0-9]{6}$/.test(r.pnr||'')&&r.cabin!=='Resident'&&!st[r.pnr]})}catch(_){}
           if(!rows.length)return;
-          var x=rows[(hh>>>3)%rows.length],b=simMat10({f:f,date:d,x:x});if(!b||st[b.pnr])return;
+          var x=Object.assign({},rows[(hh>>>3)%rows.length]);x.nationality=x.nationality||x.nat||'';x.seat='';
+          var b=simMat10({f:f,date:d,x:x});if(!b||st[b.pnr])return;
           var fee=4800;try{var v=window.kgmRefundFeeR60&&window.kgmRefundFeeR60(b.outC);if(v!=null)fee=v}catch(_){}
           var paid=+b.total||0;if(!paid){paid=12000+hh%30000;b.total=paid}var net=Math.max(0,paid-fee);
           var at=new Date(Date.now()-q[2]*3600e3).toISOString(),p=b.paxList[0]||{};
@@ -143,7 +146,7 @@
     };
     (function seed10(n){if(n>150)return;setTimeout(function(){
       try{if(S.refundSimR1010A&&S.refundSimR1010A.v)return;
-        if(S.adminAuthed&&S.view==='admin'&&typeof kgmDayOf72R1006A==='function'&&window.manifest7){if(window.kgmRefundSimSeedR1010A()){try{render()}catch(_){}}return}}catch(_){}
+        if(S.adminAuthed&&S.view==='admin'&&typeof kgmDayOf72R1006A==='function'&&window.simManifest){if(window.kgmRefundSimSeedR1010A()){try{render()}catch(_){}}return}}catch(_){}
       seed10(n+1)},n?4000:9000)})(0);
 
     (function css10(){if(document.getElementById('kgm-1010a-css'))return;var s=document.createElement('style');s.id='kgm-1010a-css';s.textContent=
