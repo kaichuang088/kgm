@@ -173,7 +173,7 @@ RC('upg resume fns',R229,"  window.kgmDeskUpgR1006A=function(pnr,seg,type,to,mil
    "    try{if(!b||b.dhR929||(window.kgmIsStaffBkR928&&window.kgmIsStaffBkR928(b)))return '';css();\n"
    "      var reqs=act12(b),R=b.upgResumeR1012A||{},rows=[];\n"
    "      if(!only)reqs.forEach(function(r){var w=String(r.status)==='waitlist';\n"
-   "        rows.push('<div class=\"k6-mup-row\"><span><b>'+E(r.code)+'</b>　'+E(r.date)+'　'+E(cz(r.prevCabinR922||cabOf(r.fromClass||r.prevClsR922)||''))+' → '+E(cz(r.toCabin||''))+'　<b>'+N(r.miles)+(Z()?' 哩':' mi')+'</b></span>'\n"
+   "        rows.push('<div class=\"k6-mup-row\"><span><b>'+E(r.code)+'</b>'+(r.legR1012A?' <i class=\"k12-leg\">'+E(r.legR1012A.replace('-','→'))+(Z()?' 單段':' leg')+'</i>':'')+'　'+E(r.date)+'　'+E(cz(r.prevCabinR922||cabOf(r.fromClass||r.prevClsR922)||''))+' → '+E(cz(r.toCabin||''))+'　<b>'+N(r.miles)+(Z()?' 哩':' mi')+'</b></span>'\n"
    "          +'<em class=\"'+(w?'w':'')+'\">'+(w?(Z()?'候補中':'Waitlisted'):(Z()?'已確認':'Confirmed'))+'</em>'\n"
    "          +'<button onclick=\"kgmDeskCancelUpgR1006A(\\''+A(r.id)+'\\')\">'+(Z()?'取消里程升等':'Cancel upgrade')+'</button></div>')});\n"
    "      ['out','inb'].forEach(function(k){var x=R[k],f=b[k+'F'];if(!x||!f)return;if(reqs.some(function(r){return (r.seg||'out')===k}))return;\n"
@@ -423,6 +423,27 @@ RW('auc past 2y',"if(d>=T0||d<addDays(T0,-60))return 0;","if(d>=T0||d<addDays(T0
 RW('auc past season f',"var k=f.fr+f.to;if(seen[k])return;seen[k]=1;try{n+=window.kgmEnsureAuctionsR922(c,d,f)||0}catch(_){}",
    "var k=f.fr+f.to;if(seen[k])return;seen[k]=1;var sf=f;try{sf=(window.kgmSeasonFlightR48&&window.kgmSeasonFlightR48(f,d))||f}catch(_){sf=f}try{var K12=window.KGM_BD_SEEN_R929;if(K12&&!(S.bigDeals||[]).some(function(b){return b&&b.code===c&&b.date===d&&b.fr===sf.fr&&b.to===sf.to}))delete K12[c+'|'+d+'|'+sf.fr+sf.to]}catch(_){}   /* 1012A：起飛 3 天後模擬 BigDeal 不存檔（1010A），再搜尋時要能重新補出來，不能被「這次開頁已補過」擋住 */try{n+=window.kgmEnsureAuctionsR922(c,d,sf)||0}catch(_){}")
 RW('auc ensure 2y',"if(!isFinite(hrs)||hrs<=-60*24)return 0;","if(!isFinite(hrs)||hrs<=-730*24)return 0;   /* 1012A：60 天 → 兩年 */")
+
+# ── #2 第五航權（經停）航班：哩程升等候補、員工票候補分段；前台可以只升其中一段（js/ff12.js） ─────────────
+RC('sb list pass leg','kgm-0816d-r40',"  var rows=[];try{rows=window.kgmStandbyListR40(code,date)||[]}catch(_){}",
+   "  var rows=[];try{rows=window.kgmStandbyListR40(code,date,fr,to)||[]}catch(_){}   /* 1012A：經停航班依航段列出 */")
+RC('sb panel pass leg','kgm-0816d-r40',"  var rows=window.kgmStandbyListR40(f.code,f.date);","  var rows=window.kgmStandbyListR40(f.code,f.date,f.fr,f.to);   /* 1012A：經停航班依航段列出 */")
+RC('sb row leg tag','kgm-0816d-r40',"simTag(r)+'PNR <span class=\"r40-mono\">'","simTag(r)+(r.legTagR1012A||'')+'PNR <span class=\"r40-mono\">'",2)
+RW('stx prev leg tag',"+(r.simR929?' <i class=\"k10sp-sim\">模擬</i>':'')+'<small>PNR '","+(r.simR929?' <i class=\"k10sp-sim\">模擬</i>':'')+'<small>'+(r.legTagR1012A||'')+'PNR '",2)
+RW('desk upg leg tag',"return '<div class=\"k6-mup-row\"><span><b>'+E(r.code)+'</b>　'+E(r.date)+'　'+E(cz(r.prevCabinR922||cabOf(r.fromClass||r.prevClsR922)||''))+' → '+E(cz(r.toCabin||''))",
+   "return '<div class=\"k6-mup-row\"><span><b>'+E(r.code)+'</b>'+(r.legR1012A?' <i class=\"k12-leg\">'+E(r.legR1012A.replace('-','→'))+(Z()?' 單段':' leg')+'</i>':'')+'　'+E(r.date)+'　'+E(cz(r.prevCabinR922||cabOf(r.fromClass||r.prevClsR922)||''))+' → '+E(cz(r.toCabin||''))")
+RW('upg card pass leg',"onclick=\"doRequestUpgrade(\\''+attr0815(bk.pnr)+'\\',\\''+p.seg+'\\',\\''+o.type+'\\',\\''+o.to+'\\')\">",
+   "onclick=\"doRequestUpgrade(\\''+attr0815(bk.pnr)+'\\',\\''+p.seg+'\\',\\''+o.type+'\\',\\''+o.to+'\\',\\''+(o.legKey||'')+'\\')\">")   # 1012A：經停航班帶航段
+RW('desk upg segs per leg',"      var segs=['out','inb'].filter(function(k){return b[k+'F']&&!reqs.some(function(r){return (r.seg||'out')===k})});",
+   "      var segs=['out','inb'].filter(function(k){return b[k+'F']});   /* 1012A：經停航班兩段分開升等 —— 已申請的那一段不再列（下面逐一選項判斷） */")
+RW('desk upg opt filter',"        o.filter(function(x){return x&&!x.auction&&x.to&&x.to!=='Resident'}).forEach(function(x){",
+   "        o.filter(function(x){return x&&!x.auction&&x.to&&x.to!=='Resident'&&!reqs.some(function(r){return (r.seg||'out')===k&&(!x.legKey||!r.legR1012A||r.legR1012A===x.legKey)})}).forEach(function(x){")
+RW('desk upg btn leg',"onclick=\"kgmDeskUpgR1006A(\\''+A(b.pnr)+'\\',\\''+k+'\\',\\''+A(x.type)+'\\',\\''+A(x.to)+'\\','+mi+','+(inst?1:0)+')\">'",
+   "onclick=\"kgmDeskUpgR1006A(\\''+A(b.pnr)+'\\',\\''+k+'\\',\\''+A(x.type)+'\\',\\''+A(x.to)+'\\','+mi+','+(inst?1:0)+',\\''+A(x.legKey||'')+'\\')\">'")
+RW('desk upg fn leg',"  window.kgmDeskUpgR1006A=function(pnr,seg,type,to,miles,inst){","  window.kgmDeskUpgR1006A=function(pnr,seg,type,to,miles,inst,leg){   /* 1012A：leg＝經停航班的那一段 */")
+RW('desk upg req leg',"      try{r=asOwner(bk(pnr),function(){return window.requestUpgrade(pnr,seg,type,to)})}catch(e){r={ok:false,why:e.message}}",
+   "      try{r=asOwner(bk(pnr),function(){return window.requestUpgrade(pnr,seg,type,to,leg||'')})}catch(e){r={ok:false,why:e.message}}")
+RC('ff12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/ff12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 
 open('p_h_r14.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
