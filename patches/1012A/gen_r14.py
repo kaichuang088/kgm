@@ -445,5 +445,22 @@ RW('desk upg req leg',"      try{r=asOwner(bk(pnr),function(){return window.requ
    "      try{r=asOwner(bk(pnr),function(){return window.requestUpgrade(pnr,seg,type,to,leg||'')})}catch(e){r={ok:false,why:e.message}}")
 RC('ff12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/ff12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 
+# ── #1 規章：《員工管理辦法》Rev. C（主管職務、出勤點名、無故缺席；pol/pol12.py 排版），後台右上角內嵌的 PDF 換成同一份 ──
+_HR=open('pol/KGM-HR-001.pdf','rb').read()
+import pypdf, io
+_NP=len(pypdf.PdfReader(io.BytesIO(_HR)).pages)
+_a=CUR.index("window.KGM_EMP_POLICY_PDF_R1004B='")+len("window.KGM_EMP_POLICY_PDF_R1004B='");_e=CUR.index("'",_a)
+RC('hr001 pdf 12','kgm-0831c-r86',CUR[_a:_e],'data:application/pdf;base64,'+base64.b64encode(_HR).decode())
+RC('hr001 meta 12','kgm-0831c-r86',"  ver:'2026.10（Rev. B）',eff:'2026-10-06',pages:12,arts:32,owner:'人力資源處',approver:'董事長',issued:'2026-10-05',",
+   "  ver:'2026.10（Rev. C）',eff:'2026-10-12',pages:%d,arts:36,owner:'人力資源處',approver:'董事長',issued:'2026-10-11',   /* 1012A：Rev. C 主管職務、出勤點名 */"%_NP)
+
+# ── #18 飛機排班多飛不同地方（js/var12.js：台北地面換手、整串互換，不增減航段） ──
+RC('rot strip pending','kgm-0823o-r72',"function stripHtml72(){\n  var s=window.KGM_ROT_SUM_R72;\n  if(!s)return '';",
+   "function stripHtml72(){\n  var s=window.KGM_ROT_SUM_R72;\n  if(!s)return '';\n"
+   "  /* 1012A：背景整年重排與收尾還沒做完 → 不顯示半成品的數字 */\n"
+   "  if(window.kgmRotSettledR1012A&&!window.kgmRotSettledR1012A())return '<section class=\"k72-strip\"><div class=\"k72-h\"><b>'+(zz()?'輪轉檢查':'Rotation audit')+'</b>'"
+   "+'<span>'+(zz()?'機隊輪轉背景重排中（開站後約兩分鐘），完成並自動檢查、補正後顯示結果。':'Rebuilding the fleet rotation in the background (about two minutes after opening).')+'</span></div></section>';")
+RC('variety r72','kgm-0823o-r72',"var ROT72={};\nwindow.kgmBuildRotationsR72=function(type,start,days){",open('js/var12.js',encoding='utf-8').read()+"var ROT72={};\nwindow.kgmBuildRotationsR72=function(type,start,days){")
+
 open('p_h_r14.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
