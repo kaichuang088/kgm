@@ -322,7 +322,7 @@ RC('ground target','kgm-0907A-r194',"var GTARGET8=290,","var GTARGET8=430,   /* 
 RW('tsa team size','.slice(0,20).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}','.slice(0,36).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}   /* 1012A：松山 20 → 36 位（每櫃 5 人） */')
 
 # ══ 1012A 新增要存檔（前後台同步）的欄位 ══════════════════════════════════════
-PERSIST_1012A=[('crewWorkR1012A','kgm12_crewwork','{}'),('nameFixR1012A','kgm12_namefix','{}'),('mgrR1012A','kgm12_mgr','{}')]
+PERSIST_1012A=[('crewWorkR1012A','kgm12_crewwork','{}'),('nameFixR1012A','kgm12_namefix','{}'),('mgrR1012A','kgm12_mgr','{}'),('kxSwapR1012A','kgm12_kxswap','null')]
 def _persist():
   si=''.join('%s:LS.get("%s",%s),'%(f,k,d) for f,k,d in PERSIST_1012A)
   sv=''.join('LS.set("%s",S.%s||%s);'%(k,f,d) for f,k,d in PERSIST_1012A)
@@ -461,6 +461,31 @@ RC('rot strip pending','kgm-0823o-r72',"function stripHtml72(){\n  var s=window.
    "  if(window.kgmRotSettledR1012A&&!window.kgmRotSettledR1012A())return '<section class=\"k72-strip\"><div class=\"k72-h\"><b>'+(zz()?'輪轉檢查':'Rotation audit')+'</b>'"
    "+'<span>'+(zz()?'機隊輪轉背景重排中（開站後約兩分鐘），完成並自動檢查、補正後顯示結果。':'Rebuilding the fleet rotation in the background (about two minutes after opening).')+'</span></div></section>';")
 RC('variety r72','kgm-0823o-r72',"var ROT72={};\nwindow.kgmBuildRotationsR72=function(type,start,days){",open('js/var12.js',encoding='utf-8').read()+"var ROT72={};\nwindow.kgmBuildRotationsR72=function(type,start,days){")
+
+# ── #13 KX6/KX5 與 KX4/KX3 班號互換＋新時刻（js/kx12.js；2026-11-29 起生效，之前照舊）：時刻表本身改成新定義 ──
+RW('kx4 row','["KX4","TPE","LAX","23:55","20:25","A388","daily",null,0],','["KX4","TPE","LAX","17:45","14:15","A359","MWS",null,0],')
+RW('kx6 row','["KX6","TPE","LAX","17:45","14:15","A359","daily",null,0],','["KX6","TPE","LAX","10:55","07:25","A388","daily",null,0],')
+RW('kx3 row','["KX3","LAX","TPE","00:30","05:30","A388","daily",null,1],','["KX3","LAX","TPE","16:45","21:45","A359","MWS",null,1],')
+RW('kx5 row','["KX5","LAX","TPE","16:45","21:45","A359","daily",null,1],','["KX5","LAX","TPE","09:50","14:50","A388","daily",null,1],')
+RC('kx swap r112','kgm-0903b-r112',"    var sea=seaOf(date),r=recOf(f,sea);\n    if(!r||!r.dep)return f;",
+   "    var sea=seaOf(date),r=recOf(f,sea);\n"
+   "    /* 1012A：KX3–KX6 班號互換生效日（2026-11-29）以前照舊班表 —— 季節表只有一份（新定義），這裡依日期換回舊時刻／機型 */\n"
+   "    try{var K12=window.kgmKxSwapR1012A,o12=K12&&!f.via&&!f.partner&&K12.isOld(f.code,date)&&K12.OLD[f.code];if(o12&&f.fr===o12.fr&&f.to===o12.to){var a12=o12[sea]||o12.summer;r={dep:a12[0],arr:a12[1],dd:a12[2],acft:o12.acft}}}catch(_){}\n"
+   "    if(!r||!r.dep)return f;")
+RC('kx swap r112 sort','kgm-0903b-r112',"      return out.map(function(f){return applyR112(f,date)});\n    };\n    W.__r112=1; W.__base=baseSorted;",
+   "      var res=out.map(function(f){return applyR112(f,date)});\n"
+   "      /* 1012A：生效日以前 KX3–KX6 換回舊時刻後要重新照起飛時間排（規則同 0915A：時間相同時自營在前） */\n"
+   "      try{var K12=window.kgmKxSwapR1012A;if(K12&&res.some(function(f){return f&&K12.isOld(f.code,date)})){var mm=function(t){var q=String(t||'0:0').split(':');return (+q[0])*60+(+q[1]||0)};"
+   "res=res.map(function(f,i){return [f,i]}).sort(function(a,b){var d=mm(a[0]&&a[0].dep)-mm(b[0]&&b[0].dep);if(d)return d;var p=((a[0]&&a[0].partner)?1:0)-((b[0]&&b[0].partner)?1:0);return p||a[1]-b[1]}).map(function(x){return x[0]})}}catch(_){}\n"
+   "      return res;\n    };\n    W.__r112=1; W.__base=baseSorted;")
+# ── #7 補：「冬夏時刻到處都要不一樣」—— 登機門分配、櫃檯分配列上的起飛時間原本直接讀時刻表底表（＝夏季），開櫃時間卻已經用當季時刻；改成同一個來源 ──
+RC('gate alloc season',R229,"      var g=ground9(tp),d0=mn9(f.dep);\n      list.push({code:f.code,fr:f.fr,to:f.to,dep:f.dep,type:tp,term:termOf9(f),",
+   "      var sf12=f;try{sf12=window.kgmSeasonFlightR48?(window.kgmSeasonFlightR48(f,date)||f):f}catch(_){}   /* 1012A：當季時刻（冬季不再用夏季底表） */\n"
+   "      var g=ground9(tp),d0=mn9(sf12.dep);\n      list.push({code:f.code,fr:f.fr,to:f.to,dep:sf12.dep,type:tp,term:termOf9(f),")
+RC('counter season','kgm-0823o-r74',"    out.push({code:f.code,fr:f.fr,to:f.to,dep:f.dep,arr:f.arr,dd:+f.dd||0,type:ty,term:tm,",
+   "    var sf12=f;try{sf12=window.kgmSeasonFlightR48?(window.kgmSeasonFlightR48(f,date)||f):f}catch(_){}   /* 1012A：列上的起降時間跟開櫃時間同一個來源（當季時刻） */\n"
+   "    out.push({code:f.code,fr:f.fr,to:f.to,dep:sf12.dep,arr:sf12.arr,dd:+sf12.dd||0,type:ty,term:tm,")
+RC('kx swap embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/kx12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 
 open('p_h_r14.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
