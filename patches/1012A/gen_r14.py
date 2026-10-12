@@ -757,6 +757,9 @@ RW('cn12 table','  const connHTML=conns.length?`<div style="margin-top:8px;borde
 RW('cn12 table end','      return renderConnCard(cn,cIdx,dir,curr2,S.search.pax);\n    }).join("")}\n  </div>`:"";\n',
    '      return renderConnCard(cn,cIdx,dir,curr2,S.search.pax);\n    }).join("")}\n  </div>`):"";   /* 1012A：轉機改成跟直飛同一張表（js/cn12.js） */\n')
 RC('cn12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/cn12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
+# ── 1012A vfy5d Z2：員工票身分驗證頁原本在 render 後 230 毫秒才畫（第一次進入選航班頁時，訂位內容會先閃出來）→ render 當下先畫一次，延遲那次照舊 ──
+RC('staff gate sync','kgm-0823c-r55',"  render=window.render=function(){var r=rd55.apply(this,arguments);setTimeout(post55,230);return r};",
+   "  render=window.render=function(){var r=rd55.apply(this,arguments);try{if(S.view==='booking')staffGatePage5()}catch(_){}setTimeout(post55,230);return r};   /* 1012A：驗證頁 render 當下就擋 */")
 # ── 1012A 報到櫃檯一律寫號碼（js/ctr12.js）：登機證與行程卡讀同一份後台櫃檯分配；當天沒飛取最近有飛的日子；外站聯營寫夥伴櫃檯號 ──
 RC('ctr12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/ctr12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 # ── #255 前台首頁動畫（js/mo12.js） ──
