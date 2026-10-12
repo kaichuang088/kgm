@@ -32,24 +32,28 @@
     function phase12(id){try{var q=window.kgmGroundPhaseR1012A&&window.kgmGroundPhaseR1012A(id);return q?q.p:0}catch(_){return 0}}
     function gkey12(ap,id,date){return ap==='TPE'?('p'+phase12(id)):('b'+band12(id,date))}
     /* 第一次：依員編雜湊隨機選主管（只做一次）；桃園每個輪替組 10–15 人配一位主管 */
+    /* 1012A #254／舊限制「松山主管團隊不到 10 人」：組不再依「同相位」（桃園）或「當週時段」（松山）切 —— 相位人數不平均，
+       實測桃園一組 9～18 人、松山 2～29 人。改成：把同一站的地勤依輪替相位排成一圈（相鄰相位多半同一個時段），
+       主管平均分布在這一圈上，每位組員歸給圈上最近的主管 → 每組約 11～12 人、固定不變；主管人數＝人數 ÷ 12.5（四捨五入）。 */
+    function ord12(ap){var L=(S.staff||[]).filter(function(s){return s&&s.role==='ground'&&s.active!==false&&s.empId&&station12(s.empId)===ap});
+      return L.map(function(s){return {id:s.empId,p:phase12(s.empId),h:H12('ord12|'+s.empId)}}).sort(function(a,b){return a.p-b.p||a.h-b.h}).map(function(x){return x.id})}
+    function spread12(ids,k){var n=ids.length,o=[];k=Math.max(1,Math.min(k,n));for(var c=0;c<k;c++)o.push(ids[Math.floor((c+0.5)*n/k)]);return o}
     function seed12(){var m=st12();
-      if(m.seededR1012A&&m.seedV!==2&&!Object.keys(m.managers).some(function(k){return !(m.managers[k]&&m.managers[k].seed)})&&!m.log.length){m.managers={};m.seededR1012A=''}   /* 第一版的隨機名單（還沒人動過）換成依輪替組配的 */
+      if(m.seededR1012A&&m.seedV!==3&&!Object.keys(m.managers).some(function(k){return !(m.managers[k]&&m.managers[k].seed)})&&!m.log.length){m.managers={};m.seededR1012A=''}   /* 第一版的隨機名單（還沒人動過）換成依輪替組配的 */
       if(m.seededR1012A)return;var pick=function(list,n,salt){return list.slice().sort(function(a,b){return H12(a.empId+salt)-H12(b.empId+salt)}).slice(0,n)};
       var act=(S.staff||[]).filter(function(s){return s&&s.active!==false&&s.empId&&s.role!=='ceo'&&s.role!=='admin'});
       var put=function(s,dept,lv){if(!s||m.managers[s.empId])return;m.managers[s.empId]={level:lv,dept:dept,since:T12(),by:'系統初始（隨機）',seed:1}};
       var tpe=act.filter(function(s){return s.role==='ground'&&station12(s.empId)==='TPE'}),tsa=act.filter(function(s){return s.role==='ground'&&station12(s.empId)==='TSA'});
       if(tpe.length<50)return;   /* 地勤名單還沒補齊（開頁初期），等一下再選 */
       var m3=pick(tpe,1,'|mgr12|TPE3')[0];put(m3,'ground',3);
-      var grp={};tpe.forEach(function(s){if(m3&&s.empId===m3.empId)return;var k=phase12(s.empId);(grp[k]=grp[k]||[]).push(s)});
-      var lead=[];Object.keys(grp).sort().forEach(function(k){var g=grp[k],t=Math.max(1,Math.ceil(g.length/15));while(t>1&&g.length/t<10)t--;
-        pick(g,t,'|mgr12|TPE|'+k).forEach(function(s){lead.push(s)})});
+      var o1=ord12('TPE').filter(function(id){return !(m3&&id===m3.empId)}),lead=spread12(o1,Math.round(o1.length/12.5)).map(staff12).filter(Boolean);
       var two={};pick(lead,3,'|mgr12|TPE2').forEach(function(s){two[s.empId]=1});
       lead.forEach(function(s){put(s,'ground',two[s.empId]?2:1)});
-      if(tsa.length){var ts=pick(tsa,1+Math.max(1,Math.round(tsa.length/12)),'|mgr12|TSA');ts.forEach(function(s,i){put(s,'ground',i===0?2:1)})}
+      if(tsa.length){var o2=ord12('TSA'),ts=spread12(o2,Math.round(o2.length/12.5)).map(staff12).filter(Boolean),t2=pick(ts,1,'|mgr12|TSA2')[0];ts.forEach(function(s){put(s,'ground',t2&&s.empId===t2.empId?2:1)})}
       pick(act.filter(function(s){return s.role==='cabin'}),2,'|mgr12|cab').forEach(function(s){put(s,'cabin',3)});
       pick(act.filter(function(s){return s.role==='pilot'}),1,'|mgr12|plt').forEach(function(s){put(s,'pilot',3)});
       pick(act.filter(function(s){return s.role==='service'}),2,'|mgr12|svc').forEach(function(s,i){put(s,'service',i?1:2)});
-      m.seededR1012A=T12();m.seedV=2;try{save()}catch(_){}}
+      m.seededR1012A=T12();m.seedV=3;try{save()}catch(_){}}
     /* 開頁後自動選好初始主管（薪資功過的職務加給不必等有人打開主管紀錄） */
     (function boot12(n){setTimeout(function(){try{if(window.KGM_SIDE!=='front'&&S.staff&&S.staff.length){seed12();if(!st12().seededR1012A&&n<10)boot12(n+1)}else if(n<10)boot12(n+1)}catch(_){}},n?20000:30000)})(0);
     window.kgmMgrOfR1012A=function(id){var r=st12().managers[id];return r&&r.level?r:null};
@@ -58,12 +62,11 @@
     var COV12={};
     function teams12(ap,date){var m=st12(),out={},cov=COV12[ap]={},mg=Object.keys(m.managers).filter(function(id){var r=m.managers[id],s=staff12(id);return r&&r.dept==='ground'&&+r.level<=2&&s&&s.active!==false&&station12(id)===ap});
       mg.forEach(function(id){out[id]=[]});if(!mg.length)return out;
-      var mem=(S.staff||[]).filter(function(s){return s&&s.role==='ground'&&s.active!==false&&station12(s.empId)===ap&&!m.managers[s.empId]}).sort(function(a,b){return String(a.empId).localeCompare(String(b.empId))});
-      var byK={},byB={};mg.forEach(function(id){var k=gkey12(ap,id,date),b=band12(id,date);(byK[k]=byK[k]||[]).push(id);(byB[b]=byB[b]||[]).push(id)});
-      var low=function(c){return c.slice().sort(function(x,y){return out[x].length-out[y].length||String(x).localeCompare(String(y))})[0]};
-      mem.forEach(function(s){var ov=m.teamOv[s.empId];if(ov&&out[ov]){out[ov].push(s.empId);return}
-        var k=gkey12(ap,s.empId,date),cand=byK[k];if(!cand||!cand.length){var b=band12(s.empId,date);cand=byB[b]&&byB[b].length?byB[b]:(mg.filter(function(id){return +m.managers[id].level===2}).length?mg.filter(function(id){return +m.managers[id].level===2}):mg);cov[s.empId]=1}   /* 同時段沒有主管：由站主管（Manager II）代管 */
-        out[low(cand)].push(s.empId)});
+      var ord=ord12(ap),n=ord.length,pos={};ord.forEach(function(id,i){pos[id]=i});
+      var mp=mg.map(function(id){return {id:id,x:pos[id]!=null?pos[id]:0}}).sort(function(a,b){return a.x-b.x||String(a.id).localeCompare(String(b.id))});
+      ord.forEach(function(id){if(m.managers[id])return;var ov=m.teamOv[id];if(ov&&out[ov]){out[ov].push(id);return}
+        var x=pos[id],best=null,bd=1e9;mp.forEach(function(q){var d=Math.abs(q.x-x);d=Math.min(d,n-d);if(d<bd){bd=d;best=q.id}});out[best].push(id)});   /* 圈上最近的主管（距離相同取前一位） */
+      Object.keys(out).forEach(function(k){out[k].sort()});
       return out}
     window.kgmMgrTeamsR1012A=teams12;
     /* ── 任命／調整／撤銷 ── */
@@ -166,7 +169,7 @@
         return '<tr><td><b>'+E12(s?s.name:id)+'</b> <code>'+E12(id)+'</code>'+((COV12[ap]||{})[id]?'<span class="k12m-sub">'+(z12()?'代管（該時段沒有主管）':'covered')+'</span>':'')+'</td><td>'+E12(lab)+'</td><td>'+((d&&!d.off&&!d.reserveR1008A)?stBtns12('g',date,id,ap):'<span class="k12m-off">'+(z12()?'不用點名':'—')+'</span>')+'</td>'
           +'<td><select class="inp" style="height:30px;font-size:11.5px" onchange="kgmMgrTeamMoveR1012A(\''+A12(id)+'\',this.value)"><option value="">'+(m.teamOv[id]?(z12()?'改回自動分配':'Auto'):(z12()?'改派給…':'Move to…'))+'</option>'+opts.replace('value="'+E12(sel)+'"','value="'+E12(sel)+'" disabled')+'</select></td></tr>'}).join('');
       var s0=staff12(sel);
-      return '<div class="k12m-card"><h3>'+(z12()?'地勤點名':'Ground roll call')+'</h3><p>'+(z12()?(ap==='TPE'?'桃園依班別輪替組分組：同一組的同仁每一週都上同一個時段，每組 10–15 人（含主管）配一位主管，也可以手動改派。':'松山只有 '+((S.staff||[]).filter(function(x){return x&&x.role==='ground'&&x.active!==false&&station12(x.empId)==='TSA'}).length)+' 位地勤、分 4 個時段，依當週時段分組（人少的時段一組不到 10 人）；該時段沒有主管時由站主管代管。')+'無故缺席：記警告一次＋扣當日薪資，登錯改回「出勤」就會撤回。':'')+'</p>'+head
+      return '<div class="k12m-card"><h3>'+(z12()?'地勤點名':'Ground roll call')+'</h3><p>'+(z12()?(ap==='TPE'?'桃園':'松山')+'依班別輪替順序分組：輪替相位相鄰的同仁同一組（多半跟主管同一個時段），每組約 11～12 人、固定不變，也可以手動改派。'+'無故缺席：記警告一次＋扣當日薪資，登錯改回「出勤」就會撤回。':'')+'</p>'+head
         +'<div class="k12m-team"><b>'+E12(s0?s0.name:sel)+'</b> <span class="k12m-lv l'+m.managers[sel].level+'">'+LV12[+m.managers[sel].level]+'</span><span class="k12m-sub">'+T[sel].length+(z12()?' 位組員 · ':' members · ')+E12((BANDZ12[band12(sel,date)]||['',''])[z12()?0:1])+'</span></div>'
         +'<table class="k12m-t"><thead><tr><th>'+(z12()?'組員':'Member')+'</th><th>'+(z12()?'當日上班時間':'Shift')+'</th><th>'+(z12()?'點名':'Roll call')+'</th><th>'+(z12()?'改派':'Move')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>'}
     function cabinSec12(){var date=S._mgrCDateR1012A||T12(),P=null;try{P=window.kgmCrewPlanR121(date)}catch(_){P=null}
