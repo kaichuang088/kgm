@@ -543,6 +543,14 @@ RW('link of ls',"    window.kgmStaffLinkOfR1010A=function(empId){var r=lk10()[St
    "      [].forEach.call(document.querySelectorAll('[data-k12lnk]'),function(el){try{var h=window.kgmStaffLinkRowR1010A({empId:el.getAttribute('data-k12lnk')}),m=/<dd[^>]*>([\\s\\S]*)<\\/dd>$/.exec(h);if(m&&el.innerHTML!==m[1])el.innerHTML=m[1]}catch(_){}})},300)}catch(_){}})})();")
 RW('link row attr',"return '<dt>'+(zh?'綁定會員帳號':'Linked member')+'</dt><dd>'+(c.ok?",
    "return '<dt>'+(zh?'綁定會員帳號':'Linked member')+'</dt><dd data-k12lnk=\"'+lkE(String((st&&st.empId)||'').toUpperCase())+'\">'+(c.ok?")
+# ── 離起飛還有幾小時（模擬報到、競標結標、候補、升等期限都用這一支）原本讀時刻表底表的起飛時間（＝夏季列）：
+#    冬季每一班差 5～30 分；洛杉磯線底表改成新班表後，生效日以前的 KX3～KX6 差好幾個小時（KX4 底表 17:45、實際 23:55）。
+#    改成當季、當天的實際起飛時間（同一個來源 kgmSeasonFlightR48；已經是當季時刻的再算一次結果不變，實測 6 個日期 330～358 班全部一致）
+RW('hours to dep season',"    var d=date||f.date;if(!d)return NaN;\n    var q=String(f.dep||'00:00').split(':');",
+   "    var d=date||f.date;if(!d)return NaN;\n"
+   "    /* 1012A：用當季、當天的實際起飛時間（同層的 Sky Couch、免費選位也直接呼叫這一支，所以改在函式裡面） */\n"
+   "    try{if(!f.partner&&typeof window.kgmSeasonFlightR48==='function'){var sf12=window.kgmSeasonFlightR48(f,d);if(sf12&&sf12.dep&&sf12.dep!==f.dep)f=Object.assign({},f,{dep:sf12.dep})}}catch(_){}\n"
+   "    var q=String(f.dep||'00:00').split(':');")
 RC('kx swap embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/kx12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 
 open('p_h_r14.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
