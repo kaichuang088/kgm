@@ -28,7 +28,7 @@
     function band12(id,date){try{return window.kgmGroundBandR1008A?window.kgmGroundBandR1008A(id,date).k:''}catch(_){return ''}}
     var BANDZ12={early:['早班時段（03:00–14:00 之間）','Early (03:00–14:00)'],day:['日班時段（06:30–17:30 之間）','Day (06:30–17:30)'],mid:['中班時段（11:00–22:00 之間）','Mid (11:00–22:00)'],late:['晚班時段（16:00–03:30 之間）','Late (16:00–03:30)']};   /* 時段＝班別時間帶；當天實際上下班時間依航班在這個範圍內排 */
     /* 地勤班別輪替的「組」：桃園的同仁依輪替相位（kgmGroundPhaseR1012A）分組 —— 同一相位的人每一週都是同一個時段，
-       所以小組固定、主管跟組員永遠同站同時段。松山只有 36 人、4 個時段，同相位只有 4～5 人，改成每週依當週時段分組。 */
+       所以小組固定、主管跟組員永遠同站同時段。松山只有 44 人、4 個時段，同相位只有 5～6 人，改成每週依當週時段分組。 */
     function phase12(id){try{var q=window.kgmGroundPhaseR1012A&&window.kgmGroundPhaseR1012A(id);return q?q.p:0}catch(_){return 0}}
     function gkey12(ap,id,date){return ap==='TPE'?('p'+phase12(id)):('b'+band12(id,date))}
     /* 第一次：依員編雜湊隨機選主管（只做一次）；桃園每個輪替組 10–15 人配一位主管 */

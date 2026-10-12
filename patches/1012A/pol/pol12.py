@@ -362,7 +362,7 @@ def jobs():
     cs = dict(id='KGM-FRM-019', t='旅客同意書格式', en='Passenger Consent Forms', ver=VER, h=consent_body(), kick='表 單 格 式',
               meta=cover_meta('KGM-FRM-019', VER, '表單二種', '旅客服務處', '營運管理委員會',
                               '機上設備故障補償及非自願降艙時與旅客簽署；金額現場填寫。', '對外使用（Public）'),
-              sign=['旅客服務處', '法務暨法令遵循室', '營運管理委員會', '營運管理委員會'], rev=[['2026.10', 'Rev. A', EFF, '首次發布。表一機上設備故障補償同意書、表二非自願降艙同意書，中英對照，補償金額及方式留空現場填寫。']],
+              sign=['旅客服務處', '法務暨法令遵循室', '總經理', '營運管理委員會'], rev=[['2026.10', 'Rev. A', EFF, '首次發布。表一機上設備故障補償同意書、表二非自願降艙同意書，中英對照，補償金額及方式留空現場填寫。']],
               endk='本表單')
     toc2 = toc_list([('表一', '機上設備故障補償同意書', 'Form 1', 'In-flight Equipment Malfunction — Compensation Consent<br>'),
                      ('表二', '非自願降艙同意書', 'Form 2', 'Involuntary Downgrade — Acknowledgement and Consent<br>')])
