@@ -4,7 +4,8 @@
        · 頭等（含套房、Resident）→ PRIORITY；商務 → ZONE 1；金卡／鑽石卡（黑卡）會員搭豪經或經濟 → ZONE 1
        · 豪經 → ZONE 2；經濟艙「豪華」方案 → ZONE 2
        · 其餘經濟艙依座位排數（實際執飛機型的座位圖）：後半 ZONE 3、前半 ZONE 4；B779／A388 分三段：後 ZONE 3、中 ZONE 4、前 ZONE 5
-       · 還沒有座位（報到時才分配）→ 經濟艙最後一組 */
+       · 還沒有座位（報到時才分配）→ 經濟艙最後一組
+       · 員工票 → 經濟艙最後一組（規章：員工票不適用優先登機）；規章 RES-002／CKI-005／FFP-011 同一套寫法（pol/bz_pol12.py） */
     (function(){
       var CAB12={E:'Economy',P:'Premium',B:'Business',F:'First',R:'First'};
       function fareInfo12(code){var x=null;try{x=(typeof FARES!=='undefined'&&FARES[code])||(typeof AWARD_FARES!=='undefined'&&AWARD_FARES[code])||null}catch(_){}return x||{}}
@@ -31,6 +32,8 @@
       window.kgmZoneTextR1012A=function(z){return z===0?'PRIORITY':('ZONE '+(z||4))};
       /* 給已經知道艙等／座位／航班的地方用（舊版下載登機證、r6 登機證頁、單段升等的分段登機證） */
       window.kgmBpZoneR1012A=function(b,fare,seat,f){
+        /* 員工票不適用優先登機（KGM-STX-015 第七條、KGM-CKI-005 第七條）：不論艙等都列經濟艙最後一組 */
+        try{if(b&&window.kgmIsStaffBkR928&&window.kgmIsStaffBkR928(b)){var tp=typeOf12(f);return (tp==='B779'||tp==='A388')?5:4}}catch(_){}
         return zoneOf12({cabin:cabinOf12(fare),fam:famOf12(fare),tier:b?tierOf12(b):'',seat:seat,type:typeOf12(f)});
       };
       window.kgmBpZoneTxtR1012A=function(b,seg,fare,seat,f){

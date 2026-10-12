@@ -369,11 +369,40 @@ def jobs():
     out.append(('19_KGM_旅客同意書格式（設備故障補償・非自願降艙）.pdf', cs, toc2))
     return out
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 四、登機組別（RES-002 Rev. C、CKI-005 Rev. B、FFP-011 Rev. C）：條文修改跟網站內嵌條文同一份（bz_pol12.py）
+# ─────────────────────────────────────────────────────────────────────────────
+import bz_pol12 as BZ
+def zone_jobs():
+    out = []
+    for k, fn in BZ.FILES.items():
+        j = [c for f, c in RP.JOBS if f == fn]
+        c = copy.deepcopy(j[0]) if j else RP.from_meta(fn, k, RP.DOCS[k], '規 章 文 件')
+        d = BZ.apply(k, dict(h=c['h'], ver=c['ver']))
+        c['h'], c['ver'] = d['h'], d['ver']
+        # PDF 左右對齊時，一行裡只有「第 2 組」「ZONE 2」的半形空白能拉開 → 會拉出大空隙；改成窄的不換行空白（不會被拉開，也不會在中間斷行）
+        c['h'] = re.sub(r'ZONE (\d)', 'ZONE\u202f\\1', re.sub(r'第 (\d) 組', '第\u202f\\1\u202f組', c['h']))
+        c['h'] = c['h'].replace('波音 777-9 或空中巴士 A380 執飛者', '波音\u202f777-9\u202f或空中巴士\u202fA380\u202f執飛者')
+        for r in c['meta']:
+            for i in (0, 2):
+                if len(r) > i + 1:
+                    key = r[i].replace('　', '').replace(' ', '')
+                    if key == '版次': r[i + 1] = c['ver']
+                    if r[i] == '前一版次': r[i + 1] = BZ.VER[k][0]
+                    if r[i] == '核定日期': r[i + 1] = APPROVED
+                    if r[i] == '生效日期': r[i + 1] = EFF
+        v = re.match(r'(\d{4}\.\d\d)（(Rev\. [A-Z])）', c['ver'])
+        c['rev'] = [[v.group(1), v.group(2), EFF, BZ.REV[k]]] + c['rev']
+        out.append((fn, c))
+    return out
+
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
     paths, todo = [], []
     for fn, c, toc in jobs():
         p = os.path.join(OUT, fn.replace('.pdf', '.html')); open(p, 'w', encoding='utf-8').write(custom_html(c, toc)); paths.append(p); todo.append((fn, p))
+    for fn, c in zone_jobs():
+        p = os.path.join(OUT, fn.replace('.pdf', '.html')); open(p, 'w', encoding='utf-8').write(RP.doc_html(c)); paths.append(p); todo.append((fn, p))
     hr = hr_rev_c()
     p = os.path.join(OUT, '17_KGM_員工管理辦法.html'); open(p, 'w', encoding='utf-8').write(RP.doc_html(hr)); paths.append(p); todo.append(('17_KGM_員工管理辦法.pdf', p))
     subprocess.check_call([sys.executable, os.path.join(P10, 'pol', 'mkfont_lxgw.py'), PKG, RP.FONT] + paths)

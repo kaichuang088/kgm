@@ -760,6 +760,18 @@ RC('cn12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/cn12.js
 # ── 1012A vfy5d Z2：員工票身分驗證頁原本在 render 後 230 毫秒才畫（第一次進入選航班頁時，訂位內容會先閃出來）→ render 當下先畫一次，延遲那次照舊 ──
 RC('staff gate sync','kgm-0823c-r55',"  render=window.render=function(){var r=rd55.apply(this,arguments);setTimeout(post55,230);return r};",
    "  render=window.render=function(){var r=rd55.apply(this,arguments);try{if(S.view==='booking')staffGatePage5()}catch(_){}setTimeout(post55,230);return r};   /* 1012A：驗證頁 render 當下就擋 */")
+# ── 1012A 登機組別寫進規章（pol/bz_pol12.py；PDF 由 pol/pol12.py 用同一份修改重排 02／05／11）──
+#   RES-002 表二：豪經每個票價家族都優先登機（第 2 組）、經濟艙只有豪華；CKI-005 第七條登機順序改成 PRIORITY／ZONE 1～5；
+#   FFP-011 表一金卡、尊爵卡寫第 1 組。銀卡沒動（使用者的分組沒有提到）。
+import sys as _sys12; _sys12.path.insert(0,'pol')
+import bz_pol12 as _BZ
+for _k in _BZ.EDITS:
+    _i=CUR.index('"%s":{'%_k); _e=CUR.index('}',CUR.index(',"h":"',_i)+6)+1
+    _old=CUR[_i:_e]; _d=json.loads('{'+_old+'}')[_k]
+    assert _old=='"%s":%s'%(_k,json.dumps(_d,ensure_ascii=False,separators=(',',':'))),_k
+    RC('policy zone '+_k,'kgm-0831c-r86',_old,'"%s":%s'%(_k,json.dumps(_BZ.apply(_k,_d),ensure_ascii=False,separators=(',',':'))))
+# （舊版 prepView 裡的「C區優先登機」是死碼：畫面上的艙等介紹頁已被後面的層換掉，不動）
+
 # ── 1012A 報到櫃檯一律寫號碼（js/ctr12.js）：登機證與行程卡讀同一份後台櫃檯分配；當天沒飛取最近有飛的日子；外站聯營寫夥伴櫃檯號 ──
 RC('ctr12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/ctr12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 # ── #255 前台首頁動畫（js/mo12.js） ──
