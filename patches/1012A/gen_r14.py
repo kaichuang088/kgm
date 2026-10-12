@@ -340,6 +340,37 @@ RC('ctr pos 8','kgm-0907A-r194',"  {t:'超大行李',e:'Oversize bags',d:'超大
    "  /* 1012A：3 班 7 人、A388 再加 1 人 —— 第 8、9 位不再重複「櫃檯組長」 */\n"
    "  {t:'自助託運',e:'Self bag-drop',d:'自助託運機旁協助、行李條補印、超重行李轉人工櫃檯',de:'Self bag-drop help, tag reprints, overweight bags to a staffed desk'},\n"
    "  {t:'團體報到',e:'Group check-in',d:'團體旅客整批報到、與領隊核對名單與證件',de:'Group check-in with the tour leader; list and document check'}\n];")
+# ── 櫃檯最少人力還是偶爾不到（28 天：桃園 1,725 個櫃檯班次 4～9 次、松山 168 次 2～6 次；深夜／清晨與松山 13 點）：
+#    那個時段班別合適的人都已經排在別的工作上，但其中有登機門／到站是「超過最少人力」的（例：登機門 3 人、最少 2 人）。
+#    另外晚班的人一上班就被 16 點的工作排走，班長 9 小時撐不到深夜 01 點的櫃檯。
+#    → 最後再補一次：櫃檯還缺人，就找班別排得進去的人，他身上卡住的工作交給有空的同仁接手（規則照舊檢查，接不上就整筆還原）。
+RC('ground ctr rescue','kgm-0907A-r194',"  /* ④ 工時太短（< 3 小時）的人：他身上的工作若都超過最少人力就整個釋放回備勤，",
+   "  /* 1012A ⑥：櫃檯還不到最少人力 → 找班別時間帶排得進去的人，把他身上會卡住的工作（時間重疊、或讓班長超過 9 小時／工時超過 8 小時）\n"
+   "     交給別人：那項工作本來就超過最少人力就直接拿掉，否則找一位排得進去的同仁接手；全部接得上才換，接不上就整筆還原 */\n"
+   "  (function(){\n"
+   "    function rm12(P,x){x.who=x.who.filter(function(id){return id!==P.id});P.tasks=P.tasks.filter(function(y){return y!==x});P.work-=(x.b-x.a);\n"
+   "      P.first=P.tasks.length?Math.min.apply(null,P.tasks.map(function(y){return y.a})):null;P.last=P.tasks.length?Math.max.apply(null,P.tasks.map(function(y){return y.b})):null;if(!P.tasks.length)P.term=null}\n"
+   "    function snap(P){return {tasks:P.tasks.slice(),first:P.first,last:P.last,work:P.work,term:P.term}}\n"
+   "    function back(P,s0){P.tasks.slice().forEach(function(x){x.who=x.who.filter(function(id){return id!==P.id})});P.tasks=s0.tasks.slice();P.tasks.forEach(function(x){if(x.who.indexOf(P.id)<0)x.who.push(P.id)});P.first=s0.first;P.last=s0.last;P.work=s0.work;P.term=s0.term}\n"
+   "    function tryP(P,t){\n"
+   "      var touched=[{P:P,s:snap(P)}],moved=[];\n"
+   "      function undoAll(){for(var u=touched.length-1;u>=0;u--)back(touched[u].P,touched[u].s)}\n"
+   "      P.tasks.filter(function(x){return x.a<t.b+10&&x.b+10>t.a}).forEach(function(x){rm12(P,x);moved.push(x)});\n"
+   "      var g=0;while(!ok8(P,t,null)&&P.tasks.length&&g++<12){var far=P.tasks.slice().sort(function(a,b){return Math.abs(b.a-t.a)-Math.abs(a.a-t.a)})[0];rm12(P,far);moved.push(far)}\n"
+   "      if(!ok8(P,t,null)){undoAll();return false}\n"
+   "      for(var m=0;m<moved.length;m++){var x=moved[m];if(x.who.length>=x.min)continue;\n"
+   "        var R=null,rc=1e9;people.forEach(function(Q){if(Q===P||Q.off||x.who.indexOf(Q.id)>=0)return;if(!ok8(Q,x,null))return;var c=cost8(Q,x);if(c<rc){rc=c;R=Q}});\n"
+   "        if(!R){undoAll();return false}\n"
+   "        if(!touched.some(function(z){return z.P===R}))touched.push({P:R,s:snap(R)});add8(R,x)}\n"
+   "      add8(P,t);P.rescueR1012A=1;return true;\n"
+   "    }\n"
+   "    /* 白天／中／晚班可以提早 15 分鐘上班（前一天下班到這天上班仍然超過 11 小時）；早班不提早 */\n"
+   "    tasks.filter(function(t){return t.kind==='ctr'&&t.who.length<t.min}).forEach(function(t){\n"
+   "      var cands=people.filter(function(P){return !P.off&&t.who.indexOf(P.id)<0&&t.a>=P.win0-(P.band==='early'?0:15)&&t.b<=P.win1}).sort(function(a,b){return a.tasks.length-b.tasks.length||a.work-b.work||a.ord-b.ord});\n"
+   "      for(var i=0;i<cands.length&&t.who.length<t.min;i++){var P=cands[i],w0=P.win0;if(t.a<P.win0)P.win0=t.a;if(!tryP(P,t))P.win0=w0}\n"
+   "    });\n"
+   "  })();\n"
+   "  /* ④ 工時太短（< 3 小時）的人：他身上的工作若都超過最少人力就整個釋放回備勤，")
 RC('ground target','kgm-0907A-r194',"var GTARGET8=290,","var GTARGET8=470,   /* 1012A：1～2 班的櫃檯 5 人、3 班 7 人：桃園 426＋松山 44 */")
 RW('tsa team size','.slice(0,20).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}','.slice(0,44).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}   /* 1012A：松山 20 → 44 位（1～2 班的櫃檯 5 人、3 班 7 人） */')
 
@@ -367,7 +398,7 @@ RC('ground short threshold','kgm-0907A-r194',"    if(P.off||!P.tasks.length||P.w
 
 #   松山的班別輪替原本是 [早,早,日,日,中]，沒有晚班 —— 16:30 以後的櫃檯、18:00 以後的登機門與 20:00 的到站只能靠少數中班的人，
 #   早班、日班的人卻閒著。改成 [早,早,早,日,日,中,中,晚]（一週一換，前後兩天至少休 11 小時的規則不變）
-RW('tsa bands',",0,0,1,1,1,2,2,3,3],ROT8TSA=[0,0,1,1,2];",",0,0,1,1,1,2,2,3,3],ROT8TSA=[0,0,0,1,1,2,2,3];   /* 1012A：松山要有晚班，早班也要夠（清晨兩個櫃檯） */")
+RW('tsa bands',"var ROT8=[0,0,0,1,1,1,2,2,3,3],ROT8TSA=[0,0,1,1,2];","var ROT8=[0,0,0,0,0,0,1,1,1,1,1,2,2,2,2,3,3,3,3,3],ROT8TSA=[0,0,0,1,1,2,2,3];   /* 1012A：松山要有晚班，早班也要夠（清晨兩個櫃檯）；桃園深夜（22 點後長程）晚班不夠、白天班常有人閒著 → 早 3 成、白天 2.5 成、中 2 成、晚 2.5 成（原本 3／3／2／2） */")
 
 # ── #3 後台分頁：「地勤班表」從「登機門／櫃檯」拆出來成為獨立分頁（人資與組員，組員班表旁邊）；#4 新分頁「主管紀錄」
 #   地勤班表分頁沿用同一個櫃檯頁面的個人班表區塊（同一份資料、同一個日期），只顯示選站、選人、個人班表／週班表／月班表；
@@ -412,10 +443,18 @@ RC('ground name repair','kgm-0907A-r194',"    if(G.length>=GTARGET8)return 0;",
    "    if(G.length>=GTARGET8)return 0;")
 RC('ground name dedupe after add','kgm-0907A-r194',"    if(n){SIDX8=null;try{save()}catch(_){}}",
    "    if(n){SIDX8=null;try{window.kgmFixStaffNamesR1012A&&window.kgmFixStaffNamesR1012A()}catch(_){}try{save()}catch(_){}}   /* 1012A：新增的人也不能跟別人同名 */")
+# 松山地勤每週各班別人數不平均（班別＝員編雜湊輪替；44 人時一週早班 13～22 人、白天班 7～17 人、晚班 2～10 人），早上或下午的櫃檯就會缺人
+#   → 松山改用「依雜湊排序後的名次」輪替：每一週每個班別的人數固定（相差最多 1 人）。桃園人多、每週差不大，維持雜湊。相位（主管小組）用同一個算法。
 RC('ground phase expose','kgm-0907A-r194',"  return BANDS8[R[(week8(date)+H('b8|'+id))%R.length]]};",
-   "  return BANDS8[R[(week8(date)+H('b8|'+id))%R.length]]};\n"
+   "  return BANDS8[R[(week8(date)+off12(id,R))%R.length]]};\n"
+   "/* 1012A：松山依名次輪替，每週各班別人數平均 */\n"
+   "var TSARK12={s:null,n:-1,m:{}};\n"
+   "function tsaRank12(id){var st=S.staff||[];if(TSARK12.s!==st||TSARK12.n!==st.length){var G=st.filter(function(x){return x&&x.role==='ground'&&x.active!==false&&window.kgmTsaTeamR1006A&&window.kgmTsaTeamR1006A(x.empId)}).map(function(x){return x.empId});\n"
+   "  G.sort(function(a,b){return H('b8|'+a)-H('b8|'+b)||String(a).localeCompare(String(b))});var m={};G.forEach(function(e,i){m[e]=i});TSARK12={s:st,n:st.length,m:m}}\n"
+   "  return TSARK12.m[id]!=null?TSARK12.m[id]:-1}\n"
+   "function off12(id,R){if(R===ROT8TSA){try{var r=tsaRank12(id);if(r>=0)return r}catch(_){}}return H('b8|'+id)}\n"
    "/* 1012A：輪替相位 —— 相位相同的人每一週都是同一個時段（主管紀錄的地勤小組依這個分組） */\n"
-   "window.kgmGroundPhaseR1012A=function(id){var R=ROT8;try{if(window.kgmTsaTeamR1006A&&window.kgmTsaTeamR1006A(id))R=ROT8TSA}catch(_){}return {p:H('b8|'+id)%R.length,n:R.length}};")
+   "window.kgmGroundPhaseR1012A=function(id){var R=ROT8;try{if(window.kgmTsaTeamR1006A&&window.kgmTsaTeamR1006A(id))R=ROT8TSA}catch(_){}return {p:off12(id,R)%R.length,n:R.length}};")
 
 RC('crew pool dedupe names','kgm-0817b-r43',"  if(made){try{save()}catch(_){}}\n  return {pilots:",
    "  if(made){try{window.kgmFixStaffNamesR1012A&&window.kgmFixStaffNamesR1012A()}catch(_){}try{save()}catch(_){}}   /* 1012A：補進來的機師／客艙組員也不能跟別人同名 */\n  return {pilots:")
