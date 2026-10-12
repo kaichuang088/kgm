@@ -39,6 +39,28 @@ function _unpackCS1012A(v){
   }catch(e){return v}
 }
 try{window._packCS1012A=_packCS1012A;window._unpackCS1012A=_unpackCS1012A}catch(e){}
+/* 1012A #254：已公布班表的凍結（S.crewFreezeR928：日期 → 員工編號 → 當天的航班）原本沒有存檔，重新整理後整份重算，
+   請假／換班／晉升「只改必要的人」只在同一個頁面裡成立。現在存檔（kgm12_crewfrz），用「員工字典＋值字典」精簡格式：
+   每天一串「員工序號.值序號」，讀回時還原成一模一樣的物件。 */
+function _packFZ1012A(v){
+  try{
+    if(!v||typeof v!=='object'||Array.isArray(v)||v.__fz1012A)return v;
+    var E=[],ei={},V=[],vi={},d={},ok=true;
+    Object.keys(v).forEach(function(day){var m=v[day];if(!ok)return;if(!m||typeof m!=='object'||Array.isArray(m)){ok=false;return}
+      d[day]=Object.keys(m).map(function(id){var x=m[id];if(typeof x!=='string'){ok=false;return ''}
+        if(!(id in ei)){ei[id]=E.length;E.push(id)}if(!(x in vi)){vi[x]=V.length;V.push(x)}return ei[id].toString(36)+'.'+vi[x].toString(36)}).join(',')});
+    return ok?{__fz1012A:1,e:E,v:V,d:d}:v;
+  }catch(e){return v}
+}
+function _unpackFZ1012A(v){
+  try{
+    if(!v||typeof v!=='object'||!v.__fz1012A)return v;
+    var E=v.e||[],V=v.v||[],out={};
+    Object.keys(v.d||{}).forEach(function(day){var m=out[day]={};String(v.d[day]||'').split(',').forEach(function(p){if(!p)return;var q=p.split('.');m[E[parseInt(q[0],36)]]=V[parseInt(q[1],36)]})});
+    return out;
+  }catch(e){return v}
+}
+try{window._packFZ1012A=_packFZ1012A;window._unpackFZ1012A=_unpackFZ1012A}catch(e){}
 var kgmLsFailR1012A=null,kgmLsOkR1012A=null;
 (function(){
   function isQuota(e){try{return !!e&&(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||e.code===22||e.code===1014||/quota/i.test(String(e.message||'')))}catch(_){return false}}

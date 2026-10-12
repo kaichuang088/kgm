@@ -65,10 +65,13 @@ RC('refund fam grid',R113,".k10rq-amt{display:grid;grid-template-columns:repeat(
 RC('season kx59 + 0819H sync',R229,"        if(n&&typeof window.kgmFixFifthGroundR179==='function'){try{window.kgmFixFifthGroundR179()}catch(_){}}",
    "        /* 1012A：KX59 墨爾本→吉隆坡→台北 冬夏起飛一樣（吉隆坡 07:00）：冬季（南半球夏季）前段飛行時間多 15 分，\n"
    "           墨爾本 23:50 → 吉隆坡 06:00，中停 75 分，吉隆坡 07:15 → 台北 11:25（夏季 07:00 → 11:15） */\n"
+   "        /*   1012A #254：原本是「差不足 15 分就再移 x 分」的相對位移，存檔後下次開頁又在上一次的結果上移（跟上面 ② 的迴圈互相推），\n"
+   "           冬季時刻每開一次頁在 07:15／07:30 之間來回，從冬季班表生效那天起整套機隊輪轉跟著換。改成直接寫定值（重複執行結果不變），② 不再碰 KX59。 */\n"
    "        (function(){var a=ST['KX59|MEL|KUL'],b=ST['KX59|KUL|TPE'],v=ST['KX59|MEL|TPE'];\n"
-   "          if(!a||!b||!a.winter||!b.winter||!b.summer||!a.winter.arr||!runs(b))return;var d=dif(b);if(Math.abs(d)>=NEED)return;var x=NEED-d,was=b.winter.dep+'-'+b.winter.arr;\n"
-   "          a.winter.arr=h10(m10(a.winter.arr)+x);b.winter.dep=h10(m10(b.winter.dep)+x);b.winter.arr=h10(m10(b.winter.arr)+x);if(v&&v.winter)v.winter.arr=b.winter.arr;\n"
-   "          freeze(a);freeze(b);n++;SEALOG10.push('KX59|KUL|TPE 冬季 '+was+' → '+b.winter.dep+'-'+b.winter.arr+'（前段 MEL→KUL 冬季抵達 '+a.winter.arr+'）')})();\n"
+   "          if(!a||!b||!a.winter||!b.winter||!b.summer||!runs(b))return;var was=a.winter.dep+'-'+a.winter.arr+' / '+b.winter.dep+'-'+b.winter.arr,ch=0;\n"
+   "          var put=function(r,dep,arr,dd){if(!r)return;if(r.dep!==dep||r.arr!==arr||(+r.dd||0)!==dd){r.dep=dep;r.arr=arr;r.dd=dd;ch=1}};\n"
+   "          put(a.winter,'23:50','06:00',1);put(b.winter,'07:15','11:25',0);if(v&&v.winter)put(v.winter,'23:50','11:25',1);\n"
+   "          if(!ch)return;freeze(a);freeze(b);if(v)freeze(v);n++;SEALOG10.push('KX59 冬季 '+was+' → MEL 23:50–KUL 06:00 / KUL 07:15–TPE 11:25')})();\n"
    "        /* 1012A：0819H（航班調整頁存的、以班號為鍵）有紀錄的，時刻跟著 R48 —— 不然網站讀 0819H、航線管理讀 R48，兩邊各一套 */\n"
    "        try{var H12=S.seasonSchedule0819H;if(H12&&typeof H12==='object')Object.keys(H12).forEach(function(code){var lg=legs.filter(function(f){return f.code===code});if(lg.length!==1)return;\n"
    "          var o=ST[K(lg[0])];if(!o)return;['summer','winter'].forEach(function(sea){var a=H12[code]&&H12[code][sea],b=o[sea];\n"
@@ -391,7 +394,7 @@ RC('ground target','kgm-0907A-r194',"var GTARGET8=290,","var GTARGET8=492,   /* 
 RW('tsa team size','.slice(0,20).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}','.slice(0,48).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}   /* 1012A：松山 20 → 48 位（1～2 班的櫃檯 5 人、3 班 7 人、換班別那天排休） */')
 
 # ══ 1012A 新增要存檔（前後台同步）的欄位 ══════════════════════════════════════
-PERSIST_1012A=[('crewWorkR1012A','kgm12_crewwork','{}'),('nameFixR1012A','kgm12_namefix','{}'),('mgrR1012A','kgm12_mgr','{}'),('kxSwapR1012A','kgm12_kxswap','null')]
+PERSIST_1012A=[('crewWorkR1012A','kgm12_crewwork','{}'),('nameFixR1012A','kgm12_namefix','{}'),('mgrR1012A','kgm12_mgr','{}'),('kxSwapR1012A','kgm12_kxswap','null'),('crewFreezeR928','kgm12_crewfrz','{}')]   # #254：已公布班表的凍結（0928B 起就沒存檔）
 def _persist():
   si=''.join('%s:LS.get("%s",%s),'%(f,k,d) for f,k,d in PERSIST_1012A)
   sv=''.join('LS.set("%s",S.%s||%s);'%(k,f,d) for f,k,d in PERSIST_1012A)
@@ -576,8 +579,8 @@ RW('ls fail hook',"if(_ls8last[k]!==s8){localStorage.setItem(k,s8);_ls8last[k]=s
 RW('ls setnow hook',"setNow(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}};",
    "setNow(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){try{typeof kgmLsFailR1012A==='function'&&kgmLsFailR1012A(k,e)}catch(_){}}}};   /* 1012A：寫不進去要講 */")
 RW('cs pack get',"return (k==='kgm_tailasg')?_unpackTA0818(o):o;}catch{return fb;}}",
-   "return (k==='kgm_tailasg')?_unpackTA0818(o):(k==='kgm_crewsched')?_unpackCS1012A(o):o;}catch{return fb;}}   /* 1012A：kgm_crewsched 精簡格式 */")
-RW('cs pack set',"JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):q[k])","JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):k==='kgm_crewsched'?_packCS1012A(q[k]):q[k])",2)
+   "return (k==='kgm_tailasg')?_unpackTA0818(o):(k==='kgm_crewsched')?_unpackCS1012A(o):(k==='kgm12_crewfrz')?_unpackFZ1012A(o):o;}catch{return fb;}}   /* 1012A：kgm_crewsched、kgm12_crewfrz 精簡格式 */")
+RW('cs pack set',"JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):q[k])","JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):k==='kgm_crewsched'?_packCS1012A(q[k]):k==='kgm12_crewfrz'?_packFZ1012A(q[k]):q[k])",2)
 RW('att shrink case',"resolve({name:file.name,type:file.type||'application/octet-stream',dataUrl:r.result});",
    "(window.kgmShrinkAttR1012A||function(u,t,cb){cb(u,t)})(r.result,file.type,function(u,t){resolve({name:file.name,type:t||file.type||'application/octet-stream',dataUrl:u})});   /* 1012A：圖片先縮小再存 */",4)
 RW('att shrink passport',"ok({name:file.name,type:file.type,size:file.size,dataUrl:r.result});",
@@ -670,6 +673,12 @@ RC('leg253 trip seat tile','kgm-0909B-r217',"E(seat||(Z()?'尚未選位':'Not se
    "E((window.kgmLegSeatTxtR1012A&&window.kgmLegSeatTxtR1012A(b,key,seat))||seat||(Z()?'尚未選位':'Not selected'))")   # 1012A #253：只升一段時兩段座位不同
 RC('leg253 ops seat write',R7A,"if(p.real&&p.booking){p.booking.seats=p.booking.seats||{};p.booking.seats[p.segmentKey]={};p.booking.seats[p.segmentKey][seat]=p.name;}p.seat=seat;save();}",
    "if(p.real&&p.booking&&window.kgmLegSeatSetR1012A&&window.kgmLegSeatSetR1012A(Object.assign({},p,{seat:seat}))){}else if(p.real&&p.booking){p.booking.seats=p.booking.seats||{};p.booking.seats[p.segmentKey]={};p.booking.seats[p.segmentKey][seat]=p.name;}p.seat=seat;save();}")   # 1012A #253：只升一段的那一段，櫃檯改座位寫回 legSeatR1012A
+RC('kx59 skip season loop',R229,"          var k=K(f);if(L2[k])return;var o=ST[k];if(!runs(o))return;",
+   "          var k=K(f);if(L2[k])return;if(f.code==='KX59')return;   /* 1012A #254：KX59 由下面寫定值，這裡不再相對位移 */var o=ST[k];if(!runs(o))return;")
+# ── #254 組員排班引擎：choose 先依職級篩，再判 eligible（eligible 第一行就是同一個職級判斷，結果完全一樣；只省掉幾十萬次函式呼叫） ──
+RC('crew choose rank prefilter','kgm-0903b-r121',"var baseKey=fam121(f.type)+'|'+role,list=(localPeople[baseKey+'|'+f.fr]||[]).concat.apply((localPeople[baseKey+'|'+f.fr]||[]),(SIS928[f.fr]||[]).map(function(s){return localPeople[baseKey+'|'+s]||[]})).filter(function(p){return !used[p.empId]&&eligible(p,f,rank)});",
+   "var baseKey=fam121(f.type)+'|'+role,list=[],_src12=[localPeople[baseKey+'|'+f.fr]||[]].concat((SIS928[f.fr]||[]).map(function(s){return localPeople[baseKey+'|'+s]||[]}));\n"
+   "    for(var _s12=0;_s12<_src12.length;_s12++){var _a12=_src12[_s12];for(var _i12=0;_i12<_a12.length;_i12++){var _p12=_a12[_i12];if(rank==='TRI'?(_p12.rank!=='CP'||!_p12.triR1009A):(rank&&_p12.rank!==rank))continue;if(!used[_p12.empId]&&eligible(_p12,f,rank))list.push(_p12)}}   /* 1012A #254：先依職級篩（同 eligible 第一行），順序與結果不變 */")
 RC('kx swap embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/kx12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 
 open('p_h_r14.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
