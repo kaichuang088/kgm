@@ -726,6 +726,37 @@ RC('fare prio product row','kgm-0823f-r59',"  row('哩程升等','Mileage upgrad
    "    return zn<=2?'<b>✓</b>':(z()?'不可':'Not included')}));")
 RC('fare prio product up','kgm-0823f-r59',"function upOf59(fam){\n  if(fam==='Deluxe')return z()?'<b>可</b>　依標準升等哩程，另享機上 Wi‑Fi 與優先登機'\n                             :'<b>Yes</b> — standard upgrade miles, with Wi‑Fi and priority boarding';",
    "function upOf59(fam,cab){\n  if(fam==='Deluxe'&&cab&&cab!=='Economy')return z()?'<b>可</b>　依標準升等哩程，另享機上 Wi‑Fi'   /* 1012A：經濟艙以外每個方案都優先登機，不是豪華專屬 */\n                             :'<b>Yes</b> — standard upgrade miles, with Wi‑Fi';\n  if(fam==='Deluxe')return z()?'<b>可</b>　依標準升等哩程，另享機上 Wi‑Fi 與優先登機'\n                             :'<b>Yes</b> — standard upgrade miles, with Wi‑Fi and priority boarding';")
+# ── 1012A 登機證新版型（js/bp12.js；使用者：「登機證要長得像圖二那樣」）：五個入口都讀同一個 kgmBpCardR1012A ──
+RW('bp12 bp0814',"function boardingPass0814(b,seg){\n  var Z=LANG!=='en',info=bookingSegInfo0813(b,seg);if(!info)return'';var f=info.f,c=info.c;",
+   "function boardingPass0814(b,seg){\n  var Z=LANG!=='en',info=bookingSegInfo0813(b,seg);if(!info)return'';var f=info.f,c=info.c;\n"
+   "  if(window.kgmBpCardR1012A){try{return window.kgmBpPageR1012A(window.kgmBpCardR1012A(window.kgmBpDataR1012A(b,seg)))}catch(_){}}   /* 1012A：新版登機證（js/bp12.js） */")
+RC('bp12 r7 card','kgm-r7-passenger-core',"  function bpCard7(b,s){\n",
+   "  function bpCard7(b,s){\n"
+   "    if(window.kgmBpCardR1012A){try{var lc12=window.kgmLegCabR1012A?window.kgmLegCabR1012A(b,s):null,st12=seat7(b,s).split(', ')[0];   /* 1012A：新版登機證（js/bp12.js） */\n"
+   "      return window.kgmBpCardR1012A(window.kgmBpDataR1012A(b,s.rootKey||s.key,{f:Object.assign({},s.f,{date:s.date}),fare:lc12?lc12.fare:(((b.segmentFare0826A||{})[s.rootKey||s.key])||s.c),\n"
+   "        seat:lc12?(lc12.seats[0]||''):(st12==='—'?'':st12),cabinNote:lc12?(z7()?'哩程升等':'Mileage upgrade'):''}))}catch(_){}}\n")
+RC('bp12 r7 page','kgm-r7-passenger-core',"      +body+'</main>';}\n  function pnrView7(",
+   "      +((window.kgmBpPageR1012A&&body.indexOf('k12bp-one')>=0)?window.kgmBpPageR1012A(body,{noTitle:true}):body)+'</main>';}\n  function pnrView7(")
+RC('bp12 r6 page','kgm-0812a-r6',"  function boardingPage6(b,segs){\n",
+   "  function boardingPage6(b,segs){\n"
+   "    if(window.kgmBpCardR1012A){try{var c12=segs.map(function(s){var lc=window.kgmLegCabR1012A?window.kgmLegCabR1012A(b,s):null,st=tripSeat6(b,s);   /* 1012A：新版登機證（js/bp12.js） */\n"
+   "        return window.kgmBpCardR1012A(window.kgmBpDataR1012A(b,s.rootKey||s.key,{f:Object.assign({},s.f,{date:s.date}),fare:lc?lc.fare:(((b.segmentFare0826A||{})[s.key])||s.c),seat:lc?(lc.seats[0]||''):(st==='—'?'':st),cabinNote:lc?(Z6()?'哩程升等':'Mileage upgrade'):''}))}).join('');\n"
+   "      return '<section class=\"r6-subpage\"><div class=\"r6-subpage-head\"><div><div class=\"r6-eyebrow\">CHECK-IN COMPLETE · BOARDING PASS</div><h2>'+(Z6()?'報到完成｜登機證':'Check-in complete · Boarding pass')+'</h2></div>'+pnrBack6()+'</div>'+window.kgmBpPageR1012A(c12,{noTitle:true})+'</section>'}catch(_){}}\n")
+RW('bp12 download',"doDownloadBP=function(pnr){\n  var bkk=(S.bookings||[]).find(function(b){return b.pnr===pnr;});if(!bkk){alert('Booking not found');return;}ensureBpSeats(bkk);",
+   "doDownloadBP=function(pnr){\n  var bkk=(S.bookings||[]).find(function(b){return b.pnr===pnr;});if(!bkk){alert('Booking not found');return;}ensureBpSeats(bkk);\n"
+   "  var h12=window.kgmBpDocR1012A?window.kgmBpDocR1012A(bkk):'';if(h12){var bl12=new Blob([h12],{type:'text/html'}),a12=document.createElement('a');a12.href=URL.createObjectURL(bl12);a12.download='BoardingPass_'+bkk.pnr+'.html';document.body.appendChild(a12);a12.click();document.body.removeChild(a12);try{var w12=window.open('','_blank');if(w12){w12.document.write(h12);w12.document.close();}}catch(e){}return;}   /* 1012A：新版登機證（js/bp12.js） */")
+RW('bp12 modal',"  }else if(type===\"boardingPass\"){\n    const bk=S.bookings.find(b=>b.pnr===data.pnr);",
+   "  }else if(type===\"boardingPass\"&&window.kgmBpCardsOfR1012A&&(S.bookings||[]).some(b=>b.pnr===data.pnr)){   /* 1012A：新版登機證（js/bp12.js） */\n"
+   "    const bk12=S.bookings.find(b=>b.pnr===data.pnr);\n"
+   "    content=window.kgmBpPageR1012A(window.kgmBpCardsOfR1012A(bk12),{noPrint:true})+`<div style=\"display:flex;gap:8px;justify-content:center;margin-top:4px\"><button class=\"btn btn-g\" onclick=\"kgmBpPrintR1012A()\">${LANG===\"en\"?\"Print\":\"列印\"}</button><button class=\"btn\" onclick=\"doDownloadBP('${bk12.pnr}')\">${LANG===\"en\"?\"Download\":\"下載登機證\"}</button><button class=\"btn\" onclick=\"closeModal()\">${LANG===\"en\"?\"Close\":\"關閉\"}</button></div>`;\n"
+   "  }else if(type===\"boardingPass\"){\n    const bk=S.bookings.find(b=>b.pnr===data.pnr);")
+RC('bp12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/bp12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
+# ── 1012A 轉機航班跟直飛同一個版型（js/cn12.js；使用者：「轉機航班顯示方式有可能跟KGM的組合一樣嗎 這樣不好看」） ──
+RW('cn12 table','  const connHTML=conns.length?`<div style="margin-top:8px;border:1px solid #ddd;border-radius:8px;overflow:hidden">',
+   '  const connHTML=conns.length?(window.kgmConnTableR1012A?window.kgmConnTableR1012A(conns,flights.length,dir,CURRENCIES[S.search.fr||fr]||"TWD"):`<div style="margin-top:8px;border:1px solid #ddd;border-radius:8px;overflow:hidden">')
+RW('cn12 table end','      return renderConnCard(cn,cIdx,dir,curr2,S.search.pax);\n    }).join("")}\n  </div>`:"";\n',
+   '      return renderConnCard(cn,cIdx,dir,curr2,S.search.pax);\n    }).join("")}\n  </div>`):"";   /* 1012A：轉機改成跟直飛同一張表（js/cn12.js） */\n')
+RC('cn12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/cn12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 # ── 1012A 報到櫃檯一律寫號碼（js/ctr12.js）：登機證與行程卡讀同一份後台櫃檯分配；當天沒飛取最近有飛的日子；外站聯營寫夥伴櫃檯號 ──
 RC('ctr12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/ctr12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 # ── #255 前台首頁動畫（js/mo12.js） ──

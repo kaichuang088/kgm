@@ -70,4 +70,14 @@
         };
         lw.__r1012A=1;window.kgmCheckinLabelR1004B=lw;
       }
+      /* 登機證上的「航廈＋櫃檯」文字：跟行程卡同一個寫法（台北／松山：第 N 航廈 櫃檯 X；外站照 1004B） */
+      window.kgmCheckinTextR1012A=function(f,zhOn){
+        if(!f||!f.code||!f.fr)return '';
+        var c=null;try{c=window.kgmCounterOfFlightR929(f.code,f.date,f.fr)}catch(_){}
+        var tm='';try{tm=terminalForFlight(f)||''}catch(_){}
+        var tl=c&&c.term&&c.term!=='—'?c.term:tm,tz=String(tl||'').replace(/^T/,'');
+        try{var lb=window.kgmCheckinLabelR1004B(f.fr,tl,c,zhOn,f.code);if(lb)return lb}catch(_){}
+        if(!c||!c.counter)return '';
+        return zhOn?((tz?('第 '+tz+' 航廈'):'')+' 報到櫃檯 '+c.counter):((tz?('Terminal '+tz+' · '):'')+'Check-in counter '+c.counter);
+      };
     })();

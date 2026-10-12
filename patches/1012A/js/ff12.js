@@ -150,14 +150,21 @@
         var w=function(b,seg){var self=this,args=arguments;try{seg=seg||'out';var f=b&&(seg==='out'||seg==='inb')&&b[seg+'F'];if(!f||!f.via||!b.legCabR1012A||!b.legCabR1012A[seg])return g.apply(self,args);
             var parts=(window.segs7(b,true)||[]).filter(function(s){return s&&s.through&&s.rootKey===seg});if(parts.length<2||!parts.some(function(s){return legCabOf12(b,s)}))return g.apply(self,args);
             var Z=zf(),p0=(b.paxList||[{}])[0]||{},nm=[p0.lastName,p0.firstName].filter(Boolean).join(' ');
-            return parts.map(function(s,i){var lc=legCabOf12(b,s),b2=Object.assign({},b),ck=seg==='inb'?'inbC':'outC',fare=lc?lc.fare:s.c;
+            var html12=parts.map(function(s,i){var lc=legCabOf12(b,s),b2=Object.assign({},b),ck=seg==='inb'?'inbC':'outC',fare=lc?lc.fare:s.c;
               b2[seg+'F']=Object.assign({},s.f,{date:s.date});b2[ck]=fare;if(seg==='inb')b2.inC=fare;
               var seat=lc?(lc.seats[0]||''):(Object.keys((b.seats||{})[s.key]||(b.seats||{})[seg]||{}).filter(function(k){return k!=='_auto'})[0]||'');
               b2.seats=Object.assign({},b.seats||{});var so={};if(seat)so[seat]=nm;b2.seats[seg]=so;
+              if(window.kgmBpCardR1012A)return window.kgmBpCardR1012A(window.kgmBpDataR1012A(b2,seg,{f:Object.assign({},s.f,{date:s.date}),fare:fare,seat:seat,   /* 1012A：新版登機證（js/bp12.js），每段一張 */
+                cabinNote:lc?(Z?'哩程升等':'Mileage upgrade'):'',legLabel:(Z?'第 '+(i+1)+' 段':'Sector '+(i+1))+' · '+s.f.fr+' → '+s.f.to}));
               var h=g.call(self,b2,seg);
               if(lc){var cz=Z?(CABZ12[lc.cabin]||lc.cabin):lc.cabin,lab=(Z?'艙等':'Class')+' <b>';h=h.replace(lab+FARE_NM(fare)+'</b>',lab+Ef(cz)+' · '+(Z?'哩程升等':'Mileage upgrade')+'</b>')}
-              try{if(window.kgmBpZoneTxtR1012A){var zl=(Z?'登機組別':'Zone')+' <b>';h=h.replace(new RegExp(zl+'[^<]*</b>'),zl+Ef(window.kgmBpZoneTxtR1012A(b,null,fare,seat,Object.assign({},s.f,{date:s.date})))+'</b>')}}catch(_){}   /* 這一段的艙等、座位與機型決定登機組別（js/bz12.js） */
-              return '<div class="k12-bp-leg">'+(Z?'第 '+(i+1)+' 段':'Sector '+(i+1))+' · '+Ef(s.f.fr)+' → '+Ef(s.f.to)+(lc?' <i class="k12-leg">'+(Z?'已升等 ':'Upgraded ')+Ef(Z?(CABZ12[lc.cabin]||lc.cabin):lc.cabin)+'</i>':'')+'</div>'+h}).join('')}catch(_){return g.apply(self,args)}};
+              return '<div class="k12-bp-leg">'+(Z?'第 '+(i+1)+' 段':'Sector '+(i+1))+' · '+Ef(s.f.fr)+' → '+Ef(s.f.to)+(lc?' <i class="k12-leg">'+(Z?'已升等 ':'Upgraded ')+Ef(Z?(CABZ12[lc.cabin]||lc.cabin):lc.cabin)+'</i>':'')+'</div>'+h}).join('');
+            return window.kgmBpPageR1012A?window.kgmBpPageR1012A(html12):html12}catch(_){return g.apply(self,args)}};
+        /* 下載／彈出視窗用：有單段升等時回傳分段的登機證卡片，沒有就回空字串 */
+        window.kgmLegBpCardsR1012A=function(b,seg){try{var f=b&&(seg==='out'||seg==='inb')&&b[seg+'F'];if(!f||!f.via||!b.legCabR1012A||!b.legCabR1012A[seg]||!window.kgmBpCardR1012A)return '';
+            var Z=zf(),parts=(window.segs7(b,true)||[]).filter(function(s){return s&&s.through&&s.rootKey===seg});if(parts.length<2||!parts.some(function(s){return legCabOf12(b,s)}))return '';
+            return parts.map(function(s,i){var lc=legCabOf12(b,s),fare=lc?lc.fare:s.c,seat=lc?(lc.seats[0]||''):(Object.keys((b.seats||{})[s.key]||(b.seats||{})[seg]||{}).filter(function(k){return k!=='_auto'})[0]||'');
+              return window.kgmBpCardR1012A(window.kgmBpDataR1012A(b,seg,{f:Object.assign({},s.f,{date:s.date}),fare:fare,seat:seat,cabinNote:lc?(Z?'哩程升等':'Mileage upgrade'):'',legLabel:(Z?'第 '+(i+1)+' 段':'Sector '+(i+1))+' · '+s.f.fr+' → '+s.f.to}))}).join('')}catch(_){return ''}};
         w.__r1012A=1;window.boardingPass0814=w;try{window._mtBoardingPass=w}catch(_){}})(0);
       (function(){if(document.getElementById('k12-leg-css'))return;var s=document.createElement('style');s.id='k12-leg-css';
         s.textContent='.k12-leg{font-style:normal;display:inline-block;font-size:10px;font-weight:800;border-radius:6px;padding:1px 6px;margin-right:4px;background:#eef3fb;color:#2c4f86;border:1px solid #d3def0;white-space:nowrap}.k12-leg.all{background:#f1efe6;color:#6b5a2a;border-color:#e3dcc4}.k12-bp-leg{margin:14px 0 6px;font-size:12px;font-weight:800;letter-spacing:.04em;color:#41534b}.k12-bp-leg:first-child{margin-top:0}';(document.head||document.documentElement).appendChild(s)})();
