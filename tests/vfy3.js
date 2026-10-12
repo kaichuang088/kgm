@@ -82,7 +82,7 @@ const {chromium}=require('playwright');
  const s1=await p.evaluate(()=>{
    const d=new Date().toISOString().slice(0,10);
    const cand=[].concat(FLIGHTS,S.customFlights||[])
-     .filter(f=>f&&!f.via&&!f.partner&&f.fr==='TPE')
+     .filter(f=>f&&!f.via&&!f.partner&&f.fr==='TPE'&&flyOn(f,new Date(d+'T12:00:00')))   /* 1012A：只挑今天真的有飛的班（台北深夜會挑到今天沒飛的 KX92，乘客 0） */
      .map(f=>({code:f.code,h:window.kgmHoursToDepR920B(f,d)}))
      .filter(x=>isFinite(x.h)&&x.h<-0.6&&x.h>-14)
      .filter(x=>![].concat(FLIGHTS,S.customFlights||[]).some(g=>g&&g.code!==x.code&&String(g.code).indexOf(x.code)===0))   /* 1012A：航班資料用班號前綴搜尋（KX22 會先找到 KX228），只挑沒有前綴撞號的班 */

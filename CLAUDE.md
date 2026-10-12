@@ -60,7 +60,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
 3. 版號更新（見下），並把 `vfy1.js` 的 `/1012A/.test(t)` 改成新版號
-4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00 跑會因 KX180 當天已起飛而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
+4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00 跑會因 KX180 當天已起飛而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
 5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1012A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
@@ -68,6 +68,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 8. 不要同時平行跑多支測試（CPU 搶資源會讓效能門檻誤判）
 9. `tests/tz8.js`（台北時區無機可派）、`tests/ai9t.js`（後台 AI 直連）要帶檔案路徑：`W=110000 node tz8.js /tmp/j/kgm.html`；`t_admlag.js` 反而**不能**帶（第一個參數是分頁篩選）
 10. 量機隊輪轉要等背景重建跑完（至少 110 秒，`W=110000 node t_fl1.js`）；太早量會抓到重建到一半的狀態、誤報重疊
+    （vfy6 開頁 45 秒就開始量 H1／H4／H19／H26／H29，偶爾會落在重排中途而整批失敗；先用同一版再跑一次，或量 45／70 秒的 `kgmAuditRotAllR922` 確認，見 notes 1012A 第三輪 K）
 
 ## 版號更新位置（重建時由 1004B 換成新版號，用 regex 精準替換，不要全域取代）
 

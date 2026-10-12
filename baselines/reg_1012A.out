@@ -1,4 +1,4 @@
-validators 193 ok 113 threw 0 notOk 80
+validators 193 ok 115 threw 0 notOk 78
 NOTOK: [
  "kgmAudit0810P",
  "kgmAudit0811Q",
@@ -77,9 +77,7 @@ NOTOK: [
  "kgmAudit0908A",
  "kgmAudit0909A",
  "kgmAudit0905A",
- "kgmAuditR151",
- "kgmAuditR210 :: 沒有任何當天來回",
- "kgmAuditR211 :: 沒有任何當天來回（短程線應該要有）"
+ "kgmAuditR151"
 ]
 view errors 0 []
 PAGE ERRORS 0
