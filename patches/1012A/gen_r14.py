@@ -649,6 +649,27 @@ RW('auc memo tail',"      if(made){try{save()}catch(_){}}\n    }catch(_){}\n    
    "    (function step(){var t=Date.now();while(Q.length&&Date.now()-t<30){var x=Q.shift();try{window.kgmEnsureAuctionsR922(x[0],x[1],x[2])}catch(_){}}if(Q.length)setTimeout(step,60)})();\n"
    "  },40000)})();\n"
    "  /* 查詢時就地補齊")
+# ── #253 第五航權單段升等：艙單（manifest7）與座位庫存（cabinInventory54）依實際航段、讀 legCabR1012A／legSeatR1012A（js/ff12.js） ──
+R7A='kgm-r7-admin-ops'
+RC('leg253 manifest seg',R7A,"var s=window.segs7(b).find(function(x){return x.f&&x.f.code===f.code&&x.f.fr===f.fr&&x.f.to===f.to&&x.date===date;});",
+   "var s=window.segs7(b,true).find(function(x){return x.f&&x.f.code===f.code&&x.f.fr===f.fr&&x.f.to===f.to&&x.date===date;});   /* 1012A #253：經停航班依實際航段（原本拿整條 TPE→LAS 去比，兩段的艙單都看不到真實訂位） */")
+RC('leg253 manifest cabin',R7A,"var fare=s.c||b.outC||'',cabin=(FARES[fare]||AWARD_FARES[fare]||{}).cabin||'Economy';",
+   "var fare=s.c||b.outC||'',cabin=(FARES[fare]||AWARD_FARES[fare]||{}).cabin||'Economy',lc12=window.kgmLegCabR1012A?window.kgmLegCabR1012A(b,s):null;if(lc12){cabin=lc12.cabin;fare=lc12.fare}   /* 1012A #253：只升這一段 */")
+RC('leg253 manifest seat',R7A,"var seatObj=(b.seats&&b.seats[s.key])||{},upgrade=",
+   "var seatObj=lc12?(function(){var o={};lc12.seats.forEach(function(q){if(q)o[q]=1});return o})():((b.seats&&b.seats[s.key])||(s.through&&b.seats&&b.seats[s.rootKey])||{}),upgrade=")
+RC('leg253 manifest autoseat',R7A,"if(x.real&&x.booking&&x.seat){x.booking.seats=",
+   "if(x.real&&x.booking&&x.seat&&window.kgmLegSeatSetR1012A&&window.kgmLegSeatSetR1012A(x)){x.autoAssigned=true;wrote=true;}else if(x.real&&x.booking&&x.seat){x.booking.seats=")
+RC('leg253 manifest thru',R7A,"var s1=window.segs7(x.booking).find(","var s1=window.segs7(x.booking,true).find(")
+RC('leg253 inv cabin','kgm-0823c-r54',"var cls=(b.segmentFare0826A||{})[s.key]||s.c,cb=entry?entry.assignedCabin:(FARES[cls]||AWARD_FARES[cls]||{}).cabin||'Economy';if(cb!==cabin)return;",
+   "var cls=(b.segmentFare0826A||{})[s.key]||s.c,cb=entry?entry.assignedCabin:(FARES[cls]||AWARD_FARES[cls]||{}).cabin||'Economy',lc12=!entry&&window.kgmLegCabR1012A?window.kgmLegCabR1012A(b,s):null;if(lc12){cb=lc12.cabin;cls=lc12.fare}if(cb!==cabin)return;   /* 1012A #253：只升這一段 */")
+RC('leg253 inv seat','kgm-0823c-r54',"var seats=Object.keys((b.seats||{})[s.key]||(s.through&&(b.seats||{})[s.rootKey])||{}).filter(function(k){return k!=='_auto'}),pax=",
+   "var seats=lc12?lc12.seats.filter(Boolean):Object.keys((b.seats||{})[s.key]||(s.through&&(b.seats||{})[s.rootKey])||{}).filter(function(k){return k!=='_auto'}),pax=")
+RC('upg card no footer host',R229,"        var host=app.querySelector('.k56-trip')||app.querySelector('main')||app;\n        host.appendChild(node);",
+   "        var host=app.querySelector('.k56-trip')||app.querySelector('main');if(!host)return 0;   /* 1012A：行程管理的子頁（登機證、報到…）沒有行程卡，原本退到 #app 最後 → 掛在頁尾 footer 下面 */\n        host.appendChild(node);")
+RC('leg253 trip seat tile','kgm-0909B-r217',"E(seat||(Z()?'尚未選位':'Not selected'))",
+   "E((window.kgmLegSeatTxtR1012A&&window.kgmLegSeatTxtR1012A(b,key,seat))||seat||(Z()?'尚未選位':'Not selected'))")   # 1012A #253：只升一段時兩段座位不同
+RC('leg253 ops seat write',R7A,"if(p.real&&p.booking){p.booking.seats=p.booking.seats||{};p.booking.seats[p.segmentKey]={};p.booking.seats[p.segmentKey][seat]=p.name;}p.seat=seat;save();}",
+   "if(p.real&&p.booking&&window.kgmLegSeatSetR1012A&&window.kgmLegSeatSetR1012A(Object.assign({},p,{seat:seat}))){}else if(p.real&&p.booking){p.booking.seats=p.booking.seats||{};p.booking.seats[p.segmentKey]={};p.booking.seats[p.segmentKey][seat]=p.name;}p.seat=seat;save();}")   # 1012A #253：只升一段的那一段，櫃檯改座位寫回 legSeatR1012A
 RC('kx swap embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/kx12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 
 open('p_h_r14.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
