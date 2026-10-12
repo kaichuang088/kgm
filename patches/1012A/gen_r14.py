@@ -364,15 +364,31 @@ RC('ground ctr rescue','kgm-0907A-r194',"  /* ④ 工時太短（< 3 小時）�
    "        if(!touched.some(function(z){return z.P===R}))touched.push({P:R,s:snap(R)});add8(R,x)}\n"
    "      add8(P,t);P.rescueR1012A=1;return true;\n"
    "    }\n"
-   "    /* 白天／中／晚班可以提早 15 分鐘上班（前一天下班到這天上班仍然超過 11 小時）；早班不提早 */\n"
+   "    /* 白天／中／晚班可以提早 60 分鐘上班：換班別會撞到的日子已排休，所以前一天一定是同班別或更早的班別，最晚下班＋11 小時＝白天 04:30／中班 09:00／晚班 14:30，都早於提早後的上班時間；早班不提早 */\n"
    "    tasks.filter(function(t){return t.kind==='ctr'&&t.who.length<t.min}).forEach(function(t){\n"
-   "      var cands=people.filter(function(P){return !P.off&&t.who.indexOf(P.id)<0&&t.a>=P.win0-(P.band==='early'?0:15)&&t.b<=P.win1}).sort(function(a,b){return a.tasks.length-b.tasks.length||a.work-b.work||a.ord-b.ord});\n"
+   "      var cands=people.filter(function(P){return !P.off&&t.who.indexOf(P.id)<0&&t.a>=P.win0-(P.band==='early'?0:60)&&t.b<=P.win1}).sort(function(a,b){return a.tasks.length-b.tasks.length||a.work-b.work||a.ord-b.ord});\n"
    "      for(var i=0;i<cands.length&&t.who.length<t.min;i++){var P=cands[i],w0=P.win0;if(t.a<P.win0)P.win0=t.a;if(!tryP(P,t))P.win0=w0}\n"
    "    });\n"
    "  })();\n"
    "  /* ④ 工時太短（< 3 小時）的人：他身上的工作若都超過最少人力就整個釋放回備勤，")
-RC('ground target','kgm-0907A-r194',"var GTARGET8=290,","var GTARGET8=470,   /* 1012A：1～2 班的櫃檯 5 人、3 班 7 人：桃園 426＋松山 44 */")
-RW('tsa team size','.slice(0,20).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}','.slice(0,44).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}   /* 1012A：松山 20 → 44 位（1～2 班的櫃檯 5 人、3 班 7 人） */')
+# ── 地勤前後兩天休息不到 11 小時（勞基法 §34；1010A 就有）：班別每週輪替，從晚班（或中班）轉回比較早的班別那一天，
+#    前一天晚班最晚 03:30 下班、這天早班最早 03:00 上班。→ 換班別那天，前一天有上班、而且前一天班別最晚下班 ＋11 小時
+#    超過這天班別最早上班，這天排休（標「換班別休息」）；派工（person8）跟班表顯示（kgmGroundDutyR99）用同一個判斷。
+RC('ground rest11 person','kgm-0907A-r194',"function person8(p,date){\n  var d=null;try{d=DUTY08(p.empId,date)}catch(_){d=null}\n  if(!d||d.off)return {id:p.empId,p:p,off:true,base:d};",
+   "/* 1012A：換班別那一天前後休息不到 11 小時 → 這天排休 */\n"
+   "function rest12(id,date){try{var t=new Date(date+'T12:00:00Z');t.setUTCDate(t.getUTCDate()-1);var pd=t.toISOString().slice(0,10);\n"
+   "  var pv=DUTY08(id,pd);if(!pv||pv.off)return false;var a=window.kgmGroundBandR1008A(id,pd),b=window.kgmGroundBandR1008A(id,date);\n"
+   "  return !!(a&&b&&a.k!==b.k&&(a.w[1]+660-1440)>b.w[0])}catch(_){return false}}\n"
+   "window.kgmGroundRest11R1012A=rest12;\n"
+   "function person8(p,date){\n  var d=null;try{d=DUTY08(p.empId,date)}catch(_){d=null}\n"
+   "  if(d&&!d.off&&rest12(p.empId,date))d={off:true,k:'off',label:z()?'換班別休息':'Shift-change rest',from:'',to:'',hours:0,restR1012A:true};\n"
+   "  if(!d||d.off)return {id:p.empId,p:p,off:true,base:d};")
+RC('ground rest11 duty','kgm-0907A-r194',"    var d=DUTY08.apply(this,arguments);\n    if(BUSY8||!d||d.off)return d;",
+   "    var d=DUTY08.apply(this,arguments);\n"
+   "    try{if(d&&!d.off&&rest12(id,date))return {off:true,k:'off',label:z()?'換班別休息':'Shift-change rest',from:'',to:'',hours:0,restR1012A:true}}catch(_){}   /* 1012A：前後休息 11 小時 */\n"
+   "    if(BUSY8||!d||d.off)return d;")
+RC('ground target','kgm-0907A-r194',"var GTARGET8=290,","var GTARGET8=492,   /* 1012A：1～2 班的櫃檯 5 人、3 班 7 人、換班別那天排休：桃園 444＋松山 48 */")
+RW('tsa team size','.slice(0,20).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}','.slice(0,48).forEach(function(x){ids[x.empId]=1});TSAT1006A={k:k,ids:ids}}   /* 1012A：松山 20 → 48 位（1～2 班的櫃檯 5 人、3 班 7 人、換班別那天排休） */')
 
 # ══ 1012A 新增要存檔（前後台同步）的欄位 ══════════════════════════════════════
 PERSIST_1012A=[('crewWorkR1012A','kgm12_crewwork','{}'),('nameFixR1012A','kgm12_namefix','{}'),('mgrR1012A','kgm12_mgr','{}'),('kxSwapR1012A','kgm12_kxswap','null')]
