@@ -551,6 +551,31 @@ RW('hours to dep season',"    var d=date||f.date;if(!d)return NaN;\n    var q=St
    "    /* 1012A：用當季、當天的實際起飛時間（同層的 Sky Couch、免費選位也直接呼叫這一支，所以改在函式裡面） */\n"
    "    try{if(!f.partner&&typeof window.kgmSeasonFlightR48==='function'){var sf12=window.kgmSeasonFlightR48(f,d);if(sf12&&sf12.dep&&sf12.dep!==f.dep)f=Object.assign({},f,{dep:sf12.dep})}}catch(_){}\n"
    "    var q=String(f.dep||'00:00').split(':');")
+# ── 組員一週沒有整天休（vfy6 H35；1010A 就有）：引擎記得的組員位置跟事後換人（一天一班、週休保護、補班）後的實際班表不一樣，
+#    引擎排了一段「從外站回台北」的調位（人其實早就在台北），組員班表鏈又為了接上這段補一段「台北→外站」—— 一整天兩段沒用的 DH，
+#    剛好落在那一週唯一的休息日。→ 組員班表鏈逐日檢查調位：連續的調位當一段看，終點就是目前所在地（白飛一趟），
+#    或終點不是下一個實際執勤航班的起點（只看已經算好的日子，往後最多 3 天），就拿掉，並從 S.crewPositioningR121 刪除那筆紀錄。
+RC('chain dh tag','kgm-0908B-r210',"if(p.empId===empId&&p.flight.date===date)legs.push(Object.assign({},p.flight,{seat:p.seat,cabin:p.cabin,remark:'DH · 組員調位'}))",
+   "if(p.empId===empId&&p.flight.date===date)legs.push(Object.assign({},p.flight,{seat:p.seat,cabin:p.cabin,remark:'DH · 組員調位',k12pos:k,k12rec:p}))")
+RC('chain dh stray','kgm-0908B-r210',"      legs=uniq;\n    })();\n",
+   "      legs=uniq;\n    })();\n"
+   "    /* 1012A：拿掉接不上任何東西的調位（見 gen_r14 說明）。只處理調位紀錄（k12rec），引擎排的實際航班不動 */\n"
+   "    (function(){try{\n"
+   "      var isDh=function(l){return l&&l.k12rec&&(l.dhR913||l.deadhead||l.surfaceR928||l.operating===false)};\n"
+   "      var nextOp=function(fromIdx){for(var j=fromIdx;j<legs.length;j++)if(legs[j]&&!isDh(legs[j]))return legs[j].fr;\n"
+   "        for(var k=1;k<=3;k++){var dk=D(date,k);if(!(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(dk)))return null;var pk=window.kgmCrewPlanR121(dk),fst=null;\n"
+   "          (pk.flights||[]).forEach(function(f){if(!(f.pilots||[]).concat(f.cabin||[]).some(function(q){return q&&q.empId===empId}))return;if(!fst||(+f.depUTC||0)<(+fst.depUTC||0))fst=f});\n"
+   "          if(fst)return fst.fr}return null};\n"
+   "      var cur=at,keep=[],drop=[];\n"
+   "      for(var i2=0;i2<legs.length;){var l=legs[i2];if(!isDh(l)){keep.push(l);cur=l.to||cur;i2++;continue}\n"
+   "        var run=[l],j2=i2+1;while(j2<legs.length&&isDh(legs[j2])&&legs[j2].fr===run[run.length-1].to){run.push(legs[j2]);j2++}\n"
+   "        var end=run[run.length-1].to,nx=nextOp(j2),bad=(cur&&end===cur)||(nx&&nx!==end);\n"
+   "        if(bad)drop=drop.concat(run);else{keep=keep.concat(run);cur=end}\n"
+   "        i2=j2}\n"
+   "      if(drop.length){legs=keep;drop.forEach(function(l){try{var L=S.crewPositioningR121[l.k12pos];if(!L)return;var ix=L.indexOf(l.k12rec);if(ix>=0)L.splice(ix,1);if(!L.length)delete S.crewPositioningR121[l.k12pos]}catch(_){}});\n"
+   "        try{window.KGM_DH_STRAY_R1012A=(window.KGM_DH_STRAY_R1012A||0)+drop.length}catch(_){}}\n"
+   "      legs.forEach(function(l){if(l){delete l.k12pos;delete l.k12rec}});\n"
+   "    }catch(_){}})();\n")
 RC('kx swap embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/kx12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 
 open('p_h_r14.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
