@@ -18,16 +18,16 @@
         return {cab:order[i0],p:null};
       }
       function leg(f,dH,ac){
-        return '<div style="display:flex;align-items:center;gap:14px">'
+        return '<div style="display:flex;align-items:center;gap:18px;max-width:640px">'   /* 1012A：太密 → 字級降一級、每段之間留白、時間軸限寬 */
           +'<div style="flex:0 0 auto;min-width:64px;font-size:11px;font-weight:800;color:var(--g)">'+f.code+'</div>'
-          +'<div style="text-align:center;min-width:52px"><div style="font-size:23px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em">'+f.dep+'</div>'
+          +'<div style="text-align:center;min-width:52px"><div style="font-size:19px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em">'+f.dep+'</div>'
             +'<div style="font-size:10px;color:var(--sub);letter-spacing:.08em;margin-top:3px">'+f.fr+'</div></div>'
           +'<div style="flex:1;text-align:center;padding:0 2px;min-width:76px"><div style="font-size:10px;color:var(--sub)">'+durStr(f.dur)+'</div>'
             +'<div style="position:relative;height:12px;margin:4px 0"><div style="position:absolute;top:5px;left:0;right:0;height:1.5px;background:var(--border)"></div>'
               +'<div style="position:absolute;top:2px;left:0;width:6px;height:6px;border-radius:50%;background:var(--g)"></div>'
               +'<div style="position:absolute;top:-1px;right:-1px;color:var(--g);font-size:11px;line-height:1">&#9654;</div></div>'
             +'<div style="font-size:9.5px;color:var(--sub);letter-spacing:.04em">'+ac+'</div></div>'
-          +'<div style="text-align:center;min-width:52px"><div style="font-size:23px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em">'+f.arr+dH+'</div>'
+          +'<div style="text-align:center;min-width:52px"><div style="font-size:19px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em">'+f.arr+dH+'</div>'
             +'<div style="font-size:10px;color:var(--sub);letter-spacing:.08em;margin-top:3px">'+f.to+'</div></div>'
         +'</div>';
       }
@@ -40,21 +40,21 @@
         var sc=selCab(f1,f2,pax),cab=sc.cab;
         var chip='<span style="display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.06em;color:'+CAB_COLOR(cab)+';background:'+CAB_BG(cab)+';border:1px solid var(--border);padding:2px 8px;border-radius:999px">'+CAB_NM(cab)+'</span>';
         var dateNote=cn.depDateNote?'<div style="font-size:10px;background:#fef9c3;color:#92400e;padding:3px 8px;border-radius:6px;margin:0 0 8px;display:inline-block">'+CITY(f1.fr)+(Z?' 出發建議：':' departure: ')+'<b>'+cn.depDateNote+'</b></div>':'';
-        var xfer='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;padding:8px 12px;background:var(--light);border:1px solid var(--border);border-radius:10px">'
+        var xfer='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 10px 22px;padding:12px 0 12px 32px;border-left:2px dotted #c9d3ce">'   /* 轉機資訊：不加框，左側虛線連接兩段 */
           +'<span style="font-size:10.5px;color:var(--sub);letter-spacing:.03em">'+(Z?'轉機時間 ':'Layover ')+'<b style="color:var(--ink)">'+cn.layoverStr+'</b> · '+CITY(hub)+' ('+hub+')</span>'
           +((hi&&hi.qualifies)?'<span style="font-size:9.5px;font-weight:800;letter-spacing:.05em;color:#7c4a03;background:var(--goldsoft);border:1px solid var(--gold);padding:2px 9px;border-radius:999px">\u{1F3E8} '+(Z?'免費住宿 1 晚':'FREE HOTEL · 1 NIGHT')+'</span>':'')
           +'</div>';
         var tog="event.stopPropagation();S.openConnR1012A=(S.openConnR1012A==='"+oc12+"'?null:'"+oc12+"');render()";
         return '<tr class="k12c-row">'
-          +'<td style="padding:16px 18px;min-width:230px;border-bottom:1px solid var(--border);vertical-align:middle;background:#fff">'
-            +'<div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:10px">'
+          +'<td style="padding:24px 26px 26px;min-width:230px;border-bottom:1px solid #e3e8e5;vertical-align:middle;background:#fff">'
+            +'<div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:16px">'
               +(Z?('經 '+CITY(hub)+' 轉機 · 總時長 '+cn.totalStr):('1 stop via '+CITY(hub)+' · total '+cn.totalStr))+'</div>'
             +dateNote
             +leg(f1,_ddSup(f1,f1&&f1.date),acftNameOf(f1))
             +xfer
             +leg(f2,_ddSup(f2,f2&&f2.date),acftNameOf(f2))
           +'</td>'
-          +'<td style="padding:14px 18px;vertical-align:middle;min-width:180px;border-bottom:1px solid var(--border);border-left:1px solid var(--border);background:var(--light)">'
+          +'<td style="padding:24px 26px;vertical-align:middle;min-width:180px;width:37%;border-bottom:1px solid #e3e8e5;border-left:1px solid #eef2f0;background:#fbfcfb">'
             +'<div style="margin-bottom:9px">'+chip+'</div>'
             +'<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--sub);margin-bottom:3px">'+(dir==='inb'?(Z?'回程起':'Return from'):(Z?'去程起':'Outbound from'))+'</div>'
               +'<div style="font-size:18px;font-weight:900;color:'+(sc.p!==null?'var(--gold)':'var(--red)')+';line-height:1">'+(sc.p!==null?fmtAmt(sc.p,curr2):(Z?'所選艙等售罄':'Selected cabin sold out'))+'</div>'
