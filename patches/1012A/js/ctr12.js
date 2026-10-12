@@ -44,6 +44,17 @@
         };
         checkinCounterForFlight.__r1012A=1;
       }
+      /* 經停航班的整段列（例：KX304 台北→杜哈經上海）原本照終點算航廈（T2），但同一架飛機從台北出發只有一個航廈，
+         櫃檯分配與行程卡都是第一段（台北→上海，T1）—— 登機證會變成「T2 櫃檯 3」。整段列的出發航廈改成跟第一段相同。 */
+      if(typeof terminalForFlight==='function'&&!terminalForFlight.__r1012A){
+        var tf=terminalForFlight;
+        terminalForFlight=window.terminalForFlight=function(f){
+          try{if(f&&f.via&&f.fr&&f.code&&!(S.routeTerminal||{})[f.code]){var leg=allF12().filter(function(x){return x&&!x.via&&x.code===f.code&&x.fr===f.fr&&x.to===f.via})[0];
+            if(leg)return tf.call(this,Object.assign({},f,{to:leg.to,via:null}))}}catch(_){}
+          return tf.apply(this,arguments);
+        };
+        terminalForFlight.__r1012A=1;
+      }
       /* 外站：KGM 自己的班沒有分配資料時照 1004B 的站別櫃檯；聯營夥伴執飛的段寫夥伴航空的櫃檯號 */
       var lb=window.kgmCheckinLabelR1004B;
       if(typeof lb==='function'&&!lb.__r1012A){

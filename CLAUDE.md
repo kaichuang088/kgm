@@ -35,6 +35,8 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1012A 地勤櫃檯最少人力：1～2 班 5 人、3 班 7 人（再多一班 +2）、A388 +1（r194 `needCtr8`）；地勤桃園 444、松山 48 人；換班別那天若跟前一天班別接不滿 11 小時就排休（`kgmGroundRest11R1012A`）；排完再補一次（換手，`P.rescueR1012A`，白天／中／晚班可提早 60 分鐘）；桃園班別輪替 20 週（早 6／白天 5／中 4／晚 5），松山依名次輪替（`tsaRank12`）。**量要量 28 天以上、開兩次頁**（同一天的地勤排班每次開頁可能不同）。
 - 1012A 第五航權單段升等：`b.legCabR1012A[seg][航段]`＝新艙等、`b.legSeatR1012A[seg][航段]`＝新座位（陣列，每位旅客一格）；艙單、庫存、登機證、72 小時遞補都讀 `kgmLegCabR1012A(b, segs7(b,true) 的段)`。
 - 1012A 地勤主管小組：同站地勤依輪替相位排成一圈、主管平均分布、組員歸最近的主管（每組 10～13 人）。
+- 1012A 第三輪：登機組別 `boardingZoneOf`／`kgmBpZoneTxtR1012A`（`js/bz12.js`：頭等 PRIORITY、商務與金卡／鑽石卡 ZONE 1、豪經與經濟豪華 ZONE 2、經濟艙依座位排數後→前 ZONE 3/4，B779／A388 分 3/4/5）；四種登機證都讀它。豪經每個方案 `FARES.zone`=2（優先登機），經濟只有豪華。
+- 1012A 第三輪：報到櫃檯只有一份來源 `kgmCounterOfFlightR929`（後台分配）；`checkinCounterForFlight`（登機證）改讀它；當天沒飛取前後 14 天最近有飛的日子；外站聯營寫夥伴櫃檯號；經停整段列出發航廈跟第一段相同（`js/ctr12.js`）。**不准再出現「櫃檯依機場公告／依機場看板」**。
 - 1012A 組員班表鏈會拿掉接不上任何東西的調位（`KGM_DH_STRAY_R1012A` 計數）：引擎的組員位置跟事後換人的班表不一致時會冒出來。
 - 1010A 新增存檔（`PERSIST_1010A`）：`dhPnrR1010A`、`groundBandOvR1010A`、`casesR84`、`refundReqR113`、`refundSimR1010A`、`sbSimR929`、`redeemPromosR1010A`（里程兌換優惠）、`staffLinkR1010A`（員工↔會員綁定）。
 - 1010A 機隊：排班時算機型用 `planSub10`（只看人工換機／維修改派）＋`KGM_PLAN_R1010A`，否則自動換機紀錄會被當成時刻表、換機永遠換不回來；量換機要讀 `kgmChangesR78().changes`（不是 `rows`）。
@@ -59,7 +61,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 3. 版號更新（見下），並把 `vfy1.js` 的 `/1012A/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00 跑會因 KX180 當天已起飛而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
 5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1012A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
-   （notOk 80 裡（1004B 多出的 kgmAuditR210／R211 見 `notes/1004B-pass109-notes.md`，等使用者決定）大部分只是回傳診斷物件、不是失敗；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
+   （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
 7. `node t_sched922.js`（組員班表延遲）、`node t_admlag.js`（後台 27 個分頁逐頁量）
 8. 不要同時平行跑多支測試（CPU 搶資源會讓效能門檻誤判）

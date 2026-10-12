@@ -718,6 +718,14 @@ RC('fare prio premium',R229,"      if(cab==='Business'){f.wifi=true;f.zone=Math.
    "      if(cab==='Business'){f.wifi=true;f.zone=Math.min(+f.zone||1,1)}      /* 商務：全部無限 Wi-Fi，一起優先登機 */\n"
    "      if(cab==='Premium'){f.zone=2}                                         /* 1012A：豪經每一個方案都優先登機（ZONE 2） */\n"
    "      if(cab==='Economy'&&fam!=='Deluxe'&&(+f.zone||4)<=2){f.zone=4}        /* 1012A：經濟艙只有豪華方案優先登機 */")
+# 產品介紹頁（艙等與票價產品 → 產品介紹）原本沒有「優先登機」列，只在豪華方案的升等格寫「另享…優先登機」→ 加一列，跟訂票頁票價卡讀同一個 FARES.zone
+RC('fare prio product row','kgm-0823f-r59',"  row('哩程升等','Mileage upgrade',fams.map(function(f){return upOf59(f)}));",
+   "  row('哩程升等','Mileage upgrade',fams.map(function(f){return upOf59(f,cab)}));\n"
+   "  row('優先登機','Priority boarding',fams.map(function(f){   /* 1012A：豪經、商務、頭等每個方案都有；經濟艙只有豪華 */\n"
+   "    var cs=famCodes59(cab,f);if(!cs.length)return '—';var zn=+cs[0].f.zone||4;\n"
+   "    return zn<=2?'<b>✓</b>':(z()?'不可':'Not included')}));")
+RC('fare prio product up','kgm-0823f-r59',"function upOf59(fam){\n  if(fam==='Deluxe')return z()?'<b>可</b>　依標準升等哩程，另享機上 Wi‑Fi 與優先登機'\n                             :'<b>Yes</b> — standard upgrade miles, with Wi‑Fi and priority boarding';",
+   "function upOf59(fam,cab){\n  if(fam==='Deluxe'&&cab&&cab!=='Economy')return z()?'<b>可</b>　依標準升等哩程，另享機上 Wi‑Fi'   /* 1012A：經濟艙以外每個方案都優先登機，不是豪華專屬 */\n                             :'<b>Yes</b> — standard upgrade miles, with Wi‑Fi';\n  if(fam==='Deluxe')return z()?'<b>可</b>　依標準升等哩程，另享機上 Wi‑Fi 與優先登機'\n                             :'<b>Yes</b> — standard upgrade miles, with Wi‑Fi and priority boarding';")
 # ── 1012A 報到櫃檯一律寫號碼（js/ctr12.js）：登機證與行程卡讀同一份後台櫃檯分配；當天沒飛取最近有飛的日子；外站聯營寫夥伴櫃檯號 ──
 RC('ctr12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/ctr12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 # ── #255 前台首頁動畫（js/mo12.js） ──
