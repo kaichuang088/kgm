@@ -679,6 +679,47 @@ RC('kx59 skip season loop',R229,"          var k=K(f);if(L2[k])return;var o=ST[k
 RC('crew choose rank prefilter','kgm-0903b-r121',"var baseKey=fam121(f.type)+'|'+role,list=(localPeople[baseKey+'|'+f.fr]||[]).concat.apply((localPeople[baseKey+'|'+f.fr]||[]),(SIS928[f.fr]||[]).map(function(s){return localPeople[baseKey+'|'+s]||[]})).filter(function(p){return !used[p.empId]&&eligible(p,f,rank)});",
    "var baseKey=fam121(f.type)+'|'+role,list=[],_src12=[localPeople[baseKey+'|'+f.fr]||[]].concat((SIS928[f.fr]||[]).map(function(s){return localPeople[baseKey+'|'+s]||[]}));\n"
    "    for(var _s12=0;_s12<_src12.length;_s12++){var _a12=_src12[_s12];for(var _i12=0;_i12<_a12.length;_i12++){var _p12=_a12[_i12];if(rank==='TRI'?(_p12.rank!=='CP'||!_p12.triR1009A):(rank&&_p12.rank!==rank))continue;if(!used[_p12.empId]&&eligible(_p12,f,rank))list.push(_p12)}}   /* 1012A #254：先依職級篩（同 eligible 第一行），順序與結果不變 */")
+# ── 1012A 使用者決定（「「一天一班」可以」）：kgmAuditR210／R211 不再要求「當天來回」，改成檢查「一天一班」（同一天執勤的航班號不超過一個，調位不算；經停直飛同班號算一班），跟 t_crewrule twoLegDays 同一條規則 ──
+RC('audit210 vars','kgm-0908B-r210',"    var froms={},breaks=0,sameDay=0,dutyDays=0,total=0;",
+   "    var froms={},breaks=0,sameDay=0,dutyDays=0,total=0,twoFlt1012A=0,twoEx1012A=[];")
+RC('audit210 count','kgm-0908B-r210',"        if(day.legs.length>1&&day.legs[0].fr===day.legs[day.legs.length-1].to)sameDay++;",
+   "        if(day.legs.length>1&&day.legs[0].fr===day.legs[day.legs.length-1].to)sameDay++;\n"
+   "        /* 1012A：一天一班 —— 調位（DH）不算，經停直飛同一個班號算一班 */\n"
+   "        var opC12={};day.legs.forEach(function(l){if(!(l.positioning||l.dhR913||l.deadhead))opC12[l.code]=1});\n"
+   "        if(Object.keys(opC12).length>1){twoFlt1012A++;if(twoEx1012A.length<5)twoEx1012A.push(id+' '+day.date+' '+Object.keys(opC12).join('/'))}")
+RC('audit210 rule','kgm-0908B-r210',"    if(!sameDay)out.bad.push('沒有任何當天來回');",
+   "    /* 1012A：原本要求「至少要有一次當天來回」，跟使用者的規則「組員一天只飛一班」（0922F）互斥；使用者同意改成檢查一天一班 */\n"
+   "    out.twoFlightDays=twoFlt1012A;if(twoEx1012A.length)out.twoFlightSample=twoEx1012A;\n"
+   "    if(twoFlt1012A)out.bad.push('有 '+twoFlt1012A+' 個執勤日飛了兩班以上（規則：一天一班）');")
+RC('audit211 vars','kgm-0908B-r211',"    var brk=0,turns=0,duty=0,multi=0,rows=0,origins={};",
+   "    var brk=0,turns=0,duty=0,multi=0,rows=0,origins={},twoFlt1012A=0,twoEx1012A=[];")
+RC('audit211 count','kgm-0908B-r211',"        if(isTurn(x.legs))turns++;",
+   "        /* 1012A：一天一班 —— 調位（DH）不算，經停直飛同一個班號算一班 */\n"
+   "        var opC12={};x.legs.forEach(function(l){if(!(l.positioning||l.dhR913||l.deadhead||/DH|調位|deadhead/i.test(String(l.remark||l.blockStr||''))))opC12[l.code]=1});\n"
+   "        if(Object.keys(opC12).length>1){twoFlt1012A++;if(twoEx1012A.length<5)twoEx1012A.push(id+' '+(x.date||'')+' '+Object.keys(opC12).join('/'))}\n"
+   "        if(isTurn(x.legs))turns++;")
+RC('audit211 rule','kgm-0908B-r211',"    if(!turns)out.bad.push('沒有任何當天來回（短程線應該要有）');",
+   "    /* 1012A：原本要求「要有當天來回」，跟使用者的規則「組員一天只飛一班」（0922F）互斥；使用者同意改成檢查一天一班 */\n"
+   "    out.twoFlightDays=twoFlt1012A;if(twoEx1012A.length)out.twoFlightSample=twoEx1012A;\n"
+   "    if(twoFlt1012A)out.bad.push('有 '+twoFlt1012A+' 個執勤日飛了兩班以上（規則：一天一班）');")
+# ── 1012A 登機組別（js/bz12.js）：boardingZoneOf 原本沒有定義，每張登機證都掉進 catch 印「第 4 組」；四種登機證都改讀同一個計算 ──
+RW('bz12 bp0814',"try{zone=zoneLabel(boardingZoneOf?boardingZoneOf(b,seg):4);}catch(e){zone=Z?'第 4 組登機':'Zone 4';}",
+   "try{zone=window.kgmZoneTextR1012A(boardingZoneOf(b,seg));}catch(e){zone=Z?'第 4 組登機':'Zone 4';}")
+RC('bz12 r7 bp','kgm-r7-passenger-core',"try{zone=zoneLabel(boardingZoneOf(b,s.key))}catch(_){zone=(z7()?'第 4 組':'Zone 4')}",
+   "try{var lc12=window.kgmLegCabR1012A?window.kgmLegCabR1012A(b,s):null;zone=window.kgmBpZoneTxtR1012A(b,null,lc12?lc12.fare:(((b.segmentFare0826A||{})[s.rootKey||s.key])||s.c),seat,f)}catch(_){zone=(z7()?'第 4 組':'Zone 4')}   /* 1012A：登機組別（js/bz12.js） */")
+RC('bz12 r6 bp','kgm-0812a-r6',"zone=typeof bpZone==='function'?bpZone(s.c,seat):'—'",
+   "zone=window.kgmBpZoneTxtR1012A?window.kgmBpZoneTxtR1012A(b,null,((b.segmentFare0826A||{})[s.key])||s.c,seat,Object.assign({},f,{date:s.date})):(typeof bpZone==='function'?bpZone(s.c,seat):'—')")
+RW('bz12 dl bp a',"<div class='big'>\"+bpZone(s.c,s.seat)+\"</div>","<div class='big'>\"+(window.kgmBpZoneTxtR1012A?window.kgmBpZoneTxtR1012A(bkk,null,s.c,s.seat,s.f):bpZone(s.c,s.seat))+\"</div>")
+RW('bz12 dl bp b',"<div class=\"big\">'+bpZone(s.c,s.seat)+'</div>","<div class=\"big\">'+(window.kgmBpZoneTxtR1012A?window.kgmBpZoneTxtR1012A(bkk,null,s.c,s.seat,s.f):bpZone(s.c,s.seat))+'</div>")
+RW('bz12 modal bp',"${bpZone(bk.outC,bpSeat)}","${window.kgmBpZoneTxtR1012A?window.kgmBpZoneTxtR1012A(bk,null,bk.outC,bpSeat,bk.outF):bpZone(bk.outC,bpSeat)}")
+RC('bz12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/bz12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
+# ── 1012A 票價卡「優先登機」：豪經每一個方案都有（使用者：「產品介紹優先登機的豪經全勾，每一個都是優先登機。就只有經濟艙豪華才有優先登機。」）；經濟艙維持只有豪華 ──
+RC('fare prio premium',R229,"      if(cab==='Business'){f.wifi=true;f.zone=Math.min(+f.zone||1,1)}      /* 商務：全部無限 Wi-Fi，一起優先登機 */",
+   "      if(cab==='Business'){f.wifi=true;f.zone=Math.min(+f.zone||1,1)}      /* 商務：全部無限 Wi-Fi，一起優先登機 */\n"
+   "      if(cab==='Premium'){f.zone=2}                                         /* 1012A：豪經每一個方案都優先登機（ZONE 2） */\n"
+   "      if(cab==='Economy'&&fam!=='Deluxe'&&(+f.zone||4)<=2){f.zone=4}        /* 1012A：經濟艙只有豪華方案優先登機 */")
+# ── 1012A 報到櫃檯一律寫號碼（js/ctr12.js）：登機證與行程卡讀同一份後台櫃檯分配；當天沒飛取最近有飛的日子；外站聯營寫夥伴櫃檯號 ──
+RC('ctr12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/ctr12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 # ── #255 前台首頁動畫（js/mo12.js） ──
 RC('motion embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/mo12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 RC('kx swap embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/kx12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")

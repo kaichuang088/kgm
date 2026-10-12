@@ -156,7 +156,7 @@
               b2.seats=Object.assign({},b.seats||{});var so={};if(seat)so[seat]=nm;b2.seats[seg]=so;
               var h=g.call(self,b2,seg);
               if(lc){var cz=Z?(CABZ12[lc.cabin]||lc.cabin):lc.cabin,lab=(Z?'艙等':'Class')+' <b>';h=h.replace(lab+FARE_NM(fare)+'</b>',lab+Ef(cz)+' · '+(Z?'哩程升等':'Mileage upgrade')+'</b>')}
-              try{var zn=(FARES[fare]||{}).zone;if(zn&&typeof zoneLabel==='function'){var zl=(Z?'登機組別':'Zone')+' <b>';h=h.replace(new RegExp(zl+'[^<]*</b>'),zl+Ef(zoneLabel(zn))+'</b>')}}catch(_){}   /* 這一段的艙等決定登機組別 */
+              try{if(window.kgmBpZoneTxtR1012A){var zl=(Z?'登機組別':'Zone')+' <b>';h=h.replace(new RegExp(zl+'[^<]*</b>'),zl+Ef(window.kgmBpZoneTxtR1012A(b,null,fare,seat,Object.assign({},s.f,{date:s.date})))+'</b>')}}catch(_){}   /* 這一段的艙等、座位與機型決定登機組別（js/bz12.js） */
               return '<div class="k12-bp-leg">'+(Z?'第 '+(i+1)+' 段':'Sector '+(i+1))+' · '+Ef(s.f.fr)+' → '+Ef(s.f.to)+(lc?' <i class="k12-leg">'+(Z?'已升等 ':'Upgraded ')+Ef(Z?(CABZ12[lc.cabin]||lc.cabin):lc.cabin)+'</i>':'')+'</div>'+h}).join('')}catch(_){return g.apply(self,args)}};
         w.__r1012A=1;window.boardingPass0814=w;try{window._mtBoardingPass=w}catch(_){}})(0);
       (function(){if(document.getElementById('k12-leg-css'))return;var s=document.createElement('style');s.id='k12-leg-css';
