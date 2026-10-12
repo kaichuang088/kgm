@@ -85,6 +85,7 @@ const {chromium}=require('playwright');
      .filter(f=>f&&!f.via&&!f.partner&&f.fr==='TPE')
      .map(f=>({code:f.code,h:window.kgmHoursToDepR920B(f,d)}))
      .filter(x=>isFinite(x.h)&&x.h<-0.6&&x.h>-14)
+     .filter(x=>![].concat(FLIGHTS,S.customFlights||[]).some(g=>g&&g.code!==x.code&&String(g.code).indexOf(x.code)===0))   /* 1012A：航班資料用班號前綴搜尋（KX22 會先找到 KX228），只挑沒有前綴撞號的班 */
      .sort((a,b)=>b.h-a.h)[0];
    S.adminTab='flightdata';S.opsQueryR7=(cand?cand.code:'KX20');
    S.opsDateR7=d;S.opsSelectedR7='';render();

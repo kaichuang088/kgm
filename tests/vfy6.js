@@ -14,9 +14,12 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
  push('A2','0921C 稽核仍然通過',a.b&&a.b.ok,JSON.stringify(a.b));
 
  // B1 ticketing centre
- const t=await p.evaluate(()=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='ticketing';render();
-   const m=document.querySelector('#app');return {len:m.innerText.length,has:/票務中心/.test(m.innerText),txt:m.innerText.replace(/\s+/g,' ').slice(0,200)}});
- push('B1','票務中心有內容',t.has&&t.len>600,'len='+t.len+' '+t.txt.slice(0,110));
+ /* 1012A：票務中心（1004B 起＝定位管理／票務中心）要先查定位才有內容 —— 照實際操作查一筆訂位再看 */
+ const t=await p.evaluate(async()=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='ticketing';render();
+   const b=(S.bookings||[]).find(x=>x&&x.pnr&&x.status!=='cancelled');const i=document.getElementById('jPnr');if(b&&i){i.value=b.pnr;try{kgmSearchPnr0819J()}catch(e){}}
+   await new Promise(r=>setTimeout(r,1200));
+   const m=document.querySelector('#app');return {pnr:b&&b.pnr,len:m.innerText.length,has:/票務中心/.test(m.innerText),hasPnr:!!(b&&m.innerText.indexOf(b.pnr)>=0),txt:m.innerText.replace(/\s+/g,' ').slice(0,200)}});
+ push('B1','票務中心有內容（查定位後）',t.has&&t.hasPnr&&t.len>600,'pnr='+t.pnr+' len='+t.len+' '+t.txt.slice(0,90));
 
  // B2 ticketing centre tabs render
  const t2=await p.evaluate(()=>{const m=document.querySelector('#app');

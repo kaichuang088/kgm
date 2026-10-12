@@ -631,6 +631,24 @@ RC('chain dh stray','kgm-0908B-r210',"      legs=uniq;\n    })();\n",
    "        try{window.KGM_DH_STRAY_R1012A=(window.KGM_DH_STRAY_R1012A||0)+drop.length}catch(_){}}\n"
    "      legs.forEach(function(l){if(l){delete l.k12pos;delete l.k12rec}});\n"
    "    }catch(_){}})();\n")
+# ── 後台競標分頁第一次打開 1.5～1.9 秒（vfy6 H16 門檻 1.5 秒）：打開時才替未來 10 天每一班「補模擬出價」，
+#    已經補過的也每次重算當天飛不飛、機型、離起飛幾小時（約 3,400 班 × 每班一次）。
+#    → 同一班同一天 10 分鐘內處理過就跳過（補資料本來就是「沒有才補」，結果不變）；後台開站 40 秒後用空檔分段先補好。
+RW('auc memo head',"  window.kgmEnsureAuctionsR922=function(code,date,fObj){\n    var made=0;\n    try{",
+   "  window.kgmEnsureAuctionsR922=function(code,date,fObj){\n    var made=0;\n"
+   "    /* 1012A：同一班同一天 10 分鐘內處理過就跳過 */\n"
+   "    var M12=window.__kgmAucMemoR1012A=window.__kgmAucMemoR1012A||{},mk12=fObj&&fObj.code===code?(code+'|'+date+'|'+fObj.fr+fObj.to):null;\n"
+   "    if(mk12&&M12[mk12]&&Date.now()-M12[mk12]<600000)return 0;\n"
+   "    try{")
+RW('auc memo tail',"      if(made){try{save()}catch(_){}}\n    }catch(_){}\n    return made;\n  };\n  /* 查詢時就地補齊",
+   "      if(made){try{save()}catch(_){}}\n      if(mk12&&!window.__kgmBdSkipR929)M12[mk12]=Date.now();   /* 1012A：BigDeal 被延後的那一輪不記，下次還要補 */\n"
+   "    }catch(_){}\n    return made;\n  };\n"
+   "  /* 1012A：後台開站 40 秒後用空檔分段先補好未來 10 天（每段 30 毫秒），第一次打開競標分頁不用等 */\n"
+   "  (function pre12(){if(String(window.KGM_SIDE||'')==='front')return;setTimeout(function(){var Q=[],td=T9();\n"
+   "    for(var d=1;d<=10;d++){var dd=D9(td,d);allF9().forEach(function(f){if(f&&!f.via)Q.push([f.code,dd,f])})}\n"
+   "    (function step(){var t=Date.now();while(Q.length&&Date.now()-t<30){var x=Q.shift();try{window.kgmEnsureAuctionsR922(x[0],x[1],x[2])}catch(_){}}if(Q.length)setTimeout(step,60)})();\n"
+   "  },40000)})();\n"
+   "  /* 查詢時就地補齊")
 RC('kx swap embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/kx12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 
 open('p_h_r14.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
