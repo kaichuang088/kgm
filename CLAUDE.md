@@ -28,7 +28,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
   6. SVG gradient 重複 id：`url(#id)` 會解析到第一個，即使它在 `display:none` 裡
 - 新增的註解與變數用本輪版號標記（例如 `/* 0923C：… */`、`kgmXxxR923`）。
 - 1007A 起：1004B 為重建基底，`patches/1010A/build.sh <1004B.html> <out.html>`（1010A＝1009B 全部＋`p_h_r13.js`；`p_h_r8.js`～`p_h_r13.js` 由 `gen_r8.py`～`gen_r13.py` 產生，**gen 要在 `patches/1010A/` 目錄下執行**，較長的程式在 `patches/1010A/js/*.js`） 依 `list.txt` 套用全部逐字替換（數量不符即中止）。
-- 1012A：`bash patches/1012A/build.sh <1004B.html> <out.html>`（1012A＝1010A 全部＋`p_h_r14.js`；`p_h_r14.js` 由 `gen_r14.py` 產生，**要在 `patches/1012A/` 目錄下執行**，比對基準是 1010A 最終版 `/tmp/j/kgm1010A_w26.html`（重建 1010A 得到），較長的程式在 `patches/1012A/js/*.js`：`mgr12`、`ff12`、`var12`、`kx12`、`ls12`、`mo12`（前台首頁動畫））。
+- 1012A：`bash patches/1012A/build.sh <1004B.html> <out.html>`（1012A＝1010A 全部＋`p_h_r14.js`；`p_h_r14.js` 由 `gen_r14.py` 產生，**要在 `patches/1012A/` 目錄下執行**，比對基準是 1010A 最終版 `/tmp/j/kgm1010A_w26.html`（重建 1010A 得到），較長的程式在 `patches/1012A/js/*.js`：`mgr12`、`ff12`、`var12`、`kx12`、`ls12`、`mo12`（前台首頁動畫）、`bz12`（登機組別）、`ctr12`（櫃檯）、`bp12`（登機證）、`cn12`（轉機列））。
 - 1012A 新增存檔（`PERSIST_1012A`）：`crewWorkR1012A`、`nameFixR1012A`、`mgrR1012A`（主管紀錄）、`kxSwapR1012A`（洛杉磯線班號調整的訂位搬移只做一次）、`crewFreezeR928`（已公布班表凍結，`kgm12_crewfrz`，精簡格式 `_packFZ1012A`）。
 - 1012A 洛杉磯線（2026-11-29 起）：KX6/KX5＝A388 每天半夜班；KX4/KX3＝A359 每天、一三六早上／二四五日下午（同一班號兩列）。同一班號多列時，季節表只存第一列，**要用 `kgmKxSwapR1012A.rowSeason` 依星期挑列**（KX24／KX23 也是）；生效日前一律照舊班表。
 - 1012A 儲存空間：寫入 localStorage 失敗會呼叫 `kgmLsFailR1012A`（畫面提示＋整理儲存空間）；`kgm_crewsched` 存成精簡格式（`_packCS1012A`／`_unpackCS1012A`）。Chromium 每個網站上限約 520 萬字元，後台登入後整站約 100 萬字元。
@@ -36,6 +36,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1012A 第五航權單段升等：`b.legCabR1012A[seg][航段]`＝新艙等、`b.legSeatR1012A[seg][航段]`＝新座位（陣列，每位旅客一格）；艙單、庫存、登機證、72 小時遞補都讀 `kgmLegCabR1012A(b, segs7(b,true) 的段)`。
 - 1012A 地勤主管小組：同站地勤依輪替相位排成一圈、主管平均分布、組員歸最近的主管（每組 10～13 人）。
 - 1012A 第三輪：登機組別 `boardingZoneOf`／`kgmBpZoneTxtR1012A`（`js/bz12.js`：頭等 PRIORITY、商務與金卡／鑽石卡 ZONE 1、豪經與經濟豪華 ZONE 2、經濟艙依座位排數後→前 ZONE 3/4，B779／A388 分 3/4/5）；四種登機證都讀它。豪經每個方案 `FARES.zone`=2（優先登機），經濟只有豪華。
+- 1012A 第三輪：登機證只有一個版型 `kgmBpCardR1012A`（`js/bp12.js`，參考 EVA 式樣），五個入口都讀它；單段升等分段卡在 `kgmLegBpCardsR1012A`（ff12）。轉機航班列 `kgmConnRowR1012A`／`kgmConnTableR1012A`（`js/cn12.js`），跟直飛同一張表。
 - 1012A 第三輪：報到櫃檯只有一份來源 `kgmCounterOfFlightR929`（後台分配）；`checkinCounterForFlight`（登機證）改讀它；當天沒飛取前後 14 天最近有飛的日子；外站聯營寫夥伴櫃檯號；經停整段列出發航廈跟第一段相同（`js/ctr12.js`）。**不准再出現「櫃檯依機場公告／依機場看板」**。
 - 1012A 組員班表鏈會拿掉接不上任何東西的調位（`KGM_DH_STRAY_R1012A` 計數）：引擎的組員位置跟事後換人的班表不一致時會冒出來。
 - 1010A 新增存檔（`PERSIST_1010A`）：`dhPnrR1010A`、`groundBandOvR1010A`、`casesR84`、`refundReqR113`、`refundSimR1010A`、`sbSimR929`、`redeemPromosR1010A`（里程兌換優惠）、`staffLinkR1010A`（員工↔會員綁定）。
