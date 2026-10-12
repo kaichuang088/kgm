@@ -679,6 +679,8 @@ RC('kx59 skip season loop',R229,"          var k=K(f);if(L2[k])return;var o=ST[k
 RC('crew choose rank prefilter','kgm-0903b-r121',"var baseKey=fam121(f.type)+'|'+role,list=(localPeople[baseKey+'|'+f.fr]||[]).concat.apply((localPeople[baseKey+'|'+f.fr]||[]),(SIS928[f.fr]||[]).map(function(s){return localPeople[baseKey+'|'+s]||[]})).filter(function(p){return !used[p.empId]&&eligible(p,f,rank)});",
    "var baseKey=fam121(f.type)+'|'+role,list=[],_src12=[localPeople[baseKey+'|'+f.fr]||[]].concat((SIS928[f.fr]||[]).map(function(s){return localPeople[baseKey+'|'+s]||[]}));\n"
    "    for(var _s12=0;_s12<_src12.length;_s12++){var _a12=_src12[_s12];for(var _i12=0;_i12<_a12.length;_i12++){var _p12=_a12[_i12];if(rank==='TRI'?(_p12.rank!=='CP'||!_p12.triR1009A):(rank&&_p12.rank!==rank))continue;if(!used[_p12.empId]&&eligible(_p12,f,rank))list.push(_p12)}}   /* 1012A #254：先依職級篩（同 eligible 第一行），順序與結果不變 */")
+# ── #255 前台首頁動畫（js/mo12.js） ──
+RC('motion embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/mo12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 RC('kx swap embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/kx12.js',encoding='utf-8').read()+"    window.kgmCrewUpdateR928=function(){")
 
 open('p_h_r14.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
