@@ -28,21 +28,22 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
   6. SVG gradient 重複 id：`url(#id)` 會解析到第一個，即使它在 `display:none` 裡
 - 新增的註解與變數用本輪版號標記（例如 `/* 0923C：… */`、`kgmXxxR923`）。
 - 1007A 起：1004B 為重建基底，`patches/1010A/build.sh <1004B.html> <out.html>`（1010A＝1009B 全部＋`p_h_r13.js`；`p_h_r8.js`～`p_h_r13.js` 由 `gen_r8.py`～`gen_r13.py` 產生，**gen 要在 `patches/1010A/` 目錄下執行**，較長的程式在 `patches/1010A/js/*.js`） 依 `list.txt` 套用全部逐字替換（數量不符即中止）。
-- 1012A：`bash patches/1012A/build.sh <1004B.html> <out.html>`（1012A＝1010A 全部＋`p_h_r14.js`；`p_h_r14.js` 由 `gen_r14.py` 產生，**要在 `patches/1012A/` 目錄下執行**，比對基準是 1010A 最終版 `/tmp/j/kgm1010A_w26.html`（重建 1010A 得到），較長的程式在 `patches/1012A/js/*.js`：`mgr12`、`ff12`、`var12`、`kx12`、`ls12`）。
-- 1012A 新增存檔（`PERSIST_1012A`）：`crewWorkR1012A`、`nameFixR1012A`、`mgrR1012A`（主管紀錄）、`kxSwapR1012A`（洛杉磯線班號調整的訂位搬移只做一次）。
+- 1012A：`bash patches/1012A/build.sh <1004B.html> <out.html>`（1012A＝1010A 全部＋`p_h_r14.js`；`p_h_r14.js` 由 `gen_r14.py` 產生，**要在 `patches/1012A/` 目錄下執行**，比對基準是 1010A 最終版 `/tmp/j/kgm1010A_w26.html`（重建 1010A 得到），較長的程式在 `patches/1012A/js/*.js`：`mgr12`、`ff12`、`var12`、`kx12`、`ls12`、`mo12`（前台首頁動畫））。
+- 1012A 新增存檔（`PERSIST_1012A`）：`crewWorkR1012A`、`nameFixR1012A`、`mgrR1012A`（主管紀錄）、`kxSwapR1012A`（洛杉磯線班號調整的訂位搬移只做一次）、`crewFreezeR928`（已公布班表凍結，`kgm12_crewfrz`，精簡格式 `_packFZ1012A`）。
 - 1012A 洛杉磯線（2026-11-29 起）：KX6/KX5＝A388 每天半夜班；KX4/KX3＝A359 每天、一三六早上／二四五日下午（同一班號兩列）。同一班號多列時，季節表只存第一列，**要用 `kgmKxSwapR1012A.rowSeason` 依星期挑列**（KX24／KX23 也是）；生效日前一律照舊班表。
 - 1012A 儲存空間：寫入 localStorage 失敗會呼叫 `kgmLsFailR1012A`（畫面提示＋整理儲存空間）；`kgm_crewsched` 存成精簡格式（`_packCS1012A`／`_unpackCS1012A`）。Chromium 每個網站上限約 520 萬字元，後台登入後整站約 100 萬字元。
-- 1012A 地勤櫃檯最少人力：1～2 班 5 人、3 班 7 人（再多一班 +2）、A388 +1（r194 `needCtr8`）；地勤桃園 426、松山 44 人；排完再補一次（換手，`P.rescueR1012A`）；桃園班別輪替 20 週（早 6／白天 5／中 4／晚 5），松山依名次輪替（`tsaRank12`）。**量要量 28 天以上、開兩次頁**（同一天的地勤排班每次開頁可能不同）。
+- 1012A 地勤櫃檯最少人力：1～2 班 5 人、3 班 7 人（再多一班 +2）、A388 +1（r194 `needCtr8`）；地勤桃園 444、松山 48 人；換班別那天若跟前一天班別接不滿 11 小時就排休（`kgmGroundRest11R1012A`）；排完再補一次（換手，`P.rescueR1012A`，白天／中／晚班可提早 60 分鐘）；桃園班別輪替 20 週（早 6／白天 5／中 4／晚 5），松山依名次輪替（`tsaRank12`）。**量要量 28 天以上、開兩次頁**（同一天的地勤排班每次開頁可能不同）。
+- 1012A 第五航權單段升等：`b.legCabR1012A[seg][航段]`＝新艙等、`b.legSeatR1012A[seg][航段]`＝新座位（陣列，每位旅客一格）；艙單、庫存、登機證、72 小時遞補都讀 `kgmLegCabR1012A(b, segs7(b,true) 的段)`。
+- 1012A 地勤主管小組：同站地勤依輪替相位排成一圈、主管平均分布、組員歸最近的主管（每組 10～13 人）。
 - 1012A 組員班表鏈會拿掉接不上任何東西的調位（`KGM_DH_STRAY_R1012A` 計數）：引擎的組員位置跟事後換人的班表不一致時會冒出來。
-- 已知舊問題：地勤週日換班別那天，前一天晚班接當天早班不到 11 小時（1010A 就有）。
 - 1010A 新增存檔（`PERSIST_1010A`）：`dhPnrR1010A`、`groundBandOvR1010A`、`casesR84`、`refundReqR113`、`refundSimR1010A`、`sbSimR929`、`redeemPromosR1010A`（里程兌換優惠）、`staffLinkR1010A`（員工↔會員綁定）。
 - 1010A 機隊：排班時算機型用 `planSub10`（只看人工換機／維修改派）＋`KGM_PLAN_R1010A`，否則自動換機紀錄會被當成時刻表、換機永遠換不回來；量換機要讀 `kgmChangesR78().changes`（不是 `rows`）。
-- 已知舊問題：`t_sched922` 結果不穩（1009B 起，10 次約卡 4～5 次）——背景補調機（KX89xx）重寫已排好的日子，組員排班指紋一變就整份重排（見 `notes/1010A-pass116-notes.md` 第五節）。比較時兩版各跑多次。
+- 已知舊問題：`t_sched922` 到不了 60／60（1010A 今天也一樣）：組員引擎 60 天要 1～2 分鐘 CPU，又要等機隊整年最後重排（開頁約 65 秒）之後才能算，測試只等到開頁約 90 秒（見 `notes/1012A-pass117-notes.md` 第二輪 D）。看的是 maxLatency（畫面卡多久）。
 - 前台／後台同步只認 `save()` 裡 `LS.set("鍵",S.欄位)` 這種寫法（r229 自動掃出對照表）。**新增要跨分頁或重新整理後還在的資料，一定要加進 `save()` 與 S 初始值**；
   1007A 實測發現一大批資料從來沒存檔（見 `notes/1007A-pass110-notes.md` 第二節）。
 - 1009A 起機師另有「當班位置」：`kgmCrewPlanR121(date).flights[].pilots[].posCode`（PIC 機長／TRI 教官／SIC 副機長／CRZ 巡航），DH 艙等看位置；調位紀錄帶 `posR1009A`。1009B 起客艙也看當班位置（PU／DPU／FA，r196 `kgmCabinPositionsR1006A`）。
 - 1009B 起正式組員的職級固定存在 `S.crewRankR1009B`（`kgm7_crewrank`）；職級晉升存在 `S.crewLevelR1009B`（`kgm7_crewlvl`，核准後第 30 天生效，排班引擎逐日套用 `lvApply1009B`）。
-- 已知舊問題：每次開頁機隊輪轉可能換一套，組員班表跟著換；`S.crewFreezeR928` 沒存檔（見 `notes/1009B-pass115-notes.md` 第六節）。
+- 1012A 第二輪修好「每次開頁機隊輪轉換一套」：根因是 KX59 冬季時刻相對位移、存檔後每次開頁再移一次；現在寫定值。**季節時刻的修正一律寫定值，不要在存檔的值上再加減**。量輪轉穩定用同一個瀏覽器連續重新整理（`tests/rotreload.js`），不是只開新瀏覽器。
 - 組員職級有兩套：排班引擎 `kgmCrewPoolR121()`（正機師 CP／FO／CR、座艙長 PU／DPU／FA，班表顯示這份）與員工檔 `S.staff.rank`（CAPT／CP／SC…）。判斷職位用前者。
 
 ## 測試環境
