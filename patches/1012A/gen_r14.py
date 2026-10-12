@@ -760,6 +760,18 @@ RC('cn12 embed',R229,"    window.kgmCrewUpdateR928=function(){",open('js/cn12.js
 # ── 1012A vfy5d Z2：員工票身分驗證頁原本在 render 後 230 毫秒才畫（第一次進入選航班頁時，訂位內容會先閃出來）→ render 當下先畫一次，延遲那次照舊 ──
 RC('staff gate sync','kgm-0823c-r55',"  render=window.render=function(){var r=rd55.apply(this,arguments);setTimeout(post55,230);return r};",
    "  render=window.render=function(){var r=rd55.apply(this,arguments);try{if(S.view==='booking')staffGatePage5()}catch(_){}setTimeout(post55,230);return r};   /* 1012A：驗證頁 render 當下就擋 */")
+# ── 1012A 使用者決定（第三輪回覆）：「銀卡沒有優先登機！」「那統一30分鐘！」──
+#   銀卡：會員頁權益兩處拿掉「優先登機」（規章 FFP-011 表一銀卡改「—」在 pol/bz_pol12.py；登機證本來就照艙等）
+RW('silver no priority default','Silver:"• Galaxy 貴賓室使用權（可用 5000 哩邀請一人）\\n• 里程累積 8-15% 加成\\n• 優先登機\\n',
+   'Silver:"• Galaxy 貴賓室使用權（可用 5000 哩邀請一人）\\n• 里程累積 8-15% 加成\\n')
+RW('silver no priority perks','perks:["Galaxy 貴賓室使用權","里程累積8-15%加成","優先登機","一件額外免費行李"]',
+   'perks:["Galaxy 貴賓室使用權","里程累積8-15%加成","一件額外免費行李"]')
+#   登機時間：行程卡、登機證、舊版登機證頁、行程列原本起飛前 40 分（國內線 25 分）→ 一律起飛前 30 分（規章 GC-001 第十二條、CKI-005 第六條、登機門模擬 T-30）
+RC('board30 trip card','kgm-0909B-r217','close=dom?30:60, brd=dom?25:40;','close=dom?30:60, brd=30;   /* 1012A：登機一律起飛前 30 分（使用者：「統一30分鐘」） */')
+RC('board30 r6 page','kgm-0812a-r6',"(+a[0]*60+(+a[1]||0)-40+1440)%1440","(+a[0]*60+(+a[1]||0)-30+1440)%1440")
+RC('board30 r7 page','kgm-r7-passenger-core','bm=(dm-40+1440)%1440','bm=(dm-30+1440)%1440')
+RC('board30 r26 row','kgm-0814d-r26','hhmm(mins(r.f.dep)-40)','hhmm(mins(r.f.dep)-30)')
+
 # ── 1012A 登機組別寫進規章（pol/bz_pol12.py；PDF 由 pol/pol12.py 用同一份修改重排 02／05／11）──
 #   RES-002 表二：豪經每個票價家族都優先登機（第 2 組）、經濟艙只有豪華；CKI-005 第七條登機順序改成 PRIORITY／ZONE 1～5；
 #   FFP-011 表一金卡、尊爵卡寫第 1 組。銀卡沒動（使用者的分組沒有提到）。

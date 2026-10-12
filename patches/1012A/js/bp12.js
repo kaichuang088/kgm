@@ -55,9 +55,9 @@
       function ddmon(d){var m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(d||''));return m?(m[3]+MON[+m[2]-1]):String(d||'')}
       var CABEN={Economy:'Economy Class',Premium:'Premium Economy',Business:'Business Class',First:'First Class',Resident:'The Residence'};
       function cabinOf(fare){var x={};try{x=(FARES[fare]||AWARD_FARES[fare]||{})}catch(_){}if(x.cabin)return x.cabin;var m=/^(?:AW-)?([EPBFR])-/.exec(String(fare||''));return m?({E:'Economy',P:'Premium',B:'Business',F:'First',R:'Resident'})[m[1]]:'Economy'}
-      /* 登機與關櫃時間：跟行程卡同一套（國內線 25／30 分，其他 40／60 分；登機門起飛前 10 分關閉，KGM-GC 第 12 條） */
+      /* 登機與關櫃時間：跟行程卡同一套（登機一律起飛前 30 分 —— 使用者：「統一30分鐘」；關櫃國內線 30 分、其他 60 分；登機門起飛前 10 分關閉，KGM-GC 第 12 條） */
       function times(f){var dom=(f.fr==='TSA'||f.to==='TSA')&&['TPE','TSA','RMQ','KHH','TNN','HUN','TTT','MZG','KNH','LZN'].indexOf(f.to)>=0;
-        var d=mins(f.dep),brd=dom?25:40,close=dom?30:60;return {board:hhmm(d-brd),close:close,brdMin:brd}}
+        var d=mins(f.dep),brd=30,close=dom?30:60;return {board:hhmm(d-brd),close:close,brdMin:brd}}
       /* 簡化的 QR 圖樣（三個定位框＋依訂位產生的格點），只是示意 */
       function qr(seed){var n=25,h=hash(seed),cells='',x,y;
         function fin(cx,cy){return '<rect x="'+cx+'" y="'+cy+'" width="7" height="7" fill="#111"/><rect x="'+(cx+1)+'" y="'+(cy+1)+'" width="5" height="5" fill="#fff"/><rect x="'+(cx+2)+'" y="'+(cy+2)+'" width="3" height="3" fill="#111"/>'}
