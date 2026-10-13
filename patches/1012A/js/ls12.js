@@ -68,14 +68,16 @@ try{window._packFZ1012A=_packFZ1012A;window._unpackFZ1012A=_unpackFZ1012A}catch(
 function _packAR1012A(v){
   try{
     if(!Array.isArray(v)||!v.length)return v;
-    var cols=[],ci={},dict=[],di={},d=[];
+    var cols=[],ci=Object.create(null),dict=[],di=Object.create(null),d=[];
     for(var i=0;i<v.length;i++){var o=v[i];if(!o||typeof o!=='object'||Array.isArray(o))return v;
-      var r=[];Object.keys(o).forEach(function(k){
-        var j=JSON.stringify(o[k]);if(j===undefined)return;
-        if(!(k in ci)){ci[k]=cols.length;cols.push(k)}
-        if(!(j in di)){di[j]=dict.length;dict.push(j)}
-        var c=ci[k];while(r.length<c)r.push('');r[c]=di[j].toString(36);
-      });
+      var r=[];for(var k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;
+        var x=o[k],t=typeof x,tk;   /* 字串、數字直接當字典的鍵（不必每一格都 JSON.stringify），第一次出現才轉成 JSON 存進字典 */
+        if(t==='string')tk='s'+x;else if(t==='number')tk=isFinite(x)?'n'+x:'z';else if(t==='boolean')tk=x?'T':'F';else if(x===null)tk='z';
+        else if(t==='undefined'||t==='function')continue;else tk='j'+JSON.stringify(x);
+        var c=ci[k];if(c===undefined){c=ci[k]=cols.length;cols.push(k)}
+        var n=di[tk];if(n===undefined){n=di[tk]=dict.length;dict.push(tk.charAt(0)==='j'?tk.slice(1):JSON.stringify(x))}
+        while(r.length<c)r.push('');r[c]=n.toString(36);
+      }
       d.push(r.join('.'));
     }
     return {__ar1012A:1,c:cols,v:dict,d:d};
