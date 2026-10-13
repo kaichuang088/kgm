@@ -114,7 +114,20 @@ function kgmLsUnpackR1012A(k,o){
   }catch(e){}
   return o;
 }
-try{window.kgmLsPackR1012A=kgmLsPackR1012A;window.kgmLsUnpackR1012A=kgmLsUnpackR1012A}catch(e){}
+/* 存檔用的字串：競標清單每次存檔都整份重新壓縮會拖慢畫面（實測 150 秒內 270 次、多花 3.5 秒 CPU，組員班表最長卡 18.8 秒）。
+   先做一次普通的 JSON（舊版本來就要做這一步）跟上一次比，內容沒變就沿用上一次壓好的字串，有變才重新壓縮。 */
+var _arCacheR1012A={};
+function kgmLsStrR1012A(k,v){
+  try{
+    if(KGM_PACK_AR_R1012A[k]){
+      var raw=JSON.stringify(v),c=_arCacheR1012A[k];
+      if(c&&c.raw===raw)return c.s;
+      var s=JSON.stringify(_packAR1012A(v));_arCacheR1012A[k]={raw:raw,s:s};return s;
+    }
+  }catch(e){}
+  return JSON.stringify(kgmLsPackR1012A(k,v));
+}
+try{window.kgmLsPackR1012A=kgmLsPackR1012A;window.kgmLsUnpackR1012A=kgmLsUnpackR1012A;window.kgmLsStrR1012A=kgmLsStrR1012A}catch(e){}
 var kgmLsFailR1012A=null,kgmLsOkR1012A=null;
 (function(){
   function isQuota(e){try{return !!e&&(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||e.code===22||e.code===1014||/quota/i.test(String(e.message||'')))}catch(_){return false}}

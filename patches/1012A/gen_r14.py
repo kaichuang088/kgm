@@ -580,7 +580,7 @@ RW('ls setnow hook',"setNow(k,v){try{localStorage.setItem(k,JSON.stringify(v));}
    "setNow(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){try{typeof kgmLsFailR1012A==='function'&&kgmLsFailR1012A(k,e)}catch(_){}}}};   /* 1012A：寫不進去要講 */")
 RW('cs pack get',"return (k==='kgm_tailasg')?_unpackTA0818(o):o;}catch{return fb;}}",
    "return kgmLsUnpackR1012A(k,o);}catch{return fb;}}   /* 1012A：精簡格式（kgm_tailasg、kgm_crewsched、kgm12_crewfrz、競標清單）統一在 kgmLsUnpackR1012A 還原 */")
-RW('cs pack set',"JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):q[k])","JSON.stringify(kgmLsPackR1012A(k,q[k]))",2)   # 1012A：精簡格式統一在 kgmLsPackR1012A
+RW('cs pack set',"JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):q[k])","kgmLsStrR1012A(k,q[k])",2)   # 1012A：精簡格式統一在 kgmLsPackR1012A；競標清單內容沒變就沿用上次壓好的字串（kgmLsStrR1012A）
 # 1012A：跨分頁同步讀到另一個分頁寫的內容時也要還原精簡格式（kgm12_crewfrz 會同步；競標清單也會）；合併後寫回時照樣壓縮
 RC('sync pull unpack',R229,"try{var raw=_get.call(localStorage,k);if(raw==null)return false;var v=JSON.parse(raw);",
    "try{var raw=_get.call(localStorage,k);if(raw==null)return false;var v=JSON.parse(raw);try{if(window.kgmLsUnpackR1012A)v=window.kgmLsUnpackR1012A(k,v)}catch(_){}   /* 1012A：精簡格式先還原 */")
