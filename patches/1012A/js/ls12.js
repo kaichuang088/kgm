@@ -61,6 +61,58 @@ function _unpackFZ1012A(v){
   }catch(e){return v}
 }
 try{window._packFZ1012A=_packFZ1012A;window._unpackFZ1012A=_unpackFZ1012A}catch(e){}
+/* 1012A：使用者回報「瀏覽器儲存空間已滿」。實測（開頁 100 秒＋後台開過幾個分頁）整站 445 萬字元，Chromium 上限約 520 萬：
+   其中 S.bigDeals（kgmbd4）一份 294 萬 —— 模擬 BigDeal 出價一天約 1,265 筆，起飛前 7 天到起飛後 3 天都留著（1010A 起過去的再要看時重新補），
+   每筆約 400 字元的完整 JSON（欄位名稱一筆一筆重複）。改用「欄位＋值字典」精簡格式（每筆存成一串序號），讀回時還原成一模一樣的物件；
+   Residence 現金／哩程競標同一種格式。不刪任何資料。 */
+function _packAR1012A(v){
+  try{
+    if(!Array.isArray(v)||!v.length)return v;
+    var cols=[],ci={},dict=[],di={},d=[];
+    for(var i=0;i<v.length;i++){var o=v[i];if(!o||typeof o!=='object'||Array.isArray(o))return v;
+      var r=[];Object.keys(o).forEach(function(k){
+        var j=JSON.stringify(o[k]);if(j===undefined)return;
+        if(!(k in ci)){ci[k]=cols.length;cols.push(k)}
+        if(!(j in di)){di[j]=dict.length;dict.push(j)}
+        var c=ci[k];while(r.length<c)r.push('');r[c]=di[j].toString(36);
+      });
+      d.push(r.join('.'));
+    }
+    return {__ar1012A:1,c:cols,v:dict,d:d};
+  }catch(e){return v}
+}
+function _unpackAR1012A(v){
+  try{
+    if(!v||typeof v!=='object'||!v.__ar1012A)return v;
+    var cols=v.c||[],raw=v.v||[],vals=raw.map(function(j){return JSON.parse(j)});   /* 數字、字串解析一次；物件（例如寄信紀錄）每一筆各自一份，不共用 */
+    return (v.d||[]).map(function(s){var o={},p=String(s).split('.');
+      for(var i=0;i<p.length;i++){if(p[i]==='')continue;var n=parseInt(p[i],36),x=vals[n];o[cols[i]]=(x&&typeof x==='object')?JSON.parse(raw[n]):x}return o});
+  }catch(e){return v}
+}
+try{window._packAR1012A=_packAR1012A;window._unpackAR1012A=_unpackAR1012A}catch(e){}
+/* 1012A：存檔／讀檔／跨分頁同步都走這兩個 —— 上一輪 kgm12_crewfrz 改成精簡格式後，同步那一條直接 JSON.parse，
+   另一個分頁改了凍結班表，這一邊會讀到壓縮後的物件。以標記辨認格式，舊的（未壓縮）內容照常讀得到。 */
+var KGM_PACK_AR_R1012A={kgmbd4:1,kgm_resbid6:1,kgm_resmile6:1};
+function kgmLsPackR1012A(k,v){
+  try{
+    if(k==='kgm_tailasg'&&typeof _packTA0818==='function')return _packTA0818(v);
+    if(k==='kgm_crewsched')return _packCS1012A(v);
+    if(k==='kgm12_crewfrz')return _packFZ1012A(v);
+    if(KGM_PACK_AR_R1012A[k])return _packAR1012A(v);
+  }catch(e){}
+  return v;
+}
+function kgmLsUnpackR1012A(k,o){
+  try{
+    if(!o||typeof o!=='object'||Array.isArray(o))return o;
+    if(o.__ta0818&&typeof _unpackTA0818==='function')return _unpackTA0818(o);
+    if(o.__cs1012A)return _unpackCS1012A(o);
+    if(o.__fz1012A)return _unpackFZ1012A(o);
+    if(o.__ar1012A)return _unpackAR1012A(o);
+  }catch(e){}
+  return o;
+}
+try{window.kgmLsPackR1012A=kgmLsPackR1012A;window.kgmLsUnpackR1012A=kgmLsUnpackR1012A}catch(e){}
 var kgmLsFailR1012A=null,kgmLsOkR1012A=null;
 (function(){
   function isQuota(e){try{return !!e&&(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||e.code===22||e.code===1014||/quota/i.test(String(e.message||'')))}catch(_){return false}}
@@ -85,7 +137,9 @@ var kgmLsFailR1012A=null,kgmLsOkR1012A=null;
       kgmcph4:['艙等照片','Cabin photos'],kgm_chreq:['資料變更申請（含護照證明）','Data-change requests'],kgm_leave:['請假（含照片）','Leave'],
       kgm7_svc:['客服案件','Service cases'],kgm10_cases84:['案件（含附件）','Cases'],kgm_r48:['冬夏季時刻／里程帳','Seasons / ledger'],
       kgmdov4:['單日航班調整','Date overrides'],kgm_roster:['班表','Roster'],kgm_crewsched:['組員排班（各分頁自己算）','Crew plan (computed)'],
-      kgm_tailasg:['機隊排班（各分頁自己算）','Fleet plan (computed)'],kgm_acftsub:['換機紀錄','Swaps'],kgm_audit:['動作歷史','Audit log'],kgm_chat:['員工對話','Staff chat'],kgmu4:['目前登入的會員','Signed-in member']}[k];
+      kgm_tailasg:['機隊排班（各分頁自己算）','Fleet plan (computed)'],kgm_acftsub:['換機紀錄','Swaps'],kgm_audit:['動作歷史','Audit log'],kgm_chat:['員工對話','Staff chat'],kgmu4:['目前登入的會員','Signed-in member'],
+      kgmbd4:['BigDeal 競標','BigDeal bids'],kgm_resbid6:['Residence 現金競標','Residence cash bids'],kgm_resmile6:['Residence 哩程競標','Residence mileage bids'],
+      kgm_seatinv6:['座位庫存','Seat inventory'],kgm_priceov6:['票價調整','Fare overrides'],kgm12_crewfrz:['已公布組員班表','Published crew roster']}[k];   /* 1012A：補上名稱（原本顯示 S.欄位名稱） */
     if(L)return zh()?L[0]:L[1];
     try{var m=window.kgmSyncMapR1004B&&window.kgmSyncMapR1004B(),f=m&&m[k];if(typeof f==='string')return 'S.'+f}catch(_){}
     return '';

@@ -579,8 +579,13 @@ RW('ls fail hook',"if(_ls8last[k]!==s8){localStorage.setItem(k,s8);_ls8last[k]=s
 RW('ls setnow hook',"setNow(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}};",
    "setNow(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){try{typeof kgmLsFailR1012A==='function'&&kgmLsFailR1012A(k,e)}catch(_){}}}};   /* 1012A：寫不進去要講 */")
 RW('cs pack get',"return (k==='kgm_tailasg')?_unpackTA0818(o):o;}catch{return fb;}}",
-   "return (k==='kgm_tailasg')?_unpackTA0818(o):(k==='kgm_crewsched')?_unpackCS1012A(o):(k==='kgm12_crewfrz')?_unpackFZ1012A(o):o;}catch{return fb;}}   /* 1012A：kgm_crewsched、kgm12_crewfrz 精簡格式 */")
-RW('cs pack set',"JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):q[k])","JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):k==='kgm_crewsched'?_packCS1012A(q[k]):k==='kgm12_crewfrz'?_packFZ1012A(q[k]):q[k])",2)
+   "return kgmLsUnpackR1012A(k,o);}catch{return fb;}}   /* 1012A：精簡格式（kgm_tailasg、kgm_crewsched、kgm12_crewfrz、競標清單）統一在 kgmLsUnpackR1012A 還原 */")
+RW('cs pack set',"JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):q[k])","JSON.stringify(kgmLsPackR1012A(k,q[k]))",2)   # 1012A：精簡格式統一在 kgmLsPackR1012A
+# 1012A：跨分頁同步讀到另一個分頁寫的內容時也要還原精簡格式（kgm12_crewfrz 會同步；競標清單也會）；合併後寫回時照樣壓縮
+RC('sync pull unpack',R229,"try{var raw=_get.call(localStorage,k);if(raw==null)return false;var v=JSON.parse(raw);",
+   "try{var raw=_get.call(localStorage,k);if(raw==null)return false;var v=JSON.parse(raw);try{if(window.kgmLsUnpackR1012A)v=window.kgmLsUnpackR1012A(k,v)}catch(_){}   /* 1012A：精簡格式先還原 */")
+RC('sync merge pack',R229,"var f=MAP[k];v=JSON.stringify(typeof f==='string'?S[f]:(function(){var o={};try{o=JSON.parse(v)}catch(_){}Object.keys(f).forEach(function(p){o[p]=S[f[p]]});return o})());",
+   "var f=MAP[k];v=JSON.stringify((window.kgmLsPackR1012A||function(a,b){return b})(k,typeof f==='string'?S[f]:(function(){var o={};try{o=JSON.parse(v)}catch(_){}Object.keys(f).forEach(function(p){o[p]=S[f[p]]});return o})()));   /* 1012A：合併後照樣壓縮 */")
 RW('att shrink case',"resolve({name:file.name,type:file.type||'application/octet-stream',dataUrl:r.result});",
    "(window.kgmShrinkAttR1012A||function(u,t,cb){cb(u,t)})(r.result,file.type,function(u,t){resolve({name:file.name,type:t||file.type||'application/octet-stream',dataUrl:u})});   /* 1012A：圖片先縮小再存 */",4)
 RW('att shrink passport',"ok({name:file.name,type:file.type,size:file.size,dataUrl:r.result});",
