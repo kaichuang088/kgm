@@ -31,7 +31,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1012A：`bash patches/1012A/build.sh <1004B.html> <out.html>`（1012A＝1010A 全部＋`p_h_r14.js`；`p_h_r14.js` 由 `gen_r14.py` 產生，**要在 `patches/1012A/` 目錄下執行**，比對基準是 1010A 最終版 `/tmp/j/kgm1010A_w26.html`（重建 1010A 得到），較長的程式在 `patches/1012A/js/*.js`：`mgr12`、`ff12`、`var12`、`kx12`、`ls12`、`mo12`（前台首頁動畫）、`bz12`（登機組別）、`ctr12`（櫃檯）、`bp12`（登機證）、`cn12`（轉機列））。
 - 1012A 新增存檔（`PERSIST_1012A`）：`crewWorkR1012A`、`nameFixR1012A`、`mgrR1012A`（主管紀錄）、`kxSwapR1012A`（洛杉磯線班號調整的訂位搬移只做一次）、`crewFreezeR928`（已公布班表凍結，`kgm12_crewfrz`，精簡格式 `_packFZ1012A`）。
 - 1012A 洛杉磯線（2026-11-29 起）：KX6/KX5＝A388 每天半夜班；KX4/KX3＝A359 每天、一三六早上／二四五日下午（同一班號兩列）。同一班號多列時，季節表只存第一列，**要用 `kgmKxSwapR1012A.rowSeason` 依星期挑列**（KX24／KX23 也是）；生效日前一律照舊班表。
-- 1012A 儲存空間：寫入 localStorage 失敗會呼叫 `kgmLsFailR1012A`（畫面提示＋整理儲存空間）；`kgm_crewsched` 存成精簡格式（`_packCS1012A`／`_unpackCS1012A`）。Chromium 每個網站上限約 520 萬字元，後台登入後整站約 100 萬字元。
+- 1012A 儲存空間：寫入 localStorage 失敗會呼叫 `kgmLsFailR1012A`（畫面提示＋整理儲存空間）；`kgm_crewsched` 存成精簡格式（`_packCS1012A`／`_unpackCS1012A`）。Chromium 每個網站上限約 520 萬字元；第四輪實測開頁＋後台整站約 445 萬（w37）→ 210～230 萬（w40）：競標清單 kgmbd4／kgm_resbid6／kgm_resmile6 存成精簡格式（`_packAR1012A`），存檔／讀檔／跨分頁同步都走 `kgmLsPackR1012A`／`kgmLsUnpackR1012A`／`kgmLsStrR1012A`（內容沒變不重壓）。**新增精簡格式的鍵，三條路（LS.get、_ls0818flush、r229 sync pull／merge）都要走同一組函式**。
 - 1012A 地勤櫃檯最少人力：1～2 班 5 人、3 班 7 人（再多一班 +2）、A388 +1（r194 `needCtr8`）；地勤桃園 444、松山 48 人；換班別那天若跟前一天班別接不滿 11 小時就排休（`kgmGroundRest11R1012A`）；排完再補一次（換手，`P.rescueR1012A`，白天／中／晚班可提早 60 分鐘）；桃園班別輪替 20 週（早 6／白天 5／中 4／晚 5），松山依名次輪替（`tsaRank12`）。**量要量 28 天以上、開兩次頁**（同一天的地勤排班每次開頁可能不同）。
 - 1012A 第五航權單段升等：`b.legCabR1012A[seg][航段]`＝新艙等、`b.legSeatR1012A[seg][航段]`＝新座位（陣列，每位旅客一格）；艙單、庫存、登機證、72 小時遞補都讀 `kgmLegCabR1012A(b, segs7(b,true) 的段)`。
 - 1012A 地勤主管小組：同站地勤依輪替相位排成一圈、主管平均分布、組員歸最近的主管（每組 10～13 人）。
