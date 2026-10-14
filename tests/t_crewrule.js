@@ -4,6 +4,9 @@ const {chromium}=require('playwright');
  await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});
  await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:300000});
  await p.waitForTimeout(60000);
+ /* 1014A：機隊整年重排（開頁約 65～160 秒，一次卡主執行緒約 11 秒）做完、組員計畫重算之後才量；原本固定秒數常落在重排中途 → 誤報接不上／重疊 */
+ await p.waitForFunction(()=>!!window.KGM_FULLDONE_1006A,null,{timeout:150000,polling:1000}).catch(()=>{});
+ await p.waitForTimeout(5000);
  console.log(JSON.stringify(await p.evaluate(()=>{
    const T=todayISO();
    const D=(d,n)=>{const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
