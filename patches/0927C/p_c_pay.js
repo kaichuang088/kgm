@@ -1,0 +1,33 @@
+/* 0927C · 薪資：休息日出勤加給直接加進本月薪資（使用者：「休息日這部分所加的錢直接加到薪水」）
+   勞基法 §36：每 7 日應有 2 日休息，1 日例假、1 日休息日。組員依民航局「任 7 日至少連續 30 小時休息」
+   排班，一週最多會飛 6 天 → 第 6 個執勤日就是在休息日出勤。
+   勞基法 §24 II：休息日出勤，前 2 小時另再加給 1⅓、第 3～8 小時 1⅔、第 9～12 小時 2⅔（時薪＝月薪÷30÷8）。
+   §40：例假出勤（一週第 7 個執勤日）工資加倍（另加 1 日工資）並須補假。
+   執勤時數＝報到（起飛前 60 分）到解除（落地後 30 分），跟組員班表同一份來源（kgmCrewChainR210）。 */
+
+/* ── 計算：組員班表 → 每週第 6、第 7 個執勤日 ── */
+const SNIP927C=require('fs').readFileSync(require('path').join(__dirname,'snip_pay.js'),'utf8');
+RL('pay rest calc','kgm-0908B-r210',
+"window.kgmCrewChainR210=function(empId,startDate,days){",
+SNIP927C+"window.kgmCrewChainR210=function(empId,startDate,days){");
+
+/* ── 薪資：加進 salaryOf 的本月薪資 ── */
+R('pay salaryOf',
+"  var adj=(S.salaryAdj||{})[stf.empId]||0;// CEO 手動調整\n  return{base:base,yrs:yrs,sen:sen,perf:perf,bonus:bonus,adj:adj,monthly:Math.round(base*sen*perf)+bonus+adj,items:items};",
+"  var adj=(S.salaryAdj||{})[stf.empId]||0;// CEO 手動調整\n  /* 0927C：休息日出勤加給直接加進本月薪資（勞基法 §24 II；§40 例假出勤另加一日工資）。\n     時薪＝底薪×年資÷240（月薪÷30÷8）；績效係數、功獎金、CEO 調整不列入時薪。 */\n  var rw=null,rpay=0,hpay=0;\n  if((stf.role==='pilot'||stf.role==='cabin')&&typeof window.kgmRestDayWorkR927C==='function'){try{rw=window.kgmRestDayWorkR927C(stf.empId,todayISO().slice(0,7),!!arguments[1])}catch(_){rw=null}}\n  if(rw){var hr=base*sen/240;\n    (rw.restDays||[]).forEach(function(x){x.pay=Math.round(hr*restMult927C(x.h));rpay+=x.pay});\n    (rw.holidays||[]).forEach(function(x){x.pay=Math.round(base*sen/30);hpay+=x.pay})}\n  /* 本月有一段在系統組員班表起點之前（沒有資料）→ 另外列出下個月依已排班表的預估，不列入本月 */\n  var rn=null,npay=0;\n  if(rw&&!rw.pending&&rw.dataFrom&&rw.dataFrom>rw.from&&typeof window.kgmRestDayNextYmR927C==='function'){try{rn=window.kgmRestDayWorkR927C(stf.empId,window.kgmRestDayNextYmR927C(todayISO().slice(0,7)),!!arguments[1])}catch(_){rn=null}}\n  if(rn){var hr2=base*sen/240;\n    (rn.restDays||[]).forEach(function(x){x.pay=Math.round(hr2*restMult927C(x.h));npay+=x.pay});\n    (rn.holidays||[]).forEach(function(x){x.pay=Math.round(base*sen/30);npay+=x.pay})}\n  return{base:base,yrs:yrs,sen:sen,perf:perf,bonus:bonus,adj:adj,restWork:rw,restPay:rpay,holidayPay:hpay,restNext:rn,restNextPay:npay,monthly:Math.round(base*sen*perf)+bonus+adj+rpay+hpay,items:items};");
+R('pay mult fn',
+"function salaryOf(stf){\n",
+"/* 0927C：休息日出勤加給倍數（勞基法 §24 II）：前 2 小時 1⅓、第 3～8 小時 1⅔、第 9～12 小時 2⅔ */\nfunction restMult927C(h){h=Math.max(0,Math.min(12,+h||0));return Math.min(h,2)*4/3+Math.max(0,Math.min(h,8)-2)*5/3+Math.max(0,h-8)*8/3}\nfunction restCell927C(sal){\n  var w=sal.restWork;if(!w)return '';\n  if(w.pending)return '<span style=\"color:#889;font-size:11px\">'+(LANG==='en'?'Calculating…':'班表計算中…')+'</span>';\n  var t=(sal.restPay||0)+(sal.holidayPay||0);\n  var tip=(w.restDays||[]).map(function(x){return x.date+' '+x.codes+' '+x.h+'h NT$'+x.pay}).concat((w.holidays||[]).map(function(x){return x.date+' 例假 '+x.codes+' NT$'+x.pay})).join('\\n');\n  var cur=t?'<span title=\"'+tip.replace(/\"/g,'')+'\">+'+t.toLocaleString()+'<span style=\"color:#889;font-size:10px\">（'+(w.restDays||[]).length+(w.holidays&&w.holidays.length?'＋例假 '+w.holidays.length:'')+' 天）</span></span>':'—';\n  var n=sal.restNext;\n  if(n)cur+='<div style=\"color:#889;font-size:10px;white-space:nowrap\">'+(n.pending?(LANG==='en'?'Next month: calculating…':'下月預估：計算中…'):((LANG==='en'?'Next month est. ':'下月預估 ')+(sal.restNextPay?'+'+sal.restNextPay.toLocaleString():'0')+'（'+(n.restDays||[]).length+(n.holidays&&n.holidays.length?'＋例假 '+n.holidays.length:'')+' 天）'))+'</div>';\n  return cur;\n}\nfunction salaryOf(stf){\n");
+
+/* ── 畫面：員工自己看的薪資單 ── */
+R('pay self view call',"        var sal=salaryOf(_meS);\n","        var sal=salaryOf(_meS,true);   /* 0927C：只算本人，直接算 */\n");
+R('pay self view row',
+"            ${sal.adj?`<tr><td>CEO 調整</td><td style=\"text-align:right\">${sal.adj>0?\"+\":\"\"}NT$ ${sal.adj.toLocaleString()}</td></tr>`:\"\"}\n            <tr style=\"font-weight:900;color:var(--g)\"><td>本月薪資</td>",
+"            ${sal.adj?`<tr><td>CEO 調整</td><td style=\"text-align:right\">${sal.adj>0?\"+\":\"\"}NT$ ${sal.adj.toLocaleString()}</td></tr>`:\"\"}\n            ${sal.restWork?`<tr><td>休息日出勤加給（勞基法 §24：時薪＝底薪×年資÷240，前 2 小時 ×1⅓、第 3–8 小時 ×1⅔、第 9–12 小時 ×2⅔；每週一～週日第 6 個執勤日算休息日出勤${(sal.restWork.holidays||[]).length?'，第 7 個為例假出勤，另加一日工資並須補假':''}）${sal.restWork.pending?'<div style=\"font-size:11px;color:#889\">班表計算中…</div>':((sal.restWork.restDays||[]).concat(sal.restWork.holidays||[]).length?'<div style=\"font-size:11px;color:#667;line-height:1.7\">'+(sal.restWork.restDays||[]).map(function(x){return x.date+'・'+x.codes+'・'+x.h+' 小時・NT$ '+x.pay.toLocaleString()}).concat((sal.restWork.holidays||[]).map(function(x){return x.date+'・例假出勤・'+x.codes+'・NT$ '+x.pay.toLocaleString()})).join('<br>')+'</div>':'<div style=\"font-size:11px;color:#889\">本月沒有休息日出勤。</div>')}${(!sal.restWork.pending&&sal.restWork.dataFrom&&sal.restWork.dataFrom>sal.restWork.from)?'<div style=\"font-size:11px;color:#889\">計算區間 '+sal.restWork.dataFrom+'～'+sal.restWork.dataTo+'（系統組員班表從 '+sal.restWork.dataFrom+' 開始，之前沒有資料）</div>':''}</td><td style=\"text-align:right\">+ NT$ ${((sal.restPay||0)+(sal.holidayPay||0)).toLocaleString()}</td></tr>`:\"\"}\n            ${sal.restNext?`<tr style=\"color:#667\"><td>下月休息日出勤加給預估（依已排班表，不列入本月）${sal.restNext.pending?'<div style=\"font-size:11px;color:#889\">班表計算中…</div>':'<div style=\"font-size:11px;line-height:1.7\">'+((sal.restNext.restDays||[]).map(function(x){return x.date+'・'+x.codes+'・'+x.h+' 小時・NT$ '+x.pay.toLocaleString()}).concat((sal.restNext.holidays||[]).map(function(x){return x.date+'・例假出勤・'+x.codes+'・NT$ '+x.pay.toLocaleString()})).join('<br>')||'沒有休息日出勤。')+'</div>'}</td><td style=\"text-align:right\">NT$ ${(sal.restNextPay||0).toLocaleString()}</td></tr>`:\"\"}\n            <tr style=\"font-weight:900;color:var(--g)\"><td>本月薪資</td>");
+
+/* ── 畫面：CEO 全員薪資總表多一欄 ── */
+R('pay ceo caption',"全員薪資總表（AI 依 底薪×年資×績效＋功獎金 計算）","全員薪資總表（AI 依 底薪×年資×績效＋功獎金＋休息日出勤加給 計算）");
+R('pay ceo head',"<th>CEO調整</th><th style=\"text-align:right\">本月薪資</th></tr>","<th>CEO調整</th><th>休息日加給</th><th style=\"text-align:right\">本月薪資</th></tr>");
+R('pay ceo cell',"onchange=\"doSalaryAdj(\\''+x.empId+'\\',this.value)\"></td><td style=\"text-align:right;font-weight:800;color:var(--g)\">NT$ '+sal.monthly.toLocaleString()+'</td></tr>';",
+"onchange=\"doSalaryAdj(\\''+x.empId+'\\',this.value)\"></td><td style=\"font-size:11.5px\">'+(restCell927C(sal)||'—')+'</td><td style=\"text-align:right;font-weight:800;color:var(--g)\">NT$ '+sal.monthly.toLocaleString()+'</td></tr>';");
+R('pay ceo group colspan',"<td colspan=\"8\" style=\"font-weight:900;color:var(--g);font-size:12.5px;letter-spacing:.5px\">▦ ","<td colspan=\"9\" style=\"font-weight:900;color:var(--g);font-size:12.5px;letter-spacing:.5px\">▦ ");

@@ -1,0 +1,21 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();
+ const errs=[];p.on('pageerror',e=>errs.push(String(e.message).slice(0,140)));
+ await p.goto('file://'+(process.env.F||'/tmp/j/kgm.html')+'',{waitUntil:'domcontentloaded',timeout:300000});
+ await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:300000});
+ await p.waitForFunction(()=>window.KGM_ROT_FINAL_MS_R913>0,null,{timeout:400000,polling:500});await p.waitForTimeout(15000);
+ await p.evaluate(()=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='status';render();
+   window.__lt=[];try{new PerformanceObserver(l=>{l.getEntries().forEach(e=>window.__lt.push({t:e.startTime,d:e.duration}))}).observe({entryTypes:['longtask']})}catch(e){}});
+ await p.waitForTimeout(3000);
+ const tabs=await p.evaluate(()=>{const set=new Set();document.querySelectorAll('#app [onclick]').forEach(e=>{const m=/adminTab\s*=\s*['"]([\w-]+)['"]/.exec(e.getAttribute('onclick'))||/(?:setAdminTab|adminGo|goAdminTab)[\w]*\(\s*['"]([\w-]+)['"]/.exec(e.getAttribute('onclick'));if(m)set.add(m[1]+'|'+(e.textContent||'').trim().slice(0,12))});return [...set]});
+ console.log('TABS',tabs.length,JSON.stringify(tabs));
+ const only=process.argv[2]?process.argv[2].split(','):null;
+ for(const tt of tabs){const t=tt.split('|')[0];if(only&&!only.includes(t))continue;
+   const r=await p.evaluate(async(t)=>{window.__lt=[];const t0=performance.now();S.adminTab=t;render();const sync=performance.now()-t0;
+     await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));const paint=performance.now()-t0;
+     await new Promise(r=>setTimeout(r,3000));
+     const lt=window.__lt.filter(x=>x.t>=t0);return {t,sync:Math.round(sync),paint:Math.round(paint),lt:lt.length,ltMax:Math.round(Math.max(0,...lt.map(x=>x.d))),ltSum:Math.round(lt.reduce((a,x)=>a+x.d,0))}},t);
+   console.log(JSON.stringify(r));
+ }
+ console.log('ERR',JSON.stringify(errs.slice(0,5)));
+ await b.close();})();

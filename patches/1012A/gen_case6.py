@@ -1,0 +1,43 @@
+from common import *
+# ══ 1006A #34：里程明細「−-48,000」（扣除時 amount 已是負數又加一個 −）；說明改成看得懂；取消升等要看得到加回來 ══
+R('miles log sign',"(x.type==='credit'?'+':'−')+Number(x.amount||0).toLocaleString()",
+ "(x.type==='credit'?'+':'−')+Math.abs(Number(x.amount!=null?x.amount:(x.miles||0))).toLocaleString()")
+R('miles log reason',"'</td><td>'+hq(x.reason)+'</td><td class=\"'",
+ "'</td><td>'+hq(window.kgmMilesReasonR1006A?window.kgmMilesReasonR1006A(x):(x.reason||x.desc||''))+'</td><td class=\"'")
+# ══ 1006A #35：「里程升等不用建立案件」——我的案件不再列出升等申請（UG…），升等在升等管理／我的行程看 ══
+RL('no upgrade cases','kgm-0909E-r229',
+ "    (S.upgradeReqs||[]).forEach(function(r){\n      if(!r||!r.id||seen[r.id])return;",
+ "    /* 1006A：使用者「里程升等不用建立案件」→ 不再把升等申請列成案件 */\n    [].forEach(function(r){\n      if(!r||!r.id||seen[r.id])return;")
+# ══ 1006A #36：進到案件之後不再顯示查詢表單（回到案件查詢主畫面才有） ══
+R('case detail no form',"return '<main class=\"j-case-public\">'+head+form+body+'</main>';",
+ "/* 1006A：進到案件後不再顯示查詢表單，改成「返回案件查詢」 */\n"
+ "  return '<main class=\"j-case-public\">'+head+'<div class=\"j6-case-back\"><button class=\"btn\" onclick=\"S.caseLookup0831B={};render()\">← '+(ZJ()?'返回案件查詢':'Back to case search')+'</button></div>'+body+'</main>';")
+# ══ 1006A #37：處理進度改成步驟條（完成打勾、目前步驟金框、下一步「結案」淡色） ══
+R('case steps class',"'<div class=\"j-public-timeline\">'+steps.map(function(x,i){",
+ "'<div class=\"j-public-timeline j6-tl\">'+steps.map(function(x,i){")
+R('case steps node',"return '<div class=\"'+(i===steps.length-1?'now':'')+'\"><i></i><span><b>'",
+ "return '<div class=\"'+(i===steps.length-1?(closed?'done':'now'):'done')+'\"><i>'+((i<steps.length-1||closed)?'✓':String(i+1))+'</i><span><b>'")
+R('case steps tail',"+'<div class=\"j-case-foot\">'+(ZJ()\n        ?'案件的每一次狀態變更都會以 Email 通知；",
+ "+(closed?'':('<style>.j6-tl-end{display:none}</style>'))\n"
+ "    +'<style id=\"j6-tl-css\">'\n"
+ "      +'.j-case-file .j6-tl{display:flex;margin:20px 0 12px;padding:4px 0 0}'\n"
+ "      +'.j-case-file .j6-tl>div{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;border:0;padding:0 8px;min-height:0;gap:0}'\n"
+ "      +'.j-case-file .j6-tl>div:before{content:\"\";position:absolute;top:16px;right:50%;width:100%;height:3px;background:#e2e8e4;z-index:0}'\n"
+ "      +'.j-case-file .j6-tl>div:first-child:before{display:none}'\n"
+ "      +'.j-case-file .j6-tl>div.done:before,.j-case-file .j6-tl>div.now:before{background:linear-gradient(90deg,#0b4a3b,#2b7a61)}'\n"
+ "      +'.j-case-file .j6-tl i{position:relative;z-index:1;width:34px;height:34px;margin:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font:900 14px/1 -apple-system,\"Noto Sans TC\",sans-serif;font-style:normal;color:#fff;background:#0b4a3b;box-shadow:0 0 0 6px #fff}'\n"
+ "      +'.j-case-file .j6-tl .now i{background:#fff;border:3px solid #a9822f;color:#8a6a22;box-shadow:0 0 0 6px #fff,0 0 0 10px rgba(169,130,47,.14)}'\n"
+ "      +'.j-case-file .j6-tl .todo i{background:#fff;border:2px dashed #c4cec8;color:#a7b0ab}'\n"
+ "      +'.j-case-file .j6-tl span{margin-top:13px;display:block}'\n"
+ "      +'.j-case-file .j6-tl b{display:block;font-size:13px;font-weight:800;color:#1d2b25;line-height:1.45}'\n"
+ "      +'.j-case-file .j6-tl .now b{color:#8a6a22}.j-case-file .j6-tl .todo b{color:#9aa39e;font-weight:700}'\n"
+ "      +'.j-case-file .j6-tl small{display:block;font-size:10.5px;color:#8b948f;margin-top:4px}'\n"
+ "      +'.j-case-public .j6-case-back{margin:0 0 14px}.j-case-public .j6-case-back .btn{border-radius:999px;padding:9px 18px;font-weight:800}'\n"
+ "      +'@media(max-width:700px){.j-case-file .j6-tl{flex-direction:column}.j-case-file .j6-tl>div{flex-direction:row;align-items:flex-start;text-align:left;gap:14px;padding:0 0 20px}'\n"
+ "      +'.j-case-file .j6-tl>div:before{top:auto;bottom:100%;right:auto;left:16px;width:3px;height:100%}.j-case-file .j6-tl span{margin-top:6px}}'\n"
+ "    +'</style>'\n"
+ "    +'<div class=\"j-case-foot\">'+(ZJ()\n        ?'案件的每一次狀態變更都會以 Email 通知；")
+R('case steps todo',"+EJ(x.label||caseStatusJ(x.status))+'</b><small>'+EJ(_t)+'</small></span></div>'}).join('')\n    +'</div>'",
+ "+EJ(x.label||caseStatusJ(x.status))+'</b><small>'+EJ(_t)+'</small></span></div>'}).join('')\n"
+ "    +(closed?'':('<div class=\"todo\"><i>'+(steps.length+1)+'</i><span><b>'+(ZJ()?'結案':'Closed')+'</b><small>'+(ZJ()?'完成後以 Email 通知':'You will be emailed')+'</small></span></div>'))\n    +'</div>'")
+save('p_h_case.js','/* 1006A · 里程明細＋案件頁 */\n')
