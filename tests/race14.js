@@ -1,8 +1,8 @@
 // deterministic two-tab race: A queues a new bid (500 ms debounce); B writes first; then check both tabs + storage
-const {chromium}=require('playwright');const F=process.argv[2]||'/tmp/j/kgm.html';const N=+(process.argv[3]||3);
+const {chromium}=require('playwright');const F=process.argv[2]||'/tmp/j/kgm.html',FB=process.argv[4]||F;const N=+(process.argv[3]||3);
 (async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:1300,height:900}});
 const A=await ctx.newPage(),B=await ctx.newPage();
-await A.goto('file://'+F,{waitUntil:'domcontentloaded',timeout:300000});await B.goto('file://'+F,{waitUntil:'domcontentloaded',timeout:300000});
+await A.goto('file://'+F,{waitUntil:'domcontentloaded',timeout:300000});await B.goto('file://'+FB,{waitUntil:'domcontentloaded',timeout:300000});
 await A.waitForTimeout(120000);
 for(let i=0;i<N;i++){
  const ida='RACEA'+i,idb='RACEB'+i;

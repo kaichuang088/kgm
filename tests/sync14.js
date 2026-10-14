@@ -1,8 +1,8 @@
 // 1014A sync checks: delete propagates (not resurrected), edit propagates, crewfrz sync, simultaneous adds
-const {chromium}=require('playwright');const F=process.argv[2]||'/tmp/j/kgm.html';
+const {chromium}=require('playwright');const F=process.argv[2]||'/tmp/j/kgm.html',FB=process.argv[3]||F;
 (async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:1300,height:900}});
 const A=await ctx.newPage(),B=await ctx.newPage();const errs=[];[A,B].forEach((p,i)=>p.on('pageerror',e=>errs.push((i?'B ':'A ')+String(e.message).slice(0,150))));
-await A.goto('file://'+F,{waitUntil:'domcontentloaded',timeout:300000});await B.goto('file://'+F,{waitUntil:'domcontentloaded',timeout:300000});
+await A.goto('file://'+F,{waitUntil:'domcontentloaded',timeout:300000});await B.goto('file://'+FB,{waitUntil:'domcontentloaded',timeout:300000});
 await A.waitForTimeout(120000);
 const st=(P,id)=>P.evaluate((id)=>{const v=kgmLsUnpackR1012A('kgmbd4',JSON.parse(localStorage.getItem('kgmbd4')||'[]'));const m=(S.bigDeals||[]).find(x=>x.id===id),s=v.find(x=>x.id===id);return {mem:m?m.amount:null,st:s?s.amount:null}},id);
 const add=(P,id,amt)=>P.evaluate(([id,amt])=>{S.bigDeals.push({id:id,code:'KX20',date:'2026-10-30',fr:'TPE',to:'NRT',pnr:'P'+id.slice(-5),userId:'U',who:'T',cabin:'Economy',toCabin:'Premium',amount:amt,miles:0,pax:1,status:'open',at:new Date().toISOString(),kindR929:1});save()},[id,amt]);
