@@ -702,6 +702,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
  push('H27','共飛航線（KX80/79、KX16/15、KX82/81、KX96/95、KX50/49）：回程機型＝飛進來那一架，一班配一班',h27.checked>100&&h27.bad===0&&h27.dup===0,JSON.stringify(h27));
 
  // H28 0927C EQV pairs use the outermost outbound type; ICN "one A388 per day" = one aircraft (outbound + its return)
+ // 1018A: most EQV routes were finalized to one type at the user's request (only HKG/MFM etc. stay EQV) → 10 codes × 30 days = 300 checks; threshold 300 → 200
  const h28=await p.evaluate(()=>{
    const P=window.KGM_EQV_PAIRS_R72||{},T=todayISO(),D=(d,n)=>{const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
    let n=0,bad=[];
@@ -713,7 +714,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    let pairs=0,lone=0,loneS=[];for(let i=0;i<30;i++){const d=D(T,i);[].concat(FLIGHTS).filter(f=>f&&!f.via&&!f.partner&&f.fr==='TPE'&&f.to==='ICN').forEach(f=>{const m=/(\d+)/.exec(f.code);const r='KX'+(+m[1]-1);if(Object.keys(S.acftSub||{}).some(k=>k.indexOf(r+'_'+d)===0||k.indexOf(f.code+'_'+d)===0))return;if(acftOfFlight(f.code,d,'TPE','ICN')==='A388'){if(acftOfFlight(r,d,'ICN','TPE')==='A388')pairs++;else{lone++;loneS.push(d+' '+f.code+'/'+r+' '+acftOfFlight(r,d,'ICN','TPE')+' subs:'+Object.keys(S.acftSub||{}).filter(k=>k.indexOf(r+'_'+d)===0||k.indexOf(f.code+'_'+d)===0).join(','))}}})}
    return {checked:n,bad:bad.length,sample:bad,icnBad:icn.bad,icnPairs:pairs,icnLone:lone,loneS,pageSec:Math.round(performance.now()/1000)};
  });
- push('H28','EQV 去回程用最外層去程機型（含隔天回程）；首爾線每天一架 A388＝去回同一架',h28.checked>300&&h28.bad===0&&h28.icnBad===0&&h28.icnLone===0,JSON.stringify(h28));
+ push('H28','EQV 去回程用最外層去程機型（含隔天回程）；首爾線每天一架 A388＝去回同一架',h28.checked>=200&&h28.bad===0&&h28.icnBad===0&&h28.icnLone===0,JSON.stringify(h28));
 
  // H29 0927C ferries: positioning (no-pax) legs over the published year are a small residue (0927B: 1,842 + 577 split)
  const h29=await p.evaluate(()=>{const T=todayISO();let ferry=0,split=0,by={};Object.keys(S.tailAssign).forEach(t=>(S.tailAssign[t]||[]).forEach(x=>{if(!x||x.date<T)return;if(x.splitR927)split++;else if(x.noPax||x.positioningR830){ferry++;const k=_typeOfTail(t)+' '+x.route;by[k]=(by[k]||0)+1}}));

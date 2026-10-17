@@ -37,7 +37,8 @@
     try{(FLIGHTS||[]).forEach(function(f){if(!f||f.partner||f.codeshare)return;var t=MAP18[f.code];if(!t||!hit18(f))return;
       var d=Object.getOwnPropertyDescriptor(f,'acft');
       if(!(d&&d.get)){if(f.acft!==t){f.acftWasR1018A=f.acft;m++}pin18(f,t)}})}catch(_){}
-    try{var ST=(typeof S!=='undefined'&&S.seasonSchedulesR48)||{};Object.keys(ST).forEach(function(k){var t=MAP18[String(k).split('|')[0]],v=ST[k];if(!t||!v)return;
+    try{var ST=(typeof S!=='undefined'&&S.seasonSchedulesR48)||{};Object.keys(ST).forEach(function(k){var kp=String(k).split('|'),t=MAP18[kp[0]],v=ST[k];if(!t||!v)return;
+      if(!hit18({code:kp[0],fr:kp[1],to:kp[2]}))return;   /* 季節班表也要照 SKIP18（KX315 重慶→台北那一份原本被釘成 A339R，r160 抓到） */
       ['summer','winter'].forEach(function(se){var r=v[se];if(r&&typeof r==='object'){var d=Object.getOwnPropertyDescriptor(r,'acft');if(!(d&&d.get))pin18(r,t)}})})}catch(_){}
     return m}
   n=apply18();

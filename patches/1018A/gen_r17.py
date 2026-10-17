@@ -332,6 +332,20 @@ RC('divert status keep','kgm-r7-admin-ops',
 # ══ D+L. 機型定案（js/tf18.js）：放在最後一層（r229）最前面 ════════════════════════════════
 RW('type finalize','<script id="kgm-0909E-r229">\n','<script id="kgm-0909E-r229">\n'+JS('tf18.js'))
 
+# ══ D+L 補：舊稽核（r136 仁川、r143 關西／新千歲、r160 沖繩）寫死「這幾條線一定是 EQV」—— 使用者這一輪要定案機型，
+#   改成「EQV 或跟定案（MAP18）相同」都算對；禁 A388 等其他條件照舊。（1012A R210/R211 同樣做法）
+FIN18="((window.KGM_TYPEFIX_R1018A||{}).map||{})[f.code]!==f.acft"
+RC('audit r136 icn','kgm-0905a-r136',"    if(f.acft!=='EQV')o.icnNonEqv.push(f.code)})}catch(_){}",
+   "    if(f.acft!=='EQV'&&"+FIN18+")o.icnNonEqv.push(f.code)})}catch(_){}   /* 1018A：定案機型也算對 */")
+RC('audit r143 cts','kgm-0906a-r143',"        if(f.acft!=='EQV')bad.push(f.code+' acft='+f.acft);",
+   "        if(f.acft!=='EQV'&&"+FIN18+")bad.push(f.code+' acft='+f.acft);   /* 1018A：定案機型也算對 */")
+RC('audit r143 kixEqv','kgm-0906a-r143',"&&f.acft!=='EQV')o.kixEqv.push(f.code)})}catch(_){}",
+   "&&f.acft!=='EQV'&&"+FIN18+")o.kixEqv.push(f.code)})}catch(_){}   /* 1018A：定案機型也算對 */")
+RC('audit r143 kix','kgm-0906a-r143',"if(f.acft!=='EQV')bad.push(d+' '+f.code+' acft='+f.acft);",
+   "if(f.acft!=='EQV'&&"+FIN18+")bad.push(d+' '+f.code+' acft='+f.acft);   /* 1018A：定案機型也算對 */")
+RC('audit r160 oka','kgm-0905b-r160',"        if(f.acft!=='EQV')bad.push(f.code+' acft='+f.acft);",
+   "        if(f.acft!=='EQV'&&"+FIN18+")bad.push(f.code+' acft='+f.acft);   /* 1018A：定案機型也算對 */")
+
 # ══ O-1. KX31（多倫多／溫哥華→台北）抵達時間三層互搶 → 整年機隊輪轉看開頁時序 ══════════════════════════════
 #   量了才發現（kx31u.js）：r77 定值寫夏季 03:55／冬季 23:00–03:45，r68「全航網不在 03:00–03:59 抵達」改成 04:55，
 #   r179 經停整段又從前段複製，畫面重繪才會再改回 04:55 —— 整年重排開始那一刻剛好是哪個值，取決於中間有沒有重繪，
