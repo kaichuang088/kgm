@@ -1,7 +1,7 @@
 # KGM Airways — 專案規則（給 Claude Code）
 
 KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一個自包含的 HTML 檔**（約 8.4 MB）。
-版號由使用者指定（目前是 1015A，下一版由使用者命名）。1006A 沒有單獨交付，併入 1007A；1011、1013 沒有。
+版號由使用者指定（目前是 1018A，下一版由使用者命名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
 
 ## 使用者的固定要求（逐字，一律遵守）
 
@@ -31,6 +31,14 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1012A：`bash patches/1012A/build.sh <1004B.html> <out.html>`（1012A＝1010A 全部＋`p_h_r14.js`；`p_h_r14.js` 由 `gen_r14.py` 產生，**要在 `patches/1012A/` 目錄下執行**，比對基準是 1010A 最終版 `/tmp/j/kgm1010A_w26.html`（重建 1010A 得到），較長的程式在 `patches/1012A/js/*.js`：`mgr12`、`ff12`、`var12`、`kx12`、`ls12`、`mo12`（前台首頁動畫）、`bz12`（登機組別）、`ctr12`（櫃檯）、`bp12`（登機證）、`cn12`（轉機列））。
 - 1014A：`bash patches/1014A/build.sh <1004B.html> <out.html>`（1014A＝1012A 全部＋`p_h_r15.js`；`p_h_r15.js` 由 `gen_r15.py` 產生，**要在 `patches/1014A/` 目錄下執行**，比對基準是 1012A 最終版 `/tmp/j/kgm1012A_w40.html`（`patches/1012A/build.sh` 重建，跟交付檔逐位元相同），較長的程式在 `patches/1014A/js/rm14.js`（經濟艙營收管理售完）、`inv14.js`（票價庫存紀錄整理））。見 `notes/1014A-pass118-notes.md`。
 - 1015A：`bash patches/1015A/build.sh <1004B.html> <out.html>`（1015A＝1014A 全部＋`p_h_r16.js`；`gen_r16.py` **在 `patches/1015A/` 下執行**，比對基準 1014A 最終版 `/tmp/j/kgm1014A_w8.html`）。見 `notes/1015A-pass119-notes.md`。
+- 1018A：`bash patches/1018A/build.sh <1004B.html> <out.html>`（1018A＝1015A 全部＋`p_h_r17.js`；`gen_r17.py` **在 `patches/1018A/` 下執行**，比對基準 1015A 最終版 `/tmp/j/kgm1015A_w6.html`）。見 `notes/1018A-pass120-notes.md`。
+- 1018A 機型定案（`js/tf18.js`，r229 最前面）：MAP18 94 個班號的 `acft` 用 defineProperty **釘住**（讀＝定案、寫＝不理；季節班表 summer/winter 也釘），舊層計時器改回 EQV 改不動；`kgmPick330R92` 定案優先、其餘短程 A339R／長程 A339L；EQV 機型池拿掉 A35K、`kgmEqvPlanR79` 抽到 A35K 且 <5,000 km → A359。香港／澳門保留 EQV。**要改某班機型改 MAP18**（時刻表 PDF 用 `timetable/tt18.py` 讀同一份 MAP18 重印）。`kgmTypeFixApplyR1018A()` 回傳不一致列數（應為 0）。
+- 1018A KX31（YYZ／YVR→TPE）：r77 定值改成網站實際顯示的值（夏 04:55、冬 23:30–04:15）；原本 03:55 跟 r68「不在 03 點抵達」、r179 互改，整年輪轉看開頁時序。**時刻表 PDF 夏季仍印 03:55，等使用者決定。**
+- 1018A 開頁前 60 天機隊初排改分段（`js/boot18.js`，跟整年重排同一套 prep／days／types＋`KGM_KEEP72_1006A`），`KGM_BOOT60_R1018A={kept,prepMs,finalMs}`；量開頁初排結果用 `/tmp/j/boot60fp.js`（前 60 天＋整年指紋）。
+- 1018A 轉降：後台 AI 工具 `flight_divert`（`js/dv18.js`），紀錄 `S.divertsR1018A`（`kgm18_divert`）；Diverted 寫在 `S.flightOverrides`，predict7 不蓋人工的 Diverted／Cancelled。
+- 1018A 航班作業報告 `kgmOpsReportR1018A`（`js/ops18.js`）取代 `kgmPrintOpsR48`／`R41`／`printOpsR7`；天氣讀 `S.flightPredR7`（跟航班狀態同一份）。
+- 1018A 模擬旅客座位用 `seatSections7` 的實際座位號（快取 `__kgmSeatIdsR1018A`，機型＋艙等）；票價三方案需求依序流入（基本→超值→豪華）。
+- 1018A 儲存：員工通知同內容只留一則；`kgm_staff`／`kgmus4` 走 ls12 精簡格式；模擬會員自動里程紀錄存重算方式（`synLog18`）不存內容。
 - 1015A 卡頓：量長任務用 `tests/lt15.js`（`ADMIN=1`、`TABS=1` 切分頁），改機隊排班的效能一定要用 `tests/fpfl.js` 比對輪轉指紋跟改之前**完全相同**。整年重排輸入指紋 `kgmSig72R1006A` 只看 `planSub10(S.acftSub)`（自動換機紀錄背景會改寫，放進去會讓分段準備白做、最後整年硬算 16 秒）。最後那一次整年組合時拆機收尾 `kgmFixSplitR929` 另一個工作做（`KGM_DEFER_SPLIT_R1015A`）。**背景／畫面程式不要同步呼叫 `kgmCrewPlanR121(date)` 算還沒算好的一天**（先問 `kgmCrewHasDayR121(date)`），一天要 1.5～6 秒。
 - 1015A 儲存空間滿：`kgmLsFailR1012A` 先依序清可重算的資料（票價自動紀錄 → `kgm_crewsched` 快取（`KGM_LS_NOCS_R1015A` 這次開頁不再寫）→ 近期以外的模擬競標 → 全部模擬競標）並重寫同一份，寫進去就不提示；紀錄在 `KGM_LS_EVICT_R1015A`。量用 `tests/full15b.js`（開著時把儲存區塞滿）。
 - 1014A 經濟艙營收管理售完：`sell54`（r54，各訂位代號剩幾位的唯一來源）最後一步問 `kgmRmEcoCloseR1014A(f,date)`：需求壓力（`kgmRmR929().pressure`）平常 ≥1.5／旺季 ≥1.3、起飛前 60 天內、每 3 天重新決定；A21N 只飛 A21N 的航線 60%／A21N 45%／其他 15%（旺季 +20%）；要有別的艙可賣；**A388 不做假售完**，只有旺季且壓力 ≥2.0 才售完。只關「賣」，實體座位（員工票、升等、酬賓、組員）不受影響。`kgmRmEcoClosedListR1014A(date)` 列出當天被關的班。
@@ -66,7 +74,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/1015A/.test(t)` 改成新版號
+3. 版號更新（見下），並把 `vfy1.js` 的 `/1018A/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00 跑會因 KX180 當天已起飛而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
 5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1015A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
@@ -80,6 +88,6 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 ## 版號更新位置（重建時由 1004B 換成新版號，用 regex 精準替換，不要全域取代）
 
 `||'1004B')` ×29、`var BUILD='1004B'` ×118、`var V='1004B';` ×4、`KGM_BUILD_*='1004B'` ×12、
-`'data-kgm-build','1004B')` ×1、`· 1004B</title>` ×1、`· 1004B'`（document.title）×1，合計 166 處（`patches/1015A/p_h_ver.js`、`p_h_ver2.js` 是現成的替換腳本，`build.sh` 最後一步自動套用；下一版改這兩個檔的目標版號即可）。
+`'data-kgm-build','1004B')` ×1、`· 1004B</title>` ×1、`· 1004B'`（document.title）×1，合計 166 處（`patches/1018A/p_h_ver.js`、`p_h_ver2.js` 是現成的替換腳本，`build.sh` 最後一步自動套用；下一版改這兩個檔的目標版號即可）。
 1004B 起交付是兩個檔：`node patches/1004B/split.js <合併檔> <前台> <後台>`（1007A 另外交兩個 ZIP：說明＋時刻表＋Worker，以及 KGM_Policies 規章彙編）（只差開頭一行 `window.KGM_SIDE`）；測試一律跑合併檔。
 其他出現的舊版號都是歷史註解，**不要動**。
