@@ -106,5 +106,22 @@ csPnr12 建訂位時生日、護照、Email、電話寫空字串 → 依訂位�
 boot60fp.js（前 60 天＋整年指紋）、fdiff18.js（整年重排開始時的輸入）、kx31t.js／kx31u.js（追 KX31 寫入）、subeq18.js（_subPass 新舊對拍）、
 crewfp18.js（組員班表指紋）、subn18.js（換機通知）、prof18a.js（登入後台後的呼叫樹）。
 
-## 關卡（w25）
-（見下方，跑完補上）
+## 關卡（最終 w26，ops 65；第二輪全部依序跑）
+| 關卡 | 結果 |
+|---|---|
+| syn | scripts checked 248 errors 0；`<script id>` 241 |
+| vfy1 | 24／24 |
+| vfy2d／vfy3／vfy4 | 各 8／8 |
+| vfy5 | AC1 失敗（KX180 當天報到已截止，時段問題）→ vfy5d 6／6 |
+| vfy6 | 55／55（H28 門檻改 ≥200，見上） |
+| reg2 | notOk 集合跟 baselines/reg_1015A.out 完全相同（78），沒有多出新的；view errors 0、PAGE ERRORS 0 → 存成 baselines/reg_1018A.out |
+| t_crewrule | twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0 |
+| t_sched922 | ready 60／60（1015A 16／60）、maxLatency 2,454 ms（1015A 3,392） |
+| t_admlag | 27 個分頁最長一次 1,477 ms（1015A 2,735） |
+| tz8 | missing 0 |
+| ai9t | 同 1015A（FAIL-NOTE 是沒有金鑰時走站內引擎的註記） |
+| t_fl1 | gap／overlap／type／missing／orphan 全 0 |
+| race14（分檔） | 3／3 輪兩分頁同時新增都在 |
+| sync14（分檔） | 新增／修改／刪除／同訂位兩筆／凍結班表／訂位 全部同步 |
+| full15b（分檔） | 塞滿儲存區後修改照樣存進去、不跳提示 |
+| 轉降紀錄同步（dvsync18.js） | 後台寫 kgm18_divert＋Diverted → 前台讀得到 |
