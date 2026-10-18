@@ -13,3 +13,8 @@ window.kgmSoldFamR1018B=function(cab,present){
     return out;
   }catch(_){return []}
 };
+/* 1018B：這個代號所屬方案最貴的那一階（售完卡顯示用：使用者「賣完不可能是C/T應該是R/E」） */
+window.kgmFamTopR1018B=function(c){
+  try{var fi=FARES[c]||{},fm=fi.familyR48,a=(typeof CAB_CODES==='function'?CAB_CODES(fi.cabin||'Economy'):[])||[],top=c;
+    if(!fm)return c;a.forEach(function(x){if((FARES[x]||{}).familyR48===fm)top=x});return top}catch(_){return c}
+};

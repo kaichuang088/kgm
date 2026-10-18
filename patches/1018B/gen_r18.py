@@ -30,16 +30,16 @@ RW('sold18 direct avail',
    'const xAvail=(invOverride!==undefined?invOverride>0:(!isXClass||(f.acft!=="A21N"&&xSold<6)))&&!_b11Shut&&!_so18.includes(c);')
 RW('sold18 direct rec',
    '${_isRec?`<div class="k929-rec">',
-   '${(_isRec&&!_so18.includes(c))?`<div class="k929-rec">')
+   '${(_isRec&&xAvail)?`<div class="k929-rec">')
 RW('sold18 direct price',
    '<div class="k929-pr">${useMi?(mi.toLocaleString()+" mi"):(_isBase?fmtAmt(prVar,curr):("+"+fmtAmt(_dlt,curr)))}</div>',
-   '<div class="k929-pr">${_so18.includes(c)?(LANG==="en"?"Sold out":"售完"):(useMi?(mi.toLocaleString()+" mi"):(_isBase?fmtAmt(prVar,curr):("+"+fmtAmt(_dlt,curr))))}</div>')
+   '<div class="k929-pr">${!xAvail?(LANG==="en"?"Sold out":"售完"):(useMi?(mi.toLocaleString()+" mi"):(_isBase?fmtAmt(prVar,curr):("+"+fmtAmt(_dlt,curr))))}</div>')
 RW('sold18 direct sub',
    '<div class="k929-sub">${useMi?(LANG==="en"?"per guest":"每人"):(_isBase?',
-   '<div class="k929-sub">${_so18.includes(c)?(LANG==="en"?"This fare is no longer available on this flight":"此票價本班已售完，請選擇其他票價"):useMi?(LANG==="en"?"per guest":"每人"):(_isBase?')
+   '<div class="k929-sub">${!xAvail?(LANG==="en"?"This fare is no longer available on this flight":"此票價本班已售完，請選擇其他票價"):useMi?(LANG==="en"?"per guest":"每人"):(_isBase?')
 RW('sold18 direct soldline',
    '${(!xAvail)?`<div class="k929-sold">${LANG==="en"?"Sold out":"售完"}</div>`:""}',
-   '${(!xAvail&&!_so18.includes(c))?`<div class="k929-sold">${LANG==="en"?"Sold out":"售完"}</div>`:""}')
+   '')   # 1018B：價格那一行已經寫售完，這一行不再重複
 RW('sold18 direct button',
    'data-r91="1">${LANG==="en"?\'Select\':\'選擇\'}</button></div>',
    'data-r91="1">${xAvail?(LANG==="en"?\'Select\':\'選擇\'):(LANG==="en"?\'Sold out\':\'售完\')}</button></div>')
@@ -193,6 +193,15 @@ RC('fa18b set',R40,
 RW('fa18b rule bucket sig',"function kgmFareRuleMulR929(f,cabin){","function kgmFareRuleMulR929(f,cabin,fc18){   /* 1018B：fc18＝艙位代號（E-C…），規則有 bucket 時只套那一格 */")
 RW('fa18b rule bucket chk',"      if(r.code&&r.code!==f.code)return;\n      if(r.firstSegOnly)","      if(r.code&&r.code!==f.code)return;\n      if(r.bucket&&r.bucket!==fc18)return;\n      if(r.firstSegOnly)")
 RW('fa18b rule bucket call',"*kgmFareRuleMulR929(f,cabin);","*kgmFareRuleMulR929(f,cabin,code);")
+
+# ══ ⑥ 使用者：「這個是？」（KX168 經濟艙三張卡都有價格、寫本艙最低、又寫售完）══════════════════════
+#   原因：1014A 經濟艙營收管理售完（尖峰需求高的 A21N 整個經濟艙不賣）時，舊的 validCodes 退回「全部代號」，
+#   卡片走最舊的售完寫法（價格照印＋本艙最低＋小字售完）；右上「去程起」只看 S.seatInventory、沒問 sell54，也照印價格。
+#   修法：卡片只要不能賣（任何原因）都跟方案售完同一種樣子、代號寫方案最貴那一階；「去程起」也問 sell54（各代號剩幾位的唯一來源）。
+RW('sold18 code top','(FARES[c]||{}).displayCodeR48||String(c).split("-").pop()','(function(){var c18=(!xAvail&&!_staffFare&&window.kgmFamTopR1018B)?window.kgmFamTopR1018B(c):c;return (FARES[c18]||{}).displayCodeR48||String(c18).split("-").pop()})()')
+RW('sold18 row min','var av=CAB_CODES(k).filter(function(x){if(vc.indexOf(x)<0)return false;var iv=(S.seatInventory||{})[f.code+"_"+date+"_"+x];return iv===undefined||iv>0;});','var av=CAB_CODES(k).filter(function(x){if(vc.indexOf(x)<0)return false;var iv=(S.seatInventory||{})[f.code+"_"+date+"_"+x];if(!(iv===undefined||iv>0))return false;/* 1018B：也要問 sell54（營收管理整艙不賣時這裡還印得出價格） */if(!(S.stx&&S.stx.plan)&&typeof window.kgmInventory49==="function"){try{var l18=window.kgmInventory49(x,date,Object.assign({},f,{date:date}));if(l18!=null&&isFinite(l18)&&l18<Math.max(1,+S.search.pax||1))return false}catch(_e18){}}return true;});')
+
+RW('sold18 row minP','const _priceVcP=vc.filter(function(k){if(_boundCabCodes.indexOf(k)<0)return false;var iv=(S.seatInventory||{})[f.code+"_"+date+"_"+k];return iv===undefined||iv>0;});','const _priceVcP=vc.filter(function(k){if(_boundCabCodes.indexOf(k)<0)return false;var iv=(S.seatInventory||{})[f.code+"_"+date+"_"+k];if(!(iv===undefined||iv>0))return false;/* 1018B：「去程起」也問 sell54 —— 營收管理整艙不賣時，票價卡全部售完、這裡卻還印價格 */if(!(S.stx&&S.stx.plan)&&typeof window.kgmInventory49==="function"){try{var l18=window.kgmInventory49(k,date,Object.assign({},f,{date:date}));if(l18!=null&&isFinite(l18)&&l18<Math.max(1,+S.search.pax||1))return false}catch(_e18){}}return true;});')
 
 open('p_h_r18.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
