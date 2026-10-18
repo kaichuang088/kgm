@@ -50,7 +50,7 @@ RW('sold18 conn list',
    '  var cards=CAB_CODES(cabK).filter(function(k){return codes.indexOf(k)>=0||so18.indexOf(k)>=0}).map(function(k){var sold18=so18.indexOf(k)>=0;')
 RW('sold18 conn open',
    "    return '<button class=\"k929-fare k929-cbtn\" style=\"--k929c:'+col+';padding:0\" onclick=\"event.stopPropagation();pickConnectionFare('+cIdx+',\\''+dir+'\\',\\''+f1.date+'\\',\\''+k+'\\')\">'",
-   "    return (sold18?'<div class=\"k929-fare k929-cbtn sold\" style=\"--k929c:'+col+';padding:0\" aria-disabled=\"true\">':'<button class=\"k929-fare k929-cbtn\" style=\"--k929c:'+col+';padding:0\" onclick=\"event.stopPropagation();pickConnectionFare('+cIdx+',\\''+dir+'\\',\\''+f1.date+'\\',\\''+k+'\\')\">')")
+   "    return (sold18?'<div class=\"k929-fare k929-cbtn sold\" style=\"--k929c:'+col+';padding:0;cursor:not-allowed\" aria-disabled=\"true\">':'<button class=\"k929-fare k929-cbtn\" style=\"--k929c:'+col+';padding:0\" onclick=\"event.stopPropagation();pickConnectionFare('+cIdx+',\\''+dir+'\\',\\''+f1.date+'\\',\\''+k+'\\')\">')")
 RW('sold18 conn rec',
    "      +(fi.rec?'<div class=\"k929-rec\">'",
    "      +((fi.rec&&!sold18)?'<div class=\"k929-rec\">'")
@@ -71,10 +71,12 @@ RW('sold18 conn close',
 #   溫哥華 01:00 起飛是多倫多出發的隔天 → 溫哥華→台北這一段夏季營運日跟著往後一天（多倫多 一三五六日 → 溫哥華 一二四六日）；
 #   整段（多倫多→台北）19:40–04:30⁺²，營運日照舊。冬季不動（23:30–04:15⁺²）。
 #   r179「中停一律 75 分」「回台北的後段 07:00 以後才起飛」會把 01:00 推回去 → KX31 列入例外（使用者指定的時刻）。
+#   冬季多倫多→溫哥華 20:10–22:15 原本不是定值，是 r68／r136／r179 互相改出來的結果；夏季改了以後那串改法跑出來不一樣（量到 19:55–21:45、溫哥華 23:00 起飛）
+#   → 照 1018A 網站實際顯示的冬季值寫成定值（CLAUDE.md：季節時刻的修正一律寫定值），冬季三列跟 1018A 完全相同。
 #   r77 定值表對「已存過的季節紀錄」（userR929A）不覆蓋 → 舊預設值（22:55–03:55／04:55、整段 19:40–03:55／04:55）才遷移，人工改過的不動。
 RC('kx31 summer 1018B','kgm-0823p-r77',
    "'KX31|YVR|TPE':{summer:['22:55','04:55',2,[1,3,5,6,7],'B789'],winter:['23:30','04:15',2,[1,3,5,6,7],'B789']},'KX31|YYZ|TPE':{summer:['19:40','04:55',2,[1,3,5,6,7],'B789'],winter:['20:10','04:15',2,[1,3,5,6,7],'B789']}",
-   "'KX31|YVR|TPE':{summer:['01:00','04:30',1,[1,2,4,6,7],'B789'],winter:['23:30','04:15',2,[1,3,5,6,7],'B789']},'KX31|YYZ|TPE':{summer:['19:40','04:30',2,[1,3,5,6,7],'B789'],winter:['20:10','04:15',2,[1,3,5,6,7],'B789']}   /* 1018B：使用者指定夏季 01:00–04:30+1 */")
+   "'KX31|YYZ|YVR':{summer:['19:40','21:40',0,[1,3,5,6,7],'B789'],winter:['20:10','22:15',0,[1,3,5,6,7],'B789']},'KX31|YVR|TPE':{summer:['01:00','04:30',1,[1,2,4,6,7],'B789'],winter:['23:30','04:15',2,[1,3,5,6,7],'B789']},'KX31|YYZ|TPE':{summer:['19:40','04:30',2,[1,3,5,6,7],'B789'],winter:['20:10','04:15',2,[1,3,5,6,7],'B789']}   /* 1018B：使用者指定夏季 01:00–04:30+1；多倫多→溫哥華冬季寫定值（＝1018A 實際顯示） */")
 RC('kx31 migrate 1018B','kgm-0823p-r77',
    "      if(!(old&&old.userR929A))S.seasonSchedulesR48[k]={summer:rec(v.summer)",
    "      var MIG18B={'KX31|YVR|TPE':['22:55-03:55','22:55-04:55','01:10-05:10'],'KX31|YYZ|TPE':['19:40-03:55','19:40-04:55','19:40-05:10']};   /* 1018B：舊的系統預設才遷移 */\n"
@@ -89,7 +91,15 @@ RC('kx31 season change 1018B','kgm-0823p-r77',
    "    allF().forEach(function(f){if(!f||f.partner||f.code!=='KX31')return;\n"
    "      if(f.fr==='YYZ')f.noOpDatesR928=['2026-10-25','2027-10-31'];\n"
    "      if(f.fr==='YVR'&&f.to==='TPE')f.noOpDatesR928=['2027-03-29','2028-03-27'];});")
-RW('kx31 exempt r179',"var EXEMPT={};","var EXEMPT={KX31:1};   /* 1018B：KX31 夏季溫哥華 01:00 起飛是使用者指定（中停 3 小時 20 分、回台北段 07:00 前起飛），不套 75 分／07:00 規則 */")
+#   只免「夏季」：整個班號列入 EXEMPT 會連 freeze（seededR57=0）一起跳過 → r68 把冬季多倫多→溫哥華改成 19:55–21:40（原本 20:10–22:15），量到才發現。
+RC('kx31 exempt r179','kgm-0907B-r179',"var EXEMPT={};",
+   "var EXEMPT={};var SEA18B={KX31:'summer'};   /* 1018B：KX31 夏季溫哥華 01:00 起飛是使用者指定（中停 3 小時 20 分、回台北段 07:00 前起飛），這一季不套 75 分／07:00 規則；冬季照舊 */")
+RC('kx31 exempt r179 apply','kgm-0907B-r179',
+   "      if(!runsIn(V,L1,sea))return;      /* 這一季不飛這個版本",
+   "      if(SEA18B[V.code]===sea)return;   /* 1018B */\n      if(!runsIn(V,L1,sea))return;      /* 這一季不飛這個版本")
+RC('kx31 exempt r179 audit','kgm-0907B-r179',
+   "exempt:!!EXEMPT[V.code],",
+   "exempt:!!EXEMPT[V.code]||SEA18B[V.code]===sea,")
 
 open('p_h_r18.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

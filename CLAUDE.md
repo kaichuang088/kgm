@@ -1,7 +1,7 @@
 # KGM Airways — 專案規則（給 Claude Code）
 
 KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一個自包含的 HTML 檔**（約 8.4 MB）。
-版號由使用者指定（目前是 1018A，下一版由使用者命名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
+版號由使用者指定（目前是 1018B，下一版由使用者命名；使用者說「1008B」但 1008B 已用過，暫用 1018B）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
 
 ## 使用者的固定要求（逐字，一律遵守）
 
@@ -32,8 +32,11 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1014A：`bash patches/1014A/build.sh <1004B.html> <out.html>`（1014A＝1012A 全部＋`p_h_r15.js`；`p_h_r15.js` 由 `gen_r15.py` 產生，**要在 `patches/1014A/` 目錄下執行**，比對基準是 1012A 最終版 `/tmp/j/kgm1012A_w40.html`（`patches/1012A/build.sh` 重建，跟交付檔逐位元相同），較長的程式在 `patches/1014A/js/rm14.js`（經濟艙營收管理售完）、`inv14.js`（票價庫存紀錄整理））。見 `notes/1014A-pass118-notes.md`。
 - 1015A：`bash patches/1015A/build.sh <1004B.html> <out.html>`（1015A＝1014A 全部＋`p_h_r16.js`；`gen_r16.py` **在 `patches/1015A/` 下執行**，比對基準 1014A 最終版 `/tmp/j/kgm1014A_w8.html`）。見 `notes/1015A-pass119-notes.md`。
 - 1018A：`bash patches/1018A/build.sh <1004B.html> <out.html>`（1018A＝1015A 全部＋`p_h_r17.js`；`gen_r17.py` **在 `patches/1018A/` 下執行**，比對基準 1015A 最終版 `/tmp/j/kgm1015A_w6.html`）。見 `notes/1018A-pass120-notes.md`。
+- 1018B：`bash patches/1018B/build.sh <1004B.html> <out.html>`（1018B＝1018A 全部＋`p_h_r18.js`；`gen_r18.py` **在 `patches/1018B/` 下執行**，比對基準 1018A 最終版 `/tmp/j/kgm1018A_w26.html`）。見 `notes/1018B-pass121-notes.md`。
+- 1018B 售完方案：`validCodes` 不動，訂票頁直飛／轉機方案面板用 `kgmSoldFamR1018B(cab,可賣代號)`（`js/sold18.js`）補「售完」卡（不能按；轉機卡改成 div）。
+- 1018B KX31：夏季溫哥華→台北 01:00–04:30⁺¹（營運日 一二四六日）、整段 19:40–04:30⁺²；冬季三列＝1018A（多倫多→溫哥華 20:10–22:15 寫進 r77 定值表）。r179 只免夏季（`SEA18B`，**不要把班號放進 `EXEMPT`，會連 freeze 一起跳過**）；舊預設值遷移 `MIG18B`；換季停飛 `noOpDatesR928`（YYZ 出發 2026-10-25／2027-10-31、溫哥華→台北 2027-03-29／2028-03-27）。時刻表 PDF：`patches/1018B/timetable/tt18b.py`。全網沒有 03 點抵達；00:00–02:59 抵達 20 班待使用者決定。
 - 1018A 機型定案（`js/tf18.js`，r229 最前面）：MAP18 94 個班號的 `acft` 用 defineProperty **釘住**（讀＝定案、寫＝不理；季節班表 summer/winter 也釘），舊層計時器改回 EQV 改不動；`kgmPick330R92` 定案優先、其餘短程 A339R／長程 A339L；EQV 機型池拿掉 A35K、`kgmEqvPlanR79` 抽到 A35K 且 <5,000 km → A359。香港／澳門保留 EQV。**要改某班機型改 MAP18**（時刻表 PDF 用 `timetable/tt18.py` 讀同一份 MAP18 重印）。`kgmTypeFixApplyR1018A()` 回傳不一致列數（應為 0）。
-- 1018A KX31（YYZ／YVR→TPE）：r77 定值改成網站實際顯示的值（夏 04:55、冬 23:30–04:15）；原本 03:55 跟 r68「不在 03 點抵達」、r179 互改，整年輪轉看開頁時序。**時刻表 PDF 夏季仍印 03:55，等使用者決定。**
+- 1018A KX31（YYZ／YVR→TPE）：r77 定值改成網站實際顯示的值（夏 04:55、冬 23:30–04:15）；原本 03:55 跟 r68「不在 03 點抵達」、r179 互改，整年輪轉看開頁時序。（1018B 依使用者指定改成夏季 01:00–04:30⁺¹，PDF 已同步。）
 - 1018A 開頁前 60 天機隊初排改分段（`js/boot18.js`，跟整年重排同一套 prep／days／types＋`KGM_KEEP72_1006A`），`KGM_BOOT60_R1018A={kept,prepMs,finalMs}`；量開頁初排結果用 `/tmp/j/boot60fp.js`（前 60 天＋整年指紋）。
 - 1018A 轉降：後台 AI 工具 `flight_divert`（`js/dv18.js`），紀錄 `S.divertsR1018A`（`kgm18_divert`）；Diverted 寫在 `S.flightOverrides`，predict7 不蓋人工的 Diverted／Cancelled。
 - 1018A 航班作業報告 `kgmOpsReportR1018A`（`js/ops18.js`）取代 `kgmPrintOpsR48`／`R41`／`printOpsR7`；天氣讀 `S.flightPredR7`（跟航班狀態同一份）。
@@ -74,9 +77,9 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/1018A/.test(t)` 改成新版號
+3. 版號更新（見下），並把 `vfy1.js` 的 `/1018B/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00 跑會因 KX180 當天已起飛而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
-5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1018A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
+5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1018B.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
 7. `node t_sched922.js`（組員班表延遲）、`node t_admlag.js`（後台 27 個分頁逐頁量）
