@@ -51,7 +51,7 @@ RW('fa19 rule list',
           +(r.seatsR1019A!=null?'<div style="font-size:11px;font-weight:800;color:#1F4E46;margin-top:2px">'+(z()?'可售 ':'Seats ')+E(String(r.seatsR1019A))+(r.bucket?' · '+E(r.bucket):'')+'</div>':'')+'</td><td>'+E(r.note||'')+'</td>""")
 
 # ══ ③ 時刻調整（使用者審 00:00～02:59 抵達的 20 班之後指定）═══════════════════════════════
-#   「KX288/KX287都提早1-1.5小時」→ 1.5 小時；「KX212/KX211提早1.5-2小時」→ 2 小時；「KX282/KX281提早2-2.5hr」→ 2.5 小時
+#   「KX288/KX287都提早1-1.5小時」→ 1.5 小時；「KX212/KX211提早1.5-2小時」→ KX212 2 小時（使用者後來：「KX211 remain original time」→ KX211 不動，河內過夜 7h30／7h20）；「KX282/KX281提早2-2.5hr」→ 2.5 小時
 #   （都取區間上限：抵達儘量不要落在半夜）；KX37「你直接寫新時間 反正抵達台北時間最好是04:00-05:00上午」→ 夏 00:20–04:55⁺¹（15h35）、冬 00:05–04:50⁺¹（15h45）
 #   （網站波士頓固定 UTC−5、不算夏令時間，飛行時間照網站的算法；都比去程 KX38 夏 15h25／冬 14h40 長；夏季 KX38 22:30 落地 → 00:20 起飛，過站 1h50 ≥ B789 90 分；
 #   冬夏起飛差 15 分＝r229 1010A 規則下限（差不到 15 分它會自己把冬季往後推，w2 實測推成 01:25–06:15）；
@@ -63,16 +63,16 @@ RW('fa19 rule list',
 RC('tt19 fixed','kgm-0823p-r77',
    "'A359'],winter:['07:00','11:10',0,[1,2,3,4,5,6,7],'A359']}\n    };",
    "'A359'],winter:['07:00','11:10',0,[1,2,3,4,5,6,7],'A359']}\n"
-   "      /* 1019A：使用者審 00:00～02:59 抵達後指定（KX288/287 提早 1.5h、KX212/211 提早 2h、KX282/281 提早 2.5h、KX37 抵達台北 04:00～05:00） */\n"
+   "      /* 1019A：使用者審 00:00～02:59 抵達後指定（KX288/287 提早 1.5h、KX212 提早 2h（KX211 不動）、KX282/281 提早 2.5h、KX37 抵達台北 04:00～05:00） */\n"
    "      ,'KX288|TPE|SGN':{summer:['22:05','23:55',0,'daily','B779'],winter:['22:20','00:00',1,'daily','B779']},'KX287|SGN|TPE':{summer:['01:25','05:30',0,'daily','B779'],winter:['01:40','05:35',0,'daily','B779']}\n"
-   "      ,'KX212|TPE|HAN':{summer:['22:55','00:10',1,'daily','A339R'],winter:['22:40','00:05',1,'daily','A339R']},'KX211|HAN|TPE':{summer:['05:40','09:05',0,'daily','A339R'],winter:['05:25','09:00',0,'daily','A339R']}\n"
+   "      ,'KX212|TPE|HAN':{summer:['22:55','00:10',1,'daily','A339R'],winter:['22:40','00:05',1,'daily','A339R']}\n"
    "      ,'KX282|TPE|SIN':{summer:['14:05','18:00',0,'daily','B78X'],winter:['14:45','18:25',0,'daily','B78X']},'KX281|SIN|TPE':{summer:['19:30','23:45',0,'daily','B78X'],winter:['20:10','00:10',1,'daily','B78X']}\n"
    "      ,'KX37|BOS|TPE':{summer:['00:20','04:55',1,[2,4,5,7],'B789'],winter:['00:05','04:50',1,[2,4,5,7],'B789']}\n"
    "    };")
 RC('tt19 migrate','kgm-0823p-r77',
    "      if(old&&old.userR929A&&MIG18B[k]&&old.summer&&MIG18B[k].indexOf(old.summer.dep+'-'+old.summer.arr)>=0){old.summer=rec(v.summer);old.updatedAt=new Date().toISOString()}\n",
    "      if(old&&old.userR929A&&MIG18B[k]&&old.summer&&MIG18B[k].indexOf(old.summer.dep+'-'+old.summer.arr)>=0){old.summer=rec(v.summer);old.updatedAt=new Date().toISOString()}\n"
-   "      var MIG19A={'KX288|TPE|SGN':['23:35-01:25','23:50-01:30'],'KX287|SGN|TPE':['02:55-07:00','03:10-07:05'],'KX212|TPE|HAN':['00:55-02:10','00:40-02:05'],'KX211|HAN|TPE':['07:40-11:05','07:25-11:00'],\n"
+   "      var MIG19A={'KX288|TPE|SGN':['23:35-01:25','23:50-01:30'],'KX287|SGN|TPE':['02:55-07:00','03:10-07:05'],'KX212|TPE|HAN':['00:55-02:10','00:40-02:05'],\n"
    "        'KX282|TPE|SIN':['16:35-20:30','17:15-20:55'],'KX281|SIN|TPE':['22:00-02:15','22:40-02:40'],'KX37|BOS|TPE':['01:50-04:10','01:05-02:40']};   /* 1019A：1018B 的值才換，人工改過的不動 */\n"
    "      if(old&&old.userR929A&&MIG19A[k])['summer','winter'].forEach(function(q,qi){if(old[q]&&MIG19A[k][qi]===old[q].dep+'-'+old[q].arr){old[q]=rec(v[q]);old.updatedAt=new Date().toISOString()}});\n")
 RC('kx51 summer 1019A','kgm-0823p-r77',
