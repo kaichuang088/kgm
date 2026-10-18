@@ -16,7 +16,7 @@ def RC(label,layer,old,new,cnt=1):
 def JS(name):return open('js/'+name,encoding='utf-8').read()
 
 # ══ ② 轉機票價兩段都要賣得到（js/cn19.js 放在最後一層 r229 最前面）══════════════════════
-RW('cn19 embed','<script id="kgm-0909E-r229">\n','<script id="kgm-0909E-r229">\n'+JS('cn19.js')+JS('fb19.js')+JS('ff19.js'))   # fb19＝④ 航班動態機場看板＋KGM 航班掛夥伴代碼
+RW('cn19 embed','<script id="kgm-0909E-r229">\n','<script id="kgm-0909E-r229">\n'+JS('cn19.js')+JS('fb19.js')+JS('ff19.js')+JS('mb19.js'))   # fb19＝④ 航班動態機場看板＋KGM 航班掛夥伴代碼
 RW('cn19 grid',
    '  var vc=validCodes(f1).filter(function(k){return k!=="R"&&validCodes(f2).indexOf(k)>=0;});\n  if(!vc.length)vc=validCodes(f1).filter(function(k){return k!=="R";});\n',
    '  var vc=window.kgmConnCodesR1019A?window.kgmConnCodesR1019A(f1,f2,pax):validCodes(f1).filter(function(k){return k!=="R"&&validCodes(f2).indexOf(k)>=0;});   /* 1019A：兩段都賣得到的代號（不再退回只看第一段） */\n')

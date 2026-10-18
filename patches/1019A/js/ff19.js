@@ -96,8 +96,9 @@
         var L=lists(dir),q=st(L);if(!L.fl.length&&!L.cn.length)return h.replace('<!--ff19-->','');
         var K=keep(q,L),hide=[];
         /* 打開票價面板時 #app 會帶 k221-step，r228 用 #app.k221-step tr.fl-row{display:table-row!important} 把列全部打開 → 這裡權重要比它高 */
-        K.d.forEach(function(ok,i){if(!ok)hide.push('tr[data-f19="'+i+'"],html body #app tr.fl-row[data-f19="'+i+'"],html body #app tr#fp'+i)});
-        K.c.forEach(function(ok,i){if(!ok)hide.push('tr[data-c19="'+i+'"],html body #app tr[data-c19="'+i+'"]')});
+        /* 手機版 mb19 把列改成卡片用 html:not(.kgm-side-admin) body #app tr.fl-row.fl-row（1,3,3）→ 藏列再疊一次 class 到（1,4,3） */
+        K.d.forEach(function(ok,i){if(!ok)hide.push('tr[data-f19="'+i+'"],html body #app tr.fl-row.fl-row.fl-row[data-f19="'+i+'"],html body #app tr#fp'+i)});
+        K.c.forEach(function(ok,i){if(!ok)hide.push('tr[data-c19="'+i+'"],html body #app tr.k12c-row.k12c-row.k12c-row[data-c19="'+i+'"]')});
         var css=CSS+(hide.length?'<style id="ff19-hide">'+hide.join(',')+'{display:none!important}</style>':'');
         h=h.replace('<!--ff19-->',css+bar(dir,L,q,K));
       }catch(_){h=h.replace('<!--ff19-->','')}
