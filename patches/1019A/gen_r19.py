@@ -16,7 +16,7 @@ def RC(label,layer,old,new,cnt=1):
 def JS(name):return open('js/'+name,encoding='utf-8').read()
 
 # ══ ② 轉機票價兩段都要賣得到（js/cn19.js 放在最後一層 r229 最前面）══════════════════════
-RW('cn19 embed','<script id="kgm-0909E-r229">\n','<script id="kgm-0909E-r229">\n'+JS('cn19.js')+JS('fb19.js'))   # fb19＝④ 航班動態機場看板＋KGM 航班掛夥伴代碼
+RW('cn19 embed','<script id="kgm-0909E-r229">\n','<script id="kgm-0909E-r229">\n'+JS('cn19.js')+JS('fb19.js')+JS('ff19.js'))   # fb19＝④ 航班動態機場看板＋KGM 航班掛夥伴代碼
 RW('cn19 grid',
    '  var vc=validCodes(f1).filter(function(k){return k!=="R"&&validCodes(f2).indexOf(k)>=0;});\n  if(!vc.length)vc=validCodes(f1).filter(function(k){return k!=="R";});\n',
    '  var vc=window.kgmConnCodesR1019A?window.kgmConnCodesR1019A(f1,f2,pax):validCodes(f1).filter(function(k){return k!=="R"&&validCodes(f2).indexOf(k)>=0;});   /* 1019A：兩段都賣得到的代號（不再退回只看第一段） */\n')
@@ -89,6 +89,18 @@ RC('kx51 summer 1019A','kgm-0823p-r77',
    "  }catch(_){}\n  /* 0928A：台北⇄峇里島")
 
 RW('fb19 logo',"  var KGM_LOGO_0809D='data","  var KGM_LOGO_0809D=window.KGM_LOGO_R1019A='data")   # 1019A：看板的 KGM 標誌（原本只在這一層內可用）
+
+# ══ ⑤ 搜尋航班頁篩選（轉機次數／營運航空／轉機點，js/ff19.js）＋沒有直飛時轉機清單出現兩次 ═════════════════════
+#   使用者：「我希望搜尋航班頁面可以多這個Filter 只要轉機次數（直飛和一次） 營運航空（…不會全部顯示），還有轉機地點（但也只列出該航點Available的）…其餘都不用」
+RW('ff19 direct row mark','return`<tr class="fl-row" style="background:#fff">','return`<tr class="fl-row" data-f19="${idx}" style="background:#fff">')
+RW('ff19 conn row mark',"'<tr class=\"k12c-row\">'","'<tr class=\"k12c-row\" data-c19=\"'+cIdx+'\">'")
+RW('ff19 conn panel mark',"'<tr class=\"k12c-fp\">","'<tr class=\"k12c-fp\" data-c19=\"'+cIdx+'\">")
+RW('ff19 bar slot','<div class="daystrip">${strip}</div>\n\n    <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--sh1);background:#fff">',
+   '<div class="daystrip">${strip}</div>\n<!--ff19-->\n    <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--sh1);background:#fff">')
+#   沒有直飛時，轉機表格原本塞進直飛表格（noFlight）又在下面再接一次 → 同一份轉機清單出現兩次（1018B 以前就有）。直飛表格改成只寫一行說明。
+RW('nodirect dup',
+   'const noFlight=!flights.length?`<div>${connHTML}${!conns.length?`<div style="padding:20px;text-align:center;color:#888">${LANG==="en"?"No flights or connections found. Try another date.":"此日期無直飛航班，請查看下方轉機選項"}</div>`:""}</div>`:"";',
+   'const noFlight=!flights.length?`<tr><td colspan="2" style="padding:22px;text-align:center;color:var(--sub);font-size:13px">${conns.length?(LANG==="en"?"No nonstop flights on this date — see connections below.":"此日期沒有直飛航班，請看下方轉機航班。"):(LANG==="en"?"No flights or connections found. Try another date.":"此日期沒有航班，請改選其他日期。")}</td></tr>`:"";   /* 1019A：轉機清單只在下面出現一次 */')
 
 open('p_h_r19.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
