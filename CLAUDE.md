@@ -87,9 +87,9 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/1018B/.test(t)` 改成新版號
+3. 版號更新（見下），並把 `vfy1.js` 的 `/1019A/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00 跑會因 KX180 當天已起飛而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
-5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1018B.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
+5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1019A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
 7. `node t_sched922.js`（組員班表延遲）、`node t_admlag.js`（後台 27 個分頁逐頁量）
