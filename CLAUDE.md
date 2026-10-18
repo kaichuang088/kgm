@@ -37,6 +37,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1019A 票價分析座位：可以比系統多（重新開放已關閉的階）或少；寫在 `S.fareRulesR929` 的 bucket 規則 `seatsR1019A`／`soldR1019A`，sell54 最後一步套（`bks19`／`kgmBucketSeatR1019A`，優先於營收管理售完）；1018B 的 `S.seatInventory` 舊上限照樣有效、再套用一次就搬進規則。
 - 1019A 轉機票價：`kgmConnCodesR1019A(f1,f2,pax)`（`js/cn19.js`）＝兩段都賣得到的代號，`connFareGrid`／r229 `selCab`／`pickConnectionFare`／`conn2Fare70` 都讀它；**夥伴營運段（`f.partner`）座位不在我們庫存（`kgmInventory49` 一律 0），不能查座位**。
 - 1019A 航班動態「機場看板」（`js/fb19.js`，預設分頁）：桃園出發／抵達，讀季節班表＋`S.flightOverrides`/`autoStatus`＋`kgmGateOfR26`＋`kgmCounterOfFlightR929`；抵達登機門＝同一家飛回起點的下一班的登機門。KGM 自營航班掛夥伴代碼表 `KGM_MKT_R1019A`（`kgmMktCodesR1019A`／`kgmMktToKxR1019A`）。
+- 1019A 搜尋航班頁篩選（`js/ff19.js`，包 `flightSel`）：轉機次數／營運航空／轉機點，選項只從這條航線這一天的結果算；營運航空對轉機是「每段都勾才顯示」。**選擇票價用清單位置選班 → 不能從清單拿掉，只能用 CSS 藏（`data-f19`／`data-c19`）；r228 的 `#app.k221-step tr.fl-row{display:table-row!important}` 會在打開票價面板時把列全打開，藏列選擇器要比它權重高**。直飛 0 班時直飛表格只放一行提示（轉機清單不重複）。
 - 1019A 時刻（使用者逐列審 00:00–02:59 抵達）：KX288/287 −1.5h、KX212 −2h（KX211 使用者要求維持原時刻）、KX282/281 −2.5h、KX37 夏 00:20–04:55⁺¹／冬 00:05–04:50⁺¹、KX51 夏 −15 分（只動奧克蘭→雪梨、雪梨→台北；**基督城那段不能動**）。r77 tt929 定值＋`MIG19A`。**長程冬夏起飛要差 ≥15 分（r229 1010A 會自己推）；冬季抵達不能跟底表抵達同一個時間（r106 會把抵達跟著移）**。
 - 1018B 售完方案：`validCodes` 不動，訂票頁直飛／轉機方案面板用 `kgmSoldFamR1018B(cab,可賣代號)`（`js/sold18.js`）補「售完」卡（不能按；轉機卡改成 div）。
 - 1018B 第二輪 儲存：kgm_staff 存檔時，跟 r55 依員工編號＋姓名（或改名前 nameWasR1012A）自動產生一模一樣的眷屬名單 famOnFile 不存（famSeed18B 1／2），讀回 r55 重產；kgmLsStrR1012A 快取要記 f18（開頁第一次存檔時 r55 還沒載入）。量用 tests/big18b.js（1018A 產生 6,000＋6,000 → 新版）。
