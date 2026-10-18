@@ -101,5 +101,98 @@ RC('kx31 exempt r179 audit','kgm-0907B-r179',
    "exempt:!!EXEMPT[V.code],",
    "exempt:!!EXEMPT[V.code]||SEA18B[V.code]===sea,")
 
+# ══ ③ 瀏覽器儲存空間已滿（1018B 交付後使用者回報：員工資料 kgm_staff 5.5 MB、會員 kgmus4 3.0 MB，座位庫存存不進去）═════════
+#   重現（tests/upsim18.js）：舊版（沒有產生前估算）用後台「模擬資料」產生 3,000 位員工 → 1018B 開頁，kgm_staff 存成 151 萬字元；
+#   其中員工票眷屬名單 famOnFile 佔 92.5 萬：r55 seedStaffFamK5 依員工編號＋姓名替每一位員工（含模擬員工）自動產生 1～4 位眷屬，整份存進去。
+#   修法：存檔時，跟「用同一個員工編號＋姓名重新產生」一模一樣的眷屬名單不存（只留 famSeed18B 標記）；讀回時用 r55 同一個函式重新產生。
+#   使用者自己登記／改過的眷屬跟自動產生的不一樣 → 整份照存，不冒險。famOnFile 只有 r55 在讀，開頁時 r55 本來就會補空的名單。
+RC('fam seed list 1018B','kgm-0823c-r55',
+   "function seedStaffFamK5(){\n  var n=0;\n  try{\n    (S.staff||[]).forEach(function(st){\n      if(!st||!st.empId)return;\n      if(st.famOnFile&&st.famOnFile.length)return;\n      var h=H(st.empId),out=[];",
+   "function seedStaffFamK5(list18){   /* 1018B：list18＝只補這幾位、不存檔（讀回存檔時重新產生用） */\n  var n=0;\n  try{\n    (list18||S.staff||[]).forEach(function(st){\n      if(!st||!st.empId)return;\n"
+   "      if(st.famOnFile&&st.famOnFile.length){delete st.famSeed18B;return}\n"
+   "      var re18=st.famSeed18B||0;delete st.famSeed18B;   /* 1018B：存檔時省略的自動眷屬名單，重新產生（內容一模一樣），不算新的修改；2＝當初用改名前的姓名產生 */\n"
+   "      var h=H(st.empId),out=[];")
+RC('fam seed oldname 1018B','kgm-0823c-r55',
+   "      var last=String(st.name||'KGM').trim().split(/\\s+/).pop().toUpperCase();",
+   "      var last=String((re18===2&&st.nameWasR1012A)||st.name||'KGM').trim().split(/\\s+/).pop().toUpperCase();")
+RC('fam seed save 1018B','kgm-0823c-r55',
+   "      st.famOnFile=out;n++;\n    });\n    if(n)try{save()}catch(_){}",
+   "      st.famOnFile=out;if(!re18)n++;\n    });\n    if(n&&!list18)try{save()}catch(_){}")
+RC('fam seed export 1018B','kgm-0823c-r55',
+   "window.kgmSeedStaffFamK5=seedStaffFamK5;\n",
+   "window.kgmSeedStaffFamK5=seedStaffFamK5;\n"
+   "/* 1018B：這位員工（員工編號＋姓名）自動產生的眷屬名單長什麼樣子 —— 存檔時比對用 */\n"
+   "window.kgmFamSeedR1018B=function(st,was){var t={empId:st&&st.empId,name:st&&(was?st.nameWasR1012A:st.name)};if(!t.name)return null;seedStaffFamK5([t]);return t.famOnFile||null};\n")
+RW('fam strip fn 1018B',
+   "try{window._stripSynR1018A=_stripSynR1018A}catch(e){}\n",
+   "try{window._stripSynR1018A=_stripSynR1018A}catch(e){}\n"
+   "/* 1018B：員工票眷屬名單 famOnFile 跟 r55 依員工編號＋姓名自動產生的一模一樣 → 不存（留 famSeed18B 標記），讀回時重新產生。\n"
+   "   使用者回報 kgm_staff 5.5 MB：模擬員工每位都有自動眷屬名單，3,000 位員工光這一欄就 92.5 萬字元。人工登記／改過的照存。 */\n"
+   "function _stripFamR1018B(arr){\n"
+   "  if(!Array.isArray(arr)||typeof window.kgmFamSeedR1018B!=='function')return arr;var out=null;\n"
+   "  for(var i=0;i<arr.length;i++){var st=arr[i];if(!st||!Array.isArray(st.famOnFile)||!st.famOnFile.length)continue;\n"
+   "    var f=JSON.stringify(st.famOnFile),w=0,g=null;try{g=window.kgmFamSeedR1018B(st);if(g&&JSON.stringify(g)===f)w=1;\n"
+   "      else if(st.nameWasR1012A){g=window.kgmFamSeedR1018B(st,true);if(g&&JSON.stringify(g)===f)w=2}}catch(_){}   /* 2＝名單是改名（nameWasR1012A）前用舊姓名產生的 */\n"
+   "    if(!w)continue;\n"
+   "    if(!out)out=arr.slice();var c={};for(var k in st)if(k!=='famOnFile'&&Object.prototype.hasOwnProperty.call(st,k))c[k]=st[k];c.famSeed18B=w;out[i]=c}\n"
+   "  return out||arr;\n"
+   "}\n")
+RW('fam strip pack 1018B',
+   "    if(k==='kgmus4')return _packAR1012A(_stripSynR1018A(v));",
+   "    if(k==='kgmus4')return _packAR1012A(_stripSynR1018A(v));\n"
+   "    if(k==='kgm_staff')return _packAR1012A(_stripFamR1018B(v));   /* 1018B：自動產生的眷屬名單不存 */")
+RW('fam strip unpack 1018B',
+   "if(k==='kgmus4'){try{window.kgmSynLogR1018A&&window.kgmSynLogR1018A(a18)}catch(_){}}return a18}",
+   "if(k==='kgmus4'){try{window.kgmSynLogR1018A&&window.kgmSynLogR1018A(a18)}catch(_){}}"
+   "if(k==='kgm_staff'){try{window.kgmSeedStaffFamK5&&window.kgmSeedStaffFamK5(a18.filter(function(x){return x&&x.famSeed18B}))}catch(_){}}"   # 1018B：開頁時 r55 還沒載入，由 r55 自己補；跨分頁同步讀回時在這裡補
+   "return a18}")
+
+RW('fam strip cache 1018B',
+   "      if(c&&c.raw===raw)return c.s;\n      var s=JSON.stringify(kgmLsPackR1012A(k,v));_arCacheR1012A[k]={raw:raw,s:s};return s;",
+   "      var f18=typeof window.kgmFamSeedR1018B==='function';   /* 1018B：開頁第一次存檔時 r55 還沒載入、眷屬名單沒省略；那一份不能一直沿用（員工資料沒變就永遠是大的那份） */\n"
+   "      if(c&&c.raw===raw&&(c.f18||!f18||k!=='kgm_staff'))return c.s;\n"
+   "      var s=JSON.stringify(kgmLsPackR1012A(k,v));_arCacheR1012A[k]={raw:raw,s:s,f18:f18};return s;")
+
+# ══ ⑤ 票價分析：出發地／目的地、班號搜尋、拿掉航線總覽、艙位階梯可以編輯（js/fa18b.js，跟 1018A adm18 放同一處 r40）══════
+R40='kgm-0816d-r40'
+RC('fa18b embed',R40,"window.kgmFareAnaPageR1004B=function(){",JS('fa18b.js')+"window.kgmFareAnaPageR1004B=function(){")
+RC('fa18b no overview',R40,"var ov=faOverview1004B(d),fl=faFlights1004B(d),routes={};","var fl=faFlights1004B(d),routes={};   /* 1018B：航線總覽拿掉（使用者：「這個總覽不用有」）—— 也不用再把當天全部航班算一遍 */")
+i0=CUR.index('<script id="kgm-0816d-r40"');L40=CUR[i0:CUR.index('</script>',i0)]
+ovBlk=L40[L40.index("  /* ① 航線總覽 */"):L40.index("  /* ② 選定航線：每一班 */")]
+RC('fa18b no overview html',R40,ovBlk,"")
+RC('fa18b no overview sec',R40,"    +'<div class=\"k4b-fa-sec\"><h3>'+(z()?'航線總覽':'Routes')+' <small>'+E(d)+'</small></h3>'+ovH+'</div>'\n","")
+RC('fa18b route pick',R40,
+   "  if(!q.fr||!routes[q.fr+'-'+q.to]){var p=(rk.indexOf('TPE-NRT')>=0?'TPE-NRT':rk[0]||'-').split('-');q.fr=p[0];q.to=p[1]}",
+   "  /* 1018B：輸入班號 → 跳到那一班的航線；出發地選了、目的地不在這個出發地 → 換成這個出發地的第一個目的地 */\n"
+   "  var codeHit18=null;if(q.code){fl.forEach(function(x){if(!codeHit18&&x.f.code===q.code)codeHit18=x});if(codeHit18){q.fr=codeHit18.f.fr;q.to=codeHit18.f.to}}\n"
+   "  if(q.fr&&!routes[q.fr+'-'+q.to]){var t18=rk.filter(function(k){return k.indexOf(q.fr+'-')===0})[0];if(t18)q.to=t18.split('-')[1]}\n"
+   "  if(!q.fr||!routes[q.fr+'-'+q.to]){var p=(rk.indexOf('TPE-NRT')>=0?'TPE-NRT':rk[0]||'-').split('-');q.fr=p[0];q.to=p[1]}")
+RC('fa18b mine code',R40,
+   "  var mine=fl.filter(function(x){return x.f.fr===fr&&x.f.to===to});",
+   "  var mine=fl.filter(function(x){return x.f.fr===fr&&x.f.to===to&&(!codeHit18||x.f.code===q.code)});")
+RC('fa18b chip',R40,
+   "          return '<span class=\"k4b-fa-b '+r.st+'\" title=\"'",
+   "          return '<span class=\"k4b-fa-b '+r.st+fa18bCls(a,d,r)+'\"'+fa18bOn(a,d,r)+' title=\"'")
+RC('fa18b editor',R40,"}).join('')+'</div></td>'","}).join('')+'</div>'+fa18bEditor(a,d,c)+'</td>'")
+RC('fa18b bar',R40,
+   "      +'<label>'+(z()?'航線':'Route')+'<select class=\"inp k4b-fa-sel\" onchange=\"kgmFareAnaSetR1004B(\\'route\\',this.value)\">'+rk.map(function(k){return '<option value=\"'+E(k)+'\"'+(k===fr+'-'+to?' selected':'')+'>'+E(k.replace('-',' → '))+'</option>'}).join('')+'</select></label>'",
+   "      +fa18bBar(q,routes,fl)")
+RC('fa18b css',R40,"  return '<section class=\"k4b-ss k4b-fa\">'",
+   "  var miss18=(q.code&&!codeHit18)?'<div class=\"k4b-fa-empty\">'+E(q.code)+(z()?' 這一天沒有飛（或不是本公司班號），先顯示原本的航線。':' does not operate that day.')+'</div>':'';\n"
+   "  return FA18B_CSS+'<section class=\"k4b-ss k4b-fa\">'")
+RC('fa18b miss note',R40,
+   "    +'<div class=\"k4b-fa-sec\"><h3>'+E(fr)+' → '+E(to)+' <small>'",
+   "    +miss18+'<div class=\"k4b-fa-sec\"><h3>'+E(fr)+' → '+E(to)+' <small>'")
+RC('fa18b set',R40,
+   "  if(k==='route'){var p=String(v||'').split('-');q.fr=p[0]||'';q.to=p[1]||''}else q[k]=v;",
+   "  if(k==='route'){var p=String(v||'').split('-');q.fr=p[0]||'';q.to=p[1]||'';q.code=''}\n"
+   "  else if(k==='code'){v=String(v||'').toUpperCase().replace(/\\s+/g,'');if(/^\\d+$/.test(v))v='KX'+v;q.code=v}   /* 1018B：班號搜尋（182 也當 KX182） */\n"
+   "  else{q[k]=v;if(k==='fr'||k==='to')q.code=''}\n"
+   "  S.fa18bEdR1018B=null;")
+# 價格：人工調整可以只套用在某一個艙位代號（bucket）
+RW('fa18b rule bucket sig',"function kgmFareRuleMulR929(f,cabin){","function kgmFareRuleMulR929(f,cabin,fc18){   /* 1018B：fc18＝艙位代號（E-C…），規則有 bucket 時只套那一格 */")
+RW('fa18b rule bucket chk',"      if(r.code&&r.code!==f.code)return;\n      if(r.firstSegOnly)","      if(r.code&&r.code!==f.code)return;\n      if(r.bucket&&r.bucket!==fc18)return;\n      if(r.firstSegOnly)")
+RW('fa18b rule bucket call',"*kgmFareRuleMulR929(f,cabin);","*kgmFareRuleMulR929(f,cabin,code);")
+
 open('p_h_r18.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
