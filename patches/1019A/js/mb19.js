@@ -2,7 +2,7 @@
    · 只在 ≤640px、前台生效（後台檔 html.kgm-side-admin 不動；桌機不動）。
    · 最下排五個按鈕 #kgmTabR1019A（掛在 body，不在 #app 裡，render() 重畫不會洗掉）：首頁／我的行程／AI 助理（中間）／航班動態／會員。
      AI 按鈕開關的是原本前台那一個 AI（kgmToggleAi0819I），手機上原本右下的圓形 AI 鈕收起來，對話視窗改成整個畫面（下排按鈕上方）。
-   · 表頭：一列（標誌＋通知＋語言），Member Portal 移到下排「會員」；四個選單改成可左右滑的一列。
+   · 表頭：一列（標誌＋通知＋語言＋☰），Member Portal 移到下排「會員」；四個選單收進 ☰（整頁選單，點項目或換頁自動關）。
    · 訂票頁：步驟列只寫目前那一步的名稱；日期列改成可左右滑（目前那天置中）；航班列由左右兩欄改成上下一張卡（航班資訊在上、票價與按鈕在下）。
      r228 的 #app.k221-step tr.fl-row{display:table-row!important} 權重 (1,2,1) → 這裡用 tr.fl-row.fl-row 拉到 (1,2,3)；
      ff19 藏列用同樣權重、寫在 #app 裡（文件順序在後）→ 篩選藏起來的列照樣藏著。
@@ -33,6 +33,7 @@
         if(document.body.getAttribute('data-kgm-ai')==='off'){nav('auth');toast(z()?'登入會員後即可使用 AI 助理':'Log in to use the AI assistant');draw();return}
         if(typeof kgmToggleAi0819I==='function')kgmToggleAi0819I();draw();return}
       if(S.aiOpen0819H&&typeof kgmToggleAi0819I==='function')kgmToggleAi0819I();
+      menu(false);
       if(k==='home')nav('home');
       else if(k==='trip')nav('mytrip');
       else if(k==='status')nav('status');
@@ -40,6 +41,18 @@
     }catch(_){}
     draw();
   };
+  var menuView=null;
+  function menu(on){
+    document.documentElement.classList.toggle('kgm-menu-r1019a',!!on);
+    menuView=on?S.view:null;
+    if(on)window.scrollTo(0,0);
+  }
+  /* 選單裡點了項目（nav 到同一頁也要關）；點表頭以外的地方也關 */
+  document.addEventListener('click',function(e){
+    if(menuView===null)return;
+    var t=e.target;
+    if(t.closest&&(t.closest('header .mega li')||t.closest('#kgmTabR1019A')))setTimeout(function(){menu(false)},0);
+  },true);
   function toast(t){
     try{var d=document.getElementById('kgmTabToastR1019A');if(!d){d=document.createElement('div');d.id='kgmTabToastR1019A';document.body.appendChild(d)}
       d.textContent=t;d.className='on';clearTimeout(d.__t);d.__t=setTimeout(function(){d.className=''},2600)}catch(_){}
@@ -56,6 +69,19 @@
       if(el.__h!==h){el.innerHTML=h;el.__h=h}
       el.style.display=hideAll?'none':'';
       document.documentElement.classList.toggle('kgm-aiopen-r1019a',!!S.aiOpen0819H);
+      /* 表頭「☰」：四個選單（優惠與訂票／行程管理／飛行準備／無限萬哩遊）改成整頁選單 */
+      var ut=document.querySelector('#app>header .portal-util0815'),row1=ut&&ut.parentElement,hdr=ut&&ut.closest('header');
+      if(row1&&!row1.querySelector('.kt19-menu')){
+        var mb=document.createElement('button');mb.type='button';mb.className='kt19-menu';mb.setAttribute('aria-label',Z?'選單':'Menu');
+        mb.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path class="a" d="M4 7h16"/><path class="b" d="M4 12h16"/><path class="c" d="M4 17h16"/></svg>';
+        mb.onclick=function(e){e.stopPropagation();menu(!document.documentElement.classList.contains('kgm-menu-r1019a'))};
+        row1.appendChild(mb);
+      }
+      if(hdr&&hdr.children[1]){
+        var nb=hdr.children[1].querySelector('div'),bt=nb?nb.querySelectorAll('button'):[],mg=hdr.children[1].querySelectorAll('.mega');
+        for(var i=0;i<mg.length;i++){var t=bt[i]?bt[i].textContent.trim():'';if(t&&mg[i].getAttribute('data-k19t')!==t)mg[i].setAttribute('data-k19t',t)}
+      }
+      if(menuView!==null&&S.view!==menuView)menu(false);
       /* 日期列：目前那天置中 */
       var ds=document.querySelector('#app .daystrip'),on=ds&&ds.querySelector('.daychip.on');
       if(ds&&on&&ds.scrollWidth>ds.clientWidth+4&&ds.__k19!==on.getAttribute('onclick')){ds.__k19=on.getAttribute('onclick');ds.scrollLeft=Math.max(0,on.offsetLeft-(ds.clientWidth-on.offsetWidth)/2)}
@@ -64,7 +90,7 @@
   window.kgmTabDrawR1019A=draw;
   var M='@media (max-width:640px){';
   var F='html:not(.kgm-side-admin) ';
-  var css='#kgmTabR1019A,#kgmTabToastR1019A{display:none}'   /* 桌機不出現 */
+  var css='#kgmTabR1019A,#kgmTabToastR1019A,.kt19-menu{display:none}'   /* 桌機不出現（☰ 也只有手機有） */
     +M
     /* 下排五個按鈕 */
     +F+'#kgmTabR1019A{position:fixed;left:0;right:0;bottom:0;z-index:100060;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;height:calc(62px + env(safe-area-inset-bottom));padding:0 4px env(safe-area-inset-bottom);background:rgba(255,255,255,.96);-webkit-backdrop-filter:saturate(1.6) blur(14px);backdrop-filter:saturate(1.6) blur(14px);border-top:1px solid #e2e8e5;box-shadow:0 -6px 22px -14px rgba(10,50,40,.35)}'
@@ -78,7 +104,8 @@
     +F+'#kgmTabToastR1019A{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translate(-50%,8px);z-index:100070;background:#0b3f33;color:#f6ecd2;font-size:13px;font-weight:600;padding:10px 16px;border-radius:999px;box-shadow:0 10px 24px -10px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap}'
     +F+'#kgmTabToastR1019A.on{opacity:1;transform:translate(-50%,0)}'
     +F+'#app{padding-bottom:calc(66px + env(safe-area-inset-bottom))}'
-    +F+'#kgmStampC{bottom:calc(70px + env(safe-area-inset-bottom))!important;right:8px!important;font-size:8.5px!important;padding:3px 8px!important;opacity:.82}'
+    /* 右下版號章：手機上蓋住內容，版號在左上角標籤已經有 → 手機上收起 */
+    +F+'#kgmStampC{display:none!important}'
     /* 原本右下的 AI 圓鈕收起來，對話視窗整個畫面 */
     +F+'#aiChat>button{display:none!important}'
     +'html.kgm-aiopen-r1019a:not(.kgm-side-admin) body[data-kgm-ai="on"] #aiChat{display:block!important;left:0!important;right:0!important;top:0!important;bottom:calc(62px + env(safe-area-inset-bottom))!important;z-index:100055!important}'
@@ -87,14 +114,24 @@
     +F+'header:has(>div>.portal-util0815){position:sticky;top:0}'
     +F+'header:has(>div>.portal-util0815)>div:first-child{height:52px!important;padding:0 14px!important;gap:8px}'
     +F+'header:has(>div>.portal-util0815)>div:first-child>button span{font-size:17px!important;letter-spacing:.01em}'
-    +F+'header .portal-util0815{gap:2px!important;margin-right:58px}'
+    +F+'header .portal-util0815{gap:2px!important;margin-left:auto}'
     +F+'header .portal-util0815>.portal-link0815{font-size:12px!important;padding:6px 7px!important;white-space:nowrap}'
     +F+'header .portal-util0815>.portal-link0815[onclick*="auth"],'+F+'header .portal-util0815>.portal-link0815[onclick*="profile"],'+F+'header .portal-util0815>.portal-link0815[onclick*="memberLogout"],'+F+'header .portal-util0815>.portal-search-wrap0815{display:none!important}'
-    +F+'header:has(>div>.portal-util0815)>div:nth-child(2){padding:0 6px!important}'
-    +F+'header:has(>div>.portal-util0815)>div:nth-child(2)>div:first-child{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}'
-    +F+'header:has(>div>.portal-util0815)>div:nth-child(2)>div:first-child::-webkit-scrollbar{display:none}'
-    +F+'header:has(>div>.portal-util0815)>div:nth-child(2)>div:first-child>button{flex:0 0 auto;font-size:13.5px!important;padding:9px 11px 10px!important;white-space:nowrap}'
-    +F+'#kgmBadgeR48{font-size:9px!important;padding:2px 6px!important}'
+    /* 第二列（四個選單）平常收起，按 ☰ 才整頁展開 */
+    +F+'header:has(>div>.portal-util0815)>div:nth-child(2){display:none!important}'
+    +F+'.kt19-menu{flex:0 0 auto;width:40px;height:40px;margin-left:2px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #dfe6e2;border-radius:12px;background:#fff;color:#0b3f33;cursor:pointer}'
+    +F+'.kt19-menu path{transition:transform .25s ease,opacity .2s;transform-origin:12px 12px}'
+    +'html.kgm-menu-r1019a:not(.kgm-side-admin) .kt19-menu{background:#0b3f33;color:#f3dfae;border-color:#0b3f33}'
+    +'html.kgm-menu-r1019a:not(.kgm-side-admin) .kt19-menu .a{transform:translateY(5px) rotate(45deg)}html.kgm-menu-r1019a:not(.kgm-side-admin) .kt19-menu .b{opacity:0}html.kgm-menu-r1019a:not(.kgm-side-admin) .kt19-menu .c{transform:translateY(-5px) rotate(-45deg)}'
+    +'html.kgm-menu-r1019a:not(.kgm-side-admin) header:has(>div>.portal-util0815)>div:nth-child(2){display:block!important;position:fixed!important;top:52px;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom));overflow:auto;background:#fbfaf6;padding:6px 20px 28px!important;z-index:100040;border-top:1px solid #e3e9e6;max-width:none!important;animation:kt19in .22s ease}'
+    +'html.kgm-menu-r1019a:not(.kgm-side-admin) header:has(>div>.portal-util0815)>div:nth-child(2)>div:first-child{display:none!important}'
+    +'html.kgm-menu-r1019a:not(.kgm-side-admin) header .mega{display:grid!important;position:static!important;grid-template-columns:1fr 1fr!important;gap:4px 18px!important;padding:18px 0 14px!important;box-shadow:none!important;border:0!important;border-bottom:1px solid #e6e2d6!important;background:none!important}'
+    +'html.kgm-menu-r1019a:not(.kgm-side-admin) header .mega::before{content:attr(data-k19t);grid-column:1/-1;font:700 21px/1.2 Georgia,"Noto Serif TC",serif;color:#0b3f33;margin-bottom:8px}'
+    +'html.kgm-menu-r1019a:not(.kgm-side-admin) header .mega h4{font-size:11px!important;letter-spacing:.12em;color:#a07a2c!important;margin:8px 0 2px!important;font-weight:800}'
+    +'html.kgm-menu-r1019a:not(.kgm-side-admin) header .mega ul{list-style:none;margin:0;padding:0}'
+    +'html.kgm-menu-r1019a:not(.kgm-side-admin) header .mega li{padding:9px 0!important;font-size:14.5px!important;color:#1d2a25!important;border-bottom:1px solid #efece4;cursor:pointer}'
+    +'@keyframes kt19in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}'
+    +F+'#kgmBadgeR48{font-size:9px!important;padding:2px 6px!important;left:0!important;right:auto!important;border-radius:0 0 8px 0!important}'
     /* 訂票步驟列：只寫目前那一步 */
     +F+'#app .step-bar{gap:4px!important;padding:12px 14px!important;flex-wrap:nowrap!important;overflow:hidden}'
     +F+'#app .step-bar>span{display:none!important}'+F+'#app .step-bar>.sc-act+span{display:inline!important;white-space:nowrap;font-size:12.5px!important;margin:0 2px}'
@@ -121,6 +158,27 @@
     +F+'body #app tr[id^="fp"],'+F+'body #app tr.k12c-fp{display:block}'
     +F+'body #app tr[id^="fp"]>td,'+F+'body #app tr.k12c-fp>td{display:block!important;width:auto!important;padding:14px 12px!important}'
     +F+'#app .flight-logo-wrap0809c{gap:10px!important}'
+    /* 結帳：附加服務／航班確認的按鈕列原本超出畫面 */
+    +F+'#app .r7-actionline{display:grid!important;grid-template-columns:auto 1fr;gap:12px 10px;align-items:center}'
+    +F+'#app .r7-actionline>.r7-grand-total{grid-column:1/-1;order:-1;text-align:right;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:baseline;gap:2px 8px;padding-bottom:10px;border-bottom:1px dashed #dfe5e2}'
+    +F+'#app .r7-actionline>.r7-grand-total small{flex-basis:100%}'
+    +F+'#app .r7-actionline>button.btn-g{width:100%;white-space:normal}'
+    +F+'#app .card>div[style*="justify-content:space-between"]:has(>button.btn-g){flex-wrap:wrap!important}'
+    +F+'#app .card>div[style*="justify-content:space-between"]:has(>button.btn-g)>button.btn-g{flex:1 1 100%;order:-1;padding:14px 18px!important;font-size:15px!important}'
+    /* 首頁航點：一張張直排 540px 高 → 左右滑動的卡片 */
+    +F+'#app .r11-dest-grid{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px!important;padding:4px 2px 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}'
+    +F+'#app .r11-dest-grid::-webkit-scrollbar{display:none}'
+    +F+'#app .r11-dest-grid>.r11-dest{flex:0 0 80%;max-width:300px;scroll-snap-align:start}'
+    +F+'#app .r11-dest-grid .r11-photo{padding:14px 16px 16px!important}'
+    +F+'#app .r11-dest-grid .r11-oval{width:150px!important;margin-top:8px!important}'
+    /* 頁尾：四欄擠在一起 → 品牌一列、連結三欄 */
+    +F+'#app>footer>div:first-child{grid-template-columns:repeat(3,1fr)!important;gap:18px 14px!important}'
+    +F+'#app>footer>div:first-child>div:first-child{grid-column:1/-1}'
+    /* 儲存空間提示：手機上改成下方抽屜 */
+    +F+'#k12-lsclean{align-items:flex-end!important;padding:0 0 calc(62px + env(safe-area-inset-bottom))!important}'
+    +F+'#k12-lsclean .k12c{border-radius:20px 20px 0 0!important;max-height:78vh!important;padding:18px 16px!important}'
+    +F+'#k12-lsclean .k12c-h>button{white-space:nowrap;flex:0 0 auto}'
+    +F+'#k12-lsclean table{font-size:12px}'+F+'#k12-lsclean code{word-break:break-all}'
     +'}';
   function inject(){
     if(document.getElementById('kgm-mb19-css'))return;
