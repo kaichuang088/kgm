@@ -1,7 +1,7 @@
 # KGM Airways — 專案規則（給 Claude Code）
 
 KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一個自包含的 HTML 檔**（約 8.4 MB）。
-版號由使用者指定（目前是 1019A，下一版由使用者命名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
+版號由使用者指定（目前是 1020A，下一版由使用者命名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
 
 ## 使用者的固定要求（逐字，一律遵守）
 
@@ -34,6 +34,9 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1018A：`bash patches/1018A/build.sh <1004B.html> <out.html>`（1018A＝1015A 全部＋`p_h_r17.js`；`gen_r17.py` **在 `patches/1018A/` 下執行**，比對基準 1015A 最終版 `/tmp/j/kgm1015A_w6.html`）。見 `notes/1018A-pass120-notes.md`。
 - 1018B：`bash patches/1018B/build.sh <1004B.html> <out.html>`（1018B＝1018A 全部＋`p_h_r18.js`；`gen_r18.py` **在 `patches/1018B/` 下執行**，比對基準 1018A 最終版 `/tmp/j/kgm1018A_w26.html`）。見 `notes/1018B-pass121-notes.md`。
 - 1019A：`bash patches/1019A/build.sh <1004B.html> <out.html>`（1019A＝1018B 全部＋`p_h_r19.js`；`gen_r19.py` **在 `patches/1019A/` 下執行**，比對基準 1018B 最終版 `/tmp/j/kgm1018B_w13.html`）。見 `notes/1019A-pass122-notes.md`。時刻表 PDF：`patches/1019A/timetable/tt19.py`。
+- 1020A：`bash patches/1020A/build.sh <1004B.html> <out.html>`（1020A＝1019A 全部＋`p_h_r20.js`；`gen_r20.py` **在 `patches/1020A/` 下執行**，比對基準 1019A 最終版 `/tmp/j/kgm1019A_w27.html`；只有 3 個替換：lz19→`js/lz20.js`、拿掉儲存失敗自動提示、mb19→`js/mb20.js`）。見 `notes/1020A-pass123-notes.md`。
+- 1020A 手機側邊選單（`js/mb20.js`）：☰ 在表頭**左上角**、`#kgmDrawerR1020A` 從**左邊**滑出（使用者指定）；內容每次從表頭 `.mega` 讀，點項目＝對原本那個 li `.click()`（`kgmDrawerGoR1020A`），不另寫一套。手機 `#app`／`body`／`html` 改 `overflow-x:clip`（原本 hidden 會讓 `position:sticky` 全部失效）；結帳按鈕列 sticky 在下排五鈕上方（付款頁 `.k923cc-actions` 不黏）。桌機逐像素不變（`/tmp/j/desk20.js`）。
+- 1020A 儲存空間：**不再自動跳出「儲存空間已滿」提示**（使用者要求；`kgmLsCleanR1012A()` 面板還在，只能手動開）；`lz20.js` 開頁整站 ≥260 萬字元就先壓縮（`KGM_LZ_R1020A`）。真的滿到寫不進去時沒有提示、只記 `KGM_LS_FAIL_R1012A`。量用 `tests/lz20t.js`（填充要用隨機中文字，有規律的字串會被壓縮掉、根本沒塞滿）。
 - 1019A 票價分析座位：可以比系統多（重新開放已關閉的階）或少；寫在 `S.fareRulesR929` 的 bucket 規則 `seatsR1019A`／`soldR1019A`，sell54 最後一步套（`bks19`／`kgmBucketSeatR1019A`，優先於營收管理售完）；1018B 的 `S.seatInventory` 舊上限照樣有效、再套用一次就搬進規則。
 - 1019A 轉機票價：`kgmConnCodesR1019A(f1,f2,pax)`（`js/cn19.js`）＝兩段都賣得到的代號，`connFareGrid`／r229 `selCab`／`pickConnectionFare`／`conn2Fare70` 都讀它；**夥伴營運段（`f.partner`）座位不在我們庫存（`kgmInventory49` 一律 0），不能查座位**。
 - 1019A 航班動態「機場看板」（`js/fb19.js`，預設分頁）：桃園出發／抵達，讀季節班表＋`S.flightOverrides`/`autoStatus`＋`kgmGateOfR26`＋`kgmCounterOfFlightR929`；抵達登機門＝同一家飛回起點的下一班的登機門。KGM 自營航班掛夥伴代碼表 `KGM_MKT_R1019A`（`kgmMktCodesR1019A`／`kgmMktToKxR1019A`）。
@@ -88,9 +91,9 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/1019A/.test(t)` 改成新版號
+3. 版號更新（見下），並把 `vfy1.js` 的 `/1020A/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00 跑會因 KX180 當天已起飛而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
-5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1019A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
+5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1020A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
 7. `node t_sched922.js`（組員班表延遲）、`node t_admlag.js`（後台 27 個分頁逐頁量）
