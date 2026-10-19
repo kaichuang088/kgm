@@ -4,8 +4,8 @@
 
 重建：`bash patches/1020B/build.sh <1004B.html> <out.html>`（1020B＝1020A 全部＋`p_h_r21.js`）。
 `p_h_r21.js` 由 `gen_r21.py` 產生，**要在 `patches/1020B/` 目錄下執行**；比對基準是 1020A 最終版 `/tmp/j/kgm1020A_w5.html`
-（`patches/1020A/build.sh` 重建）。gen_r21 共 13 個替換，較長的程式在 `js/fl20b.js`（航班／機型／卡達聯營）、`js/mb20b.js`（手機）、`js/fb20b.js`（航班動態）。
-最終建置 **w8**，scripts 248 bad 0，layers 241。
+（`patches/1020A/build.sh` 重建）。gen_r21 共 14 個替換，較長的程式在 `js/fl20b.js`（航班／機型／卡達聯營）、`js/mb20b.js`（手機）、`js/fb20b.js`（航班動態）。
+最終建置 **w9**，scripts 248 bad 0，layers 241（w9 跟 w8 只差 r203 稽核上限那一行）。
 
 ## ① 機型、航班（使用者逐條指定；括號是我替使用者做的選擇）
 | 使用者 | 改成 |
@@ -85,4 +85,8 @@
 ## 驗證
 - 機隊（w3 起）[確定]：tz8 missing 0、split 0；t_fl1 overlap 0、orphan 0；t_crewrule 違規 0；連續重新整理 4 次 30 天輪轉＋組員班表指紋完全一樣（`tests/rotreload.js`）。
 - 航班動態 `tests/st20b.js`（桌機＋390 手機，20 個班號×日期＋6 條航線）、手機 `tests/mb20bt.js`、多哈／卡達訂位 `tests/doh20t.js`。
-- 關卡：見下方（w8）。
+- 關卡（w8，依序跑，`/tmp/j/gates20B.sh`）[確定]：syn 248／0、`<script id=` 241、title 1020B；vfy1 24/24、vfy2d 8/8、vfy3 8/8、vfy4 8/8、vfy5 6/6、vfy5d 6/6、vfy6 55/55
+  （vfy6 有一則「寄信服務連不上」的錯誤訊息，1020A 一樣，沙盒沒網路）；t_crewrule 違規 0；t_sched922 maxLatency 2,414 ms；t_admlag 27 分頁 ERR []；tz8 missing 0、split 0；ai9t 跟 1020A 相同；t_fl1 overlap 0、orphan 0。
+- reg2（w8）多一項 `kgmAuditR203 :: 加了 16 架，超過 13 架的上限`：r203 稽核寫死使用者歷次核准的新增機身數，這輪核准再加三台 A21N → 上限改 16（gen_r21 `r203 cap 16`）。
+  w9 重跑 vfy1 24/24、reg2 notOk 78＝`baselines/reg_1020A.out` 的 78（沒有新增、沒有消失），view errors 0、PAGE ERRORS 0 → 存成 `baselines/reg_1020B.out`。
+- 桌機逐像素（`/tmp/j/desk20.js`，1400 寬 12 個畫面，1020A w5 vs 1020B w9）：版面相同；差異只有頁尾版號、航班動態（看板更新時間）、訂票頁 KX180 機型 B787-10→A321neo（這輪改的）。

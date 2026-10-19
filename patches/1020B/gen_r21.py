@@ -72,6 +72,10 @@ RW('a21n x3',"try{applyAdded928()}catch(_){}",
    "    S.fleetAddedR928.push({reg:'B-'+n20b,type:'A21N',ageMonths:0,enteredAt:'2026-10-19',acq:'buy',from:'2026-10-19',at:'2026-10-19T00:00:00.000Z',builtinR1020B:1});n20b++}}}catch(_){}\n"
    "try{applyAdded928()}catch(_){}")
 
+# r203 稽核寫死「新增機身上限 13 架」（使用者歷次核准的數量）；這輪使用者「同意加入三台A21N」→ 13＋3＝16
+RC('r203 cap 16','kgm-0907C-r203',"if(o.addedTotal>13)bad.push('加了 '+o.addedTotal+' 架，超過 13 架的上限');",
+   "if(o.addedTotal>16)bad.push('加了 '+o.addedTotal+' 架，超過 16 架的上限');   /* 1020B：使用者同意再加三台 A21N（13→16） */")
+
 # ══ 航班動態：卡達航空掛在 KGM 杜哈線（QR 代碼）＋「依航線」「依航班號」重做 —— fb19 → fb20b（r229 同一個位置）══════════
 RW('fb20b',JS('fb19.js'),JS('fb20b.js'))
 # r38 會掃航班動態頁所有機型文字、往上找班號再改寫；新的卡片（.fs20）沒有 ISO 日期 → 它一路往上爬到整個清單、抓到第一張卡的班號，每張卡都被改成同一種機型。

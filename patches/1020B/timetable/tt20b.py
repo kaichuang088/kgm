@@ -251,6 +251,7 @@ put(toc, 376.3, 421.5 + GDY, '卡達航空', 'cjk', 5.95, PER_C)
 put(toc, 461.1, 421.5 + GDY, 'Qatar Airways', 'reg', 5.95, PER_C)
 log.append((2, 'TOC + partners', 'Qatar'))
 
+doc.subset_fonts()   # 新插入的字型只留用到的字（不然整份文泉驛會嵌進去，檔案大 6 MB）
 doc.set_metadata(dict(doc.metadata, modDate=fitz.get_pdf_now()))
 doc.save(OUT, garbage=4, deflate=True, clean=True)
 print('saved', OUT, doc.page_count)
