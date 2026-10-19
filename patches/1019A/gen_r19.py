@@ -16,6 +16,9 @@ def RC(label,layer,old,new,cnt=1):
 def JS(name):return open('js/'+name,encoding='utf-8').read()
 
 # ══ ② 轉機票價兩段都要賣得到（js/cn19.js 放在最後一層 r229 最前面）══════════════════════
+# 1019A 儲存空間：壓縮大的鍵（js/lz19.js）要在第一個讀 localStorage 的程式之前 → 放在第一個 <script> 開頭（不加層）
+RW('lz19 embed',"<script>\n/* 1006A：後台檔（KGM_SIDE='admin'）載入期間不顯示前台畫面","<script>\n"+JS('lz19.js')+"/* 1006A：後台檔（KGM_SIDE='admin'）載入期間不顯示前台畫面")
+RW('lz19 usage raw',"var k=localStorage.key(i),v=localStorage.getItem(k)||'',b=(k.length+v.length)*2","var k=localStorage.key(i),v=(window.kgmLsRawGetR1019A?kgmLsRawGetR1019A(k):localStorage.getItem(k))||'',b=(k.length+v.length)*2   /* 1019A：量真正佔用（壓縮後）的大小 */")
 RW('cn19 embed','<script id="kgm-0909E-r229">\n','<script id="kgm-0909E-r229">\n'+JS('cn19.js')+JS('fb19.js')+JS('ff19.js')+JS('mb19.js'))   # fb19＝④ 航班動態機場看板＋KGM 航班掛夥伴代碼
 RW('cn19 grid',
    '  var vc=validCodes(f1).filter(function(k){return k!=="R"&&validCodes(f2).indexOf(k)>=0;});\n  if(!vc.length)vc=validCodes(f1).filter(function(k){return k!=="R";});\n',
