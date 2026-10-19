@@ -1,7 +1,7 @@
 # KGM Airways — 專案規則（給 Claude Code）
 
 KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一個自包含的 HTML 檔**（約 8.4 MB）。
-版號由使用者指定（目前是 1020A，下一版由使用者命名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
+版號由使用者指定（目前是 1020B，下一版由使用者命名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
 
 ## 使用者的固定要求（逐字，一律遵守）
 
@@ -34,6 +34,12 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1018A：`bash patches/1018A/build.sh <1004B.html> <out.html>`（1018A＝1015A 全部＋`p_h_r17.js`；`gen_r17.py` **在 `patches/1018A/` 下執行**，比對基準 1015A 最終版 `/tmp/j/kgm1015A_w6.html`）。見 `notes/1018A-pass120-notes.md`。
 - 1018B：`bash patches/1018B/build.sh <1004B.html> <out.html>`（1018B＝1018A 全部＋`p_h_r18.js`；`gen_r18.py` **在 `patches/1018B/` 下執行**，比對基準 1018A 最終版 `/tmp/j/kgm1018A_w26.html`）。見 `notes/1018B-pass121-notes.md`。
 - 1019A：`bash patches/1019A/build.sh <1004B.html> <out.html>`（1019A＝1018B 全部＋`p_h_r19.js`；`gen_r19.py` **在 `patches/1019A/` 下執行**，比對基準 1018B 最終版 `/tmp/j/kgm1018B_w13.html`）。見 `notes/1019A-pass122-notes.md`。時刻表 PDF：`patches/1019A/timetable/tt19.py`。
+- 1020B：`bash patches/1020B/build.sh <1004B.html> <out.html>`（1020B＝1020A 全部＋`p_h_r21.js`；`gen_r21.py` **在 `patches/1020B/` 下執行**，比對基準 1020A 最終版 `/tmp/j/kgm1020A_w5.html`；長程式 `js/fl20b.js`（航班／冬夏機型／卡達）、`js/mb20b.js`（手機，取代 mb20）、`js/fb20b.js`（航班動態，取代 fb19））。見 `notes/1020B-pass124-notes.md`。時刻表 PDF：`patches/1020B/timetable/tt20b.py <1019A PDF> <out> <dumptt20.json>`（`tests/dumptt20.js` 匯出），聯營頁整頁依網站資料重排。
+- 1020B 機型：使用者逐條指定的寫在 MAP18（gen_r21 `map18 *`）；**冬夏不同機型**（KX304/303 夏 EQV＝A359/B779 輪流、冬 A388；KX306/305 夏 B779、冬 A21N）寫在 `fl20b.js` `SEAS20`。r71 `wrap71` 會把經停長程班的字面 `EQV` 換成 B789 → `fl20b` `acWrap`（最外層 acftOfFlight）對 KX304/303 夏季改回航線池（同一天去回同型）。三台 A21N 寫進 `S.fleetAddedR928`（`builtinR1020B`）。
+- 1020B 多哈線：KX2/KX1（B779 一三五日）、**KX100/KX99**（A359，使用者選的班號）；r77 定值冬夏；`effFrom` 2026-12-01（`fl20b` `effNew`）。**0809C 開頁計時器會把 KX100/KX99 改名成 KX74/KX73（巴黎線舊班號）→ 只排除多哈線，曼谷—巴黎那段還要改名**。卡達聯營 KX9520–9535＋反向 QR 代碼（`MKT19` 在 fb20b）。
+- 1020B 航班動態依航線／依航班號＝`fb20b.js` `view20()`（舊 statusView 不再呼叫）：以起點出發日為準，經停第二段寫自己的日期（用**當季**時刻算日期差）；沒飛寫營運日＋最近有飛的日期。**r38 會掃航班動態頁的機型文字往上找班號改寫 → 新卡片 `.fs20` 要排除（gen_r21 `r38 skip fs20`），不然每張卡都變第一班的機型**。
+- 1020B 手機：表頭右上角「登入」（`.kt20b-login`，登入後頭像→會員資料）；文字欄位輸入中／鍵盤擠小可視區時 `html.kgm-kb-r1020b` 收起下排五鈕與黏住的按鈕列；iOS viewport 加 `maximum-scale=1`。量用 `tests/mb20bt.js`。
+- 已知未修：網站時區表固定值（雪梨 +11、墨爾本／布里斯本 +10…）→ 澳航國內聯營有幾班飛行時間 25～45 分；全站共用、動到 KGM 自己的澳紐航班，等使用者決定。
 - 1020A：`bash patches/1020A/build.sh <1004B.html> <out.html>`（1020A＝1019A 全部＋`p_h_r20.js`；`gen_r20.py` **在 `patches/1020A/` 下執行**，比對基準 1019A 最終版 `/tmp/j/kgm1019A_w27.html`；只有 3 個替換：lz19→`js/lz20.js`、拿掉儲存失敗自動提示、mb19→`js/mb20.js`）。見 `notes/1020A-pass123-notes.md`。
 - 1020A 手機側邊選單（`js/mb20.js`）：☰ 在表頭**左上角**、`#kgmDrawerR1020A` 從**左邊**滑出（使用者指定）；內容每次從表頭 `.mega` 讀，點項目＝對原本那個 li `.click()`（`kgmDrawerGoR1020A`），不另寫一套。手機 `#app`／`body`／`html` 改 `overflow-x:clip`（原本 hidden 會讓 `position:sticky` 全部失效）；結帳按鈕列 sticky 在下排五鈕上方（付款頁 `.k923cc-actions` 不黏）。桌機逐像素不變（`/tmp/j/desk20.js`）。
 - 1020A 儲存空間：**不再自動跳出「儲存空間已滿」提示**（使用者要求；`kgmLsCleanR1012A()` 面板還在，只能手動開）；`lz20.js` 開頁整站 ≥260 萬字元就先壓縮（`KGM_LZ_R1020A`）。真的滿到寫不進去時沒有提示、只記 `KGM_LS_FAIL_R1012A`。量用 `tests/lz20t.js`（填充要用隨機中文字，有規律的字串會被壓縮掉、根本沒塞滿）。
@@ -91,9 +97,9 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/1020A/.test(t)` 改成新版號
+3. 版號更新（見下），並把 `vfy1.js` 的 `/1020B/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00 跑會因 KX180 當天已起飛而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
-5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1020A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
+5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1020B.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
 7. `node t_sched922.js`（組員班表延遲）、`node t_admlag.js`（後台 27 個分頁逐頁量）
