@@ -328,6 +328,162 @@
   }
   window.kgmFdMineR1022A=function(){return CUR?{role:CUR.role,ready:!!CUR.days,days:CUR.days,keys:Object.keys(CUR.keys)}:null};
 
+  /* ══ 會員頁（使用者：「會員也要有+/-然後好亂喔」）══════════════════════
+     版面原本：概況數字、三顆動作鈕、一顆單獨的「會員管理」（＝Users 分頁，重複）、會員名單、帳號資料，全部直排。
+     改成三個可收合的區塊：會員概況（數字＋動作鈕放進同一張卡）、會員名單（分頁＋表）、帳號資料（客服／CEO）。
+     只在畫面上分組（加標題列與 + / −），不搬動輸入框，原本的搜尋、排序、調整里程照舊。 */
+  function memTidy(){
+    try{
+      if(!(S.view==='admin'&&S.adminTab==='members'))return;
+      var main=document.querySelector('#app main.p-admin-main');if(!main)return;
+      var col=S._k22mR1022A||(S._k22mR1022A={}),kpi=main.querySelector(':scope > .k185-kpi'),act=main.querySelector(':scope > .k185-act');
+      main.classList.add('k22m');
+      if(kpi&&act&&act.parentNode!==kpi){act.classList.add('k22m-act');kpi.appendChild(act)}
+      function head(el,key,title,sub){
+        if(!el)return;var h=el.querySelector(':scope > .k22m-h')||(el.classList.contains('k22m-h')?el:null);
+        var b=el.querySelector('.k22m-tg');
+        if(!b){b=document.createElement('button');b.type='button';b.className='k22m-tg';el.insertBefore(b,el.firstChild)}
+        b.textContent=col[key]?'+':'−';b.title=col[key]?'展開':'收起';b.onclick=function(){col[key]=!col[key];memTidy()};
+        main.classList.toggle('k22m-c-'+key,!!col[key]);
+      }
+      /* 1 會員概況：在數字卡前面加一列標題 */
+      if(kpi){var h1=main.querySelector(':scope > .k22m-h1');if(!h1){h1=document.createElement('div');h1.className='k22m-h k22m-h1';h1.innerHTML='<b>會員概況</b><span>註冊會員、評分與黑名單；模擬資料與審核入口</span>';main.insertBefore(h1,kpi)}head(h1,'a')}
+      /* 2 會員名單：用原本的標題（H3.k192-title） */
+      var leg=main.querySelector(':scope > .p-member-legacy'),t2=leg&&leg.querySelector(':scope > h3.k192-title');
+      if(t2){t2.classList.add('k22m-h','k22m-h2');head(t2,'b')}
+      /* 3 帳號資料：用原本的 .adm-sec */
+      var t3=leg&&leg.querySelector(':scope > .adm-sec');
+      if(t3){t3.classList.add('k22m-h','k22m-h3');head(t3,'c')}
+    }catch(e){try{console.warn('k22 mem',e)}catch(_){}}
+  }
+  /* ══ 案件處理中心的模擬案件（使用者：「案件的AI Simulate可以有點創意不要只是退款申請太少了」）══════════
+     原本模擬案件只有 1010A 的 6 件退票申請。這裡用跟「＋ 建立案件」一模一樣的資料格式（S.staffCasesR1007A，存檔、前後台同步）
+     補上航空公司客服常見的各類案件：行李延誤／遺失／損壞、機上遺失物品、服務客訴、特殊協助、航班延誤錯過轉機、超賣拒絕登機、
+     非自願降艙、里程補登、簽證被拒退款、服務犬文件…；每件有自己的處理進度（受理 → 調查 → 等旅客 → 結案）、內部備註與給旅客的訊息。
+     旅客用模擬旅客轉成的正式訂位（kgmSimMaterializeR1010A，跟退票模擬同一個做法），行程管理、案件查詢都查得到。
+     只自動產生一次（看紀錄上的 simR1022A）；案件處理中心上方另有「再產生一批模擬案件」。 */
+  var SC22=[
+    {t:'bag_delayed',d:-2,st:'investigating',pr:'urgent',det:'抵達後行李未出現在轉盤，已於到站行李服務處登記 PIR。行李條 KX{tag}，深藍色硬殼 28 吋，綁紅色行李帶。',
+      steps:[['received','到站行李服務處受理 PIR'],['investigating','WorldTracer 比對：行李在 TPE 轉機時未裝上，已改掛隔日同班次，預計明天下午送達旅客飯店']],note:'旅客要求先購買盥洗用品，已告知可憑收據申請每日 NT$1,500 內的臨時必需品補助（最多 3 天）。',bag:'深藍色硬殼 28 吋，綁紅色行李帶'},
+    {t:'bag_lost',d:-6,st:'investigating',pr:'urgent',det:'行李延誤已超過 5 天仍未找到。黑色布面 24 吋，前袋有相機。旅客已提交行李內容清單。',
+      steps:[['received','到站登記行李延誤'],['investigating','追查第 5 天：轉運站 BKK、ICN 皆無紀錄，升級為遺失行李（第 21 天前持續追查）'],['awaiting_customer','請旅客提供貴重物品（相機）購買證明，以利理賠估算']],note:'理賠上限依蒙特利爾公約 1,288 SDR；相機屬貴重物品，需附購買證明。',bag:'黑色布面 24 吋，前袋有相機'},
+    {t:'bag_damaged',d:-1,st:'awaiting_customer',pr:'normal',det:'硬殼行李箱一個輪子斷裂、拉桿無法收回。已在機場拍照存證。',
+      steps:[['received','機場櫃檯受理行李損壞（附照片 3 張）'],['awaiting_customer','已請旅客提供維修估價單或同等級行李箱價格，7 日內回覆']],note:'屬可歸責損壞（輪子、拉桿），非正常使用磨損；可選擇維修或折舊後賠償。',bag:'銀色硬殼 26 吋'},
+    {t:'item_lost',d:-3,st:'closed',pr:'normal',det:'旅客下機後發現 iPad（銀色、紅色保護套）遺留在座位前方置物袋。',
+      steps:[['received','旅客來電登記遺失物'],['investigating','機上清潔組員拾獲，已送桃園機場第二航廈失物招領'],['closed','旅客本人憑證件領回，結案']],note:'座位號與遺失物描述相符，拾獲時間為落地後 40 分鐘。'},
+    {t:'complaint',d:-2,st:'investigating',pr:'normal',det:'經濟艙第二輪送餐時牛肉餐已用完，旅客只能選素食；旅客另反映空服員回覆時語氣不耐。',
+      steps:[['received','旅客透過網站留言申訴'],['investigating','已調閱當班座艙長報告與餐點裝載單：本班牛肉餐裝載 46%（依預訂比例），座艙長確認有致歉']],note:'建議致贈 3,000 哩表達歉意；餐點裝載比例已回報空廚檢討（該航線牛肉餐偏好高）。'},
+    {t:'complaint',d:-4,st:'closed',pr:'normal',det:'長程航班機上 Wi-Fi 全程無法連線，旅客已購買 Wi-Fi 方案。',
+      steps:[['received','旅客申訴並附購買收據'],['investigating','維修紀錄：該機衛星天線模組故障，已於落地後更換'],['closed','全額退還 Wi-Fi 費用並致贈 2,000 哩，旅客接受']],note:'同航班另有 11 位旅客購買，已主動全數退費。'},
+    {t:'assistance',d:-1,st:'closed',pr:'urgent',det:'旅客訂位已註記 WCHC（需全程輪椅），抵達時登機門未有輪椅等候，等候 25 分鐘。',
+      steps:[['received','旅客家屬於機場申訴'],['investigating','查明到站地勤派工表漏派（SSR 有傳送，但到站站點未收到更新）'],['closed','向旅客致歉並致贈下次航班貴賓室使用券；已修正到站 SSR 通報流程']],note:'屬服務疏失，列入地勤主管紀錄。'},
+    {t:'assistance',d:9,st:'awaiting_customer',pr:'normal',det:'旅客懷孕 32 週，詢問搭乘規定。',
+      steps:[['received','客服中心受理'],['awaiting_customer','已告知懷孕 28–36 週需附 7 日內醫師開立之適航證明（含預產期），請旅客於報到前上傳']],note:'36 週以上（多胞胎 32 週以上）不予受理搭乘。'},
+    {t:'disruption',d:-1,st:'closed',pr:'urgent',det:'班機因航管流量管制延誤 3 小時 10 分，旅客錯過後續轉機。',
+      steps:[['received','轉機櫃檯受理'],['investigating','改訂次日最早一班（同艙等），提供轉機飯店一晚與餐券'],['closed','旅客已搭乘改訂班機抵達目的地，結案']],note:'延誤原因屬航管，不適用 EU261 現金補償；已依本公司規定提供食宿。'},
+    {t:'denied_boarding',d:-2,st:'closed',pr:'normal',det:'班機超賣，登機門徵求自願讓位，旅客同意改搭下一班。',
+      steps:[['received','登機門徵求自願者'],['closed','改搭 4 小時後班機並升等商務艙；補償 NT$6,000 旅行抵用券＋餐券，旅客簽署同意書']],note:'自願讓位，依 KGM 超賣補償辦法。'},
+    {t:'invol_downgrade',d:-3,st:'investigating',pr:'urgent',det:'因換機（座位配置不同），旅客由商務艙非自願降為豪華經濟艙。',
+      steps:[['received','報到櫃檯告知換機降艙並請旅客簽署非自願降艙同意書'],['investigating','計算退款：退還該航段商務與豪經票價差額，另加 50% 補償']],note:'差額與補償將退回原付款方式，約 7–14 個工作天。'},
+    {t:'miles_claim',d:-12,st:'investigating',pr:'normal',det:'旅客搭乘合作航空聯營航班，里程未自動入帳。已提供登機證與電子機票號碼。',
+      steps:[['received','會員服務受理補登'],['investigating','已向合作航空提出比對請求（一般 4–6 週）']],note:'聯營航班依合作航空訂位艙等累積；機票號碼 297 開頭確認為本公司開票。'},
+    {t:'other',d:12,st:'awaiting_customer',pr:'normal',det:'旅客攜帶服務犬同行，詢問所需文件。',
+      steps:[['received','客服中心受理'],['awaiting_customer','已請旅客於起飛 48 小時前提供服務犬訓練證明、狂犬病疫苗紀錄與目的地入境許可']],note:'服務犬可免費於客艙隨行，需坐在旅客腳邊、不可佔用走道。'},
+    {t:'refund_req',d:20,st:'received',pr:'normal',det:'旅客簽證申請遭拒，申請全額退票（附拒簽信）。',
+      steps:[['received','旅客上傳拒簽證明，申請退票']],note:'依 CHG-003：簽證被拒且起飛前提出，可免收退票手續費（需拒簽正本）。'},
+    {t:'complaint',d:-5,st:'closed',pr:'normal',det:'座位螢幕無法開啟、USB 充電孔故障，旅客整趟無法使用娛樂系統。',
+      steps:[['received','空服員記錄於客艙缺點報告（CDL）'],['closed','已報修該座位，致贈 NT$1,000 機上免稅品折價券']],note:'同機 2 個座位有相同問題，維修已排定。'},
+    {t:'assistance',d:-2,st:'closed',pr:'urgent',det:'無成人陪伴兒童（UM，9 歲）抵達後，原定接機人臨時無法到場，家長要求更換接機人。',
+      steps:[['received','到站站點受理家長來電'],['investigating','核對新接機人身分證件與家長書面授權'],['closed','孩童已由新接機人（舅舅）接走，簽收完成']],note:'UM 交接一律核對證件與授權書，不接受口頭變更。'}
+  ];
+  function caseSim22(n,force){
+    try{
+      if(!S.adminAuthed||S.view!=='admin'||typeof kgmDayOf72R1006A!=='function'||!window.simManifest||!window.kgmSimMaterializeR1010A)return 0;
+      var L=S.staffCasesR1007A=S.staffCasesR1007A||[];
+      if(!force&&L.some(function(c){return c&&c.simR1022A}))return 0;
+      var T0=T(),made=0,seed=Date.now()%9973,pick=force?SC22.slice().sort(function(a,b){return ((a.det.length*seed)%97)-((b.det.length*seed)%97)}).slice(0,n||6):SC22;
+      pick.forEach(function(sc,qi){
+        var d=D(T0,sc.d),list=[];try{list=(kgmDayOf72R1006A(d)||[]).filter(function(x){return x&&x.f&&!x.f.partner&&!x.f.codeshare&&!x.f.via})}catch(_){}
+        if(!list.length)return;
+        var h=0,key='cs22|'+d+'|'+qi+'|'+(force?seed:0);for(var i=0;i<key.length;i++)h=(h*31+key.charCodeAt(i))>>>0;
+        var x0=list[h%list.length],f=x0.f,rows=[];
+        try{rows=(window.simManifest(f.code,d,Object.assign({},f,{acft:x0.t||f.acft}))||[]).filter(function(r){return r&&!r.real&&/^[A-Z0-9]{6}$/.test(r.pnr||'')&&r.cabin!=='Resident'})}catch(_){}
+        if(sc.t==='invol_downgrade'){var bz=rows.filter(function(r){return r.cabin==='Business'});if(bz.length)rows=bz}
+        if(!rows.length)return;
+        var x=Object.assign({},rows[(h>>>3)%rows.length]);x.nationality=x.nationality||x.nat||'';x.seat='';
+        var b=window.kgmSimMaterializeR1010A({f:f,date:d,x:x});if(!b)return;
+        var base=Date.parse(d+'T'+(f.arr||f.dep||'12:00')+':00+08:00');if(sc.d>0)base=Date.now()-(30+h%300)*60000;
+        var no='KG'+String(1000+(h%9000))+new Date().toISOString().slice(5,10).replace('-','')+String(new Date().getFullYear()).slice(2)+'M';
+        if(L.some(function(c){return c&&c.caseNo===no}))no=no.replace(/M$/,'N');
+        var prog=sc.steps.map(function(s2,si){var at=new Date(Math.min(Date.now()-60000,base+(si*(9+h%14)+1)*3600e3)).toISOString();
+          return {at:at,status:s2[0],label:s2[1],by:si?'客服中心':(/^bag_|assistance|item_lost|denied|disruption|invol/.test(sc.t)?'機場地勤':'客服中心')}});
+        var p=(b.paxList||[])[0]||{},tag=String(100000+h%900000);
+        var rec={caseNo:no,pnr:b.pnr,type:sc.t,status:sc.st,priority:sc.pr,paxIndex:0,paxName:((p.lastName||'')+' / '+(p.firstName||'')).trim(),
+          segment:{code:f.code,fr:f.fr,to:f.to,date:d},detail:sc.det.replace('{tag}',tag),
+          bag:sc.bag?{tag:'KX'+tag,look:String(sc.bag),seen:'',deliver:''}:null,
+          createdAt:prog[0].at,updatedAt:prog[prog.length-1].at,by:{empId:'SIM',name:'AI 模擬',role:'service'},assignee:{empId:'',name:''},
+          userId:b.userId||null,email:b.contactEmail||p.email||'',progress:prog,notes:[{at:prog[prog.length-1].at,by:'客服中心',text:sc.note}],simR1022A:1};
+        L.unshift(rec);made++;
+      });
+      if(made){try{logAct('模擬案件','產生 '+made+' 件（行李、客訴、特殊協助、航班異常…）')}catch(_){}try{save()}catch(_){}}
+      return made;
+    }catch(e){try{console.warn('k22 case sim',e)}catch(_){}return 0}
+  }
+  window.kgmCaseSimR1022A=function(n){var k=caseSim22(n||6,true);try{render()}catch(_){}return k};
+  (function seed22(n){if(n>150)return;setTimeout(function(){try{if(caseSim22(0,false)){try{render()}catch(_){}return}if((S.staffCasesR1007A||[]).some(function(c){return c&&c.simR1022A}))return}catch(_){}seed22(n+1)},n?4000:12000)})(0);
+  function caseBtn(){
+    try{
+      if(!(S.view==='admin'&&S.adminTab==='cases0831B'))return;
+      var main=document.querySelector('#app main.p-admin-main');if(!main||main.querySelector('.k22-csim'))return;
+      if(!/^(ceo|service|backend|ground)$/.test(String((S.adminUser||{}).role||''))&&(S.adminUser||{}).empId!=='MASTER')return;
+      var n=(S.staffCasesR1007A||[]).filter(function(c){return c&&c.simR1022A}).length,d=document.createElement('div');d.className='k22-csim';
+      d.innerHTML='<span>'+(z()?'模擬案件 '+n+' 件（行李、客訴、特殊協助、航班異常、里程補登…）':'Simulated cases: '+n)+'</span><button type="button" class="btn btn-sm" onclick="kgmCaseSimR1022A(6)">'+(z()?'再產生一批模擬案件':'Generate more')+'</button>';
+      main.appendChild(d);
+    }catch(_){}
+  }
+  /* ══ 訂購地點與當地時間（使用者：「後台訂購日期要寫的是根據當地IP位置時間喔然後要寫清楚是哪裡 系統要自動偵測」）══
+     · 網頁本身拿不到自己的 IP 位置；真正的 IP 定位由 Cloudflare Worker 做（request.cf 有城市、國家、時區）——
+       開頁時問一次 Worker 的 /geo（3 秒逾時，這次開頁記住）；Worker 還沒加 /geo 或連不上，就用瀏覽器回報的裝置時區，並標明來源。
+     · 新訂位（前台這台瀏覽器剛訂的、沒有地點紀錄）存檔前補上 b.bookedGeoR1022A={tz,city,country,src}。
+     · 模擬訂位沒有真的 IP：依聯絡電話國碼推定訂購地（標「模擬」）。 */
+  var TZC={'Asia/Taipei':['台北','台灣'],'Asia/Tokyo':['東京','日本'],'Asia/Seoul':['首爾','韓國'],'Asia/Hong_Kong':['香港','香港'],'Asia/Macau':['澳門','澳門'],'Asia/Shanghai':['上海','中國'],
+    'Asia/Singapore':['新加坡','新加坡'],'Asia/Bangkok':['曼谷','泰國'],'Asia/Kuala_Lumpur':['吉隆坡','馬來西亞'],'Asia/Manila':['馬尼拉','菲律賓'],'Asia/Ho_Chi_Minh':['胡志明市','越南'],'Asia/Jakarta':['雅加達','印尼'],
+    'Australia/Sydney':['雪梨','澳洲'],'Australia/Melbourne':['墨爾本','澳洲'],'Australia/Brisbane':['布里斯本','澳洲'],'Pacific/Auckland':['奧克蘭','紐西蘭'],
+    'America/Los_Angeles':['洛杉磯','美國'],'America/New_York':['紐約','美國'],'America/Chicago':['芝加哥','美國'],'America/Vancouver':['溫哥華','加拿大'],'America/Toronto':['多倫多','加拿大'],
+    'Europe/London':['倫敦','英國'],'Europe/Paris':['巴黎','法國'],'Europe/Berlin':['柏林','德國'],'Europe/Rome':['羅馬','義大利'],'Europe/Amsterdam':['阿姆斯特丹','荷蘭'],'Europe/Vienna':['維也納','奧地利'],
+    'Asia/Dubai':['杜拜','阿聯'],'Asia/Qatar':['杜哈','卡達'],'Asia/Kolkata':['德里','印度']};
+  var PH22=[['+886','Asia/Taipei'],['+852','Asia/Hong_Kong'],['+853','Asia/Macau'],['+971','Asia/Dubai'],['+974','Asia/Qatar'],['+81','Asia/Tokyo'],['+82','Asia/Seoul'],['+86','Asia/Shanghai'],['+65','Asia/Singapore'],
+    ['+66','Asia/Bangkok'],['+60','Asia/Kuala_Lumpur'],['+63','Asia/Manila'],['+84','Asia/Ho_Chi_Minh'],['+62','Asia/Jakarta'],['+61','Australia/Sydney'],['+64','Pacific/Auckland'],['+44','Europe/London'],
+    ['+33','Europe/Paris'],['+49','Europe/Berlin'],['+39','Europe/Rome'],['+31','Europe/Amsterdam'],['+43','Europe/Vienna'],['+91','Asia/Kolkata'],['+1','America/Los_Angeles']];
+  var GEO=null;
+  function devGeo(){var tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(_){}var c=TZC[tz]||[];return {tz:tz||'Asia/Taipei',city:c[0]||String(tz).split('/').pop().replace(/_/g,' '),country:c[1]||'',src:'device'}}
+  function loadGeo(){
+    try{var c=sessionStorage.getItem('kgm22_geo');if(c){GEO=JSON.parse(c);return}}catch(_){}
+    GEO=devGeo();
+    try{var base=String(window.KGM_WORKER_URL||'https://kgm-email.amychen-640413.workers.dev').replace(/\/+$/,'');
+      var ac=typeof AbortController==='function'?new AbortController():null;var tm=setTimeout(function(){try{ac&&ac.abort()}catch(_){}},3000);
+      fetch(base+'/geo',{signal:ac?ac.signal:undefined,cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){clearTimeout(tm);
+        if(j&&j.timezone){var c=TZC[j.timezone]||[];GEO={tz:j.timezone,city:j.city||c[0]||'',country:j.countryName||c[1]||j.country||'',src:'ip'};try{sessionStorage.setItem('kgm22_geo',JSON.stringify(GEO))}catch(_){}}}).catch(function(){clearTimeout(tm)});
+    }catch(_){}
+  }
+  function stampGeo(){
+    try{if(!GEO||String(window.KGM_SIDE||'')==='admin')return;var L=S.bookings||[],now=Date.now(),cand=L.slice(0,15).concat(L.slice(-15));
+      cand.forEach(function(b){if(!b||b.bookedGeoR1022A||b.simulated||b.simR1010A||b.csSimR1012A)return;var t=Date.parse(b.bookedAt||'');if(!(t>0)||now-t>20*60000||now-t<-60000)return;b.bookedGeoR1022A={tz:GEO.tz,city:GEO.city,country:GEO.country,src:GEO.src}})}catch(_){}
+  }
+  function off22(tz,t){try{var p=new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'shortOffset'}).formatToParts(new Date(t)).filter(function(x){return x.type==='timeZoneName'})[0];return p?p.value.replace('GMT','UTC'):''}catch(_){return ''}}
+  function loc22(tz,t){try{var f=new Intl.DateTimeFormat('sv-SE',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t));return f.replace('T',' ').slice(0,16)}catch(_){return new Date(t).toISOString().slice(0,16).replace('T',' ')}}
+  window.kgmBookedWhereR1022A=function(b){
+    var raw=b&&(b.bookedAt||b.createdAt);if(!raw)return '—';var t=Date.parse(raw);if(!(t>0))return E(raw);
+    var g=b.bookedGeoR1022A,sim=false;
+    if(!g){var ph=String(b.contactPhone||((b.paxList||[])[0]||{}).phone||'').replace(/\s/g,''),tz='';PH22.some(function(x){if(ph.indexOf(x[0])===0){tz=x[1];return true}});
+      if(!tz){var nat=String(((b.paxList||[])[0]||{}).nat||'').toUpperCase();tz={TW:'Asia/Taipei',JP:'Asia/Tokyo',KR:'Asia/Seoul',HK:'Asia/Hong_Kong',SG:'Asia/Singapore',TH:'Asia/Bangkok',AU:'Australia/Sydney',US:'America/Los_Angeles',GB:'Europe/London',FR:'Europe/Paris',DE:'Europe/Berlin',CA:'America/Vancouver',MY:'Asia/Kuala_Lumpur',VN:'Asia/Ho_Chi_Minh',PH:'Asia/Manila',ID:'Asia/Jakarta',NZ:'Pacific/Auckland'}[nat]||''}
+      if(tz){var c=TZC[tz]||[];g={tz:tz,city:c[0]||tz,country:c[1]||'',src:'sim'};sim=true}}
+    if(!g)return E(new Date(t).toISOString().slice(0,16).replace('T',' '))+' UTC';
+    var src=g.src==='ip'?(z()?'IP 定位':'IP location'):g.src==='sim'?(z()?'模擬訂位・依電話國碼推定':'simulated · from phone code'):(z()?'裝置時區（Worker 未提供 IP 定位）':'device time zone');
+    return E(loc22(g.tz,t))+' <span style="font-weight:600;color:#2f6b55">'+E([g.city,g.country].filter(Boolean).join('，'))+'</span> <small style="color:#8b928c;font-weight:400">'+E(off22(g.tz,t))+' · '+E(src)+'</small>';
+  };
+  function saveWrap(){var sv=window.save;if(typeof sv!=='function'||sv.__r1022A)return;var w=function(){try{stampGeo()}catch(_){}return sv.apply(this,arguments)};try{Object.keys(sv).forEach(function(k){if(!(k in w))w[k]=sv[k]})}catch(_){}w.__r1022A=1;window.save=w;try{save=w}catch(_){}}
+  try{loadGeo()}catch(_){}
   var CSS='.k22-chg{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 18px;padding:16px 20px;border:1px solid #d8e5dd;border-radius:16px;background:linear-gradient(180deg,#fbfdfb,#f3f8f4)}'
    +'.k22-chg.off{border-color:#ecc9c0;background:linear-gradient(180deg,#fffaf8,#fbefeb)}'
    +'.k22-chg-t{display:flex;flex-direction:column;gap:3px;min-width:0}.k22-chg-t small{font-size:10px;letter-spacing:.14em;font-weight:800;color:#9a7a38}'
@@ -371,6 +527,29 @@
    +'.k22-col::after{content:"";position:absolute;left:0;right:0;bottom:0;height:22px;background:linear-gradient(rgba(255,255,255,0),rgba(255,255,255,.95));pointer-events:none}'
    +'.r7-ops-hero.k22-col::after{background:none}'
    +'.k22-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:10px 0 4px}.k22-bar span{margin-right:auto;font-size:11.5px;color:#7a817b}'
+   /* 競標每組 + / −（r61 grpCard） */
+   +'.k920-grp.k22c>table,.k920-grp.k22c>div,.k920-grp.k22c>p{display:none!important}.k920-grp.k22c>h3{margin-bottom:0!important;border-bottom:0!important}'
+   +'.k22-agt{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-right:10px;padding:0;border-radius:50%;border:1px solid #d6dbd4;background:#fff;color:#173f33;font:700 15px/1 system-ui,-apple-system,sans-serif;cursor:pointer;vertical-align:middle}.k22-agt:hover{background:#eef6f1;border-color:#9cc2ad}'
+   +'.k22-aucall{display:inline-flex;gap:6px;margin-left:12px;vertical-align:middle}.k22-aucall button{padding:4px 10px;border-radius:999px;border:1px solid #d6dbd4;background:#fff;color:#173f33;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}.k22-aucall button:hover{background:#eef6f1}'
+   /* 會員頁分組 */
+   +'.k22m > .p-member-tabs{display:none!important}'
+   +'.k22m .k22m-h{display:flex!important;align-items:center;gap:10px;margin:22px 0 10px!important;padding:0 0 8px!important;border:0!important;border-bottom:1px solid #e6e2d6!important;font-size:17px;color:#173f33}'
+   +'.k22m .k22m-h b{font-size:17px}.k22m .k22m-h1 span{font-size:12px;color:#8b928c;font-weight:400}.k22m .k22m-h1{margin-top:6px!important}'
+   +'.k22m-tg{flex:none;width:26px;height:26px;padding:0;border-radius:50%;border:1px solid #d6dbd4;background:#fff;color:#173f33;font:700 16px/1 system-ui,-apple-system,sans-serif;cursor:pointer}.k22m-tg:hover{background:#eef6f1;border-color:#9cc2ad}'
+   +'.k22m .k185-kpi{padding-bottom:14px}.k22m .k22m-act{display:flex!important;flex-wrap:wrap;gap:8px;margin:14px 0 0!important;padding:12px 0 0!important;border:0!important;border-top:1px dashed #e2dccb!important;border-radius:0!important;background:none!important;box-shadow:none!important;grid-column:1/-1}'
+   +'.k22m .k22m-h{box-shadow:none!important;border-left:0!important;padding-left:0!important}.k22m .k22m-h::before,.k22m .k22m-h::after{display:none!important}'
+   +'.k22m-c-a > .k185-kpi{display:none!important}'
+   +'.k22m-c-b .p-member-legacy > .k22m-h2 ~ *:not(.k22m-h3):not(.k22m-h3 ~ *){display:none!important}'
+   +'.k22m-c-c .p-member-legacy > .k22m-h3 ~ *{display:none!important}'
+   /* 主管紀錄（名冊每一級收合、空的一行；機師考核選航班） */
+   +'.k22-lvrow{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:10px 16px;border:1px dashed #dfe6e2;border-radius:12px;background:#fbfcfb;color:#6b7b74;font-size:12.5px}.k22-lvrow b{color:#123c32}.k22-lvrow small{margin-left:auto;font-size:11.5px}'
+   +'.k12m-card.k22c .k12m-sec{margin-bottom:0}.k22-ng .k12m-t th:nth-child(3),.k22-ng .k12m-t td:nth-child(3),.k22-ng .k12m-t th:nth-child(4),.k22-ng .k12m-t td:nth-child(4){display:none}'
+   +'.k22p-f{margin-bottom:6px}.k22p-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:6px 0 12px}'
+   +'.k22p-c{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:9px 11px;border:1px solid #dfe6e2;border-radius:12px;background:#fff;cursor:pointer;font:inherit;color:inherit;text-align:left}.k22p-c:hover{border-color:#9cc2ad}.k22p-c.on{background:#123c32;border-color:#123c32;color:#fff}'
+   +'.k22p-c b{font-size:14px}.k22p-c span{font-size:12px}.k22p-c small{font-size:10.5px;color:#7d8a84}.k22p-c.on small{color:#cfe0d6}.k22p-c em{margin-top:3px;font-style:normal;font-size:10px;font-weight:800;color:#9a7a38}.k22p-c.on em{color:#f0d7a0}'
+   +'.k22p-sel{margin:4px 0 10px;padding:10px 14px;border-radius:12px;background:#eef6f1;border:1px solid #d5e8dc;font-size:12.5px;color:#123c32;line-height:1.6}'
+   +'.k22-lvt{display:grid;grid-template-columns:1fr 1fr;gap:10px}.k22-lvt label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:#5e6a64}'
+   +'.k22-csim{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 0;padding:12px 16px;border:1px dashed #d8d2c2;border-radius:12px;background:#fbfaf6;font-size:12.5px;color:#6b726c}'
    +'.k22-bar button{padding:6px 12px;border-radius:999px;border:1px solid #d6dbd4;background:#fff;color:#173f33;font-size:12px;font-weight:700;cursor:pointer}.k22-bar button:hover{background:#eef6f1}';
   function css(){if(document.getElementById('k22css'))return;var s=document.createElement('style');s.id='k22css';s.textContent=CSS;(document.head||document.documentElement).appendChild(s)}
 
@@ -381,13 +560,13 @@
       try{chgGuard()}catch(_){}
       try{preFd()}catch(_){}
       var r=rd.apply(this,arguments);
-      try{chgCard();postFd()}catch(_){}
-      [60,350,1000].forEach(function(ms){setTimeout(function(){try{chgCard();postFd()}catch(_){}},ms)});
+      try{chgCard();postFd();memTidy();caseBtn()}catch(_){}
+      [60,350,1000].forEach(function(ms){setTimeout(function(){try{chgCard();postFd();memTidy();caseBtn()}catch(_){}},ms)});
       return r};
     try{Object.keys(rd).forEach(function(k){if(!(k in w))w[k]=rd[k]})}catch(_){}
     w.__r1022A=1;render=window.render=w;
   }
-  function run(){css();viaWrap();chgWrap();fdWrap();renWrap()}
+  function run(){css();viaWrap();chgWrap();fdWrap();renWrap();saveWrap()}
   run();
   try{document.addEventListener('DOMContentLoaded',function(){run();setTimeout(run,4000)})}catch(_){}
   window.kgmK22ApplyR1022A=run;
