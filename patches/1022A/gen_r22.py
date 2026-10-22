@@ -202,11 +202,68 @@ RC('swap gen cap','kgm-0909E-r229',"if(ok.length>=8||tried6++>40)break;","if(ok.
 RW('booked local',"+'</b></div><div><small>'+(ZJ()?'訂購日':'Booked')+'</small><b>'+EJ(b.bookedAt||b.createdAt||'—')+'</b></div>",
    "+'</b></div><div><small>'+(ZJ()?'訂購時間（訂購地當地）':'Booked (local time)')+'</small><b>'+(window.kgmBookedWhereR1022A?window.kgmBookedWhereR1022A(b):EJ(b.bookedAt||b.createdAt||'—'))+'</b></div>")
 
+# ══ 票價調整（新分頁）：使用者「圖三放到票價調整新的tab在票價分析下面然後好亂 調整要可以調整倉等可能E-C/E-T或是整個E之類的」——
+#    k22 kgmFareAdjPageR1022A；票價規則多一欄 buckets（訂位代號清單），只對清單內的代號乘上幅度；票價分析頁原本的人工調整卡改成一行連結 ══
+RW('rule buckets',"      if(r.bucket&&r.bucket!==fc18)return;",
+   "      if(r.bucket&&r.bucket!==fc18)return;\n      if(r.buckets&&r.buckets.length&&r.buckets.indexOf(fc18)<0)return;   /* 1022A：代號範圍（例如經濟艙 E-C～E-T） */")
+RW('side fareadj',"['fareana','票價分析']]]","['fareana','票價分析'],['fareadj','票價調整']]]",2)
+RC('perm pricing fareadj','kgm-0903b-r123',"pricing:{price:'use',finance:'use',fareana:'use',","pricing:{price:'use',finance:'use',fareana:'use',fareadj:'use',")
+RC('perm backend fareadj','kgm-0903b-r123',"fareana:'view',","fareana:'view',fareadj:'view',")
+RC('order fareadj','kgm-0909E-r229',"'price','fareana','finance'","'price','fareana','fareadj','finance'")
+RW('role tabs fareadj','ROLE_TABS.pricing=["price","finance","fareana",','ROLE_TABS.pricing=["price","finance","fareana","fareadj",')
+RW('body fareadj',"else if(tab==='fareana')body=(typeof window.kgmFareAnaPageR1004B==='function'?window.kgmFareAnaPageR1004B():'');",
+   "else if(tab==='fareana')body=(typeof window.kgmFareAnaPageR1004B==='function'?window.kgmFareAnaPageR1004B():'');else if(tab==='fareadj')body=(typeof window.kgmFareAdjPageR1022A==='function'?window.kgmFareAdjPageR1022A():'');else if(tab==='cardverify')body=(typeof window.kgmCardVerifyPageR1022A==='function'?window.kgmCardVerifyPageR1022A():'');   /* 1022A */")
+RW('fareana moved',"+fa18Panel(fr,to,d,mine)",
+   "+'<div class=\"fa22-moved\"><span>'+(z()?'航線、艙等與訂位代號範圍的人工調整已移到「票價調整」分頁；這裡的艙位階梯格子仍可改單一班次、單一天的價格與座位。':'Manual route/cabin adjustments moved to the Fare adjustment tab.')+'</span><button class=\"btn btn-sm\" onclick=\"S.adminTab=\\'fareadj\\';render()\">'+(z()?'前往票價調整 →':'Open →')+'</button></div>'   /* 1022A */")
+
+# ══ 改票一次選兩段：使用者「改票要可以一次改兩個航段（也要可以是不同起始點和目的第一次選兩個但是一樣分開改）」——
+#    改票區塊最上面「要改的航段（可複選）」，勾兩段 → 先改第一段（下面的編輯列就是那一段，起訖可以各自換），完成頁出現「繼續改下一段」，
+#    第二段一樣有自己的機場組合、日期、航班、艙等與報價；兩段都改完才回到一般狀態 ══
+RC('rx multi queue','kgm-0823p-r82',"    +'<div class=\"k82-bar\">'\n      +'<b class=\"k82-pnr\">PNR '+E(st.pnr||'—')+'</b>'",
+   "    +(list.length>1?(function(){   /* 1022A：要改的航段（可複選），依序一段一段改 */\n"
+   "        var Q=(st.queueR1022A||[]).filter(function(k){return list.some(function(x){return x.key===k})}),dn=st.doneR1022A||{};\n"
+   "        return '<div class=\"k22-rxq\"><span class=\"k22-rxq-t\">'+(z()?'要改的航段（可複選，選兩段會一段一段改）':'Sectors to change (pick several; changed one at a time)')+'</span>'\n"
+   "          +list.map(function(x){var on=Q.indexOf(x.key)>=0,cur=x.key===seg,ok=!!dn[x.key];return '<label class=\"'+(on?'on':'')+(cur?' cur':'')+'\"><input type=\"checkbox\"'+(on?' checked':'')+' onchange=\"kgmCabQueueR1022A(\\''+A(x.key)+'\\',this.checked)\">'+E(x.code+' '+x.fr+'→'+x.to+' '+(x.date||''))+(ok?' <em>'+(z()?'已改':'done')+'</em>':(cur&&Q.length>1?' <em>'+(z()?'正在改':'editing')+'</em>':''))+'</label>'}).join('')\n"
+   "          +(Q.length>1?'<span class=\"k22-rxq-n\">'+(z()?('第 '+(Q.indexOf(seg)+1)+' 段／共 '+Q.length+' 段'):('Sector '+(Q.indexOf(seg)+1)+' of '+Q.length))+'</span>':'')+'</div>'})():'')\n"
+   "    +'<div class=\"k82-bar\">'\n      +'<b class=\"k82-pnr\">PNR '+E(st.pnr||'—')+'</b>'")
+RC('rx multi next','kgm-0823p-r82',"        +'<button class=\"k82-go ghost\" onclick=\"kgmCabDoneAgainR82()\">'+(z()?'再改這筆訂位的其他航段':'Change another sector')+'</button>'",
+   "        +(function(){var st2=S._cab82||{},Q=st2.queueR1022A||[],dn=Object.assign({},st2.doneR1022A||{});if(st2.seg)dn[st2.seg]=1;var nx=Q.filter(function(k){return !dn[k]})[0];if(!nx)return '';\n"
+   "          var b2=bk82(st2.pnr),sx=b2?segs82(b2).filter(function(x){return x.key===nx})[0]:null;   /* 1022A：一次選兩段 → 接著改下一段 */\n"
+   "          return '<button class=\"k82-go\" onclick=\"kgmCabNextR1022A()\">'+(z()?'繼續改下一段：':'Next sector: ')+E(sx?(sx.code+' '+sx.fr+'→'+sx.to+' '+(sx.date||'')):nx)+' →</button>'})()\n"
+   "        +'<button class=\"k82-go ghost\" onclick=\"kgmCabDoneAgainR82()\">'+(z()?'再改這筆訂位的其他航段':'Change another sector')+'</button>'")
+RC('rx multi fns','kgm-0823p-r82',"window.kgmCabPnrR82=function(v){S._cab82=S._cab82||{};S._cab82.pnr=String(v||'').toUpperCase().trim();S._cab82.seg='';",
+   "/* 1022A：一次選好幾段、依序改 —— queueR1022A＝要改的航段（依訂位上的順序），doneR1022A＝這一輪已經改好的 */\n"
+   "window.kgmCabQueueR1022A=function(k,on){var st=S._cab82=S._cab82||{},b=bk82(st.pnr),list=b?segs82(b):[],Q=(st.queueR1022A||[]).slice();\n"
+   "  if(on){if(Q.indexOf(k)<0)Q.push(k)}else Q=Q.filter(function(x){return x!==k});\n"
+   "  Q=list.map(function(x){return x.key}).filter(function(x){return Q.indexOf(x)>=0});st.queueR1022A=Q;st.doneR1022A=st.doneR1022A||{};\n"
+   "  var first=Q.filter(function(x){return !st.doneR1022A[x]})[0];if(first&&first!==st.seg){st.seg=first;st.date='';st.flight='';st.cab='';st.code='';st.fr='';st.to='';st.msg=''}\n"
+   "  try{render()}catch(_){}};\n"
+   "window.kgmCabNextR1022A=function(){var st=S._cab82=S._cab82||{},Q=st.queueR1022A||[];st.doneR1022A=st.doneR1022A||{};if(st.seg)st.doneR1022A[st.seg]=1;\n"
+   "  var nx=Q.filter(function(k){return !st.doneR1022A[k]})[0];st.done=null;st.msg='';\n"
+   "  if(nx){st.seg=nx;st.date='';st.flight='';st.cab='';st.code='';st.fr='';st.to='';st.payMiles=false}else{st.queueR1022A=[];st.doneR1022A={}}\n"
+   "  try{render()}catch(_){}};\n"
+   "window.kgmCabPnrR82=function(v){S._cab82=S._cab82||{};S._cab82.pnr=String(v||'').toUpperCase().trim();S._cab82.seg='';S._cab82.queueR1022A=[];S._cab82.doneR1022A={};")
+
+# ══ 選位圖：使用者「飛機剩餘位置仍不合理還是太集中」（整排坐滿、整排空）——
+#    根因：r108 校正座位數時用 h108 雜湊決定補哪幾個位子／放掉哪幾個位子，但 h*16777619 在 JavaScript 超過 2^53 精度，
+#    低位元全變 0 → 同一排的座位雜湊幾乎一樣，排序結果是「一排一排」→ 補位整排補、放位整排放。改成 Math.imul（真正的 32 位元乘法）。 ══
+RW('h108 imul',"function h108(s){var h=2166136261;s=String(s||'');\n  for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*16777619)>>>0}return h>>>0}",
+   "function h108(s){var h=2166136261;s=String(s||'');\n  for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0}h^=h>>>16;h=Math.imul(h,0x85ebca6b);h^=h>>>13;h=Math.imul(h,0xc2b2ae35);h^=h>>>16;return h>>>0}   /* 1022A：原本 h*16777619 超過 2^53 失去精度，而且 FNV 最後一個字（座位字母）沒有擴散 → 同一排座位排在一起，選位圖整排坐滿／整排空；改 Math.imul＋fmix32 收尾 */")
+
+# ══ 信用卡綁定：使用者「前台會員中心可以加入信用卡綁定，然後綁定輸入卡號選擇Card Type系統後台AI(放new tab in 會員服務)驗證，
+#    會驗證該卡號是否是那個等級名字是否正確等等 System simulate data」——
+#    前台「我的帳戶」綁卡（只存前 6 碼＋後 4 碼，完整卡號不存）；後台會員服務新分頁「信用卡驗證」由系統 AI 逐項驗證（k22），存 S.cardBindR1022A（kgm22_cards） ══
+RW('side card r49',"['members','會員管理'],['milesverify','里程購買'],['feedback_r48','旅客回饋']",
+   "['members','會員管理'],['milesverify','里程購買'],['cardverify','信用卡驗證'],['feedback_r48','旅客回饋']")
+RW('side card r123',"['milesverify','里程購買'],\n    ['feedback_r48','旅客回饋']","['milesverify','里程購買'],['cardverify','信用卡驗證'],\n    ['feedback_r48','旅客回饋']")
+RC('perm service card','kgm-0903b-r123',"service:{cases0831C:'use',stxstatus:'use',bookings:'use',cases0831B:'use',","service:{cardverify:'use',cases0831C:'use',stxstatus:'use',bookings:'use',cases0831B:'use',")
+RC('perm backend card','kgm-0903b-r123',"cases0831B:'use',upgmiles:'use',members:'use',milesverify:'use',","cases0831B:'use',upgmiles:'use',members:'use',milesverify:'use',cardverify:'use',")
+
 # ══ 旅客自助改票總開關（定位管理）：存檔＋前後台同步（r229 只認 save() 裡 LS.set 的寫法）══════
 RW('selfchg init','crewFreezeR928:LS.get("kgm12_crewfrz",{}),',
-   'crewFreezeR928:LS.get("kgm12_crewfrz",{}),selfChgR1022A:LS.get("kgm22_selfchg",null),')
+   'crewFreezeR928:LS.get("kgm12_crewfrz",{}),selfChgR1022A:LS.get("kgm22_selfchg",null),cardBindR1022A:LS.get("kgm22_cards",[]),')
 RW('selfchg save','LS.set("kgm12_crewfrz",S.crewFreezeR928',
-   'LS.set("kgm22_selfchg",S.selfChgR1022A||null);LS.set("kgm12_crewfrz",S.crewFreezeR928')
+   'LS.set("kgm22_selfchg",S.selfChgR1022A||null);LS.set("kgm22_cards",S.cardBindR1022A||[]);LS.set("kgm12_crewfrz",S.crewFreezeR928')
 
 # ══ 手機：頁尾下面那條白色空白 —— #app 的 padding-bottom（讓出下排五鈕）落在深色頁尾「下面」；
 #    有頁尾的頁面改成把那段高度加在頁尾裡面（頁尾的深色一路延伸到下排五鈕後面），沒有頁尾的頁面照舊 ══

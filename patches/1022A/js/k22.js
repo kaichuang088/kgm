@@ -484,6 +484,200 @@
   };
   function saveWrap(){var sv=window.save;if(typeof sv!=='function'||sv.__r1022A)return;var w=function(){try{stampGeo()}catch(_){}return sv.apply(this,arguments)};try{Object.keys(sv).forEach(function(k){if(!(k in w))w[k]=sv[k]})}catch(_){}w.__r1022A=1;window.save=w;try{save=w}catch(_){}}
   try{loadGeo()}catch(_){}
+  /* ══ 票價調整（新分頁，側邊欄在「票價分析」下面）══════════════════════════════════
+     使用者：「圖三放到票價調整新的tab在票價分析下面然後好亂 調整要可以調整倉等可能E-C/E-T或是整個E之類的」
+     · 原本在票價分析頁裡的「人工調整」卡片整張搬過來（票價分析頁只留一行連結）；寫的還是同一份 S.fareRulesR929（跟訂票頁、AI、艙位格子同一份）。
+     · 新增「訂位代號範圍」：整個艙等（例如整個經濟艙 E-C～E-D）或其中一段（例如 E-C～E-T）—— 規則多一欄 buckets（代號清單），
+       票價計算 kgmFareRuleMulR929 只對清單裡的代號乘上幅度。
+     · 上面設定、下面是「所有航線」的人工調整清單（可只看這條航線），停用／刪除跟原本同一組函式。 */
+  var CZ22={Economy:['經濟艙','Economy'],Premium:['豪華經濟艙','Premium'],Business:['商務艙','Business'],First:['頭等艙','First']};
+  function cz(c){var x=CZ22[c];return x?(z()?x[0]:x[1]):(z()?'全部艙等':'All cabins')}
+  function codesOf(cab){try{return (typeof CAB_CODES==='function'?CAB_CODES(cab):[])||[]}catch(_){return []}}
+  function fadj(){return S._fadjR1022A=S._fadjR1022A||{cab:'Economy',c1:'',c2:'',all:1}}
+  window.kgmFareAdjSetR1022A=function(k,v){var o=fadj();o[k]=v;if(k==='cab'){o.c1='';o.c2=''}try{render()}catch(_){}};
+  window.kgmFareAdjAddR1022A=function(){
+    var ok=false;try{var r=(S.adminUser||{}).role;ok=r==='ceo'||r==='pricing'||(S.adminUser||{}).empId==='MASTER'}catch(_){}
+    if(!ok){alert(z()?'只有執行長與定價人員可以調整票價。':'Only CEO and pricing staff can adjust fares.');return}
+    var g=function(k){var e=document.getElementById(k);return e?String(e.value||'').trim():''},q=S.fareAnaQR1004B||{},o=fadj();
+    var fr=g('fa22Fr'),to=g('fa22To'),pct=+g('fa22Pct'),from=g('fa22From'),until=g('fa22Until'),both=g('fa22Dir')==='both',code=g('fa22Code'),note=g('fa22Note'),cab=o.cab||'';
+    if(!fr||!to){alert(z()?'請選擇出發地與目的地。':'Pick a route.');return}
+    if(!isFinite(pct)||!pct||pct<=-90||pct>300){alert(z()?'請輸入調整幅度（%），例如 10 或 -15。':'Enter a percentage, e.g. 10 or -15.');return}
+    if(from&&until&&until<from){alert(z()?'結束日期不能早於開始日期。':'End date is before start date.');return}
+    var all=codesOf(cab),i1=all.indexOf(o.c1||all[0]),i2=all.indexOf(o.c2||all[all.length-1]);if(i1<0)i1=0;if(i2<0)i2=all.length-1;if(i2<i1){var t=i1;i1=i2;i2=t}
+    var bk=(!cab||(i1===0&&i2===all.length-1))?null:all.slice(i1,i2+1);
+    S.fareRulesR929=S.fareRulesR929||[];var who=(S.adminUser||{}).empId||'',at=new Date().toISOString();
+    (both?[[fr,to],[to,fr]]:[[fr,to]]).forEach(function(pq,i){S.fareRulesR929.push({id:'FR'+Date.now().toString(36).toUpperCase()+(i?'B':''),fr:pq[0],toAp:pq[1],from:from,to:until,cabin:cab,code:i?'':code,
+      buckets:bk,mul:Math.round((1+pct/100)*10000)/10000,note:note,by:who,at:at,srcR1018A:'fareana',srcR1022A:'fareadj'})});
+    try{logAct&&logAct('票價調整',fr+'-'+to+(both?'（雙向）':'')+' '+cz(cab)+(bk?' '+bk[0]+'～'+bk[bk.length-1]:'')+(code?' '+code:'')+' '+(pct>0?'+':'')+pct+'% '+(from||'')+'～'+(until||'')+(note?' · '+note:''))}catch(_){}
+    try{if(window.FA1004B){FA1004B.memo={};FA1004B.ov={};FA1004B.trend={}}}catch(_){}
+    try{save()}catch(_){}try{render()}catch(_){}
+  };
+  window.kgmFareAdjPageR1022A=function(){
+    var ed=false;try{var rr=(S.adminUser||{}).role;ed=rr==='ceo'||rr==='pricing'||(S.adminUser||{}).empId==='MASTER'}catch(_){}
+    var q=S.fareAnaQR1004B=S.fareAnaQR1004B||{},o=fadj(),td=T(),aps={},rt={};
+    allF().forEach(function(f){if(f&&!f.partner&&!f.codeshare&&!f.via&&/^KX/.test(f.code||'')){aps[f.fr]=1;rt[f.fr+'-'+f.to]=1}});
+    if(!q.fr||!rt[q.fr+'-'+q.to]){var k0=Object.keys(rt).sort()[0]||'TPE-NRT';q.fr=k0.split('-')[0];q.to=k0.split('-')[1]}
+    var lab=function(a){var n='';try{n=cityOf(a)}catch(_){}return a+(n&&n!==a?' '+n:'')};
+    var tos=Object.keys(rt).filter(function(k){return k.indexOf(q.fr+'-')===0}).map(function(k){return k.split('-')[1]}).sort();
+    var codes=[];allF().forEach(function(f){if(f&&!f.partner&&!f.codeshare&&!f.via&&f.fr===q.fr&&f.to===q.to&&codes.indexOf(f.code)<0)codes.push(f.code)});
+    var all=codesOf(o.cab),c1=o.c1||all[0]||'',c2=o.c2||all[all.length-1]||'';
+    var sel=function(id,list,cur,on){return '<select class="inp" id="'+id+'"'+(on?' onchange="'+on+'"':'')+'>'+list.map(function(x){var v=x[0],t=x[1];return '<option value="'+E(v)+'"'+(v===cur?' selected':'')+'>'+E(t)+'</option>'}).join('')+'</select>'};
+    var form=ed?('<div class="fa22-f">'
+      +'<label>'+(z()?'出發地':'From')+sel('fa22Fr',Object.keys(aps).sort().map(function(a){return [a,lab(a)]}),q.fr,"kgmFareAnaSetR1004B('fr',this.value)")+'</label>'
+      +'<label>'+(z()?'目的地':'To')+sel('fa22To',tos.map(function(a){return [a,lab(a)]}),q.to,"kgmFareAnaSetR1004B('to',this.value)")+'</label>'
+      +'<label>'+(z()?'方向':'Direction')+sel('fa22Dir',[['one',q.fr+' → '+q.to],['both',z()?'雙向':'Both ways']],'one')+'</label>'
+      +'<label>'+(z()?'班號（可不選）':'Flight')+sel('fa22Code',[['',z()?'整條航線':'Whole route']].concat(codes.sort(function(a,b){return a.localeCompare(b,undefined,{numeric:true})}).map(function(c){return [c,c]})),'')+'</label>'
+      +'<div class="fa22-break"></div>'
+      +'<label>'+(z()?'艙等':'Cabin')+sel('fa22Cab',[['',z()?'全部艙等':'All cabins']].concat(Object.keys(CZ22).map(function(c){return [c,cz(c)]})),o.cab||'',"kgmFareAdjSetR1022A('cab',this.value)")+'</label>'
+      +(o.cab&&all.length?('<label>'+(z()?'訂位代號從':'Fare class from')+sel('fa22C1',all.map(function(c){return [c,c]}),c1,"kgmFareAdjSetR1022A('c1',this.value)")+'</label>'
+        +'<label>'+(z()?'到':'to')+sel('fa22C2',all.map(function(c){return [c,c]}),c2,"kgmFareAdjSetR1022A('c2',this.value)")+'</label>'
+        +'<div class="fa22-chips">'+[[all[0],all[all.length-1],z()?'整個'+cz(o.cab):'Whole cabin']].concat((function(){var fam={},out=[];all.forEach(function(c){var f=(FARES[c]||{}).familyR48||'';if(!f)return;(fam[f]=fam[f]||[]).push(c)});
+            Object.keys(fam).forEach(function(f){var L=fam[f];out.push([L[0],L[L.length-1],({Basic:z()?'基本':'Basic',Value:z()?'超值':'Value',Deluxe:z()?'豪華':'Deluxe'}[f]||f)+' '+L[0]+'～'+L[L.length-1]])});return out})())
+          .map(function(x){var on=x[0]===c1&&x[1]===c2;return '<button type="button" class="'+(on?'on':'')+'" onclick="S._fadjR1022A.c1=\''+E(x[0])+'\';S._fadjR1022A.c2=\''+E(x[1])+'\';render()">'+E(x[2])+'</button>'}).join('')+'</div>'):'')
+      +'<div class="fa22-break"></div>'
+      +'<label>'+(z()?'航班日期從':'Flights from')+'<input id="fa22From" type="date" class="inp" value="'+E(td)+'"></label>'
+      +'<label>'+(z()?'到':'to')+'<input id="fa22Until" type="date" class="inp" value="'+E(D(td,30))+'"></label>'
+      +'<label>'+(z()?'調整（%）':'Change (%)')+'<input id="fa22Pct" type="number" step="1" class="inp" style="width:110px" placeholder="+10 / -15"></label>'
+      +'<label style="flex:1;min-width:220px">'+(z()?'原因（寫入動作歷史）':'Reason')+'<input id="fa22Note" class="inp" placeholder="'+(z()?'例：競爭對手降價、包機需求、連假提早漲':'')+'"></label>'
+      +'<button class="btn btn-g fa22-go" onclick="kgmFareAdjAddR1022A()">'+(z()?'套用':'Apply')+'</button></div>'
+      +'<p class="fa22-sum">'+(z()?'將套用：':'Will apply: ')+'<b>'+E(q.fr+' → '+q.to)+'</b> · <b>'+E(cz(o.cab))+(o.cab&&all.length?(' '+(c1===all[0]&&c2===all[all.length-1]?(z()?'全部代號 ':'all classes ')+all[0]+'～'+all[all.length-1]:c1+'～'+c2)):'')+'</b>'+(z()?'；系統（營收管理）票價再乘上這個幅度，只在期間內有效。':'')+((o.cab&&all.length&&!(c1===all[0]&&c2===all[all.length-1]))?(z()?'<br><small style="color:#8a5a00">只調一段代號時，調高可能讓這一段比後面的代號還貴（階梯倒掛），請到「票價分析」的艙位階梯確認。</small>':''):'')+'</p>')
+      :'<p>'+(z()?'只有執行長與定價人員可以調整；下面是目前所有的人工調整。':'View only.')+'</p>';
+    var ff=String(S._fadjFiltR1022A||'route');
+    var rules=(S.fareRulesR929||[]).filter(function(r){return r&&+r.mul>0&&(r.srcR1018A||r.srcR1022A||r.bucket||r.buckets)&&(ff==='all'||(r.fr===q.fr&&r.toAp===q.to)||(r.fr===q.to&&r.toAp===q.fr))}).slice().reverse();
+    var st=function(r){if(r.off)return ['off',z()?'已停用':'Off'];if(r.to&&r.to<td)return ['exp',z()?'已過期':'Expired'];if(r.from&&r.from>td)return ['wait',z()?'尚未開始':'Upcoming'];return ['on',z()?'生效中':'Active']};
+    var list='<div class="fa22-lh"><h3>'+(z()?'人工調整清單':'Manual adjustments')+' <small>'+rules.length+'</small></h3><div class="fa22-tg">'
+      +'<button type="button" class="'+(ff!=='all'?'on':'')+'" onclick="S._fadjFiltR1022A=\'route\';render()">'+E(q.fr+' ⇄ '+q.to)+'</button><button type="button" class="'+(ff==='all'?'on':'')+'" onclick="S._fadjFiltR1022A=\'all\';render()">'+(z()?'所有航線':'All routes')+'</button></div></div>'
+      +(rules.length?('<table class="fa22-t"><thead><tr><th>'+(z()?'狀態':'Status')+'</th><th>'+(z()?'航線':'Route')+'</th><th>'+(z()?'艙等／代號':'Cabin / classes')+'</th><th>'+(z()?'班號':'Flight')+'</th><th>'+(z()?'航班日期':'Dates')+'</th><th>'+(z()?'幅度':'Change')+'</th><th>'+(z()?'原因':'Reason')+'</th><th>'+(z()?'設定人':'By')+'</th><th></th></tr></thead><tbody>'
+        +rules.map(function(r){var s2=st(r),p=Math.round((+r.mul-1)*1000)/10,bk=r.buckets&&r.buckets.length?(r.buckets[0]+'～'+r.buckets[r.buckets.length-1]):(r.bucket||'');
+          return '<tr><td><span class="fa22-s '+s2[0]+'">'+s2[1]+'</span></td><td>'+E(r.fr+' → '+r.toAp)+'</td><td>'+E(cz(r.cabin||''))+(bk?'<div class="fa22-bk">'+E(bk)+'</div>':'')+'</td><td>'+E(r.code||'—')+'</td><td>'+E((r.from||'—')+' ～ '+(r.to||'—'))+'</td>'
+            +'<td>'+((r.seatsR1019A==null||Math.abs(p)>=0.05)?'<b class="fa22-m '+(p>0?'up':'dn')+'">'+(p>0?'+':'')+p+'%</b>':'')+(r.seatsR1019A!=null?'<div class="fa22-bk">'+(z()?'可售 ':'Seats ')+E(String(r.seatsR1019A))+'</div>':'')+'</td>'
+            +'<td>'+E(r.note||'')+'</td><td>'+E(r.by||'')+'<div class="fa22-bk">'+E(String(r.at||'').slice(0,16).replace('T',' '))+'</div></td>'
+            +'<td style="white-space:nowrap">'+(ed?'<button class="btn btn-sm" onclick="kgmFaAdjToggleR1018A(\''+E(r.id)+'\')">'+(r.off?(z()?'啟用':'Enable'):(z()?'停用':'Disable'))+'</button> <button class="btn btn-sm" onclick="kgmFaAdjDelR1018A(\''+E(r.id)+'\')">'+(z()?'刪除':'Delete')+'</button>':'')+'</td></tr>'}).join('')+'</tbody></table>')
+        :'<p class="fa22-empty">'+(ff==='all'?(z()?'目前沒有任何人工調整，票價完全由系統（營收管理）決定。':'No manual adjustments.'):(z()?'這條航線目前沒有人工調整，完全由系統（營收管理）定價。':'No manual adjustments on this route.'))+'</p>');
+    return '<div class="fa22"><div class="fa22-hero"><small>FARE ADJUSTMENT · PRICING</small><h2>'+(z()?'票價調整':'Fare adjustment')+'</h2><p>'
+      +(z()?'系統每天照營收管理自動調整票價；這裡設定的人工幅度會在系統票價上再乘一次，可以只調某個艙等裡的一段訂位代號（例如經濟艙 E-C～E-T），只在設定的航班日期內有效（到期自動失效），訂票頁立即生效，可以隨時停用或刪除。單一班次、單一天、單一代號的價格與可售座位，請在「票價分析」的艙位階梯格子裡改。'
+          :'Manual multipliers on top of RM pricing, optionally for a range of fare classes, within a date range.')+'</p></div>'
+      +'<div class="fa22-card">'+form+'</div><div class="fa22-card">'+list+'</div></div>';
+  };
+  /* ══ 信用卡綁定＋後台 AI 驗證（使用者：「前台會員中心可以加入信用卡綁定，然後綁定輸入卡號選擇Card Type系統後台AI(放new tab in 會員服務)驗證，
+     會驗證該卡號是否是那個等級名字是否正確等等 System simulate data」）
+     · 前台「我的帳戶」：卡號、卡別（發卡組織＋等級）、持卡人英文姓名、有效期限。送出時先在瀏覽器做 Luhn 檢查；
+       **完整卡號不存**，只存前 6 碼（BIN）＋後 4 碼，狀態「驗證中」。
+     · 後台「信用卡驗證」：系統 AI 逐項驗證 —— 卡號格式（Luhn）、BIN 對應的發卡組織、發卡行資料庫（模擬）裡這個 BIN 的卡片等級、
+       持卡人姓名是否與會員姓名相符（姓／名順序對調也算）、有效期限、是否已綁在別的會員；結果「通過／需人工確認／退回」，可人工覆核。
+     · 模擬資料：第一次開後台時產生一批（不同發卡組織、等級相符與不符、姓名不符、過期、重複綁定）。 */
+  var NET22={visa:['Visa',['Classic','Gold','Platinum','Signature','Infinite']],mc:['Mastercard',['Standard','Gold','Platinum','World','World Elite']],
+    jcb:['JCB',['Standard','Gold','Platinum','The Class']],amex:['American Express',['Green','Gold','Platinum','Centurion']],cup:['UnionPay',['Gold','Platinum','Diamond']]};
+  function netOf(num){var n=String(num||'');if(/^4/.test(n))return 'visa';var p2=+n.slice(0,2),p4=+n.slice(0,4);if((p2>=51&&p2<=55)||(p4>=2221&&p4<=2720))return 'mc';if(p2===34||p2===37)return 'amex';if(p4>=3528&&p4<=3589)return 'jcb';if(p2===62)return 'cup';return ''}
+  function luhn(num){var s2=String(num||'').replace(/\D/g,''),sum=0,alt=false;if(s2.length<13||s2.length>19)return false;for(var i=s2.length-1;i>=0;i--){var d=+s2[i];if(alt){d*=2;if(d>9)d-=9}sum+=d;alt=!alt}return sum%10===0}
+  function hh(s2){var h=2166136261;s2=String(s2||'');for(var i=0;i<s2.length;i++){h^=s2.charCodeAt(i);h=Math.imul(h,16777619)>>>0}h^=h>>>16;h=Math.imul(h,0x85ebca6b);h^=h>>>13;return h>>>0}
+  /* 發卡行資料庫（模擬）：BIN → 發卡組織、等級、發卡行 */
+  var BANK22=['國泰世華','中國信託','台新銀行','玉山銀行','富邦銀行','永豐銀行','滙豐銀行','花旗銀行','MUFG','三井住友','Chase','American Express'];
+  function issuer(bin){var net=netOf(bin);if(!net)return null;var T=NET22[net][1],h=hh('bin|'+bin);return {net:net,tier:T[h%T.length],bank:net==='amex'?'American Express':BANK22[(h>>>5)%BANK22.length]}}
+  function normN(x){return String(x||'').toUpperCase().replace(/[^A-Z]/g,'')}
+  function memberOf(id){return (S.users||[]).filter(function(u){return u&&u.id===id})[0]||null}
+  function memName(u){if(!u)return '';var l=u.lastName||u.last||'',f=u.firstName||u.first||'';if(!l&&!f&&u.name){return String(u.name)}return (l+' '+f).trim()}
+  function aiCheck(c){
+    var ck=[],u=memberOf(c.userId),iss=issuer(c.bin6),td=T(),bad=0,rev=0;
+    var add=function(ok,lv,t,sh){ck.push({ok:ok,lv:lv,t:t,s:sh||t});if(!ok){if(lv==='bad')bad++;else rev++}};
+    add(!!c.luhn,'bad',c.luhn?(z()?'卡號格式正確（Luhn 檢查碼通過）':'Luhn check passed'):(z()?'卡號檢查碼錯誤（Luhn 不通過），可能打錯':'Luhn check failed'),z()?'卡號檢查碼錯誤':'Invalid number');
+    var nOk=iss&&iss.net===c.net;add(!!nOk,'bad',nOk?(z()?'BIN '+c.bin6+' 屬於 '+NET22[c.net][0]+'，與選擇的卡別相符':'BIN matches network'):(z()?'BIN '+c.bin6+' 屬於 '+(iss?NET22[iss.net][0]:'未知組織')+'，但選擇的是 '+((NET22[c.net]||[''])[0]):'Network mismatch'),z()?'卡號與選擇的卡別不符':'Network mismatch');
+    if(iss&&nOk){var tOk=iss.tier===c.tier;add(tOk,'rev',tOk?(z()?'發卡行（'+iss.bank+'）資料：這個 BIN 是 '+iss.tier+' 卡，與申報等級相符':'Tier matches'):(z()?'發卡行（'+iss.bank+'）資料：這個 BIN 是 '+iss.tier+' 卡，申報的是 '+c.tier+'，等級不符':'Tier mismatch'),z()?'卡片等級不符（發卡行資料為 '+iss.tier+'）':'Tier mismatch ('+iss.tier+')')}
+    /* 1022A：模擬申請的會員不一定在 S.users（全新瀏覽器只有 2 位會員）→ 用申請單上的會員姓名 */
+    var mnRaw=u?memName(u):String(c.memberName||''),mn=normN(mnRaw),hn=normN(c.holder),u2=u?normN((u.firstName||u.first||'')+' '+(u.lastName||u.last||'')):normN(mnRaw.split(' ').reverse().join(' '));
+    var nm=!!(mn&&(hn===mn||hn===u2));add(nm,'rev',nm?(z()?'持卡人姓名 '+c.holder+' 與會員姓名相符':'Holder matches member'):(z()?'持卡人姓名 '+c.holder+' 與會員姓名 '+(mnRaw||'—')+' 不符（需確認是否為本人卡片）':'Holder name mismatch'),z()?'持卡人姓名與會員姓名不符':'Name mismatch');
+    var ex=String(c.exp||''),m=/^(\d{2})\/(\d{2})$/.exec(ex),expOk=!!m&&('20'+m[2]+'-'+m[1])>=td.slice(0,7);add(expOk,'bad',expOk?(z()?'有效期限 '+ex+' 尚未到期':'Not expired'):(z()?'有效期限 '+ex+' 已過期':'Expired'),z()?'卡片已過期':'Expired');
+    var dup=(S.cardBindR1022A||[]).some(function(o){return o&&o!==c&&o.bin6===c.bin6&&o.last4===c.last4&&o.userId!==c.userId&&o.status!=='rejected'});
+    add(!dup,'bad',dup?(z()?'同一張卡（'+c.bin6+'••••'+c.last4+'）已綁在另一位會員':'Card already bound to another member'):(z()?'沒有重複綁定':'No duplicate'),z()?'這張卡已綁定在其他會員帳號':'Bound to another member');
+    var res=bad?'rejected':rev?'review':'verified';
+    var sum=res==='verified'?(z()?'全部項目通過，自動核准綁定。':'All checks passed.'):res==='review'?(z()?'卡片有效，但'+ck.filter(function(x){return !x.ok}).map(function(x){return x.s}).join('、')+'，轉人工確認。':'Needs manual review.'):(z()?'有不可接受的問題，退回綁定。':'Rejected.');
+    return {at:new Date().toISOString(),result:res,checks:ck,summary:sum,issuer:iss?iss.bank:''};
+  }
+  function notifyMem(c,msg){if(c&&c.simR1022A)return;try{S.notifs=S.notifs||[];S.notifs.unshift({title:z()?'信用卡綁定':'Card binding',message:msg,date:T(),read:false,userId:c.userId||null})}catch(_){}}
+  function stZ(st){return {pending:z()?'驗證中':'Verifying',verified:z()?'已綁定':'Verified',review:z()?'人工確認中':'Under review',rejected:z()?'退回':'Rejected'}[st]||st}
+  function applyAi(c,silent){var r=aiCheck(c);c.ai=r;if(c.status==='pending'||!c.manual){c.status=r.result}
+    if(!silent)notifyMem(c,(z()?'您的 ':'Your ')+NET22[c.net][0]+' ••••'+c.last4+(z()?(' 綁定結果：'+stZ(c.status)+'。'+(c.status==='rejected'?'原因：'+r.checks.filter(function(x){return !x.ok}).map(function(x){return x.s||x.t}).join('、')+'。':'')):(' : '+c.status)));
+    return r}
+  window.kgmCardAiR1022A=function(id){var c=(S.cardBindR1022A||[]).filter(function(x){return x&&x.id===id})[0];if(!c)return;c.manual=false;c.status='pending';applyAi(c);try{logAct('信用卡 AI 驗證',c.id+' '+NET22[c.net][0]+' ••••'+c.last4+' → '+stZ(c.status))}catch(_){}try{save()}catch(_){}try{render()}catch(_){}};
+  window.kgmCardAiAllR1022A=function(){var n=0;(S.cardBindR1022A||[]).forEach(function(c){if(c&&c.status==='pending'){applyAi(c);n++}});try{logAct('信用卡 AI 驗證','批次驗證 '+n+' 張')}catch(_){}try{save()}catch(_){}try{render()}catch(_){}};
+  window.kgmCardDecideR1022A=function(id,ok){var c=(S.cardBindR1022A||[]).filter(function(x){return x&&x.id===id})[0];if(!c)return;var u=S.adminUser||{};
+    c.status=ok?'verified':'rejected';c.manual=true;c.decidedBy=(u.name||'')+(u.empId?' ('+u.empId+')':'');c.decidedAt=new Date().toISOString();
+    notifyMem(c,(z()?'您的 ':'Your ')+NET22[c.net][0]+' ••••'+c.last4+(z()?(ok?' 已由客服人工確認綁定。':' 經客服確認後退回綁定，如有疑問請洽 0800-789-456。'):(ok?' verified.':' rejected.')));
+    try{logAct('信用卡人工覆核',c.id+' → '+stZ(c.status))}catch(_){}try{save()}catch(_){}try{render()}catch(_){}};
+  /* 前台：我的帳戶 → 綁定 */
+  window.kgmCardBindR1022A=function(){
+    var g=function(k){var e=document.getElementById(k);return e?String(e.value||'').trim():''},u=S.user;if(!u){alert(z()?'請先登入會員。':'Please sign in.');return}
+    var num=g('k22cNum').replace(/\D/g,''),ty=g('k22cType'),holder=g('k22cName').toUpperCase(),exp=g('k22cExp').replace(/\s/g,'');
+    if(num.length<13){alert(z()?'請輸入完整卡號。':'Enter the card number.');return}
+    if(!ty){alert(z()?'請選擇卡別（Card Type）。':'Choose a card type.');return}
+    if(!/^[A-Z][A-Z \-\.']{1,40}$/.test(holder)){alert(z()?'請輸入卡片上的英文姓名。':'Enter the name as on the card.');return}
+    if(!/^(0[1-9]|1[0-2])\/\d{2}$/.test(exp)){alert(z()?'有效期限格式 MM/YY，例如 08/29。':'Expiry MM/YY.');return}
+    var tp=ty.split('|'),L=S.cardBindR1022A=S.cardBindR1022A||[];
+    if(L.some(function(c){return c&&c.userId===u.id&&c.bin6===num.slice(0,6)&&c.last4===num.slice(-4)&&c.status!=='rejected'})){alert(z()?'這張卡已經綁定（或驗證中）。':'Already submitted.');return}
+    var c={id:'CB'+Date.now().toString(36).toUpperCase(),userId:u.id,memberName:memName(u),holder:holder,net:tp[0],tier:tp[1],bin6:num.slice(0,6),last4:num.slice(-4),exp:exp,luhn:luhn(num),at:new Date().toISOString(),status:'pending'};
+    L.unshift(c);num='';['k22cNum','k22cName','k22cExp'].forEach(function(k){var e=document.getElementById(k);if(e)e.value=''});
+    S._cardMsgR1022A=z()?'已送出，系統 AI 驗證中（卡號只保留前 6 碼與後 4 碼）。':'Submitted for verification.';
+    try{save()}catch(_){}try{render()}catch(_){}
+  };
+  window.kgmCardDelR1022A=function(id){var u=S.user;if(!u)return;if(!confirm(z()?'解除這張卡的綁定？':'Remove this card?'))return;S.cardBindR1022A=(S.cardBindR1022A||[]).filter(function(c){return !(c&&c.id===id&&c.userId===u.id)});try{save()}catch(_){}try{render()}catch(_){}};
+  function cardFront(){
+    try{
+      if(!(S.view==='profile'&&S.user&&S.profileTab==='account'))return;
+      var app=document.getElementById('app');if(!app||app.querySelector('.k22-cardb'))return;
+      var anchor=[].slice.call(app.querySelectorAll('section')).filter(function(x){return /MEMBER DATA/.test(x.textContent||'')})[0];if(!anchor)return;
+      var mine=(S.cardBindR1022A||[]).filter(function(c){return c&&c.userId===S.user.id});
+      var opts=Object.keys(NET22).map(function(k){return '<optgroup label="'+E(NET22[k][0])+'">'+NET22[k][1].map(function(t){return '<option value="'+k+'|'+E(t)+'">'+E(NET22[k][0]+' '+t)+'</option>'}).join('')+'</optgroup>'}).join('');
+      var el=document.createElement('section');el.className='k22-cardb';
+      el.innerHTML='<div class="k22-cb-h"><small>PAYMENT CARDS</small><h3>'+(z()?'信用卡綁定':'Saved cards')+'</h3><p>'+(z()?'綁定後結帳可直接選用。系統會驗證卡別等級與持卡人姓名；我們只保留卡號前 6 碼與後 4 碼，不保存完整卡號與安全碼。':'We keep only the first 6 and last 4 digits.')+'</p></div>'
+        +(mine.length?'<div class="k22-cb-list">'+mine.map(function(c){return '<div class="k22-cb-card '+c.net+'"><b>'+E(NET22[c.net][0])+' '+E(c.tier)+'</b><span>•••• •••• •••• '+E(c.last4)+'</span><small>'+E(c.holder)+' · '+E(c.exp)+'</small><em class="st '+c.status+'">'+E(stZ(c.status))+'</em>'
+            +((c.status==='rejected'||c.status==='review')&&c.ai?'<i>'+E(c.ai.checks.filter(function(x){return !x.ok}).map(function(x){return x.s||x.t}).join('、'))+'</i>':'')+'<button type="button" onclick="kgmCardDelR1022A(\''+E(c.id)+'\')">'+(z()?'解除綁定':'Remove')+'</button></div>'}).join('')+'</div>':'')
+        +'<div class="k22-cb-f"><label>'+(z()?'卡號':'Card number')+'<input id="k22cNum" class="inp" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="0000 0000 0000 0000" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/(.{4})/g,\'$1 \').trim()"></label>'
+        +'<label>'+(z()?'卡別（Card Type）':'Card type')+'<select id="k22cType" class="inp"><option value="">'+(z()?'請選擇':'Choose')+'</option>'+opts+'</select></label>'
+        +'<label>'+(z()?'持卡人英文姓名（同卡片）':'Name on card')+'<input id="k22cName" class="inp" autocomplete="cc-name" placeholder="CHUANG TEST" style="text-transform:uppercase"></label>'
+        +'<label>'+(z()?'有效期限':'Expiry')+'<input id="k22cExp" class="inp" autocomplete="cc-exp" maxlength="5" placeholder="MM/YY" oninput="var v=this.value.replace(/[^0-9]/g,\'\');this.value=v.length>2?v.slice(0,2)+\'/\'+v.slice(2,4):v"></label>'
+        +'<button class="btn btn-g" onclick="kgmCardBindR1022A()">'+(z()?'送出驗證':'Submit')+'</button></div>'
+        +(S._cardMsgR1022A?'<div class="k22-cb-msg">'+E(S._cardMsgR1022A)+'</div>':'');
+      anchor.parentNode.insertBefore(el,anchor.nextSibling);
+    }catch(e){try{console.warn('k22 card',e)}catch(_){}}
+  }
+  /* 模擬資料 */
+  function cardSim(){
+    try{if(!S.adminAuthed||S.view!=='admin')return 0;var L=S.cardBindR1022A=S.cardBindR1022A||[];if(L.some(function(c){return c&&c.simR1022A}))return 0;
+      var us=(S.users||[]).filter(function(u){return u&&u.id&&(u.lastName||u.firstName||u.name)}).slice(0,400);
+      /* 會員不到 6 位（全新瀏覽器）→ 用模擬會員身分（不寫進 S.users） */
+      if(us.length<6){var NM22=['LIN YICHEN','CHEN WEITING','WANG JIAHAO','HUANG YUTING','TANAKA HARUTO','SATO YUI','KIM MINJUN','SMITH OLIVIA','NGUYEN MINH ANH','TAN WEI LING','CHANG CHIHMING','WU PEIYU','SOMCHAI SRISUK','GARCIA LUCAS'];
+        us=NM22.map(function(n,i){var sp=n.split(' ');return {id:'KGM5'+String(10231+i*173).padStart(5,'0'),lastName:sp[0],firstName:sp.slice(1).join(' '),simCardR1022A:1}})}
+      var nets=['visa','mc','jcb','amex','cup','visa','mc','visa','jcb','visa','mc','amex','visa','mc'],made=0,now=Date.now();
+      nets.forEach(function(net,i){var u=us[(i*37+11)%us.length];var pre={visa:'4',mc:'5'+(1+i%5),jcb:'35'+(28+i%60),amex:i%2?'34':'37',cup:'62'}[net],len=net==='amex'?15:16;
+        var num=pre;while(num.length<len-1)num+=String(hh(net+i+num.length)%10);for(var d=0;d<10;d++){if(luhn(num+d)){num=num+d;break}}
+        var iss=issuer(num.slice(0,6)),T2=NET22[net][1],kind=i%7;   /* 0,1,2 正常；3 等級不符；4 姓名不符；5 過期；6 檢查碼錯 */
+        var tier=kind===3?T2[(T2.indexOf(iss.tier)+1)%T2.length]:iss.tier,holder=kind===4?'WANG XIAOMING':normN(memName(u)).length?memName(u).toUpperCase():'TEST USER';
+        var exp=kind===5?'06/25':(String(1+hh('m'+i)%12).padStart(2,'0')+'/'+(27+i%5)),lu=kind!==6;
+        var c={id:'CB'+(now-i*3600e3).toString(36).toUpperCase(),userId:u.id,memberName:memName(u),holder:holder,net:net,tier:tier,bin6:num.slice(0,6),last4:kind===6?String((+num.slice(-4)+1)%10000).padStart(4,'0'):num.slice(-4),exp:exp,luhn:lu,at:new Date(now-(i+1)*5400e3).toISOString(),status:'pending',simR1022A:1};
+        L.push(c);if(i<10)applyAi(c,true);made++});
+      /* 一筆重複綁定：拿第 1 張卡綁到另一位會員 */
+      var c0=L.filter(function(c){return c&&c.simR1022A})[0];if(c0){var u2=us[(5*37+11)%us.length];L.push({id:'CBDUP'+now.toString(36).slice(-4).toUpperCase(),userId:u2.id,memberName:memName(u2),holder:memName(u2).toUpperCase(),net:c0.net,tier:c0.tier,bin6:c0.bin6,last4:c0.last4,exp:c0.exp,luhn:true,at:new Date(now-1800e3).toISOString(),status:'pending',simR1022A:1});made++}
+      try{save()}catch(_){}return made}catch(e){try{console.warn('k22 card sim',e)}catch(_){}return 0}
+  }
+  (function seedC(n){if(n>150)return;setTimeout(function(){try{if(cardSim()){try{render()}catch(_){}return}if((S.cardBindR1022A||[]).some(function(c){return c&&c.simR1022A}))return}catch(_){}seedC(n+1)},n?4000:10000)})(0);
+  window.kgmCardVerifyPageR1022A=function(){
+    var L=(S.cardBindR1022A||[]).slice().sort(function(a,b){return String(b.at).localeCompare(String(a.at))}),f=S._cardFR1022A||'all',cnt={pending:0,verified:0,review:0,rejected:0};L.forEach(function(c){cnt[c.status]=(cnt[c.status]||0)+1});
+    var rows=L.filter(function(c){return f==='all'||c.status===f}),open=S._cardOpenR1022A||'';
+    var chip=function(k,t){return '<button type="button" class="'+(f===k?'on':'')+'" onclick="S._cardFR1022A=\''+k+'\';render()">'+t+'<i>'+(k==='all'?L.length:(cnt[k]||0))+'</i></button>'};
+    return '<div class="cv22"><div class="cv22-hero"><small>MEMBER SERVICES · CARD VERIFICATION</small><h2>'+(z()?'信用卡驗證':'Card verification')+'</h2><p>'
+      +(z()?'會員在前台「我的帳戶」綁定信用卡後，由系統 AI 逐項驗證：卡號檢查碼（Luhn）、BIN 對應的發卡組織、發卡行資料（模擬）裡這個 BIN 的卡片等級是否與申報相符、持卡人姓名是否與會員姓名相符、有效期限、是否已綁在別的會員。全部通過自動核准；等級或姓名不符轉人工；格式錯誤、過期、重複綁定直接退回。系統只保存卡號前 6 碼與後 4 碼。':'')+'</p></div>'
+      +'<div class="cv22-kpi"><div><small>'+(z()?'待驗證':'Pending')+'</small><b>'+cnt.pending+'</b></div><div><small>'+(z()?'已通過':'Verified')+'</small><b>'+cnt.verified+'</b></div><div><small>'+(z()?'需人工確認':'Review')+'</small><b>'+cnt.review+'</b></div><div><small>'+(z()?'已退回':'Rejected')+'</small><b>'+cnt.rejected+'</b></div></div>'
+      +'<div class="cv22-bar"><div class="cv22-chips">'+chip('all',z()?'全部':'All')+chip('pending',z()?'待驗證':'Pending')+chip('review',z()?'需人工':'Review')+chip('verified',z()?'已通過':'Verified')+chip('rejected',z()?'已退回':'Rejected')+'</div>'
+      +(cnt.pending?'<button class="btn btn-g" onclick="kgmCardAiAllR1022A()">'+(z()?'AI 驗證全部待驗證（'+cnt.pending+'）':'Verify all pending')+'</button>':'')+'</div>'
+      +'<div class="cv22-card">'+(rows.length?'<table class="cv22-t"><thead><tr><th>'+(z()?'送出時間':'Submitted')+'</th><th>'+(z()?'會員':'Member')+'</th><th>'+(z()?'持卡人':'Holder')+'</th><th>'+(z()?'卡別':'Card')+'</th><th>'+(z()?'卡號':'Number')+'</th><th>'+(z()?'有效':'Exp')+'</th><th>'+(z()?'狀態':'Status')+'</th><th></th></tr></thead><tbody>'
+        +rows.map(function(c){var on=open===c.id,u=memberOf(c.userId);
+          return '<tr class="'+(on?'on':'')+'" onclick="S._cardOpenR1022A=(S._cardOpenR1022A===\''+E(c.id)+'\'?\'\':\''+E(c.id)+'\');render()"><td>'+E(String(c.at).slice(0,16).replace('T',' '))+'</td><td><b>'+E(c.memberName||memName(u)||'—')+'</b><div class="cv22-s">'+E(c.userId||'')+'</div></td><td>'+E(c.holder)+'</td><td>'+E(NET22[c.net][0])+'<div class="cv22-s">'+E(c.tier)+'</div></td><td><code>'+E(c.bin6.slice(0,4)+' '+c.bin6.slice(4))+'•• •••• '+E(c.last4)+'</code></td><td>'+E(c.exp)+'</td><td><span class="cv22-st '+c.status+'">'+E(stZ(c.status))+'</span>'+(c.simR1022A?'<div class="cv22-s">'+(z()?'模擬':'sim')+'</div>':'')+'</td><td class="cv22-go">'+(on?'−':'+')+'</td></tr>'
+            +(on?'<tr class="cv22-d"><td colspan="8">'+(c.ai?('<div class="cv22-ai"><b>'+(z()?'系統 AI 判斷：':'AI: ')+E(c.ai.summary)+'</b><span>'+E(String(c.ai.at).slice(0,16).replace('T',' '))+(c.ai.issuer?' · '+(z()?'發卡行 ':'Issuer ')+E(c.ai.issuer):'')+'</span><ul>'+c.ai.checks.map(function(x){return '<li class="'+(x.ok?'ok':x.lv)+'">'+(x.ok?'✓':x.lv==='bad'?'✕':'!')+' '+E(x.t)+'</li>'}).join('')+'</ul></div>')
+                :'<div class="cv22-ai"><b>'+(z()?'尚未驗證':'Not verified yet')+'</b></div>')
+              +(c.manual?'<div class="cv22-s">'+(z()?'人工覆核：':'Manual: ')+E(c.decidedBy||'')+' '+E(String(c.decidedAt||'').slice(0,16).replace('T',' '))+'</div>':'')
+              +'<div class="cv22-act" onclick="event.stopPropagation()"><button class="btn btn-sm" onclick="kgmCardAiR1022A(\''+E(c.id)+'\')">'+(z()?'AI 重新驗證':'Re-run AI')+'</button><button class="btn btn-sm btn-g" onclick="kgmCardDecideR1022A(\''+E(c.id)+'\',true)">'+(z()?'人工核准':'Approve')+'</button><button class="btn btn-sm" onclick="kgmCardDecideR1022A(\''+E(c.id)+'\',false)">'+(z()?'退回':'Reject')+'</button></div></td></tr>':'')}).join('')+'</tbody></table>'
+        :'<p class="cv22-none">'+(z()?'沒有符合的綁定申請。':'Nothing here.')+'</p>')+'</div></div>';
+  };
   var CSS='.k22-chg{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 18px;padding:16px 20px;border:1px solid #d8e5dd;border-radius:16px;background:linear-gradient(180deg,#fbfdfb,#f3f8f4)}'
    +'.k22-chg.off{border-color:#ecc9c0;background:linear-gradient(180deg,#fffaf8,#fbefeb)}'
    +'.k22-chg-t{display:flex;flex-direction:column;gap:3px;min-width:0}.k22-chg-t small{font-size:10px;letter-spacing:.14em;font-weight:800;color:#9a7a38}'
@@ -550,6 +744,36 @@
    +'.k22p-sel{margin:4px 0 10px;padding:10px 14px;border-radius:12px;background:#eef6f1;border:1px solid #d5e8dc;font-size:12.5px;color:#123c32;line-height:1.6}'
    +'.k22-lvt{display:grid;grid-template-columns:1fr 1fr;gap:10px}.k22-lvt label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:#5e6a64}'
    +'.k22-csim{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 0;padding:12px 16px;border:1px dashed #d8d2c2;border-radius:12px;background:#fbfaf6;font-size:12.5px;color:#6b726c}'
+   /* 票價調整 */
+   +'.fa22{max-width:1200px}.fa22-hero{background:#123c32;color:#fff;border-radius:18px;padding:20px 24px;margin-bottom:14px}.fa22-hero small{letter-spacing:.18em;font-size:10px;color:#c9a25c;font-weight:800}.fa22-hero h2{margin:4px 0 6px;font-family:Georgia,"Noto Serif TC",serif;font-size:24px}.fa22-hero p{margin:0;max-width:860px;font-size:12.5px;color:#cfe0d8;line-height:1.7}'
+   +'.fa22-card{background:#fff;border:1px solid #e6ece9;border-radius:16px;padding:18px 20px;margin-bottom:14px}'
+   +'.fa22-f{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end}.fa22-f label{display:flex;flex-direction:column;gap:5px;font-size:10.5px;font-weight:800;color:#6b7b74;letter-spacing:.03em}.fa22-f .inp{height:36px;min-width:120px}.fa22-break{flex-basis:100%;height:0}'
+   +'.fa22-chips{display:flex;flex-wrap:wrap;gap:6px;align-self:center}.fa22-chips button,.fa22-tg button{padding:6px 11px;border-radius:999px;border:1px solid #d6dbd4;background:#fff;color:#173f33;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}.fa22-chips button.on,.fa22-tg button.on{background:#123c32;border-color:#123c32;color:#fff}'
+   +'.fa22-go{height:36px;padding:0 22px}.fa22-sum{margin:12px 0 0;padding:10px 14px;border-radius:12px;background:#f4f8f6;font-size:12.5px;color:#3d4b45}.fa22-sum b{color:#123c32}'
+   +'.fa22-lh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}.fa22-lh h3{margin:0;font-size:15px;color:#123c32}.fa22-lh small{font-size:12px;color:#8b928c;margin-left:4px}.fa22-tg{display:flex;gap:6px}'
+   +'.fa22-t{width:100%;border-collapse:collapse;font-size:12.5px}.fa22-t th{text-align:left;font-size:10.5px;letter-spacing:.05em;color:#7d8a84;padding:8px 10px;border-bottom:1px solid #e6ece9;font-weight:800}.fa22-t td{padding:9px 10px;border-bottom:1px solid #f1f5f3;vertical-align:top}'
+   +'.fa22-bk{font-size:10.5px;color:#8a978f;margin-top:2px}.fa22-s{display:inline-block;border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:800}.fa22-s.on{background:#e3f0ea;color:#145c38}.fa22-s.off,.fa22-s.exp{background:#f1f3f2;color:#8a948f}.fa22-s.wait{background:#fff3d6;color:#7a5600}'
+   +'.fa22-m.up{color:#9b2c1c}.fa22-m.dn{color:#145c38}.fa22-empty{margin:6px 0 0;font-size:12.5px;color:#6b7b74}'
+   +'.fa22-moved{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 14px;padding:12px 16px;border:1px solid #e3ebe7;border-radius:14px;background:#fbfcfb;font-size:12.5px;color:#4f5a53}'
+   +'.k22-rxq{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px;padding:10px 14px;border:1px solid #e3ebe7;border-radius:14px;background:#fbfcfb}.k22-rxq-t{font-size:11.5px;font-weight:800;color:#6b7b74;margin-right:4px}'
+   +'.k22-rxq label{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid #d6dbd4;border-radius:999px;background:#fff;font-size:12.5px;cursor:pointer;color:#173f33}.k22-rxq label.on{border-color:#9cc2ad;background:#eef6f1}.k22-rxq label.cur{box-shadow:0 0 0 2px #123c32 inset}.k22-rxq label em{font-style:normal;font-size:10.5px;font-weight:800;color:#9a7a38}.k22-rxq-n{margin-left:auto;font-size:12px;font-weight:800;color:#123c32}'
+   /* 信用卡綁定（前台）＋驗證（後台） */
+   +'.k22-cardb{margin:18px 0;padding:22px 24px;border:1px solid #e3ded0;border-radius:18px;background:#fff}.k22-cb-h small{letter-spacing:.16em;font-size:10px;font-weight:800;color:#b08a3c}.k22-cb-h h3{margin:4px 0;font-size:19px;color:#173f33}.k22-cb-h p{margin:0 0 14px;font-size:12.5px;color:#6b726c;line-height:1.6}'
+   +'.k22-cb-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:16px}'
+   +'.k22-cb-card{position:relative;display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:16px;color:#fff;background:linear-gradient(135deg,#173f33,#2c6a55);min-height:120px}.k22-cb-card.visa{background:linear-gradient(135deg,#1a2a6c,#2a4aa0)}.k22-cb-card.mc{background:linear-gradient(135deg,#3b2a20,#8a4b1f)}.k22-cb-card.amex{background:linear-gradient(135deg,#1f5f7a,#3d8db0)}.k22-cb-card.jcb{background:linear-gradient(135deg,#0b5a3a,#1e8a5c)}.k22-cb-card.cup{background:linear-gradient(135deg,#7a1f1f,#b23a3a)}'
+   +'.k22-cb-card b{font-size:14px}.k22-cb-card span{font:600 15px ui-monospace,Menlo,monospace;letter-spacing:.08em}.k22-cb-card small{font-size:11px;opacity:.85}.k22-cb-card i{font-style:normal;font-size:11px;background:rgba(0,0,0,.25);border-radius:8px;padding:5px 8px}'
+   +'.k22-cb-card em{position:absolute;top:14px;right:14px;font-style:normal;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.2)}.k22-cb-card em.verified{background:#d8f0e2;color:#145c38}.k22-cb-card em.rejected{background:#fde2dc;color:#9b2c1c}.k22-cb-card em.review{background:#fff3d6;color:#7a5600}'
+   +'.k22-cb-card button{align-self:flex-start;margin-top:auto;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:none;color:#fff;font-size:11px;cursor:pointer}'
+   +'.k22-cb-f{display:grid;grid-template-columns:1.4fr 1.2fr 1.2fr .6fr auto;gap:10px;align-items:end}.k22-cb-f label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;color:#5e6a64}.k22-cb-f .btn{height:40px}'
+   +'.k22-cb-msg{margin-top:12px;padding:10px 14px;border-radius:12px;background:#eef6f1;color:#145c38;font-size:12.5px}'
+   +'@media(max-width:760px){.k22-cb-f{grid-template-columns:1fr}}'
+   +'.cv22{max-width:1200px}.cv22-hero{background:#123c32;color:#fff;border-radius:18px;padding:20px 24px;margin-bottom:14px}.cv22-hero small{letter-spacing:.18em;font-size:10px;color:#c9a25c;font-weight:800}.cv22-hero h2{margin:4px 0 6px;font-family:Georgia,"Noto Serif TC",serif;font-size:24px}.cv22-hero p{margin:0;max-width:900px;font-size:12.5px;color:#cfe0d8;line-height:1.7}'
+   +'.cv22-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}.cv22-kpi div{background:#fff;border:1px solid #e6ece9;border-radius:14px;padding:12px 16px}.cv22-kpi small{font-size:11px;color:#6b7b74;font-weight:700}.cv22-kpi b{display:block;font-size:24px;color:#123c32}'
+   +'.cv22-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}.cv22-chips{display:flex;gap:6px;flex-wrap:wrap}.cv22-chips button{padding:6px 12px;border-radius:999px;border:1px solid #d6dbd4;background:#fff;color:#173f33;font-size:12px;font-weight:700;cursor:pointer}.cv22-chips button.on{background:#123c32;color:#fff;border-color:#123c32}.cv22-chips i{font-style:normal;margin-left:6px;opacity:.7}'
+   +'.cv22-card{background:#fff;border:1px solid #e6ece9;border-radius:16px;padding:8px 14px}.cv22-t{width:100%;border-collapse:collapse;font-size:12.5px}.cv22-t th{text-align:left;font-size:10.5px;color:#7d8a84;padding:9px 8px;border-bottom:1px solid #e6ece9}.cv22-t td{padding:10px 8px;border-bottom:1px solid #f1f5f3;vertical-align:top}.cv22-t tr{cursor:pointer}.cv22-t tr.on td{background:#f4f8f6}'
+   +'.cv22-s{font-size:10.5px;color:#8a978f;margin-top:2px}.cv22-st{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10.5px;font-weight:800;background:#eef1f0;color:#556}.cv22-st.verified{background:#e3f0ea;color:#145c38}.cv22-st.rejected{background:#fde9e4;color:#9b2c1c}.cv22-st.review{background:#fff3d6;color:#7a5600}.cv22-st.pending{background:#e8eef7;color:#2c4a7a}'
+   +'.cv22-go{width:28px;text-align:center;font-weight:800;color:#173f33}.cv22-d td{background:#f9fbfa;cursor:default}.cv22-ai b{display:block;color:#123c32;font-size:13px}.cv22-ai span{font-size:11px;color:#8a978f}.cv22-ai ul{margin:8px 0;padding-left:0;list-style:none}.cv22-ai li{font-size:12.5px;margin:3px 0}.cv22-ai li.ok{color:#145c38}.cv22-ai li.bad{color:#9b2c1c}.cv22-ai li.rev{color:#7a5600}'
+   +'.cv22-act{display:flex;gap:8px;margin-top:8px}.cv22-none{padding:14px;color:#6b7b74;font-size:12.5px}'
    +'.k22-bar button{padding:6px 12px;border-radius:999px;border:1px solid #d6dbd4;background:#fff;color:#173f33;font-size:12px;font-weight:700;cursor:pointer}.k22-bar button:hover{background:#eef6f1}';
   function css(){if(document.getElementById('k22css'))return;var s=document.createElement('style');s.id='k22css';s.textContent=CSS;(document.head||document.documentElement).appendChild(s)}
 
@@ -560,8 +784,8 @@
       try{chgGuard()}catch(_){}
       try{preFd()}catch(_){}
       var r=rd.apply(this,arguments);
-      try{chgCard();postFd();memTidy();caseBtn()}catch(_){}
-      [60,350,1000].forEach(function(ms){setTimeout(function(){try{chgCard();postFd();memTidy();caseBtn()}catch(_){}},ms)});
+      try{chgCard();postFd();memTidy();caseBtn();cardFront()}catch(_){}
+      [60,350,1000].forEach(function(ms){setTimeout(function(){try{chgCard();postFd();memTidy();caseBtn();cardFront()}catch(_){}},ms)});
       return r};
     try{Object.keys(rd).forEach(function(k){if(!(k in w))w[k]=rd[k]})}catch(_){}
     w.__r1022A=1;render=window.render=w;
