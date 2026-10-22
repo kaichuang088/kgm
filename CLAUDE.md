@@ -1,7 +1,7 @@
 # KGM Airways — 專案規則（給 Claude Code）
 
 KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一個自包含的 HTML 檔**（約 8.4 MB）。
-版號由使用者指定（目前是 1020B，下一版由使用者命名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
+版號由使用者指定（目前是 1022A，下一版由使用者命名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
 
 ## 使用者的固定要求（逐字，一律遵守）
 
@@ -39,6 +39,10 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1020B 多哈線：KX2/KX1（B779 一三五日）、**KX100/KX99**（A359，使用者選的班號）；r77 定值冬夏；`effFrom` 2026-12-01（`fl20b` `effNew`）。**0809C 開頁計時器會把 KX100/KX99 改名成 KX74/KX73（巴黎線舊班號）→ 只排除多哈線，曼谷—巴黎那段還要改名**。卡達聯營 KX9520–9535＋反向 QR 代碼（`MKT19` 在 fb20b）。
 - 1020B 航班動態依航線／依航班號＝`fb20b.js` `view20()`（舊 statusView 不再呼叫）：以起點出發日為準，經停第二段寫自己的日期（用**當季**時刻算日期差）；沒飛寫營運日＋最近有飛的日期。**r38 會掃航班動態頁的機型文字往上找班號改寫 → 新卡片 `.fs20` 要排除（gen_r21 `r38 skip fs20`），不然每張卡都變第一班的機型**。
 - 1020B 手機：表頭右上角「登入」（`.kt20b-login`，登入後頭像→會員資料）；文字欄位輸入中／鍵盤擠小可視區時 `html.kgm-kb-r1020b` 收起下排五鈕與黏住的按鈕列；iOS viewport 加 `maximum-scale=1`。量用 `tests/mb20bt.js`。
+- 1022A：`bash patches/1022A/build.sh <1004B.html> <out.html>`（1022A＝1020B 全部＋`p_h_r22.js`；`gen_r22.py` **在 `patches/1022A/` 下執行**，比對基準 1020B 最終版 `/tmp/j/kgm1020B_w9.html`；長程式 `js/k22.js`（r229 最後：中停票價、改票總開關 `kgm22_selfchg`、航班資料只看自己 7 天、+/−、案件模擬、訂購地 `bookedGeoR1022A`、票價調整分頁、信用卡 `kgm22_cards`）、`js/nat22.js`（r121 組員國籍／外站三天）、`js/gnd22.js`（r194 地勤 8 小時）、`js/ops22.js`（航班資料 PDF））。見 `notes/1022A-pass125-notes.md`。
+- 1022A 組員規則（r121）：落地到下一班起飛 ≥24h（`KGM_SHORTHAUL_REST_R922=1350`）；第五航權最多「基地→A→X→A→基地」（`trip22`）；派到外站前確認 3 天內（航班日期）有同機型族的班飛走（`onward22`）；落地日＋3 還沒排到 → DH 回基地、沒直飛就回 A（`due22`）。泰籍（`nat22`，正式員工 K65000–／K85000– `nationality:'TH'`、base BKK）只飛 BKK 航線、每班每職類最多一半；日／韓依姓氏、本國航班優先；虛擬組員基地一律 TPE（泰籍 BKK），不再以第一班出發站為基地。人力係數機師 3.0／客艙 2.0、虛擬副機師 62%。**量要量 60 天、等 `KGM_FULLDONE_1006A`**（`tests/crew22p.js`、`viol22b.js`）；在基地閒置的虛擬組員判到 3n+12 位合格就停（效能），改這段要重量 t_sched922。
+- 1022A 地勤（r194）：班長上限 8 小時、每位到機場的人一律 8 小時（`shift22`：簡報／旅客服務台與支援／交接／用餐填滿，`P.fillR1022A`），工作 <4 小時的併給同仁（`consol22`）。量用 `tests/gnd22m.js`。
+- 1022A 松山換機：AB 約每 20 天（`tsaMonthPlanR913` 的 `ab`／`ab2`），C 每月一次；B78X 21 架＋6 個月冷卻，每月 3 次以上會冷卻不足。r184 稽核 KX168/167 每月最多 2 天 B78X。
 - 已知未修：網站時區表固定值（雪梨 +11、墨爾本／布里斯本 +10…）→ 澳航國內聯營有幾班飛行時間 25～45 分；全站共用、動到 KGM 自己的澳紐航班，等使用者決定。
 - 1020A：`bash patches/1020A/build.sh <1004B.html> <out.html>`（1020A＝1019A 全部＋`p_h_r20.js`；`gen_r20.py` **在 `patches/1020A/` 下執行**，比對基準 1019A 最終版 `/tmp/j/kgm1019A_w27.html`；只有 3 個替換：lz19→`js/lz20.js`、拿掉儲存失敗自動提示、mb19→`js/mb20.js`）。見 `notes/1020A-pass123-notes.md`。
 - 1020A 手機側邊選單（`js/mb20.js`）：☰ 在表頭**左上角**、`#kgmDrawerR1020A` 從**左邊**滑出（使用者指定）；內容每次從表頭 `.mega` 讀，點項目＝對原本那個 li `.click()`（`kgmDrawerGoR1020A`），不另寫一套。手機 `#app`／`body`／`html` 改 `overflow-x:clip`（原本 hidden 會讓 `position:sticky` 全部失效）；結帳按鈕列 sticky 在下排五鈕上方（付款頁 `.k923cc-actions` 不黏）。桌機逐像素不變（`/tmp/j/desk20.js`）。
@@ -97,9 +101,9 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/1020B/.test(t)` 改成新版號
+3. 版號更新（見下），並把 `vfy1.js` 的 `/1022A/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00 跑會因 KX180 當天已起飛而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
-5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1020B.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
+5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1022A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
 7. `node t_sched922.js`（組員班表延遲）、`node t_admlag.js`（後台 27 個分頁逐頁量）
