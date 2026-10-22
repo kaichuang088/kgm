@@ -374,6 +374,73 @@ RC('ros nat css','kgm-0907A-r196',"  +'.k196-t td.r{text-align:right}'",
    "  +'.k22-nt{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:#EEF3F0;color:#1F4E46;white-space:nowrap}.k22-nt.TH{background:#FFF1DC;color:#8A5A12}.k22-nt.JP{background:#FBEAEA;color:#9B2C2C}.k22-nt.KR{background:#E8EEFB;color:#23408E}'\n"
    "  +'.k22-bs{display:block;font-size:10px;color:#9A8460;margin-top:2px}'")
 
+# ══ 地勤每次上班 8 小時（使用者：「TSA地勤太閒了吧排班規定就是要八小時每次上班喔！！」；桃園同一套排法、同樣有 1～6 小時的短班，一起改）
+#    r194：班長上限 9→8 小時；併班（工作不到 4 小時的人把工作交給排得進去的同仁，自己改備勤）；每位到機場的人一律 8 小時，
+#    航班工作以外排班前簡報／旅客服務台與支援／交接，用餐 30 分鐘放在班中間（js/gnd22.js）；個人行事曆把這些勤務列出來 ══
+RC('g8 span','kgm-0907A-r194',"var MAXSPAN=540,MAXWORK=480,MAXRUN=270,BRK=30;","var MAXSPAN=480,MAXWORK=480,MAXRUN=270,BRK=30;   /* 1022A：班長 9→8 小時（每次上班 8 小時） */")
+RC('g8 fn','kgm-0907A-r194',"function build8(ap,date){",JS('gnd22.js')+"function build8(ap,date){")
+RC('g8 consol','kgm-0907A-r194',"  var by={};people.forEach(function(P){by[P.id]=P});","  try{consol22(people)}catch(_){}   /* 1022A：併班 */\n  var by={};people.forEach(function(P){by[P.id]=P});")
+RC('g8 shift','kgm-0907A-r194',
+   "    var f=Math.floor((P.first-15)/5)*5,l=Math.ceil((P.last+15)/5)*5;\n    P.from=f;P.to=l;\n    P.k=f<9*60?'early':(f<15*60?'mid':'late');\n    /* 用餐：第一個 30 分鐘以上的空檔 */\n    for(var i=1;i<P.tasks.length;i++){\n      if(P.tasks[i].a-P.tasks[i-1].b>=BRK){P.meal=[P.tasks[i-1].b,Math.min(P.tasks[i].a,P.tasks[i-1].b+45)];break}\n    }",
+   "    shift22(P);var f=P.from;   /* 1022A：一律 8 小時班（簡報、旅客服務台／支援、用餐、交接） */\n    P.k=f<9*60?'early':(f<15*60?'mid':'late');")
+RC('g8 jobs','kgm-0907A-r194',
+   "  var rows=[],prev=null,mealDone=false;\n  q.tasks.forEach(function(t){\n    if(prev){",
+   "  var rows=[],prev=null,mealDone=false;\n"
+   "  /* 1022A：8 小時班 —— 航班工作、班前簡報／旅客服務台與支援／交接、用餐依時間排在一起 */\n"
+   "  var its22=q.tasks.map(function(t){return {a:t.a,t:t}});(q.fillR1022A||[]).forEach(function(x){its22.push({a:x.a,f:x})});if(q.meal&&q.fillR1022A)its22.push({a:q.meal[0],m:q.meal});its22.sort(function(x,y){return x.a-y.a});\n"
+   "  if(q.fillR1022A)its22.forEach(function(it){\n"
+   "    if(it.m){rows.push('<article class=\"k8-break\"><time>'+hm(it.m[0])+'–'+hm(it.m[1])+'</time><div><b>'+(z()?'用餐休息':'Meal break')+'</b><span>'+(z()?('員工餐廳（'+termName(q.term)+' 管制區內）'):'Staff canteen')+'</span></div><em>'+dur(it.m[1]-it.m[0])+'</em></article>');return}\n"
+   "    if(it.f){var L22=FILL22[it.f.k];rows.push('<article class=\"k8-svc\"><time>'+hm(it.f.a)+'–'+hm(it.f.b)+'<i>'+(z()?'勤務':'Duty')+'</i></time><div><b>'+termName(q.term)+' · '+(z()?L22[0]:L22[1])+'</b><span>'+(z()?L22[2]:L22[3])+'</span></div><em>'+dur(it.f.b-it.f.a)+'</em></article>');return}\n"
+   "    prev=null;mealDone=true;job22(it.t)});\n"
+   "  else q.tasks.forEach(job22);\n"
+   "  function job22(t){\n    if(prev){")
+RC('g8 jobs end','kgm-0907A-r194',
+   "      +E(z()?pos.t:pos.e)+'</b>'+(t.who.length>1?(z()?('（共 '+t.who.length+' 人）'):(' ('+t.who.length+' staff)')):'')+' · '+E(z()?pos.d:pos.de)+'</small></div><em>'+dur(t.b-t.a)+'</em></article>');\n    prev=t;\n  });",
+   "      +E(z()?pos.t:pos.e)+'</b>'+(t.who.length>1?(z()?('（共 '+t.who.length+' 人）'):(' ('+t.who.length+' staff)')):'')+' · '+E(z()?pos.d:pos.de)+'</small></div><em>'+dur(t.b-t.a)+'</em></article>');\n    prev=t;\n  }")
+RC('g8 head','kgm-0907A-r194',
+   "    +'<span>'+(z()?('實際工時 '+dur(q.work)+' · 報到櫃檯 '+nC+' · 登機門 '+nG+' · 到站 '+nA):('Working '+dur(q.work)+' · counters '+nC+' · gates '+nG+' · arrivals '+nA))+'</span>'\n    +'<span>'+(z()?(hm(q.from)+' 到'+termName(q.term)+'地勤辦公室簡報（第一項工作前 15 分鐘），'+hm(q.to)+' 交接下班'):('Brief at '+hm(q.from)+', hand over at '+hm(q.to)))+'</span></div>';",
+   "    +(function(){var sv=(q.fillR1022A||[]).reduce(function(s2,x){return s2+(x.b-x.a)},0),ml=q.meal?q.meal[1]-q.meal[0]:0;   /* 1022A：8 小時班的組成 */\n"
+   "      return '<span>'+(z()?('8 小時班 '+hm(q.from)+'–'+hm(q.to)+' · 航班工作 '+dur(q.work)+'（報到櫃檯 '+nC+' · 登機門 '+nG+' · 到站 '+nA+'）· 簡報／旅客服務台／交接 '+dur(sv)+(ml?' · 用餐 '+dur(ml):'')):('8-hour shift '+hm(q.from)+'–'+hm(q.to)+' · flight duties '+dur(q.work)+' · desk & support '+dur(sv)))+'</span>'})()+'</div>';")
+RC('g8 audit','kgm-0907A-r194',"if(span)bad.push('班別超過 9 小時 '+span);","if(span)bad.push('班別超過 8 小時 '+span);")
+RC('g8 css','kgm-0907A-r194',"     +'.k8-jobs article.k8-gate{border-left-color:#A9822F}.k8-jobs article.k8-arr{border-left-color:#5B7FA6}'",
+   "     +'.k8-jobs article.k8-gate{border-left-color:#A9822F}.k8-jobs article.k8-arr{border-left-color:#5B7FA6}'\n"
+   "     +'.k8-jobs article.k8-svc{border-left-color:#8C9A93;background:#FBFCFB}.k8-jobs article.k8-svc time i{background:#F1F3F2;color:#5F6B66}'   /* 1022A */")
+RC('g8 r102 text','kgm-0902a-r102',"班別最長 9 小時、實際工時最多 8 小時，連續工作 4.5 小時內一定有 30 分鐘以上用餐。",
+   "每次上班 8 小時（航班工作以外排班前簡報、旅客服務台／支援與交接；工作不到 4 小時的人併給同仁、改為備勤），連續工作 4.5 小時內一定有 30 分鐘以上用餐。")
+
+# ══ 松山／桃園換機頻率（使用者：「提升TSA/TPE換機頻率」）——
+#    原本每月 AB 交換一次（A/B 兩架各在松山待 2 個月）＋C 一次（一年 24 次）；改成 AB 約每 20 天一次（A/B 每架約 40 天），C 照舊每月一次（一年約 30 次）。
+#    沒有再加更多：B78X 只有 21 架、3 架在松山，6 個月內最多約 18 次交換，再多就違反「離開松山 6 個月才能再排回去」（0902A）——實測每月 3 次從第 7 個月起冷卻不足。
+#    r184 稽核原本寫死 KX168/167 每月最多 1 天 B78X → 改成 2 天（KX136/135 照舊 1 天）══
+RC('tsa ab twice','kgm-0823p-r79',
+   "  var prev=_TSAEX_PREV_R913;\n  if(prev&&prev.ym<ym){\n    cand.forEach(function(x){\n      var off=Math.abs(tsaDayNoR913(x.date)-(tsaDayNoR913(prev.ab)+30));\n      x.score-=Math.min(0.5,off*0.03);\n    });\n  }\n  var rank=cand.slice().sort(function(a,b){return b.score-a.score||a.date.localeCompare(b.date)});\n  var ab=rank[0],c=null;",
+   "  var prev=_TSAEX_PREV_R913;\n"
+   "  /* 1022A：AB 約每 20 天一次（原本每月一次）—— 離上一次 AB 至少 16 天、約 20 天；同一個月排得下就排第二次（離第一次 ≥18 天） */\n"
+   "  var pAB22=(prev&&prev.ym<ym)?(prev.ab2||prev.ab):null,pen22=function(x,ref,n){return ref?Math.min(0.5,Math.abs(tsaDayNoR913(x.date)-(tsaDayNoR913(ref)+n))*0.03):0},srt22=function(a,b){return b.s-a.s||a.x.date.localeCompare(b.x.date)};\n"
+   "  var r1=cand.filter(function(x){return !pAB22||tsaDayNoR913(x.date)-tsaDayNoR913(pAB22)>=16}).map(function(x){return {x:x,s:x.score-pen22(x,pAB22,20)}}).sort(srt22);\n"
+   "  var ab=(r1[0]||{x:cand[cand.length-1]}).x,c=null;\n"
+   "  var r2=cand.filter(function(x){return tsaDayNoR913(x.date)-tsaDayNoR913(ab.date)>=18}).map(function(x){return {x:x,s:x.score-pen22(x,ab.date,20)}}).sort(srt22),ab2=r2.length?r2[0].x:null;\n"
+   "  var rank=cand.slice().sort(function(a,b){return b.score-a.score||a.date.localeCompare(b.date)});")
+RC('tsa c far from ab2','kgm-0823p-r79',
+   "    if(Math.abs(tsaDayNoR913(crank929[i].date)-tsaDayNoR913(ab.date))>=6){c=cand.filter(function(x){return x.date===crank929[i].date})[0];break}",
+   "    if(Math.abs(tsaDayNoR913(crank929[i].date)-tsaDayNoR913(ab.date))>=6&&(!ab2||Math.abs(tsaDayNoR913(crank929[i].date)-tsaDayNoR913(ab2.date))>=6)){c=cand.filter(function(x){return x.date===crank929[i].date})[0];break}   /* 1022A：跟兩次 AB 都差 6 天以上 */")
+RC('tsa plan out','kgm-0823p-r79',
+   "  var r={ab:ab.date,c:c.date,abLoad:Math.round(ab.score*100),cLoad:Math.round(c.score*100),",
+   "  var r={ab:ab.date,ab2:ab2?ab2.date:null,ab2Load:ab2?Math.round(ab2.score*100):null,c:c.date,abLoad:Math.round(ab.score*100),cLoad:Math.round(c.score*100),   /* 1022A：ab2＝本月第二次 AB */")
+RC('tsa exch ab2','kgm-0823p-r79',
+   "  if((code==='KX168'||code==='KX167')&&date===r.ab)return 'AB';",
+   "  if((code==='KX168'||code==='KX167')&&(date===r.ab||date===r.ab2))return 'AB';   /* 1022A：每月兩次 */")
+RC('r72 ab2 load','kgm-0823o-r72',
+   "load:(window.kgmTsaMonthPlanR913?window.kgmTsaMonthPlanR913(date.slice(0,7)).abLoad:null)});",
+   "load:(window.kgmTsaMonthPlanR913?(function(m){return date===m.ab2?m.ab2Load:m.abLoad})(window.kgmTsaMonthPlanR913(date.slice(0,7))):null)});   /* 1022A：第二次 AB 的載客率 */")
+RC('r184 audit 2','kgm-0907B-r184',
+   "    if(o.b78xPerMonth[c].max>1)bad.push(c+' 一個月有 '+o.b78xPerMonth[c].max+' 天 B78X');",
+   "    var mx22=(c==='KX168'||c==='KX167')?2:1;   /* 1022A：使用者「提升TSA/TPE換機頻率」→ KX168/167 約每 20 天交換（一個月最多兩次） */\n"
+   "    if(o.b78xPerMonth[c].max>mx22)bad.push(c+' 一個月有 '+o.b78xPerMonth[c].max+' 天 B78X');")
+RC('r184 audit roster','kgm-0907B-r184',
+   "      if(b>26)bad.push(c+' 機隊排班派了 '+b+' 段 B78X（一年最多約 12–13 段）');",
+   "      if(b>((c==='KX168'||c==='KX167')?40:26))bad.push(c+' 機隊排班派了 '+b+' 段 B78X（一年最多約 '+((c==='KX168'||c==='KX167')?'18–20':'12–13')+' 段）');   /* 1022A */")
+
 # ══ 旅客自助改票總開關（定位管理）：存檔＋前後台同步（r229 只認 save() 裡 LS.set 的寫法）══════
 RW('selfchg init','crewFreezeR928:LS.get("kgm12_crewfrz",{}),',
    'crewFreezeR928:LS.get("kgm12_crewfrz",{}),selfChgR1022A:LS.get("kgm22_selfchg",null),cardBindR1022A:LS.get("kgm22_cards",[]),')
