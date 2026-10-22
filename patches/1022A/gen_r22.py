@@ -259,6 +259,121 @@ RW('side card r123',"['milesverify','里程購買'],\n    ['feedback_r48','旅�
 RC('perm service card','kgm-0903b-r123',"service:{cases0831C:'use',stxstatus:'use',bookings:'use',cases0831B:'use',","service:{cardverify:'use',cases0831C:'use',stxstatus:'use',bookings:'use',cases0831B:'use',")
 RC('perm backend card','kgm-0903b-r123',"cases0831B:'use',upgmiles:'use',members:'use',milesverify:'use',","cases0831B:'use',upgmiles:'use',members:'use',milesverify:'use',cardverify:'use',")
 
+# ══ 組員排班（使用者第二批）：
+#   G「組員/機師排班要是差24hr才可以有下一個航班喔，不能前一天17:00到隔天凌晨01:00又要派飛回來」
+#     → 短程休息常數 720 分（落地＋30 分解除，下一班報到前 60 分，等於落地到下一班起飛只要 13.5 小時）改 1350 分：落地到下一班起飛 ≥ 24 小時（r121 派工、r196 補班都讀這個常數）
+#   F「機師/組員在外站不要超過三天 … 10/18 TPE-BKK, 10/21 BKK-Anywhere, 10/24 Anywhere-BKK, 10/27 不應該再有 BKK-Anywhere 應該是 BKK-TPE，所有第五航權都是這樣」
+#     → 離開基地後最多「基地→A→X→A→基地」；外站的人優先派（先到先走），停留不超過三天
+#   E「組員也要分國籍 … 泰國的可以讓他們飛BKK航線（所有有關BKK航線可以一半泰國組員一半台灣組員）等於說只有BKK可以base在泰國
+#     也可以收其他國家的像是日本籍就讓他多飛日本航班但是base只能在台灣」，組員旁邊標注國籍、可以依國籍篩選
+#     → 泰籍以曼谷為基地、只飛曼谷航線、每班每職類最多一半；日／韓籍以台北為基地、本國航班優先派；
+#       虛擬組員原本「第一班從哪裡出發，哪裡就是基地」（會有以洛杉磯為基地的人）→ 一律以台北（泰籍曼谷）為基地 ══
+RW('rest 24h',"window.KGM_SHORTHAUL_REST_R922=720;   /* 短程至少 12 小時 */",
+   "window.KGM_SHORTHAUL_REST_R922=1350;   /* 1022A：落地到下一班起飛至少 24 小時（解除 30 分＋休息 22.5 小時＋報到 60 分）；原本 720 分＝13.5 小時（使用者：前一天 17:00 落地、隔天 01:00 又飛不行） */")
+RC('pool nat','kgm-0903b-r121',"  POOL121={pilots:pilots,cabin:cabin,byType:byType};POOLSTAMP=stamp;",
+   "  try{nat22(pilots,cabin)}catch(e){try{console.warn('1022A nat',e)}catch(_){}}   /* 1022A：國籍／泰籍基地 */\n"
+   "  POOL121={pilots:pilots,cabin:cabin,byType:byType};POOLSTAMP=stamp;")
+RC('pool nat fn','kgm-0903b-r121',"/* 1009B：職級晉升 —— S.crewLevelR1009B[empId]=",
+   JS('nat22.js')+"/* 1009B：職級晉升 —— S.crewLevelR1009B[empId]=")
+RC('ensure thai','kgm-0903b-r121',"function ensurePool121(){\n  try{if(typeof window.kgmEnsureCrewPoolR43==='function')window.kgmEnsureCrewPoolR43()}catch(_){}\n}",
+   "function ensurePool121(){\n  try{if(typeof window.kgmEnsureCrewPoolR43==='function')window.kgmEnsureCrewPoolR43()}catch(_){}\n  try{thaiStaff22()}catch(_){}   /* 1022A：曼谷基地泰籍組員 */\n}")
+RC('elig nat trip','kgm-0903b-r121',
+   "    if(!ignoreLocation&&st.at!==f.fr&&!sameCity928(st.at,f.fr)&&!(st.initial&&p.virtualR121))return false;   /* 0928B：同城機場可接 */",
+   "    if(!ignoreLocation&&st.at!==f.fr&&!sameCity928(st.at,f.fr)&&!(st.initial&&p.virtualR121))return false;   /* 0928B：同城機場可接 */\n"
+   "    if(p.nat22==='TH'&&f.fr!=='BKK'&&f.to!=='BKK')return false;   /* 1022A：泰籍組員只飛曼谷航線 */\n"
+   "    if(!(st.initial&&p.virtualR121)){var hm22=st.home||p.base||'TPE';if(!sameCity928(f.to,hm22)){var tp22=sameCity928(st.at,hm22)?{n:0,a:''}:trip22(st,hm22);\n"
+   "      if(tp22.n>=3||(tp22.n===2&&tp22.a&&!sameCity928(f.to,tp22.a)))return false;   /* 1022A：第五航權最多「基地→A→X→A→基地」，回到 A 之後一定回基地 */\n"
+   "      if(!onward22(f,date,tp22.n+1,tp22.n?tp22.a:f.to,hm22))return false}}   /* 1022A：飛到外站之前先確認 3 天內有同機型的班可以接著飛走（不在外站停超過三天） */")
+RC('sort keys','kgm-0903b-r121',
+   "      _sk921.set(p,{t:(h.length&&h[h.length-1].date===date)?0:1,i:(st.initial&&p.virtualR121)?1:0})});",
+   "      var hm22=st.home||p.base||'TPE',aw22=!st.initial&&!sameCity928(st.at,hm22),lr22=h.length?(+h[h.length-1].release||0):0,mh22=aw22&&sameCity928(f.to,hm22)&&trip22(st,hm22).n>=2;\n"
+   "      _sk921.set(p,{t:(h.length&&h[h.length-1].date===date)?0:1,i:(st.initial&&p.virtualR121)?1:0,a:mh22?0:(aw22||p.nat22==='TH')?1:2,r:(aw22||p.nat22==='TH')?lr22:0,n:natPref22(p,f)})});   /* 1022A：a/r＝在外站的人（與曼谷基地的泰籍）先派、先到先走，回基地的班先給「只能回基地」的人；n＝日／韓籍本國航班優先 */")
+RC('sort cmp','kgm-0903b-r121',
+   "      return (_pin929[a.empId]?0:1)-(_pin929[b.empId]?0:1)||ka.t-kb.t||ka.i-kb.i||(role==='pilot'&&!rank?Number(b.rank===extraRank)-Number(a.rank===extraRank):0)||(a.virtualR121?1:0)-(b.virtualR121?1:0)||monthLoads[a.empId]-monthLoads[b.empId]",
+   "      return (_pin929[a.empId]?0:1)-(_pin929[b.empId]?0:1)||ka.t-kb.t||(ka.a||0)-(kb.a||0)||(ka.r||0)-(kb.r||0)||ka.i-kb.i||(role==='pilot'&&!rank?Number(b.rank===extraRank)-Number(a.rank===extraRank):0)||(a.virtualR121?1:0)-(b.virtualR121?1:0)||(ka.n||1)-(kb.n||1)||monthLoads[a.empId]-monthLoads[b.empId]")
+RC('choose eff fresh','kgm-0903b-r121',
+   "    if(list.length<n){var ranks=role==='pilot'?(rank?[rank]:[extraRank,extraRank==='CP'?'FO':'CP']):[''];ranks.some(function(r){var fresh=newPeople[baseKey+'|'+r]||[];for(var j=0;j<fresh.length&&list.length<n;j++){var p=fresh[j];if(!used[p.empId]&&history(p).initial&&eligible(p,f,rank))list.push(p)}return list.length>=n})}",
+   "    /* 1022A：曼谷航線泰籍超過一半的部分不算數 —— 不夠就繼續補非泰籍 */\n"
+   "    var thL22=function(L){var nn=used.__n22;if(!nn)return n;var t=0;L.forEach(function(p){if(p.nat22==='TH')t++});return Math.floor((nn[role]||0)/2)-((used.__th22||{})[role]||0)-t},eff22=function(L){var x=thL22(L);return x>=0?L.length:L.length+x};\n"
+   "    if(eff22(list)<n){var ranks=role==='pilot'?(rank?[rank]:[extraRank,extraRank==='CP'?'FO':'CP']):[''];ranks.some(function(r){var fresh=newPeople[baseKey+'|'+r]||[];for(var j=0;j<fresh.length&&eff22(list)<n;j++){var p=fresh[j];if(p.nat22==='TH'&&thL22(list)<=0)continue;if(!used[p.empId]&&history(p).initial&&eligible(p,f,rank))list.push(p)}return eff22(list)>=n})}")
+RC('choose eff remain','kgm-0903b-r121',
+   "    if(list.length<n){var _inL921={};list.forEach(function(p){_inL921[p.empId]=1});",
+   "    if(eff22(list)<n){var _inL921={};list.forEach(function(p){_inL921[p.empId]=1});")
+RC('choose eff remain loop','kgm-0903b-r121',
+   "for(var k=0,tr6=0;k<remaining.length&&list.length<n&&tr6<24;k++){if(!eligible(remaining[k],f,rank,true))continue;",
+   "for(var k=0,tr6=0;k<remaining.length&&eff22(list)<n&&tr6<24;k++){if(used[remaining[k].empId]||_inL921[remaining[k].empId])continue;var h22=DUTY121[remaining[k].empId];if(!h22||h22.initial)continue;   /* 1022A：還沒派過勤的人 reposition 一定不成立（不能 DH），不再白算資格 */if(remaining[k].nat22==='TH'&&thL22(list)<=0)continue;if(!eligible(remaining[k],f,rank,true))continue;")
+RC('choose cap','kgm-0903b-r121',"    return list.slice(0,n).map(function(p){used[p.empId]=true;return p});\n  }",
+   "    /* 1022A：曼谷航線一半泰籍、一半台灣籍 —— 每一班每個職類（機師／客艙）泰籍最多一半；其他人不夠才多用泰籍 */\n"
+   "    var n22=used.__n22,th22=used.__th22||(used.__th22={pilot:0,cabin:0}),cap22=n22?Math.floor((n22[role]||0)/2):n,pick22=[],skip22=[],q22;\n"
+   "    for(q22=0;q22<list.length&&pick22.length<n;q22++){var c22=list[q22];if(c22.nat22==='TH'&&th22[role]>=cap22){skip22.push(c22);continue}if(c22.nat22==='TH')th22[role]++;pick22.push(c22)}\n"
+   "    for(q22=0;q22<skip22.length&&pick22.length<n;q22++){th22[role]++;pick22.push(skip22[q22])}\n"
+   "    return pick22.map(function(p){used[p.empId]=true;return p});\n  }")
+RC('used n22','kgm-0903b-r121',"    var comp=window.kgmPilotComplementR121(f.block,f.type),cabN=f.positioning?0:cabinFor929(f),used={},pilots=[],cabin=[],fdp=f.block+90;",
+   "    var comp=window.kgmPilotComplementR121(f.block,f.type),cabN=f.positioning?0:cabinFor929(f),used={},pilots=[],cabin=[],fdp=f.block+90;\n"
+   "    if(f.fr==='BKK'||f.to==='BKK')used.__n22={pilot:comp.n,cabin:cabN};   /* 1022A：曼谷航線泰籍上限用 */")
+RC('days dd','kgm-0903b-r121',"st.days.push({date:date,dep:f.depUTC,report:f.depUTC-60,release:f.arrUTC+30,block:f.block,code:f.code,fr:f.fr,to:f.to});",
+   "st.days.push({date:date,dep:f.depUTC,report:f.depUTC-60,release:f.arrUTC+30,block:f.block,code:f.code,fr:f.fr,to:f.to,dd:+f.dd||0});/* 1022A：記落地日（外站三天用） */")
+RC('dh home skip','kgm-0903b-r121',
+   "people.forEach(function(p){var st=DUTY121[p.empId];if(!st||st.initial||sameCity928(st.at,'TPE')||off928(p.empId,date))return;",
+   "people.forEach(function(p){var st=DUTY121[p.empId];if(!st||st.initial||sameCity928(st.at,st.home||p.base||'TPE')||off928(p.empId,date))return;   /* 1022A：回到自己的基地（泰籍曼谷）就不必調 */")
+RC('dh home due','kgm-0903b-r121',
+   "list.slice(keep).concat(list.slice(0,keep).filter(function(p){return off928(p.empId,D(date,-1))||p.triR1009A})).forEach(function(p){",
+   "list.slice(keep).concat(list.slice(0,keep).filter(function(p){return off928(p.empId,D(date,-1))||p.triR1009A||due22(history(p),date)})).forEach(function(p){   /* 1022A：落地日＋3 天還沒排到班 → 當天 DH 回基地（外站不超過三天） */")
+RC('dh home dest','kgm-0903b-r121',
+   "var candidates=flights.filter(function(f){return f.fr===st.at&&sameCity928(f.to,'TPE')&&f.depUTC-60>=st.ready});",
+   "var hm22=st.home||p.base||'TPE',candidates=flights.filter(function(f){return f.fr===st.at&&sameCity928(f.to,hm22)&&f.depUTC-60>=st.ready});\n"
+   "      if(!candidates.length){var a22=trip22(st,hm22).a;if(a22&&!sameCity928(a22,st.at))candidates=flights.filter(function(f){return f.fr===st.at&&sameCity928(f.to,a22)&&f.depUTC-60>=st.ready})}   /* 1022A：這個外站沒有直飛回基地的班（例如法蘭克福只飛曼谷）→ 先 DH 回 A 站，隔天再回基地 */")
+RC('dh home at','kgm-0903b-r121',"st.at='TPE';st.ready=m.arrUTC+30+720;","st.at=m.to;st.ready=m.arrUTC+30+720;")
+# 人力：落地到下一班至少 24 小時、外站最多三天（多出來的人 DH 回基地）之後，每人每月能飛的段數變少 → 依需求補的虛擬組員係數放大（機師 1.86→3.0、客艙 1.70→2.0；開頁機隊重排完成前的需求估計偏小，60 天尾端也要排得滿）
+RC('demand factor','kgm-0903b-r121',"    f.p=Math.ceil(f.p*7/LAW.roll7d*1.86)+2*f.stationP;\n    f.c=Math.ceil(f.c*7/LAW.roll7d*1.70)+2*f.stationC;",
+   "    f.p=Math.ceil(f.p*7/LAW.roll7d*3.0)+2*f.stationP;    /* 1022A：1.86→3.0（兩班間隔 24 小時、外站三天、多出來的人 DH 回基地） */\n    f.c=Math.ceil(f.c*7/LAW.roll7d*2.0)+2*f.stationC;    /* 1022A：1.70→2.0 */")
+# 效能：人手不夠時 choose 每次都把整個機型族的人依本月負擔重排（人力池放大後佔一半時間）→ 每天排一次（monthLoads 一天內不變、排序穩定，挑到的人完全相同）
+RC('sorted bucket','kgm-0903b-r121',"  var PIN928=pinOf928(date);",
+   "  var SB22={};function sortedB22(k){return SB22[k]||(SB22[k]=(buckets[k]||[]).slice().sort(function(a,b){return monthLoads[a.empId]-monthLoads[b.empId]}))}   /* 1022A */\n  var PIN928=pinOf928(date);")
+RC('remaining sorted','kgm-0903b-r121',
+   "var remaining=(buckets[fam121(f.type)+'|'+role]||[]).filter(function(p){return !used[p.empId]&&!_inL921[p.empId]}).sort(function(a,b){return monthLoads[a.empId]-monthLoads[b.empId]});",
+   "var remaining=sortedB22(fam121(f.type)+'|'+role);   /* 1022A：每天排一次；已選的人在迴圈裡跳過（不再每次過濾整個機型族） */")
+# 效能：虛擬組員全部以台北為基地之後，每一班台北出發都要把台北整個機型族逐一判資格（掃描量是原本的 1.9 倍，t_sched922 卡頓 2.4→4.1 秒）。
+#   真人一律全部判斷；在基地閒置的虛擬組員判到 3n+12 位合格就停（在外站／泰籍照樣全判）—— 只影響挑哪幾位虛擬組員，規則檢查不變
+RC('local scan cap','kgm-0903b-r121',
+   "for(var _s12=0;_s12<_src12.length;_s12++){var _a12=_src12[_s12];for(var _i12=0;_i12<_a12.length;_i12++){var _p12=_a12[_i12];if(rank==='TRI'?(_p12.rank!=='CP'||!_p12.triR1009A):(rank&&_p12.rank!==rank))continue;if(!used[_p12.empId]&&eligible(_p12,f,rank))list.push(_p12)}}",
+   "var _kv22=n*3+12;for(var _s12=0;_s12<_src12.length;_s12++){var _a12=_src12[_s12];for(var _i12=0;_i12<_a12.length;_i12++){var _p12=_a12[_i12];if(rank==='TRI'?(_p12.rank!=='CP'||!_p12.triR1009A):(rank&&_p12.rank!==rank))continue;var _vh22=_p12.virtualR121&&_p12.nat22!=='TH'&&(function(h){return h&&sameCity928(h.at,h.home||'TPE')})(DUTY121[_p12.empId]);if(_vh22&&_kv22<=0)continue;if(!used[_p12.empId]&&eligible(_p12,f,rank)){list.push(_p12);if(_vh22)_kv22--}}}   /* 1022A：在基地閒置的虛擬組員判到 3n+12 位合格就停 */")
+RC('local sort load','kgm-0903b-r121',
+   "Object.keys(newPeople).forEach(function(k){newPeople[k].sort(function(a,b){return a.reserve-b.reserve||String(a.empId).localeCompare(String(b.empId))})});",
+   "Object.keys(newPeople).forEach(function(k){newPeople[k].sort(function(a,b){return a.reserve-b.reserve||String(a.empId).localeCompare(String(b.empId))})});Object.keys(localPeople).forEach(function(k){localPeople[k].sort(function(a,b){return monthLoads[a.empId]-monthLoads[b.empId]})});   /* 1022A：本月負擔輕的先判（有上限的掃描才不會一直挑同一批人） */")
+RC('virt home','kgm-0903b-r121',"    pilots.concat(cabin).forEach(function(p){var st=history(p);if(st.initial&&p.virtualR121){st.at=f.fr;st.home=f.fr}",
+   "    pilots.concat(cabin).forEach(function(p){var st=history(p);if(st.initial&&p.virtualR121){st.at=f.fr;st.home=p.base||'TPE'}   /* 1022A：基地＝台北（泰籍曼谷），不是第一班的出發站 */")
+# 組員名冊：國籍欄＋國籍篩選（跟搜尋一起作用，只藏列不重畫）
+RC('ros nat filter fn','kgm-0907A-r196',"    var q=String(inp.value||'').trim().toUpperCase();\n    S['crewQ'+which+'R196']=inp.value;\n    var col=inp.closest('.k196-col');if(!col)return;",
+   "    var col=inp.closest('.k196-col');if(!col)return;\n"
+   "    var si22=col.querySelector('input[type=search]'),sn22=col.querySelector('select.k22-nat'),nt22=sn22?sn22.value:'';if(sn22)S['crewN'+which+'R1022A']=nt22;   /* 1022A：國籍篩選 */\n"
+   "    var q=String((si22||inp).value||'').trim().toUpperCase();\n    S['crewQ'+which+'R196']=(si22||inp).value;")
+RC('ros nat filter hit','kgm-0907A-r196',"      var hit=!q||hay.indexOf(q)>=0;","      var hit=(!q||hay.indexOf(q)>=0)&&(!nt22||tr.getAttribute('data-nat')===nt22);")
+RC('ros nat col','kgm-0907A-r196',
+   "        +'onsearch=\"kgmCrewSearchR196(this,\\''+which+'\\')\"></div>'\n    +'<div class=\"k196-wrap\"><table class=\"k196-t\"><thead><tr>'\n      +'<th>'+(z()?'姓名':'Name')+'</th><th>'+(z()?'員編':'ID')+'</th>'",
+   "        +'onsearch=\"kgmCrewSearchR196(this,\\''+which+'\\')\">'\n"
+   "      +(function(){var nv=String(S['crewN'+which+'R1022A']||''),cn={};l.forEach(function(s){var k=natOf196(s.empId);cn[k]=(cn[k]||0)+1});   /* 1022A：國籍篩選 */\n"
+   "        return '<select class=\"k22-nat\" onchange=\"kgmCrewSearchR196(this,\\''+which+'\\')\"><option value=\"\">'+(z()?'全部國籍':'All nationalities')+'</option>'+['TW','TH','JP','KR'].filter(function(k){return cn[k]}).map(function(k){return '<option value=\"'+k+'\"'+(nv===k?' selected':'')+'>'+E(natZh196(k))+'（'+cn[k]+'）</option>'}).join('')+'</select>'})()\n"
+   "    +'</div>'\n    +'<div class=\"k196-wrap\"><table class=\"k196-t\"><thead><tr>'\n      +'<th>'+(z()?'姓名':'Name')+'</th><th>'+(z()?'國籍':'Nat.')+'</th><th>'+(z()?'員編':'ID')+'</th>'")
+RC('ros nat row','kgm-0907A-r196',
+   "      return '<tr data-emp=\"'+E(s.empId)+'\" data-hay=\"'+E(hay)+'\"'\n        +(sel===s.empId?' class=\"on\"':'')+'>'\n        +'<td><b>'+E(s.name||s.empId)+'</b></td>'",
+   "      var nt=natOf196(s.empId),nv=String(S['crewN'+which+'R1022A']||''),qq=q.trim().toUpperCase(),hid=(nv&&nt!==nv)||(qq&&hay.indexOf(qq)<0);   /* 1022A */\n"
+   "      return '<tr data-emp=\"'+E(s.empId)+'\" data-hay=\"'+E(hay)+'\" data-nat=\"'+E(nt)+'\"'+(hid?' hidden':'')\n        +(sel===s.empId?' class=\"on\"':'')+'>'\n        +'<td><b>'+E(s.name||s.empId)+'</b></td>'\n"
+   "        +'<td><span class=\"k22-nt '+E(nt)+'\">'+E(natZh196(nt))+'</span>'+(nt==='TH'?'<small class=\"k22-bs\">'+(z()?'曼谷基地':'BKK base')+'</small>':'')+'</td>'")
+RC('ros nat helpers','kgm-0907A-r196',"function colHtml196(role,title,which){",
+   "/* 1022A：國籍（組員池 kgmCrewNatR1022A）與中文名稱 */\n"
+   "function natOf196(id){try{return window.kgmCrewNatR1022A?window.kgmCrewNatR1022A(id):'TW'}catch(_){return 'TW'}}\n"
+   "function natZh196(k){return z()?({TW:'台灣',TH:'泰國',JP:'日本',KR:'韓國'}[k]||k):({TW:'Taiwan',TH:'Thailand',JP:'Japan',KR:'Korea'}[k]||k)}\n"
+   "function colHtml196(role,title,which){")
+RC('ros nat head count','kgm-0907A-r196',
+   "+'<div class=\"k196-ch\"><b>'+E(title)+'</b><em>'+(z()?'共 ':'')+l.length+(z()?' 人':' total')+'</em>'",
+   "+'<div class=\"k196-ch\"><b>'+E(title)+'</b><em>'+(z()?'共 ':'')+(function(){var nv=String(S['crewN'+which+'R1022A']||''),qq=q.trim().toUpperCase();if(!nv&&!qq)return l.length;return l.filter(function(s){return (!nv||natOf196(s.empId)===nv)&&(!qq||(String(s.empId||'')+' '+String(s.name||'')).toUpperCase().indexOf(qq)>=0)}).length})()+(z()?' 人':' total')+'</em>'")   # 1022A：重畫時表頭人數也照篩選
+RC('ros nat css','kgm-0907A-r196',"  +'.k196-t td.r{text-align:right}'",
+   "  +'.k196-t td.r{text-align:right}'\n"
+   "  +'.k196-ch select.k22-nat{height:32px;border:1px solid #E2DCCB;border-radius:9px;background:#fff;font-size:12px;padding:0 8px;color:#1F4E46;margin-left:6px}'\n"
+   "  +'.k22-nt{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:#EEF3F0;color:#1F4E46;white-space:nowrap}.k22-nt.TH{background:#FFF1DC;color:#8A5A12}.k22-nt.JP{background:#FBEAEA;color:#9B2C2C}.k22-nt.KR{background:#E8EEFB;color:#23408E}'\n"
+   "  +'.k22-bs{display:block;font-size:10px;color:#9A8460;margin-top:2px}'")
+
 # ══ 旅客自助改票總開關（定位管理）：存檔＋前後台同步（r229 只認 save() 裡 LS.set 的寫法）══════
 RW('selfchg init','crewFreezeR928:LS.get("kgm12_crewfrz",{}),',
    'crewFreezeR928:LS.get("kgm12_crewfrz",{}),selfChgR1022A:LS.get("kgm22_selfchg",null),cardBindR1022A:LS.get("kgm22_cards",[]),')
