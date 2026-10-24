@@ -235,6 +235,13 @@ RC('stb notice html','kgm-0816d-r40',"+(r.go?(z9?'✈ 請前往機場候補':'Co
 RC('stb notice html kg','kgm-0816d-r40',"（起飛前 '+r.stage+' 小時檢查）· 當時可用座位 '+r.seats)",
    "（起飛前 '+r.stage+' 小時檢查）· 當時可用座位 '+r.seats+(r.payloadKg!=null?(' · Payload 餘量 '+Math.max(0,Math.round(r.payloadKg)).toLocaleString()+' kg'):''))")
 
+# ══ S：寄信清單（r110）——每一項可預覽信件樣式；可匯出 CSV；測試信用清單（含後面補的）找名稱並附上正式信件 html ══
+RC('mail preview btn','kgm-0903a-r110',"          +'<td><button class=\"k110-t2\" onclick=\"kgmMailTestR110(\\''+E(r.ev)+'\\')\">'\n          +(z()?'測試':'Test')+'</button></td></tr>'}).join('')",
+   "          +'<td style=\"white-space:nowrap\"><button class=\"k110-t2\" onclick=\"kgmMailPreviewR1023A(\\''+E(r.ev)+'\\')\">'+(z()?'預覽':'Preview')+'</button> <button class=\"k110-t2\" onclick=\"kgmMailTestR110(\\''+E(r.ev)+'\\')\">'\n          +(z()?'測試':'Test')+'</button></td></tr>'}).join('')   /* 1023A：預覽信件樣式 */")
+RC('mail csv btn','kgm-0903a-r110',"      +'<button class=\"k110-go ghost\" onclick=\"kgmMailTestAllR110()\">'+(z()?'全部寄一次':'Send all')+'</button>'",
+   "      +'<button class=\"k110-go ghost\" onclick=\"kgmMailTestAllR110()\">'+(z()?'全部寄一次':'Send all')+'</button>'\n      +'<button class=\"k110-go ghost\" onclick=\"kgmMailCsvR1023A()\">'+(z()?'匯出清單 CSV':'Export CSV')+'</button>'   /* 1023A */")
+RC('mail test row','kgm-0903a-r110',"  var row=MAIL110.filter(function(x){return x.ev===ev})[0]||{zh:ev,en:ev};\n  try{\n    var r=await window.kgmPostR22('/send',{",
+   "  var row=MAIL110.filter(function(x){return x.ev===ev})[0];\n  try{var mm23=window.kgmMailMapR110();row=row||(mm23.external||[]).concat(mm23.internal||[]).filter(function(x){return x.ev===ev})[0]}catch(_){}row=row||{zh:ev,en:ev};   /* 1023A：後面補進清單的事件也找得到名稱 */\n  var tp23=null;try{tp23=window.kgmMailHtmlR1023A?window.kgmMailHtmlR1023A(ev,{pnr:'',flight:'',date:''}):null}catch(_){}\n  try{\n    var r=await window.kgmPostR22('/send',{html:tp23?tp23.html:undefined,")
 # ══ 結尾 ══
 open('p_h_r23.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

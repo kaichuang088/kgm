@@ -927,6 +927,7 @@ try{if(!document.getElementById('k23-css')){var st=document.createElement('style
     try{window.kgmPlanCacheClearR196&&window.kgmPlanCacheClearR196()}catch(_){}
     var msg=function(a,b,fa,fb){return (z()?'【換班核准】':'[Swap approved] ')+r.date+'：你原本的 '+fa+' 改由 '+b+' 執飛；你改飛 '+fb+'。'};
     try{notifyStaff(X,msg(X,r.Y.name+'（'+Y+'）',r.X.from,r.X.to))}catch(_){}try{notifyStaff(Y,msg(Y,r.X.name+'（'+X+'）',r.Y.from,r.Y.to))}catch(_){}
+    [[X,msg(X,r.Y.name+'（'+Y+'）',r.X.from,r.X.to)],[Y,msg(Y,r.X.name+'（'+X+'）',r.Y.from,r.Y.to)]].forEach(function(q){try{var sx=st[q[0]]||{};if(typeof kgmNotify==='function')Promise.resolve(kgmNotify('crew.swap_approved',{empId:q[0],name:sx.name||'',email:sx.email||(String(q[0]).toLowerCase()+'@kgm-airways.com'),date:r.date,message:q[1],subject:(z()?'換班核准 ':'Swap approved ')+r.date})).catch(function(){})}catch(_){}});   /* 1023A S：兩位組員也寄信 */
     try{logAct('AI 換班核准',r.X.name+'（'+X+'）⇄ '+r.Y.name+'（'+Y+'）'+r.date+' · '+recs.length+' 段')}catch(_){}
     S._crMsg928=(z()?'✓ 已核准：只對調 '+r.X.name+'（'+X+'）與 '+r.Y.name+'（'+Y+'）的 '+recs.length+' 段，其他組員不變，兩位已收到通知。':'Approved; only the two crew were changed.');
     try{save()}catch(_){}try{render()}catch(_){}
@@ -1025,4 +1026,209 @@ var CSS='.k23-bagmail{margin:12px 0 4px;padding:12px 14px;border-radius:12px;bac
   +'.k23-bagmail b{display:block;font-size:14px;letter-spacing:.2px}.k23-bagmail p{margin:4px 0 0;font-size:12.5px;line-height:1.7;color:#6B5A2A}'
   +'.k23-bagmail.sent{background:#E9F5EF;border-color:#9FD3B8;color:#0B6B48}.k23-bagmail.sent p{color:#3D6655}';
 try{var st=document.createElement('style');st.id='k23-css-r';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}catch(_){}
+})();
+
+/* ══ 1023A S：寄信清單補齊＋信件樣式 ═══════════════════════════════════════════════
+   使用者：「include a list that needs email notification (internal/external) for everything, some samples are given」
+   （範例：華航 SEAT ASSIGNMENT CHANGE NOTICE、「您完成的兌換座艙升等訂位如下」）
+   ① 清單：r110 的寄信清單（通知管理／系統設定）沿用 r115、r215 的補法，把程式裡真的會寄、但清單沒有的 20 多個事件補進去，
+      每一項寫清楚寄給誰、什麼時候寄；可以預覽信件、寄測試信、匯出 CSV。
+   ② 信件樣式：kgmMailHtmlR1023A(事件, 內容) 依事件類型產生正式信件（標題英文大寫＋中文、稱謂、說明、雙語欄位表格、注意事項、系統信頁尾），
+      kgmNotify 送出前附上 html 與 subject（原本有 subject 的不蓋）；寄信紀錄只留文字，html 幾秒後拿掉（不佔儲存空間）。 */
+(function(){
+'use strict';
+function z(){try{return LANG!=='en'}catch(_){return true}}
+function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function N(n){return Number(n||0).toLocaleString('en-US')}
+var ADD23=[
+  {ev:'checkin.open',who:'ext',zh:'線上報到開放提醒',en:'Online check-in open',when:'起飛前 48 小時開放線上報到時'},
+  {ev:'bigdeal.open',who:'ext',zh:'BigDeal 限時升等邀請',en:'BigDeal invitation',when:'起飛前 7 天～48 小時，航班上一艙等還有座位時'},
+  {ev:'upgrade.waitlist',who:'ext',zh:'哩程升等候補登記確認',en:'Upgrade waitlisted',when:'哩程升等送出、目前沒有座位而列入候補'},
+  {ev:'booking.no_show',who:'ext',zh:'未搭乘（No-show）通知',en:'No-show notice',when:'櫃檯關閉後旅客未報到，扣 No-show 費用'},
+  {ev:'flight.irrops',who:'ext',zh:'航班異常通知',en:'Irregular operations',when:'航班取消／延誤需要旅客處理時（通用）'},
+  {ev:'flight.cancelled_refund',who:'ext',zh:'航班取消・該段已自動退款',en:'Flight cancelled · refunded',when:'航班動態或後台 AI 取消航班、選「退費」：退這一段實付票價＋附加服務，系統自動退款、不開案件'},
+  {ev:'flight.cancelled_replacement',who:'ext',zh:'航班取消・替代航班待確認',en:'Flight cancelled · replacement offered',when:'取消航班並提出替代航班，請旅客接受或申請退費'},
+  {ev:'flight.rebooked_by_admin',who:'ext',zh:'航班取消・已改搭其他航班',en:'Rebooked to another flight',when:'取消航班選「改搭下一班」，系統直接改訂位'},
+  {ev:'flight.replacement_accepted',who:'ext',zh:'已接受替代航班',en:'Replacement accepted',when:'旅客在我的行程接受替代航班'},
+  {ev:'flight.replacement_refund_approved',who:'ext',zh:'航班取消退費完成',en:'Disruption refund completed',when:'航班取消的退費案件核准'},
+  {ev:'member.profile_change_approved',who:'ext',zh:'會員資料變更完成',en:'Profile change approved',when:'資料變更案件審核通過'},
+  {ev:'member.profile_change_rejected',who:'ext',zh:'會員資料變更未通過',en:'Profile change declined',when:'資料變更案件被退回'},
+  {ev:'mileage.diff',who:'ext',zh:'里程差額付款連結',en:'Mileage shortfall payment',when:'酬賓／升等里程不足，改以現金補差額'},
+  {ev:'miles.purchase.confirmed',who:'ext',zh:'里程購買訂單確認',en:'Miles order confirmed',when:'送出購買里程訂單'},
+  {ev:'miles.transfer.confirmed',who:'ext',zh:'里程轉讓完成',en:'Miles transferred',when:'會員之間轉讓里程（轉出與收到的人各一封）'},
+  {ev:'award.seat_released',who:'ext',zh:'酬賓座位釋出通知',en:'Award seat released',when:'會員登記的航班／艙等釋出酬賓座位'},
+  {ev:'auth.login_notice',who:'ext',zh:'登入通知（新裝置）',en:'New sign-in notice',when:'會員帳號登入時寄送裝置與時區'},
+  {ev:'staff.standby_notice',who:'int',zh:'員工票 48–72 小時候補通知（前往／不用前往機場）',en:'Staff standby 48–72h notice',when:'起飛前 72 及 48 小時：看座位與 Payload（每人 107 kg）決定要不要去機場'},
+  {ev:'staff.standby_cleared',who:'int',zh:'員工票候補成功（含座位）',en:'Staff standby cleared',when:'櫃檯候補成功、輸入座位後'},
+  {ev:'staff.standby_failed',who:'int',zh:'員工票候補未成行',en:'Staff standby not cleared',when:'航班關櫃仍未候補上'},
+  {ev:'staff.tix_suspended',who:'int',zh:'員工票權利停權',en:'Staff travel suspended',when:'主管依規定停權（寫明期間與原因）'},
+  {ev:'staff.tix_restored',who:'int',zh:'員工票權利恢復',en:'Staff travel restored',when:'停權期滿或主管提前恢復'},
+  {ev:'crew.swap_approved',who:'int',zh:'組員換班核准（兩位當事人）',en:'Crew swap approved',when:'後台 AI 換班方案核准：只對調兩人，各寄一封'}
+];
+window.KGM_MAIL_ADD_R1023A=ADD23;
+/* 原清單有幾項寫成外部、其實是寄給員工的，清單上改列內部（事件名稱不變） */
+var INT23={'staff.status':1,'staff.ticket':1};
+function instMap(){var mm=window.kgmMailMapR110;if(typeof mm!=='function'||mm.__r1023A)return;
+  var MM=function(){var out=mm.apply(this,arguments)||{};
+    try{var have={};(out.external||[]).concat(out.internal||[]).forEach(function(x){have[x.ev]=1});
+      ADD23.forEach(function(x){if(have[x.ev])return;(x.who==='ext'?(out.external=out.external||[]):(out.internal=out.internal||[])).push(x)});
+      var mv=(out.external||[]).filter(function(x){return INT23[x.ev]});if(mv.length){out.external=out.external.filter(function(x){return !INT23[x.ev]});out.internal=mv.concat(out.internal||[])}
+      out.counts={external:(out.external||[]).length,internal:(out.internal||[]).length};out.addedR1023A=ADD23.length}catch(_){}
+    return out};
+  try{Object.keys(mm).forEach(function(k){if(!(k in MM))MM[k]=mm[k]})}catch(_){}MM.__r1023A=1;window.kgmMailMapR110=MM}
+instMap();[1500,6000].forEach(function(ms){setTimeout(instMap,ms)});
+
+/* ── 信件樣式 ─────────────────────────────────────────────── */
+var KINDS=[
+  ['seat',/^(aircraft\.changed|flight\.aircraft_changed|flight\.type_changed|seat\.cleared)$/,'SEAT ASSIGNMENT CHANGE NOTICE','座位變更通知'],
+  ['upgw',/^upgrade\.waitlist$/,'UPGRADE WAITLIST CONFIRMATION','升等候補登記確認'],
+  ['upg',/^(upgrade\.|bigdeal\.result)/,'UPGRADE CONFIRMATION','升等確認'],
+  ['bid',/^bigdeal\./,'BIGDEAL UPGRADE BIDDING','BigDeal 限時升等'],
+  ['cxl',/^flight\.(cancelled|irrops|rebooked|replacement)/,'FLIGHT CANCELLATION NOTICE','航班取消通知'],
+  ['pay',/^(billing\.charge_created|mileage\.diff|reissue\.payment_link|booking\.name_change_requested)$/,'PAYMENT REQUEST','付款通知'],
+  ['rcpt',/^billing\.charge_paid$/,'PAYMENT RECEIPT','付款收據'],
+  ['chg',/^(flight\.|booking\.changed|booking\.reissued|reissue\.)/,'FLIGHT SCHEDULE CHANGE NOTICE','航班異動通知'],
+  ['ref',/^(booking\.refunded|booking\.cancel_|refund\.|billing\.refund_notice|booking\.no_show)/,'REFUND NOTICE','退票／退款通知'],
+  ['bkg',/^(booking\.confirmed|restore\.done|booking\.name_change_paid)$/,'E-TICKET ITINERARY RECEIPT','訂位完成確認'],
+  ['ci',/^checkin\./,'CHECK-IN NOTICE','報到通知'],
+  ['stf',/^staff\./,'STAFF TRAVEL NOTICE','員工票通知'],
+  ['int',/^(internal\.|crew\.|ground\.|ops\.|case\.ceo_review|case\.returned|refund\.case_|notification)/,'INTERNAL NOTICE','內部通知'],
+  ['case',/^case\./,'CUSTOMER SERVICE CASE','服務案件通知'],
+  ['mbr',/^(member\.|miles\.|award\.|auth\.|survey\.)/,'KGM MEMBERSHIP','會員通知']
+];
+function kindOf(ev){ev=String(ev||'');for(var i=0;i<KINDS.length;i++){var k=KINDS[i];if(/^refund\.case_/.test(ev)&&k[0]!=='int')continue;if(k[1].test(ev))return k}return ['gen',null,'KGM AIRWAYS NOTICE','通知']}
+function rowOf(map,ev){try{var m=window.kgmMailMapR110();return (m.external||[]).concat(m.internal||[]).filter(function(x){return x.ev===ev})[0]||null}catch(_){return null}}
+function cabZ(c){return ({Economy:'經濟艙',Premium:'豪華經濟艙',Business:'商務艙',First:'頭等艙',Resident:'Residence'})[c]||c||''}
+function ctxOf(p){
+  var c={},b=null;try{b=p.pnr?(S.bookings||[]).filter(function(x){return x&&x.pnr===p.pnr})[0]:null}catch(_){}
+  c.b=b;
+  if(b){var px=(b.paxList||[])[0]||{};c.name=(String(px.lastName||'')+'/'+String(px.firstName||'')).toUpperCase().replace(/^\/|\/$/g,'');
+    var ss=[];try{ss=window.segs7?window.segs7(b):[]}catch(_){}
+    var s=ss.filter(function(x){return x&&x.f&&(!p.flight||x.f.code===p.flight)&&(!p.date||x.date===p.date)})[0]||ss[0];
+    if(s){c.flight=s.f.code;c.date=s.date;c.fr=s.f.fr;c.to=s.f.to;c.dep=s.f.dep;c.arr=s.f.arr;c.dd=+s.f.dd||0;c.key=s.key;
+      var so=((b.seats||{})[s.key])||{};c.seat=Object.keys(so).filter(function(k){return k!=='_auto'&&so[k]}).join(', ');
+      var cls=s.key==='inb'?b.inbC:b.outC;c.cls=cls;try{c.cabin=((FARES[cls]||AWARD_FARES[cls]||{}).cabin)||''}catch(_){}
+      try{c.type=acftOfFlight(s.f.code,s.date,s.f.fr,s.f.to)}catch(_){}}
+    c.email=px.email||b.contactEmail||'';c.ticket=b.ticketNumber||''}
+  if(!c.name&&p.passenger)c.name=String(p.passenger).toUpperCase();
+  if(!c.name&&p.name)c.name=String(p.name);
+  return c}
+function money(v,cur){if(v==null||v==='')return '';try{if(typeof fmtAmt==='function')return fmtAmt(Math.round(+v||0),cur||'TWD')}catch(_){}return (cur||'TWD')+' '+N(v)}
+window.kgmMailHtmlR1023A=function(ev,p){
+  p=p||{};var K=kindOf(ev),k=K[0],c=ctxOf(p),zh=String(p.lang||p.language||(z()?'zh':'en')).indexOf('en')!==0;
+  var own=/^(pay|rcpt|mbr|int|stf|case|gen)$/.test(k),row=rowOf(null,ev),flight=p.flight||(own?'':c.flight)||'',date=p.date||(own?'':c.date)||'',fr=(p.from&&/^[A-Z]{3}$/.test(p.from)&&k!=='seat')?p.from:(c.fr||''),to=(p.to&&/^[A-Z]{3}$/.test(p.to)&&k!=='seat')?p.to:(c.to||'');
+  var R=[];function add(l1,l2,v,st){if(v==null||v==='')return;R.push([l1,l2,v,st||''])}
+  add('訂位代號','Booking reference',p.pnr);
+  if(k==='bkg'||k==='ci')add('電子機票號碼','E-ticket number',p.ticketNumber||c.ticket);
+  if(k==='stf'||k==='int')add('員工編號','Employee ID',p.empId);
+  add(k==='stf'||k==='int'?'姓名':'旅客姓名',k==='stf'||k==='int'?'Name':'Passenger name',c.name||p.memberName||'');
+  if(p.memberId&&k==='mbr')add('會員號碼','Member number',p.memberId);
+  add('航班','Flight',flight);add('日期','Date',date);
+  if(fr&&to)add('起訖','From / To',fr+' → '+to+(c.dep&&flight===c.flight?'　'+c.dep+'–'+(c.arr||'')+(c.dd?'⁺'+c.dd:''):''));
+  if(k==='seat'){
+    var ta=p.fromType||(p.from&&!/^[A-Z]{3}$/.test(p.from)?p.from:''),tb=p.toType||(p.to&&!/^[A-Z]{3}$/.test(p.to)?p.to:'')||c.type||'';
+    add('機型','Aircraft type',(ta&&tb&&ta!==tb)?(ta+' → '+tb):(tb||ta));
+    add('原座位','Original seat',p.oldSeat||p.seatOld||'','old');
+    add('新座位','New seat',p.newSeat||p.seatNew||c.seat||(zh?'請至行程管理重新選位':'Please reselect in Manage booking'),'new')}
+  if(k==='upg'||k==='upgw'){add('原艙等','Original cabin',zh?cabZ(p.oldCabin||c.cabin):(p.oldCabin||c.cabin));add(k==='upgw'?'申請艙等':'升等艙等',k==='upgw'?'Requested cabin':'Upgraded cabin',(zh?cabZ(p.newCabin||p.cabin||(p.upgrade&&p.upgrade.toCabin)):(p.newCabin||p.cabin))||'','new');
+    var mi=+(p.miles||(p.upgrade&&p.upgrade.miles)||0);if(mi)add('使用哩程','Miles redeemed',N(mi)+(zh?' 哩':' miles'));if(+p.bid)add('得標金額','Winning bid',money(p.bid,'TWD'))}
+  if(k==='bkg'){add('艙等','Cabin',zh?cabZ(p.cabin||c.cabin):(p.cabin||c.cabin));add('座位','Seat',p.seat||c.seat);add('托運行李','Baggage',p.baggage);if(p.total)add('總金額','Total',money(p.total,p.currency))}
+  if(k==='pay'||k==='rcpt'){add('單號','Reference',p.id||p.caseId||'');(p.items||[]).forEach(function(it){add('項目','Item',String(it.label||'')+'　'+money(it.amount,p.currency))});add(k==='rcpt'?'已付金額':'應付金額',k==='rcpt'?'Amount paid':'Amount due',money(p.amount!=null?p.amount:p.cash,p.currency),'new')}
+  if(k==='ref'||k==='cxl'){var ir=p.irrops||(c.b&&c.b.irrops)||null;if(ir&&ir.cashRefund!=null)add('退款金額','Refund amount',money(ir.cashRefund,(c.b&&c.b.curr)||'TWD')+(ir.ancRefund?(zh?'（含附加服務 ':' (incl. extras ')+money(ir.ancRefund,(c.b&&c.b.curr)||'TWD')+(zh?'）':')'):''),'new');if(ir&&+ir.milesRefund)add('退還哩程','Miles returned',N(ir.milesRefund));if(p.amount!=null&&!(ir&&ir.cashRefund!=null))add('退款金額','Refund amount',money(p.amount,p.currency),'new');if(p.reason)add('原因','Reason',p.reason)}
+  if(k==='stf'){if(p.seats!=null)add('當時可用座位','Seats available',p.seats);if(p.go!=null)add('結果','Result',p.go?(zh?'請前往機場候補':'Please come to the airport'):(zh?'請不要前往機場':'Do not come to the airport'),p.go?'new':'old')}
+  if(p.caseId&&k!=='pay')add('案件編號','Case number',p.caseId);
+  var title=zh?K[3]:K[2].replace(/\b\w+/g,function(w){return w.charAt(0)+w.slice(1).toLowerCase()});
+  if(K[0]==='gen'&&row)title=zh?row.zh:row.en;
+  var hello=zh?('親愛的 '+E(c.name||(k==='int'||k==='stf'?'同仁':'旅客'))+(k==='int'||k==='stf'?'　您好：':'　旅客您好：')):('Dear '+E(c.name||'Customer')+',');
+  var LEAD={
+    seat:['由於 '+flight+' 航班（'+date+'）更換機型，您的座位已調整如下。系統已為您安排最接近原座位的新座位，造成不便敬請見諒。','Due to an aircraft type change on '+flight+' ('+date+'), your seat assignment has been changed as below. We have assigned the closest available seat and apologise for the inconvenience.'],
+    upg:['您完成的座艙升等訂位如下：','Your cabin upgrade has been confirmed as follows:'],
+    upgw:['您的升等申請已列入候補，確認結果後會再以 Email 通知您；哩程在升等成功前不會扣除。','Your upgrade request is waitlisted. Miles are only deducted if the upgrade clears.'],
+    bid:['您的 BigDeal 限時升等資訊如下。','Your BigDeal upgrade details are below.'],
+    cxl:['很抱歉通知您，下列航班已取消。我們已依您的訂位完成以下處理：','We regret to inform you that the flight below has been cancelled. We have handled your booking as follows:'],
+    chg:['您的航班有異動，請確認以下最新資訊：','There has been a change to your flight. Please review the latest details:'],
+    pay:['您有一筆款項待付款，請點選下方按鈕完成付款；付款完成後會自動寫入您的訂位。','A payment is due on your booking. Use the button below; it posts to your booking automatically once paid.'],
+    rcpt:['我們已收到您的付款，收據如下：','We have received your payment. Your receipt:'],
+    ref:['您的退票／退款資訊如下，款項將退回原付款方式：','Your refund details are below; the amount is returned to the original form of payment.'],
+    bkg:['感謝您選擇 KGM 航空，您的訂位與電子機票如下：','Thank you for flying KGM Airways. Your booking and e-ticket:'],
+    ci:['您的報到資訊如下：','Your check-in details:'],
+    stf:['您的員工票資訊如下：','Your staff travel details:'],
+    int:['以下事項需要您知悉或處理：','The following requires your attention:'],
+    'case':['您的服務案件進度如下：','An update on your service case:'],
+    mbr:['您的會員帳戶有以下異動：','There is an update to your membership account:'],
+    gen:['以下是您的通知內容：','Here are the details:']}[k]||['',''];
+  var bag=k==='pay'&&/baggage/i.test(String(p.note||'')+JSON.stringify(p.items||[]));
+  var lead=bag?(zh?'您在機場櫃檯報到時托運的行李超出免費額度（件數或重量），付款資料如下，請點選下方按鈕完成付款；付款完成後會自動寫入您的訂位。':'Your checked baggage at the airport exceeded the free allowance. Please pay using the button below.'):(zh?LEAD[0]:LEAD[1]);
+  var msg=String(p.message||p.text||p.detail||'');
+  var NOTES={seat:['如需更換座位，請至 KGM 官網「行程管理」重新選位。','若原為付費座位、新座位等級較低，可申請退還選位費用。'],
+    upg:['升等後的免費托運行李額度與貴賓室使用權依新艙等計算。','登機證需重新取得（線上報到或櫃檯）。'],
+    cxl:['如需改搭其他航班或有任何問題，請至「我的行程」或聯絡 KGM 客服。'],
+    pay:['付款連結限本訂位使用，請勿轉寄。'],
+    bkg:['請於出發前確認旅行證件、報到截止時間與行李規定。'],
+    ci:['國際線櫃檯於起飛前 60 分鐘關閉，登機時間為起飛前 30 分鐘。'],
+    stf:['員工票為候補，實際是否登機依櫃檯候補順位辦理。']}[k]||[];
+  var ttl=zh?('[KGM Airways] '+K[3]+' '+K[2].replace(/\b\w+/g,function(w){return w.charAt(0)+w.slice(1).toLowerCase()})):('[KGM Airways] '+title);
+  if(K[0]==='gen'&&row)ttl='[KGM Airways] '+(zh?row.zh:row.en);
+  var subject=ttl+(p.pnr?' · PNR '+p.pnr:'')+(flight?' · '+flight+(date?' '+date:''):'');
+  var payUrl=String(p.payUrl||'');if(payUrl.charAt(0)==='#'){try{if(/^https?:/.test(location.protocol))payUrl=location.origin+location.pathname+payUrl}catch(_){}}
+  var td='padding:9px 12px;border:1px solid #E3E8E5;vertical-align:top;';
+  var html='<div style="background:#EEF1EF;padding:24px 8px;font-family:\'Noto Sans TC\',\'PingFang TC\',\'Microsoft JhengHei\',Arial,sans-serif;color:#14231D">'
+    +'<table role="presentation" width="640" align="center" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:#fff;border:1px solid #D9E0DC;border-collapse:collapse">'
+    +'<tr><td style="background:#0B3D2E;padding:16px 28px"><span style="font:700 20px Georgia,\'Times New Roman\',serif;letter-spacing:1px;color:#fff">KGM <span style="color:#D6B25E">AIRWAYS</span></span>'
+      +'<span style="float:right;margin-top:6px;font-size:10.5px;letter-spacing:2px;color:#CFE1D8">'+(K[0]==='int'||K[0]==='stf'?'INTERNAL':'CUSTOMER NOTICE')+'</span></td></tr>'
+    +'<tr><td style="height:4px;background:#D6B25E;font-size:0;line-height:0">&nbsp;</td></tr>'
+    +'<tr><td style="padding:26px 28px 4px"><div style="font-size:11.5px;letter-spacing:2.2px;color:#9A7B2F;font-weight:700">'+E(K[2])+'</div>'
+      +'<div style="margin:4px 0 16px;font-size:22px;font-weight:800;color:#0B3D2E">'+E(K[0]==='gen'&&row?(zh?row.zh:row.en):K[3])+'</div>'
+      +'<p style="margin:0 0 8px;font-size:14px">'+hello+'</p><p style="margin:0 0 6px;font-size:13.5px;line-height:1.8;color:#33443D">'+E(lead)+'</p>'
+      +(msg&&msg!==lead?'<p style="margin:8px 0 0;padding:10px 12px;background:#F7F5EF;border-left:3px solid #D6B25E;font-size:13px;line-height:1.75;color:#4A4535;white-space:pre-line">'+E(msg)+'</p>':'')+'</td></tr>'
+    +(R.length?'<tr><td style="padding:14px 28px 6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px">'
+      +R.map(function(r){var v=r[3]==='old'?'<span style="color:#8A8F8C;text-decoration:line-through">'+E(r[2])+'</span>':(r[3]==='new'?'<span style="color:#0B6B48;font-size:14.5px">'+E(r[2])+'</span>':E(r[2]));
+        return '<tr><td style="'+td+'width:38%;background:#F5F7F6;color:#5F6B66">'+E(r[0])+(r[1]?'<br><span style="font-size:11px;color:#8A948F">'+E(r[1])+'</span>':'')+'</td><td style="'+td+'font-weight:700">'+v+'</td></tr>'}).join('')
+      +'</table></td></tr>':'')
+    +((k==='pay'&&payUrl)?'<tr><td style="padding:14px 28px 4px"><a href="'+E(payUrl)+'" style="display:inline-block;padding:11px 26px;border-radius:999px;background:#0B3D2E;color:#fff;font-weight:700;text-decoration:none;font-size:14px">'+(zh?'前往付款':'Pay now')+'</a></td></tr>':'')
+    +(NOTES.length?'<tr><td style="padding:12px 28px 4px"><div style="font-size:12px;font-weight:700;color:#0B3D2E;margin-bottom:4px">'+(zh?'注意事項 Notes':'Notes')+'</div><ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.8;color:#5F6B66">'+NOTES.map(function(n){return '<li>'+E(n)+'</li>'}).join('')+'</ul></td></tr>':'')
+    +'<tr><td style="padding:20px 28px 22px"><div style="border-top:1px solid #E3E8E5;padding-top:12px;font-size:11.5px;line-height:1.7;color:#8A948F">'
+      +(zh?'此信件由系統自動發送，請勿直接回覆。如有疑問請聯絡 KGM 航空客服或使用網站 AI 助理。':'')+'<br>This is an automatically generated e-mail; please do not reply.<br>KGM Airways · '+E(ev)+'</div></td></tr>'
+    +'</table></div>';
+  return {kind:k,subject:subject,html:html,title:title}};
+
+/* 送出前附上 html（寄信紀錄裡幾秒後拿掉，不佔儲存空間） */
+var MYN=null;
+function strip(){try{(S.emailEventLog||[]).forEach(function(e){if(e&&e.payload&&e.payload.html){delete e.payload.html}})}catch(_){}}
+function instN(){var o=window.kgmNotify;if(typeof o!=='function'||o===MYN)return;
+  var w=function(type,payload){
+    try{if(payload&&typeof payload==='object'&&!payload.html&&!payload._noHtmlR1023A){var t=window.kgmMailHtmlR1023A(type,payload);if(t)payload=Object.assign({},payload,{html:t.html,subject:payload.subject||t.subject,templateR1023A:t.kind});setTimeout(strip,4000)}}catch(_){}
+    return o.call(this,type,payload)};
+  try{Object.keys(o).forEach(function(k){if(!(k in w))w[k]=o[k]})}catch(_){}MYN=w;window.kgmNotify=w;try{kgmNotify=w}catch(_){}}
+instN();[0,1500,6000,20000].forEach(function(ms){setTimeout(instN,ms)});
+
+/* 預覽：用一筆真的訂位當範例 */
+function sample(ev){var K=kindOf(ev),b=null;try{var t=todayISO();b=(S.bookings||[]).filter(function(x){return x&&x.outF&&x.outF.date>=t&&x.status!=='cancelled'&&(x.paxList||[]).length})[0]}catch(_){}
+  var p=b?{pnr:b.pnr,flight:b.outF.code,date:b.outF.date,email:((b.paxList||[])[0]||{}).email||''}:{pnr:'KGM123',flight:'KX180',date:todayISO()};
+  if(K[0]==='seat'){p.fromType='A359';p.toType='B789';p.oldSeat='31K';p.newSeat='34A'}
+  if(K[0]==='upg'){p.newCabin='Business';p.miles=20000}
+  if(K[0]==='upgw'){p.newCabin='Business';p.miles=20000}
+  if(K[0]==='pay'||K[0]==='rcpt'){p.id='CH261025-1001';p.items=[{label:'Baggage charge · 1 equivalent piece(s) × USD 140',amount:4410}];p.amount=4410;p.currency='TWD';p.payUrl='#/pay/sample';p.note='Airport baggage payment link'}
+  if(K[0]==='ref'||K[0]==='cxl'){p.reason=z()?'天候因素':'Weather';p.amount=25330;p.currency='TWD'}
+  if(K[0]==='stf'){p.empId='K60012';p.name='WANG/DAMING';p.go=true;p.seats=8}
+  if(K[0]==='int'){p={empId:'K60012',date:todayISO()};p.empId='K60012';p.name='WANG/DAMING';p.message=z()?'範例：您 '+todayISO()+' 的班表已更新，請至組員班表確認。':'Sample message.'}
+  return p}
+window.kgmMailPreviewR1023A=function(ev){S._mailPrevR1023A=ev;try{var old=document.getElementById('k23MailPrev');if(old)old.remove()}catch(_){}
+  var t=window.kgmMailHtmlR1023A(ev,sample(ev)),d=document.createElement('div');d.id='k23MailPrev';d.className='k23-mp';
+  d.innerHTML='<div class="k23-mp-box"><header><div><small>EMAIL PREVIEW · '+E(ev)+'</small><b>'+E(t.subject)+'</b></div><button type="button" onclick="document.getElementById(\'k23MailPrev\').remove()">×</button></header><iframe title="preview"></iframe></div>';
+  d.addEventListener('click',function(e){if(e.target===d)d.remove()});document.body.appendChild(d);
+  try{var f=d.querySelector('iframe');f.srcdoc='<!doctype html><meta charset="utf-8"><body style="margin:0">'+t.html+'</body>'}catch(_){}};
+window.kgmMailCsvR1023A=function(){try{var m=window.kgmMailMapR110(),rows=[['對象 Audience','事件 Event','信件 Email','觸發時機 Trigger']];
+  (m.external||[]).forEach(function(x){rows.push([z()?'外部（旅客／會員）':'External',x.ev,z()?x.zh:x.en,x.when||''])});
+  (m.internal||[]).forEach(function(x){rows.push([z()?'內部（員工／主管）':'Internal',x.ev,z()?x.zh:x.en,x.when||''])});
+  var csv='﻿'+rows.map(function(r){return r.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='KGM_email_notifications_'+BUILD_S()+'.csv';document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){alert(String(e&&e.message||e))}};
+function BUILD_S(){try{return window.KGM_BUILD_LABEL||'1023A'}catch(_){return '1023A'}}
+var CSS='.k23-mp{position:fixed;inset:0;z-index:99999;background:rgba(12,24,19,.55);display:flex;align-items:center;justify-content:center;padding:20px}'
+  +'.k23-mp-box{width:min(760px,100%);height:min(88vh,980px);background:#fff;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3)}'
+  +'.k23-mp-box header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid #E3E8E5}'
+  +'.k23-mp-box header small{display:block;font-size:10.5px;letter-spacing:1.6px;color:#9A7B2F;font-weight:700}.k23-mp-box header b{font-size:13.5px;color:#0B3D2E}'
+  +'.k23-mp-box header button{border:0;background:#F1F4F2;border-radius:999px;width:32px;height:32px;font-size:18px;cursor:pointer}'
+  +'.k23-mp-box iframe{flex:1;border:0;width:100%;background:#EEF1EF}';
+try{var st=document.createElement('style');st.id='k23-css-s';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}catch(_){}
 })();
