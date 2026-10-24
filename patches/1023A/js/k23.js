@@ -1406,3 +1406,103 @@ window.kgmAiDelayR1023A=function(a){
       +(cs.length?'；同一架的下一班過站不足 60 分鐘，已連鎖延誤並通知：'+cs.map(function(c){return c.code+' '+c.date+' '+c.dep+'–'+c.arr}).join('、'):'')+'。'):('Retimed '+code+'.'))};
 };
 })();
+
+/* ══ 1023A U：航班資料頁版面（使用者：「我一直覺得航班資料頁面好醜你可以也調整嗎 但是現在該有的東西都要有喔！」）══
+   不拿掉、不改任何一個區塊的內容與功能（各層畫出來的區塊照舊），只改版面：
+   ・上方黏住的區塊導覽（總覽／天氣／航線／載重平衡／行李改運／報到核對／餐點／旅客名單／座位圖／候補），依頁面上真的有的區塊產生，點了捲過去，捲動時標示目前區塊；
+   ・寬螢幕兩欄：天氣＋航線、報到核對＋餐點並排；載重平衡、行李改運、旅客名單、座位圖、候補全寬；
+   ・卡片、標題、表格、按鈕統一樣式（白底細框、圓角、表頭黏住、斑馬列）；手機一欄。
+   樣式只在加上 .k23fd 之後生效（.r7-admin 是航班資料頁的根）。 */
+(function(){
+'use strict';
+function z(){try{return LANG!=='en'}catch(_){return true}}
+var SECS=[['hero','.r7-ops-hero',['總覽','Overview']],['wx',null,['天氣','Weather']],['route','.r7-route-card',['航線','Route']],['lb','.r7-loadbal',['載重平衡','Load & balance']],
+  ['bm','.k23bm',['行李改運','Bag reroute']],['ci','.k55-cifail',['報到核對','Check-in review']],['meal','.k81-meals',['餐點','Catering']],['man','.r7-manifest',['旅客名單','Manifest']],
+  ['seat','.r7-seatmap',['座位圖','Seat map']],['sb',null,['候補','Standby']]];
+function find(root,k,sel){
+  if(sel)return root.querySelector(sel);
+  if(k==='wx'){var top=root.querySelector('.r7-ops-top');if(!top)return null;var c=[].slice.call(top.children).filter(function(x){return !x.classList.contains('r7-ops-hero')})[0];return c||null}
+  if(k==='sb'){var mn=root.parentElement||root;return [].slice.call(mn.querySelectorAll(':scope>.k55-standby,:scope>.r40-panel,.r7-admin .k55-standby')).filter(function(x){return x.offsetHeight>0})[0]||null}   /* 候補區塊畫在 .r7-admin 外面（同一個 main）；舊的 .k55-standby 會被 r40 藏起來（display:none），取看得見的那個 */
+  return null}
+function enh(){
+  try{
+    if(!(S.view==='admin'&&S.adminTab==='flightdata'))return;
+    var root=document.querySelector('.r7-admin');if(!root)return;
+    if(!root.classList.contains('k23fd'))root.classList.add('k23fd');
+    var mn=root.parentElement;if(mn&&!mn.classList.contains('k23fd-main'))mn.classList.add('k23fd-main');
+    var nav=root.querySelector('.k23fd-nav'),found=[];
+    SECS.forEach(function(s){var el=find(root,s[0],s[1]);[].forEach.call((mn||root).querySelectorAll('[data-k23fd="'+s[0]+'"]'),function(o){if(o!==el)o.removeAttribute('data-k23fd')});if(el){el.setAttribute('data-k23fd',s[0]);found.push([s[0],z()?s[2][0]:s[2][1],el])}});
+    var top=root.querySelector('.r7-ops-top');if(top)top.classList.add('k23fd-top');
+    var work=root.querySelector('.r7-ops-work');if(work)work.classList.add('k23fd-work');
+    /* 天氣＋航線並排：航線卡跟在 r7-ops-top 後面，天氣卡在 r7-ops-top 裡 → 用 grid 區域排，不搬節點 */
+    var sig=found.map(function(x){return x[0]}).join(',');
+    if(!found.length)return;
+    if(nav&&nav.getAttribute('data-sig')===sig)return;
+    if(nav)(nav.parentNode.classList.contains('k23fd-navw')?nav.parentNode:nav).remove();
+    nav=document.createElement('nav');nav.className='k23fd-nav';nav.setAttribute('data-sig',sig);
+    var man=root.querySelector('.r7-manifest'),n=man?man.querySelectorAll('tbody tr').length:0;
+    nav.innerHTML=found.map(function(x){var cnt='';if(x[0]==='man'){var m=(root.querySelector('.k929-fdbar')||{}).textContent||'';var mm=/(\d+)\s*位/.exec(m);if(mm)cnt='<i>'+mm[1]+'</i>'}
+      return '<button type="button" data-go="'+x[0]+'">'+x[1]+cnt+'</button>'}).join('');
+    /* 不用 scrollIntoView：外層 main／#app 是 overflow:hidden，scrollIntoView 會連它們一起捲（畫面錯位）→ 只捲視窗 */
+    nav.addEventListener('click',function(e){var b=e.target.closest('button[data-go]');if(!b)return;var el=(root.parentElement||root).querySelector('[data-k23fd="'+b.getAttribute('data-go')+'"]');if(el){var y=el.getBoundingClientRect().top+window.scrollY-hdr()-nav.offsetHeight-20;window.scrollTo({top:Math.max(0,y),behavior:'smooth'})}});
+    var w=document.createElement('div');w.className='k23fd-navw';w.appendChild(nav);
+    var anchor=root.querySelector('.k22-bar')||root.querySelector('.r7-ops-tabs');
+    if(anchor&&anchor.parentNode===root)anchor.parentNode.insertBefore(w,anchor.nextSibling);else root.insertBefore(w,root.firstChild);
+    pin();spy(root,nav);
+  }catch(e){try{console.warn('k23 fd',e)}catch(_){}}
+}
+/* 黏住：外層 main 是 overflow:hidden，CSS sticky 不會生效 → 捲過原位置時改成 fixed（外框 .k23fd-navw 保留高度，內容不跳） */
+function hdr(){try{var e=document.elementFromPoint(Math.round(innerWidth/2),2);while(e&&e!==document.body){if(e.classList&&e.classList.contains('k23fd-nav'))return 0;var c=getComputedStyle(e);if(c.position==='fixed'||(c.position==='sticky'&&stk(e))){var b=e.getBoundingClientRect().bottom;return b>0&&b<200?b:0}e=e.parentElement}}catch(_){}return 0}   /* 畫面最上方黏住的表頭（手機版表頭不是 <header>） */
+function stk(e){var h=getComputedStyle(document.documentElement),hv=h.overflowX==='visible'&&h.overflowY==='visible';for(var a=e.parentElement;a&&a!==document.documentElement;a=a.parentElement){if(a===document.body&&hv)continue;var c=getComputedStyle(a);if(/hidden|auto|scroll/.test(c.overflowX+c.overflowY))return false}return true}   /* 桌機 body／#app 是 overflow:hidden，表頭的 sticky 其實不黏（body 的 overflow 只有在 html 是 visible 時才轉給視窗） */
+function pin(){try{var w=document.querySelector('.k23fd-navw');if(!w)return;var nav=w.firstChild,mn=w.closest('.k23fd-main')||w.parentNode;
+  if(!nav.classList.contains('k23fd-fix'))w.style.minHeight=nav.offsetHeight+'px';
+  var r=w.getBoundingClientRect(),t=hdr()+8,mb=mn.getBoundingClientRect().bottom;
+  var on=r.top<t&&mb>t+nav.offsetHeight+40;
+  if(on){nav.classList.add('k23fd-fix');nav.style.top=t+'px';nav.style.left=r.left+'px';nav.style.width=r.width+'px'}
+  else if(nav.classList.contains('k23fd-fix')){nav.classList.remove('k23fd-fix');nav.style.top=nav.style.left=nav.style.width=''}}catch(_){}}
+window.addEventListener('scroll',pin,{passive:true});window.addEventListener('resize',pin);
+var IO=null;
+function spy(root,nav){try{if(IO)IO.disconnect();if(typeof IntersectionObserver!=='function')return;
+  IO=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var k=en.target.getAttribute('data-k23fd');[].forEach.call(nav.querySelectorAll('button'),function(b){var on=b.getAttribute('data-go')===k;b.classList.toggle('on',on);if(on&&nav.scrollWidth>nav.clientWidth)nav.scrollLeft=b.offsetLeft-(nav.clientWidth-b.offsetWidth)/2})})},{rootMargin:'-120px 0px -65% 0px'});
+  [].forEach.call((root.parentElement||root).querySelectorAll('[data-k23fd]'),function(el){IO.observe(el)})}catch(_){}}
+setInterval(enh,500);
+/* 航班資料頁會被背景 render() 重畫：用 MutationObserver 在同一輪（畫面繪出前）補上，不然每次重畫會閃一下舊版面 */
+try{var Q=false;new MutationObserver(function(){if(Q)return;if(!(S.view==='admin'&&S.adminTab==='flightdata'))return;Q=true;Promise.resolve().then(function(){Q=false;enh()})}).observe(document.documentElement,{childList:true,subtree:true})}catch(_){}
+var CSS=''
+ +'.r7-admin.k23fd{--fd-ink:#14231D;--fd-sub:#66726C;--fd-line:#E3E8E5;--fd-soft:#F6F8F7;--fd-g:#0B3D2E;--fd-gold:#9A7B2F}'
+ +'.k23fd>div:first-child{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;padding-bottom:12px;border-bottom:1px solid var(--fd-line);margin-bottom:14px}'
+ +'.k23fd>div:first-child h1{font-size:26px;letter-spacing:.5px;margin:4px 0 0}'
+ +'.k23fd .r7-ops-search{display:grid;grid-template-columns:minmax(0,1fr) 220px auto;gap:12px;align-items:end;background:#fff;border:1px solid var(--fd-line);border-radius:16px;padding:14px 16px;box-shadow:0 1px 2px rgba(16,40,30,.04)}'
+ +'@media(max-width:760px){.k23fd .r7-ops-search{grid-template-columns:1fr}}'
+ +'.k23fd .r7-ops-search label{font-size:11.5px;font-weight:700;color:var(--fd-sub);letter-spacing:.3px}'
+ +'.k23fd .r7-ops-tabs{margin:14px 0 6px;gap:8px}.k23fd .r7-ops-tabs button{border-radius:999px;padding:8px 16px;border:1px solid var(--fd-line);background:#fff;font-weight:700}.k23fd .r7-ops-tabs button.on{background:var(--fd-g);color:#fff;border-color:var(--fd-g)}'
+ +'.k23fd .k22-bar{margin:4px 0 0}'
+ +'.k23fd-navw{margin:10px 0 16px}.k23fd-nav.k23fd-fix{position:fixed;z-index:40;margin:0}'
+ +'.k23fd-nav{position:relative;z-index:30;display:flex;gap:6px;flex-wrap:wrap;margin:0;padding:10px 12px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--fd-line);border-radius:14px;box-shadow:0 6px 18px rgba(16,40,30,.06)}'
+ +'.k23fd-nav button{border:0;background:var(--fd-soft);color:var(--fd-ink);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;gap:6px;align-items:center}'
+ +'.k23fd-nav button i{font-style:normal;font-size:11px;background:#fff;border-radius:999px;padding:1px 7px;color:var(--fd-sub)}'
+ +'.k23fd-nav button:hover{background:#E9F1ED}.k23fd-nav button.on{background:var(--fd-g);color:#fff}.k23fd-nav button.on i{background:rgba(255,255,255,.18);color:#fff}'
+ +'.k23fd [data-k23fd],.k23fd-main [data-k23fd]{scroll-margin-top:76px}'
+ +'.k23fd-main>.k55-standby,.k23fd-main>.r40-panel{background:#fff;border:1px solid #E3E8E5;border-radius:18px;box-shadow:0 1px 2px rgba(16,40,30,.04),0 8px 24px rgba(16,40,30,.04);margin-top:16px}'
+ +'.k23fd .r7-ops-card{background:#fff;border:1px solid var(--fd-line);border-radius:18px;box-shadow:0 1px 2px rgba(16,40,30,.04),0 8px 24px rgba(16,40,30,.04);padding:20px 22px;margin:0 0 16px}'
+ +'.k23fd .r7-ops-card .r7-kicker{color:var(--fd-gold);letter-spacing:2px;font-size:10.5px;font-weight:800}'
+ +'.k23fd .r7-ops-card>h2,.k23fd .r7-ops-card .k81-h h2,.k23fd .r7-ops-card .k81-h b{font-size:20px;color:var(--fd-g);margin:4px 0 6px}'
+ +'.k23fd .r7-ops-card>p{color:var(--fd-sub);font-size:12.5px;line-height:1.7}'
+ +'.k23fd .k22-tg{border:1px solid var(--fd-line)!important;background:#fff!important;color:var(--fd-sub)!important;box-shadow:none!important}'
+ +'.r7-admin.k23fd>*{min-width:0}'
+ +'.k23fd-top{display:grid!important;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin-bottom:16px}.k23fd-top>*{margin:0!important}'
+ +'@media(max-width:980px){.k23fd-top{grid-template-columns:1fr}}'
+ +'.k23fd .r7-ops-hero{border:0;box-shadow:0 14px 34px rgba(11,61,46,.22)}'
+ +'.k23fd .r7-metric{border-radius:12px}'
+ +'.k23fd-work{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;align-items:start}.k23fd-work>*{grid-column:1/-1;margin:0!important}'
+ +'@media(min-width:1180px){.k23fd-work>.k55-cifail{grid-column:span 4}.k23fd-work>.k81-meals{grid-column:span 8}}'
+ +'.k23fd .r7-manifest table thead th,.k23fd .k23bm-list thead th{position:sticky;top:0;z-index:2;background:#F5F3EE;font-size:11.5px;letter-spacing:.3px;color:var(--fd-sub)}'
+ +'.k23fd .r7-manifest table tbody tr:hover td{background:#F3F8F5}'
+ +'.k23fd .r7-manifest table td{border-bottom:1px solid #EEF1EF}'
+ +'.k23fd .r7-seatmap .r7-cabin{background:var(--fd-soft);border-radius:14px;padding:12px 14px;margin:10px 0}'
+ +'.k23fd .r7-seatmap .r7-cabin>h4{margin:0 0 8px;color:var(--fd-g)}'
+ +'.k23fd .r7-lb-zone,.k23fd .r7-metrics>div,.k23fd .k23bm-top>div{border-radius:12px}'
+ +'.k23fd .btn.btn-g{border-radius:999px}'
+ +'@media(max-width:640px){.k23fd .r7-ops-card{padding:16px 14px;border-radius:14px}.k23fd-nav{overflow-x:auto;flex-wrap:nowrap}.k23fd-nav button{flex:0 0 auto}}';
+try{var st=document.createElement('style');st.id='k23-css-fd';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}catch(_){}
+})();
