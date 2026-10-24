@@ -1332,3 +1332,22 @@ var CSS='.k23bm h2{margin:2px 0 10px}.k23bm-top{display:grid;grid-template-colum
   +'.k23bm-log{margin-top:10px;font-size:12.5px}.k23bm-log>div{padding:4px 0;border-bottom:1px solid #EEF1EF}.k23bm-log small{color:#8A948F}';
 try{var s2=document.createElement('style');s2.id='k23-css-bm';s2.textContent=CSS;(document.head||document.documentElement).appendChild(s2)}catch(_){}
 })();
+
+/* ══ 1023A J：KGM Cards（STAR-Gen Bank × KGM 聯名卡）—— 我的帳戶綁定區的卡別說明（數字＝《KGM Cards 聯名卡使用辦法》KGM-CRD-020 表一～表三） ══ */
+(function(){
+'use strict';
+function z(){try{return LANG!=='en'}catch(_){return true}}
+var C=[['stark','Star K','Visa Signature',['免年費','Free'],['國內 NT$30／哩・海外 NT$20／哩','NT$30/mi local · NT$20/mi overseas'],['KGM 官網購票 NT$15／哩','KGM tickets NT$15/mi'],['海外手續費 1.5%','1.5% FX fee']],
+  ['starg','Star G','Mastercard World Elite',['年費 NT$8,800（年簽帳滿 30 萬次年免）','NT$8,800 / yr'],['國內 NT$20／哩・海外 NT$15／哩','NT$20/mi local · NT$15/mi overseas'],['KGM 貴賓室每年 6 次＋同行 1 位','Lounge 6× / yr +1 guest'],['商務艙櫃檯報到・海外手續費 1%','Business check-in · 1% FX']],
+  ['starm','Star M','Visa Infinite',['年費 NT$36,000・限銀卡以上會員','NT$36,000 / yr · Silver+'],['國內 NT$15／哩・海外 NT$10／哩','NT$15/mi local · NT$10/mi overseas'],['KGM 貴賓室不限次數＋同行 2 位','Unlimited lounge +2 guests'],['頭等艙櫃檯・ZONE 1 登機・每段多 1 件 23 kg','First check-in · Zone 1 · +1 bag']]];
+window.kgmCardPerksHtmlR1023A=function(){
+  return '<div class="k23-kc">'+C.map(function(c){var i=z()?0:1;return '<div class="k23-kc-c '+c[0]+'"><div class="k23-kc-art"><small>STAR-Gen Bank × KGM</small><b>'+c[1]+'</b><span>'+c[2]+'</span></div><ul><li>'+c[3][i]+'</li><li>'+c[4][i]+'</li><li>'+c[5][i]+'</li><li>'+c[6][i]+'</li></ul></div>'}).join('')+'</div>'
+    +'<p class="k23-kc-n">'+(z()?'完整規定見':'Full terms:')+' <a href="javascript:void(0)" onclick="kgmPolicyOpenR914(\'KGM-CRD-020\')">'+(z()?'《KGM Cards 聯名卡使用辦法》KGM-CRD-020':'KGM Cards Terms of Use (KGM-CRD-020)')+'</a></p>'};
+var CSS='.k23-kc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 6px}@media(max-width:760px){.k23-kc{grid-template-columns:1fr}}'
+  +'.k23-kc-c{border:1px solid #E3E8E5;border-radius:16px;overflow:hidden;background:#fff}.k23-kc-c ul{margin:0;padding:10px 14px 12px 28px;font-size:12.5px;line-height:1.75;color:#33443D}'
+  +'.k23-kc-art{padding:14px 16px 16px;color:#fff;min-height:88px;display:flex;flex-direction:column;justify-content:flex-end}.k23-kc-art small{font-size:10px;letter-spacing:1.6px;opacity:.85}.k23-kc-art b{font:700 22px Georgia,serif;letter-spacing:1px}.k23-kc-art span{font-size:11.5px;opacity:.9}'
+  +'.k23-kc-c.stark .k23-kc-art,.k22-cb-card.stark{background:linear-gradient(135deg,#0B3D2E,#1F6B52)}.k23-kc-c.starg .k23-kc-art,.k22-cb-card.starg{background:linear-gradient(135deg,#8A6A22,#D6B25E)}.k23-kc-c.starm .k23-kc-art,.k22-cb-card.starm{background:linear-gradient(135deg,#111,#3A3A3A)}'
+  +'.k22-cb-card.stark,.k22-cb-card.starg,.k22-cb-card.starm{color:#fff}.k22-cb-card.stark small,.k22-cb-card.starg small,.k22-cb-card.starm small,.k22-cb-card.stark span,.k22-cb-card.starg span,.k22-cb-card.starm span{color:rgba(255,255,255,.9)}'
+  +'.k23-kc-n{font-size:12.5px;color:#5F6B66;margin:4px 0 10px}.k23-kc-n a{color:#0B3D2E;font-weight:700}.k23-cb-consent{margin:10px 0 0}';
+try{var st=document.createElement('style');st.id='k23-css-kc';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}catch(_){}
+})();

@@ -288,6 +288,48 @@ RC('th ext fn','kgm-0903b-r121',"function natPref22(p,f){",
    "  return n===0}\n"
    "function natPref22(p,f){")
 
+# ══ J：信用卡綁定只收 KGM Cards（STAR-Gen Bank × KGM 聯名卡 Star K／G／M）＋《KGM Cards 聯名卡使用辦法》KGM-CRD-020（網站內嵌＋Policies PDF 同一份 crd_doc.py）══
+import crd_doc
+K22=JS('k22.js').split('\n')
+def kl(n):return K22[n-1]
+_net0=kl(569)+'\n'+kl(570)
+assert _net0.startswith('  var NET22={visa:'),_net0[:30]
+RW('kgmcards net',_net0,
+   "  /* 1023A：只能綁定 KGM Cards（STAR-Gen Bank × KGM 聯名卡）—— 卡別＝聯名卡，等級＝卡片組織等級；BIN 對照表（模擬發卡銀行資料） */\n"
+   "  var NET22={stark:['KGM Star K',['Visa Signature']],starg:['KGM Star G',['Mastercard World Elite']],starm:['KGM Star M',['Visa Infinite']]};\n"
+   "  var KBIN23={'473291':'stark','552816':'starg','489763':'starm'};window.KGM_CARD_BIN_R1023A=KBIN23;")
+_nof=kl(571);assert _nof.startswith('  function netOf(num)')
+RW('kgmcards netOf',_nof,"  function netOf(num){return KBIN23[String(num||'').replace(/\\D/g,'').slice(0,6)]||''}")
+_iss=kl(576);assert _iss.startswith('  function issuer(bin)')
+RW('kgmcards issuer',_iss,"  function issuer(bin){var net=netOf(bin);if(!net)return null;return {net:net,tier:NET22[net][1][0],bank:'STAR-Gen Bank'}}")
+RW('kgmcards ai net',"(z()?'BIN '+c.bin6+' 屬於 '+(iss?NET22[iss.net][0]:'未知組織')+'，但選擇的是 '+((NET22[c.net]||[''])[0]):'Network mismatch'),z()?'卡號與選擇的卡別不符':'Network mismatch');",
+   "(iss?(z()?'BIN '+c.bin6+' 是 '+NET22[iss.net][0]+'，但選擇的是 '+((NET22[c.net]||[''])[0]):'Card product mismatch'):(z()?'BIN '+c.bin6+' 不是 STAR-Gen Bank × KGM 聯名卡（只能綁定 KGM Cards）':'Not a KGM Card')),iss?(z()?'卡號與選擇的卡別不符':'Product mismatch'):(z()?'不是 KGM Cards 聯名卡':'Not a KGM Card'));")
+RW('kgmcards ai starm',"    var res=bad?'rejected':rev?'review':'verified';",
+   "    if(c.net==='starm'){var lv23=String((u&&(u.level||u.tier))||c.memberTier||'').toLowerCase(),okL23=/silver|gold|diamond|black/.test(lv23);add(okL23,'rev',okL23?(z()?'會員等級 '+lv23+'，符合 Star M 卡持卡資格':'Tier OK for Star M'):(z()?'Star M 卡須為 Explorer 銀卡以上會員（目前 '+(lv23||'未知')+'）':'Star M requires Silver or above'),z()?'Star M 卡須銀卡以上會員':'Star M needs Silver+')}   /* 1023A：KGM-CRD-020 第五條 */\n"
+   "    var res=bad?'rejected':rev?'review':'verified';")
+RW('kgmcards bind check',"    if(num.length<13){alert(z()?'請輸入完整卡號。':'Enter the card number.');return}",
+   "    if(num.length<13){alert(z()?'請輸入完整卡號。':'Enter the card number.');return}\n"
+   "    if(!netOf(num)){alert(z()?'這張卡不是 KGM Cards。帳戶只能綁定 STAR-Gen Bank × KGM 聯名卡（Star K／Star G／Star M）；其他信用卡請在結帳時直接輸入。':'Only KGM Cards (STAR-Gen Bank × KGM) can be saved. Other cards can be entered at checkout.');return}   /* 1023A */\n"
+   "    if(ty&&ty.split('|')[0]!==netOf(num)){alert(z()?'卡號是 '+NET22[netOf(num)][0]+'，與選擇的卡別不同，請重新選擇。':'The number is a '+NET22[netOf(num)][0]+'; choose that card type.');return}\n"
+   "    if(window.kgmPolicyGateR914&&!window.kgmPolicyGateR914(['KGM-CRD-020'],'kgmCardBindR1022A()'))return;")
+RW('kgmcards front head',"'<div class=\"k22-cb-h\"><small>PAYMENT CARDS</small><h3>'+(z()?'信用卡綁定':'Saved cards')+'</h3><p>'+(z()?'綁定後結帳可直接選用。系統會驗證卡別等級與持卡人姓名；我們只保留卡號前 6 碼與後 4 碼，不保存完整卡號與安全碼。':'We keep only the first 6 and last 4 digits.')+'</p></div>'",
+   "'<div class=\"k22-cb-h\"><small>KGM CARDS · STAR-Gen Bank × KGM</small><h3>'+(z()?'KGM Cards 聯名卡綁定':'KGM Cards')+'</h3><p>'+(z()?'帳戶只能綁定 STAR-Gen Bank × KGM 聯名卡（Star K／Star G／Star M）。綁定後簽帳哩程自動轉入本帳戶、結帳可直接選用，並依卡別享有貴賓室與優先服務。系統會核對卡別、持卡人姓名與有效期限；我們只保留卡號前 6 碼與後 4 碼，不保存完整卡號與安全碼。':'Only STAR-Gen Bank × KGM co-branded cards can be saved. We keep only the first 6 and last 4 digits.')+'</p></div>'+(window.kgmCardPerksHtmlR1023A?window.kgmCardPerksHtmlR1023A():'')")
+RW('kgmcards front consent',"        +'<button class=\"btn btn-g\" onclick=\"kgmCardBindR1022A()\">'+(z()?'送出驗證':'Submit')+'</button></div>'",
+   "        +'<button class=\"btn btn-g\" onclick=\"kgmCardBindR1022A()\">'+(z()?'送出驗證':'Submit')+'</button></div>'+(window.kgmPolicyConsentR914?'<div class=\"k23-cb-consent\">'+window.kgmPolicyConsentR914('KGM-CRD-020',{after:'kgmCardBindR1022A()',noWarn:true})+'</div>':'')")
+_sim0=kl(650)+'\n'+kl(651)
+assert _sim0.startswith("      var nets=['visa'"),_sim0[:40]
+RW('kgmcards sim',_sim0,
+   "      var nets=['stark','starg','starm','stark','starg','stark','starm','stark','other','starg','stark','starm','stark','starg'],made=0,now=Date.now();   /* 1023A：KGM Cards；other＝一般信用卡（不能綁定） */\n"
+   "      nets.forEach(function(net,i){var u=us[(i*37+11)%us.length];var oth=net==='other';if(oth)net='stark';var pre=oth?'4111':{stark:'473291',starg:'552816',starm:'489763'}[net],len=16;")
+RW('kgmcards sim iss',"        var iss=issuer(num.slice(0,6)),T2=NET22[net][1],kind=i%7;",
+   "        var iss=issuer(num.slice(0,6))||{net:net,tier:NET22[net][1][0],bank:''},T2=NET22[net][1],kind=oth?0:i%7;")
+RW('kgmcards adm text',"(z()?'會員在前台「我的帳戶」綁定信用卡後，由系統 AI 逐項驗證：卡號檢查碼（Luhn）、BIN 對應的發卡組織、發卡行資料（模擬）裡這個 BIN 的卡片等級是否與申報相符、持卡人姓名是否與會員姓名相符、有效期限、是否已綁在別的會員。全部通過自動核准；等級或姓名不符轉人工；格式錯誤、過期、重複綁定直接退回。系統只保存卡號前 6 碼與後 4 碼。':'')",
+   "(z()?'會員在前台「我的帳戶」綁定 KGM Cards（STAR-Gen Bank × KGM 聯名卡 Star K／Star G／Star M）後，由系統 AI 逐項驗證：卡號檢查碼（Luhn）、卡號前 6 碼是不是 KGM Cards 以及卡別是否相符、發卡銀行資料（模擬）的卡片等級、持卡人姓名是否與會員姓名相符、有效期限、是否已綁在別的會員、Star M 卡是否為銀卡以上會員。全部通過自動核准；等級、姓名或會員等級不符轉人工；不是 KGM Cards、格式錯誤、過期、重複綁定直接退回。系統只保存卡號前 6 碼與後 4 碼（依《KGM Cards 聯名卡使用辦法》KGM-CRD-020）。':'')")
+_crd=crd_doc.doc()
+RW('kgmcards policy doc',"window.kgmPolicyDocR914=function(id){",
+   "/* 1023A：《KGM Cards 聯名卡使用辦法》（patches/1023A/crd_doc.py，PDF 同一份） */\nwindow.KGM_POLICY_DOCS_R914[\"KGM-CRD-020\"]="+json.dumps(_crd,ensure_ascii=False)+";\nwindow.kgmPolicyDocR914=function(id){")
+RW('kgmcards policy audit',"if(o.docs!==16)o.bad.push('辦法份數 '+o.docs+'（應為 16）');","if(o.docs!==17)o.bad.push('辦法份數 '+o.docs+'（應為 17）');   /* 1023A：加 KGM-CRD-020 */")
+
 # ══ 結尾 ══
 open('p_h_r23.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
