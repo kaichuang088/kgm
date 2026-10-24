@@ -556,7 +556,7 @@ try{if(!document.getElementById('k23-css')){var st=document.createElement('style
   (function faWrap(){var o=window.kgmFareAdjAddR1022A;if(typeof o!=='function'||o.__k23)return;var w=function(){var n=(S.fareRulesR929||[]).length,r=o.apply(this,arguments);if((S.fareRulesR929||[]).length>n){S._fa23Pct='';S._fa23Note=''}return r};w.__k23=1;window.kgmFareAdjAddR1022A=w})();
   window.kgmFa23PrevR1023A=function(){var e=document.getElementById('fa22Pct'),p=e?+e.value:0;[].slice.call(document.querySelectorAll('[data-fa23]')).forEach(function(b){var v=+b.getAttribute('data-fa23');b.textContent=(p&&isFinite(p))?'NT$'+Math.round(v*(1+p/100)).toLocaleString():'—';b.style.color=p>0?'#9b2c1c':(p<0?'#145c38':'')})};
   /* ③ 飛機排班：閒置機身 */
-  function busyOn(t,d){var L=(S.tailAssign||{})[t]||[],n=0,dn=dnum(d);L.forEach(function(x){if(!x)return;var q=span(x),a=Math.floor(q[0]/1440),b=Math.floor((q[1]-1)/1440);if(dn>=a&&dn<=b)n++});return n}
+  function busyOn(t,d){var L=(S.tailAssign||{})[t]||[],n=0,dn=dnum(d);L.forEach(function(x){if(!x||x.cancelledR1023A)return;var q=span(x),a=Math.floor(q[0]/1440),b=Math.floor((q[1]-1)/1440);if(dn>=a&&dn<=b)n++});return n}
   window.kgmIdleDaysR1023A=busyOn;
   function idleHtml(){
     var type=S._fsType||'';try{if(!type&&window.kgmFleetTypeR69)type=''}catch(_){}
@@ -643,4 +643,251 @@ try{if(!document.getElementById('k23-css')){var st=document.createElement('style
    +'.k8-walk{display:grid;grid-template-columns:110px 1fr auto;gap:12px;align-items:center;padding:7px 14px;margin:2px 0;border-left:3px dashed #C9D3CD;background:transparent;color:#6B7671;font-size:12px}.k8-walk time{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#8A948F}.k8-walk time i{display:block;font-style:normal;font-size:10px;color:#B0B8B3}.k8-walk b{font-size:12px;color:#5F6B66;font-weight:700;margin-right:6px}.k8-walk em{font-style:normal;font-size:11px;color:#9AA39F}'
    +'.k23-idle td.i{background:#FFF4E0;color:#9A6B15;font-weight:800}.k23-idle td.m{background:#FDECEA;color:#A3271C;font-weight:700}.k23-idle td.g{color:#B8C0BB}';
   try{if(!document.getElementById('k23-css2')){var st=document.createElement('style');st.id='k23-css2';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}}catch(_){}
+})();
+
+/* ══ 1023A：冬季飛行時間依風向（使用者：「這樣不make sense喔 你冬天假設去程-5可能因為風向 回來就會是逆風應該是+5或更多才對啊 所以你要確認好並給我新的時刻表PDF」）
+   r68 的 kgmWinterBlockDeltaR68 註解寫「去程與回程受到的影響是相反的」，程式卻用排序後的城市對決定正負號 → 去回永遠同號
+   （實測 96 對航線有 75 對冬季去回同號，例：KIX⇄TPE 兩邊都 −10、DOH→PVG→DOH 兩段都 +35），航線管理的標籤也是公式值不是實際時刻。
+   新模型：冬季北半球西風帶（噴射氣流）—— 往東飛順風縮短、往西飛逆風加長（逆風的損失比順風的節省多），幅度＝航程×東西向分量
+   （用兩地時區差估：每 1 小時約 1,300 km 東西距離），5 分鐘取整，−45～+60 分；700 km 以下、或同一時區（南北向）不調。
+   冬季抵達＝冬季出發＋夏季飛行時間＋風向修正（從夏季算定值，不在存檔值上加減）；冬季出發不動。
+   使用者逐列審過的時刻不動：KX37、KX51（奧克蘭→雪梨、雪梨→台北）、KX288／287、KX212／211、KX282／281、KX31。
+   全網不在 03:00–03:59 抵達：落在 03 點就把修正往同方向多推（最多 20 分），推不出去就往反方向退到 02:55。 ══ */
+(function(){
+  var KEEP23={KX37:1,KX38:1,KX51:1,KX288:1,KX287:1,KX212:1,KX211:1,KX282:1,KX281:1,KX31:1};
+  function tzd(a,b){var d=0;try{d=(TZ[b]-TZ[a])}catch(_){d=0}if(!isFinite(d))d=0;while(d>12)d-=24;while(d<-12)d+=24;return d}
+  window.kgmWindDeltaR1023A=function(fr,to){
+    if(!fr||!to||fr===to)return 0;var d=0;try{d=+distOf(fr,to)||0}catch(_){d=0}if(d<700)return 0;
+    var dt=tzd(fr,to);if(!dt)return 0;var ew=Math.min(1,Math.abs(dt)*1300/d),k=d/1000*ew;
+    var v=dt>0?-k*4:k*6;v=Math.round(v/5)*5;return Math.max(-45,Math.min(60,v));
+  };
+  window.kgmWinterBlockDeltaR68=window.kgmWindDeltaR1023A;   /* 航線管理標籤與往後的冬季推算都用同一個模型 */
+  function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
+  function hm(n){n=((n%1440)+1440)%1440;return ('0'+Math.floor(n/60)).slice(-2)+':'+('0'+n%60).slice(-2)}
+  function sumDate(date){var y=+String(date).slice(0,4),m=+String(date).slice(5,7);return (m>=4?y:y-1)+'-07-15'}
+  var MEMO={};
+  function adj(o0,f,date,x){
+    if(!x||!f||f.partner||f.codeshare||!/^KX\d+$/.test(String(f.code||''))||KEEP23[f.code])return x;
+    var sea=x.seasonR57||x.seasonR48;if(!sea){try{sea=window.kgmSeasonR57?window.kgmSeasonR57(date):''}catch(_){}}if(sea!=='winter')return x;
+    if(f.via){   /* 經停整段列：跟著第二段的冬季抵達走 */
+      try{var L2=[].concat(FLIGHTS,S.customFlights||[]).filter(function(y){return y&&!y.via&&y.code===f.code&&y.fr===f.via&&y.to===f.to})[0];if(!L2)return x;
+        var r0=o0(L2,date),r1=adj(o0,L2,date,r0);if(!r0||!r1||r0===r1)return x;
+        var dlt=(mn(r1.arr)+(+r1.dd||0)*1440)-(mn(r0.arr)+(+r0.dd||0)*1440);if(!dlt)return x;
+        var ab=mn(x.arr)+(+x.dd||0)*1440+dlt,y=Object.assign({},x,{arr:hm(ab),dd:Math.floor(ab/1440)});try{y.dur=blockMin(y.fr,y.to,y.dep,y.arr,y.dd||0);y.durStr=durStr(y.dur)}catch(_){}return y}catch(_){return x}}
+    var k=[f.code,f.fr,f.to,date.slice(0,7),x.dep,x.arr,x.dd].join('|');if(MEMO[k])return MEMO[k];
+    var su=null;try{su=o0(f,sumDate(date))}catch(_){}
+    if(!su||!su.dep)return x;var ss=su.seasonR57||su.seasonR48;if(!ss){try{ss=window.kgmSeasonR57?window.kgmSeasonR57(sumDate(date)):''}catch(_){}}if(ss!=='summer')return x;
+    var bs=0;try{bs=blockMin(f.fr,f.to,su.dep,su.arr,su.dd||0)}catch(_){bs=0}if(!(bs>0))return x;
+    var w=window.kgmWindDeltaR1023A(f.fr,f.to),off=0,dep=mn(x.dep);try{off=Math.round((TZ[f.to]-TZ[f.fr])*60)||0}catch(_){}   /* 跟 blockMin 同一個時區差（不正規化），日期才不會差一天 */
+    var at=function(w){return dep+bs+w+off},in3=function(v){var m=((v%1440)+1440)%1440;return m>=180&&m<240};
+    var a=at(w);
+    if(in3(a)){var sg=w>0?1:-1,ok=false;for(var e=5;e<=20&&!ok;e+=5){if(!in3(at(w+sg*e))){w+=sg*e;ok=true}}if(!ok){var m=((a%1440)+1440)%1440;w-= (m-175)}a=at(w)}
+    var y=Object.assign({},x,{arr:hm(a),dd:Math.floor(a/1440),windR1023A:w});
+    try{y.dur=blockMin(y.fr,y.to,y.dep,y.arr,y.dd||0);y.durStr=durStr(y.dur)}catch(_){}
+    if(Object.keys(MEMO).length>6000)MEMO={};MEMO[k]=y;return y;
+  }
+  /* 要在最外層（1012A 洛杉磯線依星期挑列那層會在之後再包一次）：不是自己就再包一次；重算是從夏季算定值，包兩次結果一樣 */
+  var MY=null;
+  function wrap(){var o=window.kgmSeasonFlightR48;if(typeof o!=='function'||o===MY)return;
+    var w=function(f,date){var x=o.apply(this,arguments);try{if(x&&date)return adj(o,f,String(date),x)}catch(_){}return x};
+    try{Object.keys(o).forEach(function(k){if(!(k in w))w[k]=o[k]})}catch(_){}w.__k23=1;MY=w;window.kgmSeasonFlightR48=w;try{kgmSeasonFlightR48=w}catch(_){}}
+  wrap();setTimeout(wrap,0);setTimeout(wrap,2000);setTimeout(wrap,6000);setTimeout(wrap,12000);
+})();
+
+/* ══ 1023A：取消航班（使用者：「航班動態去取消航班也要同步到飛機排班然後選擇方案如果是退費是指退費這一筆航段的費用（當初定了多少錢就是多少錢，
+   附加服務費用也要退），系統會自動Process然後此類不自動創立案件編號…取消的話也要自動通知旅客」）
+   ① 退費：只退被取消的那一段 —— 當初實付總額扣掉附加服務後依各段票價（訂位艙等、當天價格）比例分攤，加上這一段自己的選位費與行李費；
+      直接退款、寫退款紀錄（refundsR60，跟旅客自己退票同一份），不開 IRR 案件；整筆都沒有剩下的段才把訂位改成已取消。
+   ② 飛機排班：取消的那一段在機身勤務上標「已取消」（不再算進執飛段數、閒置表、航班機身查詢），重排之後再標一次。 ══ */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  var KEYS=['out','out2','inb','inb2'];
+  function segsOf(b){var L=[];KEYS.forEach(function(k){try{var i=bookingSegInfo0813(b,k);if(i&&i.f)L.push({key:k,f:i.f,c:i.c||(k.indexOf('inb')===0?b.inbC:b.outC)})}catch(_){}});
+    (b.mcFlights||[]).forEach(function(x,j){['', 'b'].forEach(function(t){try{var i=bookingSegInfo0813(b,'mc'+j+t);if(i&&i.f)L.push({key:'mc'+j+t,f:i.f,c:i.c})}catch(_){}})});return L}
+  function bagFee(b,k){try{var n=+(((b.addons||{}).bagBySeg0812A||{})[k])||0;return n?Math.round(n*toTWD(125,'USD')):0}catch(_){return 0}}
+  function seatFee(b,k){try{return +_seatFeePaidFor(b,k)||0}catch(_){return 0}}
+  window.kgmSegRefundR1023A=function(b,seg){
+    var L=segsOf(b),pax=Math.max(1,(b.paxList||[{}]).length),gone=(b.cancelledSegsR60||[]);
+    var anc={};L.forEach(function(s){anc[s.key]=seatFee(b,s.key)+bagFee(b,s.key)});
+    var ancAll=L.reduce(function(t,s){return t+anc[s.key]},0),paid=+b.total||0,fare=Math.max(0,paid-ancAll);
+    var live=L.filter(function(s){return gone.indexOf(s.key)<0}),w={},W=0;
+    live.forEach(function(s){var v=0;try{v=owPrice(Object.assign({},s.f,{date:s.f.date}),s.c,pax)||0}catch(_){}w[s.key]=v>0?v:1;W+=w[s.key]});
+    var segFare=live.length<=1?fare:Math.round(fare*(w[seg]||0)/(W||1)),a=anc[seg]||0,last=live.length<=1;
+    return {fare:segFare,anc:a,total:segFare+a,last:last,curr:b.curr||'TWD'};
+  };
+  function legsOf(code,date){var out=[];Object.keys(S.tailAssign||{}).forEach(function(t){(S.tailAssign[t]||[]).forEach(function(x){if(x&&x.code===code&&x.date===date)out.push(x)})});return out}
+  window.kgmCancelFleetR1023A=function(){var n=0;Object.keys(S.flightOverrides||{}).forEach(function(k){var o=S.flightOverrides[k];if(!o||o.status!=='Cancelled')return;var i=k.indexOf('_');legsOf(k.slice(0,i),k.slice(i+1)).forEach(function(x){if(!x.cancelledR1023A){x.cancelledR1023A=1;n++}})});return n};
+  var rb=window.kgmRebuildFleetR72;if(typeof rb==='function'&&!rb.__k23c){var rw=function(){var r=rb.apply(this,arguments);try{window.kgmCancelFleetR1023A()}catch(_){}return r};try{Object.keys(rb).forEach(function(k){if(!(k in rw))rw[k]=rb[k]})}catch(_){}rw.__k23c=1;window.kgmRebuildFleetR72=rw}
+  setTimeout(function(){try{window.kgmCancelFleetR1023A()}catch(_){}},20000);
+  var p0=window.processCancelledFlight0815;
+  if(typeof p0==='function'&&!p0.__k23){
+    var w=function(k,cfg){
+      var i=String(k).indexOf('_'),code=String(k).slice(0,i),date=String(k).slice(i+1);
+      var r;
+      if(cfg&&cfg.mode==='refund'){
+        r=[];S.flightCancelOps0815=S.flightCancelOps0815||{};S.flightCancelOps0815[k]=cfg;
+        (S.bookings||[]).filter(function(b){return b&&b.status==='confirmed'&&findAffectedBookingSeg0815(b,code,date)}).forEach(function(b){
+          var hit=findAffectedBookingSeg0815(b,code,date),q=window.kgmSegRefundR1023A(b,hit.seg),at=new Date().toISOString(),miles=0;
+          b.cancelledSegsR60=(b.cancelledSegsR60||[]).concat([hit.seg]);b.total=Math.max(0,(+b.total||0)-q.total);
+          (b.refundsR60=b.refundsR60||[]).push({at:at,segs:[hit.seg],fare:q.fare,fee:0,noShow:0,anc:q.anc,net:q.total,airlineCancelR1023A:code+' '+date});
+          if(q.last){try{miles=refundMilesForBooking0815(b,'Cancelled flight '+code+' '+date+' '+b.pnr)}catch(_){}b.status='cancelled';b.cancelledAt=todayISO()}
+          b.irrops={status:'refunded',resolution:'refund',affectedSeg:hit.seg,flight:code,date:date,cashRefund:q.total,fareRefund:q.fare,ancRefund:q.anc,milesRefund:miles,noCaseR1023A:true};
+          var msg=(z()?('航班 '+code+'（'+date+'）已取消'+(cfg.reason?'（'+cfg.reason+'）':'')+'。這一段已自動退款 '+fmtAmt(q.total,q.curr)+'（票價 '+fmtAmt(q.fare,q.curr)+(q.anc?'＋附加服務 '+fmtAmt(q.anc,q.curr):'')+'），退回原付款方式'+(miles?'，並退還 '+miles.toLocaleString()+' 哩':'')+'。'+(q.last?'':'其他航段照常。'))
+            :('Flight '+code+' on '+date+' is cancelled. This segment has been refunded '+fmtAmt(q.total,q.curr)+'.'));
+          try{pushIrropsNotice0815(b,z()?'航班取消・已自動退款':'Flight cancelled · refunded',msg,'flight.cancelled_refund')}catch(_){}
+          b.notifs=b.notifs||[];b.notifs.unshift({msg:msg,date:todayISO(),read:false});
+          r.push(b.pnr);
+        });
+        try{persist0815()}catch(_){try{save()}catch(__){}}
+      }else r=p0.apply(this,arguments);
+      try{legsOf(code,date).forEach(function(x){x.cancelledR1023A=1});save()}catch(_){}
+      return r};
+    w.__k23=1;window.processCancelledFlight0815=w;try{processCancelledFlight0815=w}catch(_){}
+  }
+})();
+
+/* ══ 1023A：後台 AI 要能做事、能回答（使用者：「取消10/23 03:00以後出發的航班 → ✕ 查無此組員（員工編號）。這種也要可以處理喔 AI要是萬能的」
+   「我叫他幫我查後台相關他都要可以回答 我叫他幫我改系統什麼也要可以做 然後不會死當」
+   「AI跟他說取消今日所有航班，他也要懂的Follow-Up像是詢問取消原因是否一致還有補償方案是什麼之類的」）
+   站內引擎（沒有 Claude 金鑰時）在原本的規則之前先看：
+   ① 取消航班：日期（今天／明天／後天／10/23／2026-10-23）、時間（03:00 以後／以前）、出發站、班號 → 先列出符合的班，
+      再依序追問：原因（全部一樣，或逐班寫）→ 補償方案（1 退費＝這一段實付票價＋附加服務、2 改搭同航線下一班、可加發里程）→ 確認後執行；
+      執行走後台航班動態同一條路（S.flightOverrides＋processCancelledFlight0815，旅客通知、飛機排班同步），途中說「算了」就放棄。
+   ② 查詢：班號（＋日期）、訂位代號、員工編號、機身、延誤／取消清單、待處理案件 → 直接回答。
+   ③ 有連線 Claude 時同樣兩件事以工具給它用（flight_cancel／data_query）。 ══ */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function allF(){return [].concat(FLIGHTS,S.customFlights||[])}
+  function tpeNow(){var d=new Date(Date.now()+8*3600e3);return {date:d.toISOString().slice(0,10),min:d.getUTCHours()*60+d.getUTCMinutes()}}
+  function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
+  function D(d,n){try{return addDays(d,n)}catch(_){var x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}}
+  function dateIn(t){var n=tpeNow().date,y=+n.slice(0,4),m;
+    if(/今天|今日|today/i.test(t))return n;if(/明天|明日|tomorrow/i.test(t))return D(n,1);if(/後天/.test(t))return D(n,2);
+    if((m=/(20\d\d)[-\/.年](\d{1,2})[-\/.月](\d{1,2})/.exec(t)))return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+    if((m=/(?:^|[^\d])(\d{1,2})\s*[\/月]\s*(\d{1,2})(?!\d)/.exec(t))){var d=y+'-'+('0'+m[1]).slice(-2)+'-'+('0'+m[2]).slice(-2);if(d<D(n,-30))d=(y+1)+d.slice(4);return d}
+    return ''}
+  function timeIn(t){var m=/(\d{1,2})\s*[:：點]\s*(\d{2})?\s*(分)?\s*(以後|之後|後|起|以前|之前|前)/.exec(t);if(!m)return null;var v=(+m[1])*60+(+(m[2]||0));return {min:v,after:!/前/.test(m[4])}}
+  function apsIn(t){var out=[],u=t.toUpperCase(),m,re=/\b([A-Z]{3})\b/g;while((m=re.exec(u))){if(/^KX\d/.test(m[1]))continue;try{if((typeof CITY_ZH!=='undefined'&&CITY_ZH[m[1]]))out.push(m[1])}catch(_){}}
+    try{Object.keys(CITY_ZH).forEach(function(k){var nm=CITY_ZH[k];if(nm&&nm.length>=2&&t.indexOf(nm)>=0&&out.indexOf(k)<0)out.push(k)})}catch(_){}return out}
+  function seasonal(f,d){try{return window.kgmSeasonFlightR48?(window.kgmSeasonFlightR48(f,d)||f):f}catch(_){return f}}
+  function flies(f,d){try{return !!flyOn(seasonal(f,d),new Date(d+'T12:00:00'))}catch(_){return false}}
+  function ov(code,d){return (S.flightOverrides||{})[code+'_'+d]||{}}
+  function paxOn(code,d){var n=0;(S.bookings||[]).forEach(function(b){if(!b||b.status!=='confirmed')return;try{if(findAffectedBookingSeg0815(b,code,d))n++}catch(_){}});return n}
+  /* ── ① 取消航班 ── */
+  function findFlights(t){
+    var d=dateIn(t)||tpeNow().date,tm=timeIn(t),codes=(t.toUpperCase().match(/\bKX\s?\d{1,4}\b/g)||[]).map(function(x){return x.replace(/\s/g,'')}),aps=apsIn(t);
+    var out=[],seen={};
+    allF().forEach(function(f){if(!f||f.partner||f.codeshare||f.via||!/^KX\d+$/.test(f.code))return;
+      if(codes.length&&codes.indexOf(f.code)<0)return;
+      if(aps.length&&!codes.length&&aps.indexOf(f.fr)<0&&!(aps.length>1&&aps.indexOf(f.to)>=0))return;
+      if(!flies(f,d))return;var x=seasonal(f,d),k=f.code+'|'+f.fr+'|'+d;if(seen[k])return;seen[k]=1;
+      if(tm){var v=mn(x.dep);if(tm.after?v<tm.min:v>=tm.min)return}
+      if(ov(f.code,d).status==='Cancelled')return;
+      out.push({code:f.code,fr:f.fr,to:f.to,dep:x.dep,arr:x.arr,date:d,pax:paxOn(f.code,d)})});
+    out.sort(function(a,b){return mn(a.dep)-mn(b.dep)||a.code.localeCompare(b.code)});
+    return {date:d,tm:tm,list:out};
+  }
+  var REASONS=[['天氣','Weather'],['機械','Technical'],['航管','ATC'],['營運','Operational'],['罷工','Industrial action'],['颱風','Typhoon'],['疫情','Public health']];
+  function listTxt(L){return L.slice(0,15).map(function(x){return x.code+' '+x.fr+'→'+x.to+' '+x.dep+'（'+x.pax+' 筆訂位）'}).join('\n')+(L.length>15?'\n…另 '+(L.length-15)+' 班':'')}
+  function start(t){
+    var r=findFlights(t);if(!r.list.length)return '找不到符合的航班（'+r.date+(r.tm?(' '+('0'+Math.floor(r.tm.min/60)).slice(-2)+':'+('0'+r.tm.min%60).slice(-2)+(r.tm.after?' 以後':' 以前')):'')+'）。已經取消的班不會重複列。';
+    S.adminAiPendR1023A={kind:'cancel',step:'reason',list:r.list,date:r.date,at:Date.now()};
+    var nb=r.list.reduce(function(s,x){return s+x.pax},0);
+    return '找到 '+r.list.length+' 班要取消（'+r.date+(r.tm?('，'+('0'+Math.floor(r.tm.min/60)).slice(-2)+':'+('0'+r.tm.min%60).slice(-2)+(r.tm.after?' 以後出發':' 以前出發')):'')+'），共 '+nb+' 筆訂位：\n'+listTxt(r.list)
+      +'\n\n① 取消原因是什麼？全部同一個原因就直接回答（天氣／颱風／機械故障／航管流量／營運調整／罷工／其他請描述）；每班不同請寫「KX12 天氣、KX14 機械」。說「算了」就放棄。';
+  }
+  function reasonOf(t){var hit='';REASONS.forEach(function(r){if(!hit&&t.indexOf(r[0])>=0)hit=r[0]+(r[0]==='機械'?'故障':(r[0]==='航管'?'流量管制':(r[0]==='營運'?'調整':'')))});return hit||t.trim().slice(0,40)}
+  function step(t){
+    var P=S.adminAiPendR1023A;if(!P||P.kind!=='cancel')return null;
+    if(Date.now()-P.at>30*60000){S.adminAiPendR1023A=null;return null}
+    if(/^(算了|不要了|放棄|取消對話|cancel|abort)$/i.test(t.trim())){S.adminAiPendR1023A=null;return '好，已放棄，這 '+P.list.length+' 班沒有動。'}
+    P.at=Date.now();
+    if(P.step==='reason'){
+      var per={},m,re=/(KX\s?\d{1,4})\s*[:：]?\s*([^、，,；;\n]+)/gi;while((m=re.exec(t)))per[m[1].toUpperCase().replace(/\s/g,'')]=reasonOf(m[2]);
+      var all=Object.keys(per).length?'':reasonOf(t);P.list.forEach(function(x){x.reason=per[x.code]||all||'營運調整'});
+      var miss=P.list.filter(function(x){return !per[x.code]&&!all});P.step='comp';
+      var grp={};P.list.forEach(function(x){(grp[x.reason]=grp[x.reason]||[]).push(x.code)});
+      return '原因：'+Object.keys(grp).map(function(k){return k+'（'+grp[k].length+' 班）'}).join('、')+(miss.length?'；沒寫到的 '+miss.length+' 班先記「營運調整」':'')
+        +'\n\n② 補償方案？\n1）退費：退這一段的實付票價＋附加服務（選位、行李），系統自動退回原付款方式，不開案件\n2）改搭：自動改到同航線之後最近一班還在營運的航班（同艙等），旅客收到通知\n可以再加：「里程 3000」（每位會員補償哩程）、「餐券」（機場餐券／延誤過夜住宿）\n例如回答「1」或「2＋里程 3000」。';
+    }
+    if(P.step==='comp'){
+      var mode=/(^|\D)2(\D|$)|改搭|下一班|改到/.test(t)?'move':(/(^|\D)1(\D|$)|退費|退款|refund/i.test(t)?'refund':'');
+      if(!mode)return '請回答 1（退費）或 2（改搭下一班），可以再加「里程 3000」「餐券」。';
+      var mi=/(\d{3,6})\s*(哩|miles?)/i.exec(t);P.comp={mode:mode,miles:mi?+mi[1]:0,voucher:/餐券|住宿|voucher/i.test(t)};P.step='confirm';
+      var nb=P.list.reduce(function(s,x){return s+x.pax},0);
+      return '③ 請確認：取消 '+P.list.length+' 班（'+P.date+'），'+(mode==='refund'?'退這一段實付票價＋附加服務（自動退款）':'改搭同航線下一班')+(P.comp.miles?'，每位會員補償 '+P.comp.miles.toLocaleString()+' 哩':'')+(P.comp.voucher?'，發放餐券／住宿':'')
+        +'；系統會通知 '+nb+' 筆訂位、同步航班動態與飛機排班。\n回覆「確認」執行，或「算了」放棄。';
+    }
+    if(P.step==='confirm'){
+      if(!/確認|是|好|ok|yes|執行|go/i.test(t))return '還沒執行。回覆「確認」執行，或「算了」放棄。';
+      S.adminAiPendR1023A=null;return run(P);
+    }
+    return null;
+  }
+  function nextFlight(x){for(var i=0;i<=2;i++){var d=D(x.date,i),best=null;
+      allF().forEach(function(f){if(!f||f.partner||f.via||f.fr!==x.fr||f.to!==x.to||!/^KX\d+$/.test(f.code))return;if(!flies(f,d))return;var y=seasonal(f,d);if(i===0&&mn(y.dep)<=mn(x.dep))return;if(ov(f.code,d).status==='Cancelled')return;if((P23cancel[f.code+'_'+d]))return;
+        if(!best||mn(y.dep)<mn(best.dep))best=Object.assign({},y,{date:d})});if(best)return best}return null}
+  var P23cancel={};
+  function run(P){
+    var done=0,nb=0,moved=0,fail=[],who=(S.adminUser||{}).empId||'AI';P23cancel={};P.list.forEach(function(x){P23cancel[x.code+'_'+x.date]=1});
+    S.flightOverrides=S.flightOverrides||{};
+    P.list.forEach(function(x){
+      var k=x.code+'_'+x.date,cfg={mode:P.comp.mode==='move'?'move_existing':'refund',reason:x.reason};
+      if(cfg.mode==='move_existing'){var nf=nextFlight(x);if(!nf){cfg={mode:'refund',reason:x.reason};fail.push(x.code+' 沒有後續航班，改為退費')}else cfg.moveFlight=nf}
+      S.flightOverrides[k]=Object.assign({},S.flightOverrides[k]||{},{status:'Cancelled',depRemark:x.reason,reason:x.reason,cancelledBy:who,cancelledAt:new Date().toISOString(),aiR1023A:1});
+      var before=paxOn(x.code,x.date);
+      try{processCancelledFlight0815(k,cfg)}catch(e){fail.push(x.code+'：'+(e&&e.message||e))}
+      nb+=before;if(cfg.mode==='move_existing')moved+=before;done++;
+      if(P.comp.miles||P.comp.voucher)(S.bookings||[]).forEach(function(b){if(!b||!b.irrops||b.irrops.flight!==x.code||b.irrops.date!==x.date||b.compR1023A)return;b.compR1023A={miles:P.comp.miles,voucher:!!P.comp.voucher,at:new Date().toISOString()};
+        var u=b.userId&&(S.users||[]).filter(function(q){return q&&q.id===b.userId})[0];if(u&&P.comp.miles){u.miles=(+u.miles||0)+P.comp.miles;(u.milesLog=u.milesLog||[]).unshift({date:todayISO(),miles:P.comp.miles,desc:'航班取消補償 '+x.code+' '+x.date})}
+        b.notifs=b.notifs||[];b.notifs.unshift({msg:'航班 '+x.code+'（'+x.date+'）取消補償：'+(P.comp.miles?P.comp.miles.toLocaleString()+' 哩已入帳':'')+(P.comp.voucher?((P.comp.miles?'、':'')+'機場餐券／住宿請洽 KGM 櫃檯'):''),date:todayISO(),read:false})});
+    });
+    try{LS.set('kgmov4',S.flightOverrides)}catch(_){}try{window.kgmCancelFleetR1023A&&window.kgmCancelFleetR1023A()}catch(_){}
+    try{logAct('AI 取消航班',P.date+' '+done+' 班 · '+(P.comp.mode==='move'?'改搭':'退費')+' · '+nb+' 筆訂位')}catch(_){}
+    try{save()}catch(_){}
+    return '✓ 已取消 '+done+' 班（'+P.date+'），通知 '+nb+' 筆訂位；'+(P.comp.mode==='move'?('改搭下一班 '+moved+' 筆'):'這一段已自動退款（不開案件）')+'；航班動態、飛機排班已同步。'+(fail.length?'\n注意：'+fail.join('；'):'');
+  }
+  /* ── ② 查詢 ── */
+  function q(t){
+    var u=t.toUpperCase(),m,d=dateIn(t)||tpeNow().date,out=[];
+    var ask=/查|多少|幾|哪些|哪一|有沒有|列出|顯示|狀態|資料|是誰|誰|\?|？|嗎|how|what|which|list|show/i.test(t);
+    if(!ask)return null;
+    if((m=/\b(KX\s?\d{1,4})\b/.exec(u))){var code=m[1].replace(/\s/g,''),L=allF().filter(function(f){return f&&f.code===code&&!f.via&&!f.partner});if(!L.length)return '找不到 '+code+'。';
+      L.forEach(function(f){if(!flies(f,d)){out.push(code+' '+f.fr+'→'+f.to+' '+d+' 沒有飛');return}var x=seasonal(f,d),o=ov(code,d),t0='',tl='',gt='',ct='';try{t0=acftOfFlight(code,d,f.fr,f.to)}catch(_){}try{tl=window.kgmTailOfR1023A?window.kgmTailOfR1023A(code,d,f.fr,f.to):''}catch(_){}
+        try{var g=window.kgmGateOfR26?window.kgmGateOfR26(code,d):null;gt=g&&(g.gate||g.stand)||''}catch(_){}try{var c=window.kgmCounterOfFlightR929?window.kgmCounterOfFlightR929(code,d,f.fr):null;ct=c&&c.counter||''}catch(_){}
+        var pl=null;try{pl=window.kgmPayloadR1023A?window.kgmPayloadR1023A(code,d,f.fr,f.to):null}catch(_){}
+        out.push(code+' '+f.fr+'→'+f.to+' '+d+'：'+(o.status||'Scheduled')+(o.dep?'（新出發 '+o.dep+'）':'')+' · '+x.dep+'–'+x.arr+' · '+t0+(tl?' '+tl:'')+' · 訂位 '+paxOn(code,d)+' 筆'+(pl?' · 旅客 '+pl.pax+' 人、Payload 餘 '+Math.round(pl.left).toLocaleString()+' kg':'')+(ct?' · 櫃檯 '+ct:'')+(gt?' · 登機門 '+gt:''))});
+      return out.join('\n')}
+    if((m=/\b([A-Z0-9]{6})\b/.exec(u))&&/[A-Z]/.test(m[1])&&/\d/.test(m[1])){var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===m[1]})[0];if(b){var p0=(b.paxList||[])[0]||{};
+      return '訂位 '+b.pnr+'：'+b.status+' · '+(b.paxList||[]).length+' 位（'+(p0.lastName||'')+'/'+(p0.firstName||'')+'）· '+[b.outF,b.inbF].filter(Boolean).map(function(f){return f.code+' '+f.fr+'→'+f.to+' '+f.date}).join('、')+' · 總額 '+(b.curr||'TWD')+' '+Number(b.total||0).toLocaleString()+(b.groupR1023A?' · 團體 '+(b.groupR1023A.name||''):'')+(b.irrops?' · 異常：'+b.irrops.status:'')}}
+    if((m=/\b(K[GA-Z]?\d{5,6})\b/.exec(u))){var st=(S.staff||[]).filter(function(x){return x&&x.empId===m[1]})[0];if(st){var dut='';try{var g2=window.kgmGroundDutyR99?window.kgmGroundDutyR99(st.empId,d):null;if(g2&&st.role==='ground')dut=g2.off?'休':(g2.label+' '+g2.from+'–'+g2.to)}catch(_){}
+      return st.empId+' '+st.name+' · '+(st.role||'')+(st.rank?' '+st.rank:'')+(st.nationality?' · '+st.nationality:'')+(st.base?' · base '+st.base:'')+(dut?' · '+d+' '+dut:'')}}
+    if((m=/\b(B-?\d{5})\b/.exec(u))){var tl2=m[1].replace(/^B-?/,'B-'),legs=((S.tailAssign||{})[tl2]||[]).filter(function(x){return x&&x.date===d});
+      return tl2+'（'+(window._typeOfTail?window._typeOfTail(tl2):'')+'）'+d+'：'+(legs.length?legs.map(function(x){return x.code+' '+x.route+' '+x.dep+(x.cancelledR1023A?'（已取消）':'')}).join('、'):'沒有排航班')}
+    if(/延誤|delay/i.test(t)||/取消/.test(t)&&/哪些|列出|有沒有|幾/.test(t)){var want=/延誤|delay/i.test(t)?'Delayed':'Cancelled',L2=Object.keys(S.flightOverrides||{}).filter(function(k){return k.slice(-10)===d&&(S.flightOverrides[k]||{}).status===want});
+      return d+' '+(want==='Delayed'?'延誤':'取消')+' '+L2.length+' 班'+(L2.length?'：'+L2.map(function(k){var o=S.flightOverrides[k];return k.split('_')[0]+(o.dep?' '+o.dep:'')+(o.reason?'（'+o.reason+'）':'')}).join('、'):'')}
+    if(/航班|班機|幾班|flights?/i.test(t)){var n=0;allF().forEach(function(f){if(f&&!f.partner&&!f.via&&/^KX\d+$/.test(f.code)&&flies(f,d))n++});return d+' KGM 自營航班 '+n+' 段'}
+    if(/案件|case/i.test(t)){var C=S.staffCasesR1007A||[],by={};C.forEach(function(c){by[c.status]=(by[c.status]||0)+1});return '案件 '+C.length+' 件：'+Object.keys(by).map(function(k){return k+' '+by[k]}).join('、')}
+    return null;
+  }
+  window.kgmAiCancelR1023A=function(a){a=a||{};var t=String(a.text||'')||[a.date||'',a.after?a.after+'以後':'',a.station||'',(a.codes||[]).join(' ')].join(' ');
+    if(!S.adminAiPendR1023A||S.adminAiPendR1023A.kind!=='cancel')return {ok:true,msg:start(t)};var r=step(t);return {ok:true,msg:r||''}};
+  window.kgmAiQueryR1023A=function(a){var r=q(String((a&&(a.q||a.text))||'')+' ?');return {ok:!!r,msg:r||'查不到相關資料。'}};
+  function isQ(t){return /哪些|有沒有|幾班|幾|列出|查|嗎|？|\?|多少|是否|狀態/.test(t)}
+  function isCancel(t){return /取消/.test(t)&&/航班|班機|所有|全部|班|KX\s?\d|flight/i.test(t)&&!/候補|訂位代號|規則|優惠|升等|案件|假|請假|換班|對調/.test(t)&&!isQ(t)}
+  function hook(){var a0=window.kgmAdminAiAskR929;if(typeof a0!=='function'||a0.__k23)return;
+    var w=async function(text){
+      var t=String(text||'').trim();if(!t)return;var r=null;
+      try{
+        if(S.adminAiPendR1023A&&isCancel(t)){S.adminAiPendR1023A=null;r=start(t)}   /* 新的取消指令：重新開始 */
+        else if(S.adminAiPendR1023A&&isQ(t)&&S.adminAiPendR1023A.step!=='confirm'){var qa=q(t);if(qa)r=qa+'\n\n（剛才的取消還在等你回答'+({reason:'原因',comp:'補償方案',confirm:'確認'}[S.adminAiPendR1023A.step]||'')+'，說「算了」可以放棄）'}
+        if(!r&&S.adminAiPendR1023A)r=step(t);if(!r&&isCancel(t))r=start(t);if(!r)r=q(t)}catch(e){r='處理時發生錯誤：'+(e&&e.message||e)}
+      if(r==null)return a0.apply(this,arguments);
+      try{var st=S.adminAiR929||(S.adminAiR929=LS.get('kgm_adminai929',{})||{}),k=(S.adminUser||{}).empId||'ADMIN',L=st[k]=st[k]||[];
+        L.push({role:'user',text:t,at:new Date().toISOString()});L.push({role:'assistant',text:r,at:new Date().toISOString(),src:'local',note:z()?'站內 AI 引擎處理（依同一套權限執行）':'Built-in engine'});
+        LS.set('kgm_adminai929',st)}catch(_){}
+      try{window.kgmAdminAiDrawR929&&window.kgmAdminAiDrawR929()}catch(_){}try{render()}catch(_){}
+    };
+    try{Object.keys(a0).forEach(function(k){if(!(k in w))w[k]=a0[k]})}catch(_){}w.__k23=1;window.kgmAdminAiAskR929=w}
+  hook();setTimeout(hook,0);setTimeout(hook,3000);
 })();

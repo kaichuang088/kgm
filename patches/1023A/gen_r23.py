@@ -153,6 +153,15 @@ RC('ground walk row','kgm-0907A-r194',"    if(it.f){var L22=FILL22[it.f.k];rows.
 RC('crew nat sort','kgm-0907A-r196',"  var l=staff196(role),q=String(S['crewQ'+which+'R196']||'');",
    "  var NO23={TW:0,TH:1,JP:2,KR:3},l=staff196(role).map(function(s,i){return {s:s,i:i,n:NO23[natOf196(s.empId)]==null?9:NO23[natOf196(s.empId)]}}).sort(function(a,b){return a.n-b.n||a.i-b.i}).map(function(x){return x.s}),q=String(S['crewQ'+which+'R196']||'');   /* 1023A：國籍排序，台灣優先 */")
 
+# 1023A：取消航班的「退費」改成只退這一段（實付票價＋附加服務），系統自動退款、不開案件
+RW('cancel refund label','<option value="refund">直接全額退費</option>','<option value="refund">退費（退這一段實付票價＋附加服務，系統自動退款）</option>',3)
+
+# 1023A：後台 AI 給 Claude 的工具多兩個：取消航班（會追問原因與補償）、查詢後台資料
+RC('ai tools cancel query','kgm-0909E-r229',"    crew_swap:{tab:'sched',zh:'組員換班',run:function(a){return crewSwap(a)}},",
+   "    flight_cancel:{tab:'status',zh:'取消航班（text 放使用者原話，例如「取消10/23 03:00以後出發的航班」「取消今日所有航班」；第一次呼叫會列出符合的班並追問原因，之後把使用者的回答原樣放 text 再呼叫：原因 → 補償方案（1 退費／2 改搭）→ 確認）',run:function(a){return window.kgmAiCancelR1023A(a)}},   /* 1023A */\n"
+   "    data_query:{tab:'status',any:true,zh:'查詢後台資料（q 放問題：班號＋日期、訂位代號、員工編號、機身、延誤／取消清單、案件）',run:function(a){return window.kgmAiQueryR1023A(a)}},   /* 1023A */\n"
+   "    crew_swap:{tab:'sched',zh:'組員換班',run:function(a){return crewSwap(a)}},")
+
 # ══ 結尾 ══
 open('p_h_r23.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

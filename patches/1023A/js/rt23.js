@@ -25,7 +25,7 @@ function routesHtml68(){
     try{var x=window.kgmSeasonFlightR48(f,date);if(x&&x.dep){r.dep=x.dep;r.arr=x.arr;r.dd=x.dd}}catch(_){}
     if(r.days==null&&f.seasonDaysR66)r.days=f.seasonDaysR66[key];if(r.days==null)r.days=f.days;
     r.off=r.days==='none'||(Array.isArray(r.days)&&!r.days.length);return r}
-  function line(f){var su=sea(f,sd,'summer'),wi=sea(f,wd,'winter'),dl=0;try{dl=window.kgmWinterBlockDeltaR68(f.fr,f.to)}catch(_){}
+  function line(f){var su=sea(f,sd,'summer'),wi=sea(f,wd,'winter'),dl=0;try{dl=blockMin(f.fr,f.to,wi.dep,wi.arr,wi.dd||0)-blockMin(f.fr,f.to,su.dep,su.arr,su.dd||0)}catch(_){}   /* 1023A：標籤寫實際冬夏飛行時間差，不是公式值 */
     var tm=function(r){return r.off?'<em class="k23r-off">'+(z()?'不飛':'Not operating')+'</em>':('<b>'+E(r.dep)+'–'+E(r.arr)+(r.dd?'<sup>+'+r.dd+'</sup>':'')+'</b>'+daysOf(r.days))};
     return '<div class="k23r-fl"><span class="k23r-code">'+E(f.code)+'</span>'
       +'<span class="k23r-s"><small>'+(z()?'夏':'S')+'</small>'+tm(su)+'</span>'
