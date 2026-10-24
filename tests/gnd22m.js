@@ -1,0 +1,12 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext()).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});
+ await p.waitForFunction(()=>!!window.KGM_FULLDONE_1006A,null,{timeout:200000,polling:1000}).catch(()=>console.log('no fulldone'));
+ await p.waitForTimeout(3000);
+ console.log(await p.evaluate(()=>{const T=todayISO();const D=(d,n)=>{const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};const o=[];
+  ['TSA','TPE'].forEach(ST=>{for(let i=0;i<7;i++){const d=D(T,i);const a0=Date.now();const P=kgmGroundPlanR1008A(ST,d);const ms=Date.now()-a0;if(!P){o.push(ST+' '+d+' null');continue}const ppl=P.people;const ids=Object.keys(ppl);
+   const on=ids.filter(id=>!ppl[id].off&&ppl[id].tasks.length);const h={},w={};on.forEach(id=>{const q=ppl[id];const k=((q.to-q.from)/60).toFixed(1);h[k]=(h[k]||0)+1;const wk=Math.floor(q.work/60);w[wk]=(w[wk]||0)+1});
+   const A=kgmAuditR1008A(ST,d);
+   o.push(ST+' '+d+' working '+P.working+' reserve '+P.reserve+' off '+P.off+' short '+P.short.length+' span '+JSON.stringify(h)+' flightWork(h) '+JSON.stringify(w)+' audit '+(A.ok?'ok':A.bad.join('/'))+' ms '+ms)}});
+  return o.join('\n')}));
+ console.log('errs',errs.slice(0,3));await b.close()})();

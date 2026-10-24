@@ -1,0 +1,2 @@
+/* 1006A · 頭等艙模擬載客率（A35K／B779／A359 頭等不再一直售完） */
+R("first sim load","    if(sg.key!==\"econ\")want=Math.min(sg.cap,Math.max(1,Math.round(sg.cap*(0.7+rnd()*0.3))));","    if(sg.key!==\"econ\")want=(sg.key===\"suite\"||sg.key===\"first\")\n      ?Math.min(Math.max(1,sg.cap-1),Math.max(1,Math.round(sg.cap*(0.3+rnd()*0.45))))   /* 1006A #23：頭等模擬 30–75%，模擬旅客不會把頭等佔滿 */\n      :Math.min(sg.cap,Math.max(1,Math.round(sg.cap*(0.7+rnd()*0.3))));",1);

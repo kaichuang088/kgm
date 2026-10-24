@@ -1,0 +1,17 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();
+ const errs=[];p.on('pageerror',e=>errs.push(String(e.message).slice(0,140)));
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});
+ await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:300000});
+ await p.waitForTimeout(12000);
+ await p.evaluate(()=>{S.user=(S.users||[]).find(x=>x.id==='KGMDEMO0911');render();kgmToggleAi0819I()});await p.waitForTimeout(800);
+ console.log(await p.evaluate(()=>JSON.stringify({open:S.aiOpen0819H,disp:getComputedStyle(document.getElementById('aiWindow')).display,len:document.getElementById('aiMessages').innerHTML.length,txt:document.getElementById('aiMessages').innerText.slice(0,120)})));
+ await p.evaluate(()=>{document.getElementById('aiInput').value='KX4 2026-10-08 2位'});await p.evaluate(()=>kgmSendAi0819I());await p.waitForTimeout(800);
+ console.log(await p.evaluate(()=>JSON.stringify({len:document.getElementById('aiMessages').innerHTML.length,last:(document.querySelector('#aiMessages .kgm-i-thread')||{}).innerText?.slice(-160)})));
+ await p.evaluate(()=>render());await p.waitForTimeout(500);
+ console.log(await p.evaluate(()=>JSON.stringify({afterRender:document.getElementById('aiMessages').innerHTML.length,t:document.getElementById('aiMessages').innerText.slice(-200),disp:getComputedStyle(document.getElementById('aiWindow')).display})));
+ await p.screenshot({path:'/tmp/j/ai9.png'});
+ await p.evaluate(()=>kgmToggleAi0819I());await p.waitForTimeout(500);
+ console.log(await p.evaluate(()=>JSON.stringify({open:S.aiOpen0819H,disp:getComputedStyle(document.getElementById('aiWindow')).display})));
+ console.log('ERR',JSON.stringify(errs));
+ await b.close();})();
