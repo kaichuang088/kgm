@@ -177,6 +177,64 @@ RC('crew swap who b','kgm-0909E-r229',"+'</small></div>'\n        +(o.n?'<div cl
 RC('crew swap only two 18','kgm-0909E-r229',"return ok.slice(0,3)};   /* 1022A：同一班飛過去的排後面 */",
    "return ok.filter(function(c){return !c.n}).slice(0,3)};   /* 1022A：同一班飛過去的排後面；1023A：只留兩個人對調就成立的方案 */")
 
+# ══ R（使用者：「報到的時候當輸入行李資料發現多一個行李或是超重，要提示說要請旅客注意信箱當下會寄送付款資料」）══
+#    r49 實體櫃檯報到：輸入件數／重量時當下算超額（跟完成報到同一套額度與超重規則），畫面直接提示；按「繼續」就建立請款並寄出付款資料（原本要等完成報到才寄），
+#    件數或重量改了 → 作廢舊的請款再寄新的；完成報到不重複寄。
+RC('bag mail fns','kgm-0819e-r49',"window.kgmCheckinField49=function(k,v){if(S.checkin49)S.checkin49[k]=v};",
+   "window.kgmCheckinField49=function(k,v){if(S.checkin49)S.checkin49[k]=v};\n"
+   "/* 1023A：行李超額（多件／超重）—— 跟 kgmCheckinFinish49 同一套額度（票價＋會員）與超重規則 */\n"
+   "function bagCalc23(c){var b=booking49(c.pnr),tier=bookingTier49(b,c.memberTier),s=null;try{s=(window.kgmSegsR45?window.kgmSegsR45(c.pnr):[]).filter(function(x){return x.code===c.code&&(!c.date||x.date===c.date)})[0]}catch(_){}\n"
+   "  var cls=(s&&s.cls)||(b&&b.outC)||'',fam=family49(cls)||'Basic',cab=((FARES[cls]||{}).cabin)||'Economy',isLong=false;try{isLong=distOf(c.fr,c.to)>4000}catch(_){}\n"
+   "  var allow=(parseInt(bag49(cab,fam,isLong),10)||0)+(/silver|gold|diamond|black/i.test(tier)?1:0),pieces=Math.max(+c.extra||0,Math.max(0,(+c.bags||0)-allow)),ow=overweight49(cab,c.weights),em='';\n"
+   "  try{var p=((b&&b.paxList)||[])[0]||{};em=p.email||(b&&b.contactEmail)||''}catch(_){}\n"
+   "  return {b:b,allow:allow,pieces:pieces,ow:ow,units:pieces+ow.units,email:em}}\n"
+   "function bagCharge23(c){var k=bagCalc23(c),old=(c.charge&&c.charge.status==='unpaid')?c.charge:null;\n"
+   "  if(old&&old.units23===k.units)return k;                                  /* 已經寄過同樣的付款資料 */\n"
+   "  if(old){try{window.kgmVoidChargeR45(old.id)}catch(_){}c.charge=null;c.paymentSent=false;c.emailed23=false}\n"
+   "  if(k.units&&k.b&&window.kgmCreateChargeR45){var amt=Math.round(140*(FX.USD||31.5)*k.units),ch=window.kgmCreateChargeR45({pnr:k.b.pnr,items:[{label:'Baggage charge · '+k.units+' equivalent piece(s) × USD 140',amount:amt}],note:k.ow.reject?'Carrier approval required; carrier may refuse carriage.':'Airport baggage payment link'});\n"
+   "    c.charge=ch&&ch.charge;if(c.charge)c.charge.units23=k.units;c.paymentSent=!!(ch&&ch.ok);c.emailed23=!!(c.charge&&c.charge.emailed);c.mailTo23=(c.charge&&c.charge.email)||'';c.mailAt23=new Date().toISOString()}\n"
+   "  return k}\n"
+   "function bagNote23(c){var k=bagCalc23(c);if(!k.units)return '';var parts=[];\n"
+   "  if(k.pieces)parts.push(z()?('超出免費額度 '+k.pieces+' 件'):(k.pieces+' piece(s) over the allowance'));\n"
+   "  if(k.ow.weights.length)parts.push(z()?('超重 '+k.ow.weights.length+' 件（'+k.ow.weights.join('、')+' kg，單件上限 '+k.ow.limit+' kg）'):(k.ow.weights.length+' overweight bag(s) (limit '+k.ow.limit+' kg)'));\n"
+   "  return '<div class=\"k23-bagmail\"><b>✉ '+(z()?'請提醒旅客注意信箱':'Ask the passenger to watch their email')+'</b><p>'+(z()\n"
+   "    ?('偵測到'+parts.join('、')+'，合計 '+k.units+' 個等值件（USD '+(140*k.units)+'）。按下方「檢查標籤提醒」進入下一步時，系統會立即寄送付款資料到 '+E(k.email||'訂位 Email')+'，請旅客現在留意信箱並完成付款。'+(k.email?'':'此訂位沒有 Email：付款連結會留在旅客的通知中心，請在櫃檯協助當場付款。'))\n"
+   "    :(parts.join(', ')+' — '+k.units+' equivalent piece(s), USD '+(140*k.units)+'. The next step sends the payment details to '+E(k.email||'the booking email')+' right away.'))+'</p></div>'}\n"
+   "function bagSent23(c){if(!c||!c.charge)return '';var to=c.mailTo23||'';return '<div class=\"k23-bagmail sent\"><b>✉ '+(z()?(c.emailed23?'付款資料已寄出，請旅客注意信箱':'已建立付款連結（此訂位沒有 Email）'):(c.emailed23?'Payment details sent — ask the passenger to check their email':'Payment link created (no email on file)'))+'</b><p>'\n"
+   "  +E(c.charge.id)+' · '+E(c.charge.curr||'TWD')+' '+Number(c.charge.total||0).toLocaleString('en-US')+(to?(' · '+E(to)):'')+' · '+String(c.mailAt23||'').slice(11,16)+(z()?'　付款完成後自動寫入訂位。':'  Posts to the booking once paid.')+'</p></div>'}\n"
+   "window.kgmBagNoteR1023A=function(){var c=S.checkin49,e=document.getElementById('k23BagNote');if(c&&e)e.innerHTML=bagNote23(c)};")
+RC('bag mail next','kgm-0819e-r49',"if(ow.approval&&!c.heavyApproved)return alert(z()?'32 公斤以上行李須先取得航空公司核可。':'Bags over 32 kg require airline approval.');}c.step=Math.min(3,(c.step||1)+1);render()};",
+   "if(ow.approval&&!c.heavyApproved)return alert(z()?'32 公斤以上行李須先取得航空公司核可。':'Bags over 32 kg require airline approval.');bagCharge23(c)}c.step=Math.min(3,(c.step||1)+1);render()};   /* 1023A：行李資料輸入完就寄付款資料 */")
+RC('bag mail finish','kgm-0819e-r49',"if(chargeUnits&&b){var amt=Math.round(140*(FX.USD||31.5)*chargeUnits),ch=window.kgmCreateChargeR45({pnr:b.pnr,items:[{label:'Baggage charge · '+chargeUnits+' equivalent piece(s) × USD 140',amount:amt}],note:ow.reject?'Carrier approval required; carrier may refuse carriage.':'Airport baggage payment link'});c.charge=ch&&ch.charge;c.paymentSent=!!(ch&&ch.ok)}",
+   "if(b)bagCharge23(c);   /* 1023A：第 2 步已寄過同樣的就不再寄；件數或重量改過才作廢重寄 */")
+RC('bag mail in bags','kgm-0819e-r49',"oninput=\"kgmCheckinField49(\\'bags\\',this.value)\"","oninput=\"kgmCheckinField49(\\'bags\\',this.value);kgmBagNoteR1023A()\"")
+RC('bag mail in w','kgm-0819e-r49',"onchange=\"kgmCheckinField49(\\'weights\\',this.value);render()\"","oninput=\"kgmCheckinField49(\\'weights\\',this.value);kgmBagNoteR1023A()\" onchange=\"kgmCheckinField49(\\'weights\\',this.value);render()\"")
+RC('bag mail in x','kgm-0819e-r49',"oninput=\"kgmCheckinField49(\\'extra\\',this.value)\"","oninput=\"kgmCheckinField49(\\'extra\\',this.value);kgmBagNoteR1023A()\"")
+RC('bag mail note','kgm-0819e-r49',"<p>'+(z()?'件數超額與重量超額合併計費，每一等值件 USD 140；付款連結寄至旅客 Email。':'Piece and weight excess are combined; each equivalent piece is USD 140 via an emailed payment link.')+'</p>",
+   "<p>'+(z()?'件數超額與重量超額合併計費，每一等值件 USD 140；付款連結寄至旅客 Email。':'Piece and weight excess are combined; each equivalent piece is USD 140 via an emailed payment link.')+'</p><div id=\"k23BagNote\">'+bagNote23(c)+'</div>")
+RC('bag mail step3','kgm-0819e-r49',"if(c.step===3)body='<section><h2>'+(z()?'最後確認':'Final review')+'</h2>'",
+   "if(c.step===3)body='<section><h2>'+(z()?'最後確認':'Final review')+'</h2>'+bagSent23(c)")
+RC('bag mail done','kgm-0819e-r49',"(d.paymentSent?'<div class=\"r49-warn\">'+(z()?'額外行李付款連結已寄至旅客 Email；款項完成後自動寫入訂位。':'The extra-baggage payment link was emailed and will post automatically after payment.')+'</div>':'')",
+   "(d.paymentSent?bagSent23(d):'')")
+
+# ══ R（使用者：「員工票候補狀態也要consider workload喔 big deal也是」）══
+#    r40 起飛前 48–72 小時員工票通知：有座位但 Payload 不夠（員工票每人 107 kg，跟候補面板同一套 kgmPayloadR1023A）一樣通知「不用前往機場」
+RC('stb notice payload','kgm-0816d-r40',"        var pax=Math.max(1,(b.paxList||[]).length),go=left>=pax;",
+   "        var pax=Math.max(1,(b.paxList||[]).length),go=left>=pax,pl23=null;\n"
+   "        try{pl23=window.kgmStaffPayloadR1023A?window.kgmStaffPayloadR1023A(s.f,s.date,pax,b.pnr):null}catch(_){}if(go&&pl23&&!pl23.ok)go=false;   /* 1023A：座位夠但 Payload 不夠也不用去 */")
+RC('stb notice rec','kgm-0816d-r40',"        b.stbNoticeR929[key]={at:new Date().toISOString(),go:go,seats:left,stage:stage};",
+   "        b.stbNoticeR929[key]={at:new Date().toISOString(),go:go,seats:left,stage:stage,payloadKg:pl23?pl23.left:null,payloadShortR1023A:!!(pl23&&!pl23.ok&&left>=pax)};")
+RC('stb notice title','kgm-0816d-r40',"        var t=(go?'✈ 員工票候補：請前往機場 ':'員工票候補：本班已無空位，請不要前往機場 ')+s.f.code+' '+s.date;",
+   "        var plS23=!!(pl23&&!pl23.ok&&left>=pax);\n"
+   "        var t=(go?'✈ 員工票候補：請前往機場 ':(plS23?'員工票候補：本班載重已滿（Payload 不足），請不要前往機場 ':'員工票候補：本班已無空位，請不要前往機場 '))+s.f.code+' '+s.date;")
+RC('stb notice msg','kgm-0816d-r40',"                :('起飛前 '+Math.round(h)+' 小時確認：'+s.f.code+'（'+s.date+'）已完全沒有空位，請不要前往機場。可改搭其他班次（員工票免費改票）。');",
+   "                :(plS23?('起飛前 '+Math.round(h)+' 小時確認：'+s.f.code+'（'+s.date+'）雖然還有 '+left+' 個空位，但飛機載重已接近上限（Payload 餘量約 '+Math.max(0,Math.round(pl23.left)).toLocaleString()+' kg，員工票每人以 '+pl23.kg+' kg 計，'+pax+' 位需要 '+(pax*pl23.kg)+' kg），請不要前往機場。可改搭其他班次（員工票免費改票）。')\n"
+   "                :('起飛前 '+Math.round(h)+' 小時確認：'+s.f.code+'（'+s.date+'）已完全沒有空位，請不要前往機場。可改搭其他班次（員工票免費改票）。'));")
+RC('stb notice html','kgm-0816d-r40',"+(r.go?(z9?'✈ 請前往機場候補':'Come to the airport'):(z9?'本班已無空位，請不要前往機場':'Flight full — do not come'))",
+   "+(r.go?(z9?'✈ 請前往機場候補':'Come to the airport'):(r.payloadShortR1023A?(z9?'本班載重已滿（Payload 不足），請不要前往機場':'Payload limit reached — do not come'):(z9?'本班已無空位，請不要前往機場':'Flight full — do not come')))")
+RC('stb notice html kg','kgm-0816d-r40',"（起飛前 '+r.stage+' 小時檢查）· 當時可用座位 '+r.seats)",
+   "（起飛前 '+r.stage+' 小時檢查）· 當時可用座位 '+r.seats+(r.payloadKg!=null?(' · Payload 餘量 '+Math.max(0,Math.round(r.payloadKg)).toLocaleString()+' kg'):''))")
+
 # ══ 結尾 ══
 open('p_h_r23.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

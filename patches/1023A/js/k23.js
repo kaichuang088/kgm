@@ -980,3 +980,49 @@ try{if(!document.getElementById('k23-css')){var st=document.createElement('style
     try{Object.keys(o).forEach(function(k){if(!(k in w))w[k]=o[k]})}catch(_){}MY=w;window.kgmSendAi0819I=w;try{window.sendAI=sendAI=w}catch(_){}}
   inst();[0,1500,5000,15000,40000].forEach(function(ms){setTimeout(inst,ms)});
 })();
+
+/* ══ 1023A R：員工票候補通知與 BigDeal 也看 Payload；報到行李超額提示的樣式 ══════════════
+   使用者：「員工票候補狀態也要consider workload喔 big deal也是」
+   ① 起飛前 48–72 小時員工票通知（r40 kgmStaffStandbyNoticeR929）：座位夠還要 Payload 夠 —— 同一班已經通知「請前往」的其他員工票先扣掉（每人 107 kg）。
+   ② BigDeal：升等不會多一位旅客，但免費托運額度會變大（例如經濟 1×23 kg → 商務 2×32 kg），多出來的額度要放得進 Payload 餘量；
+      依排名往下算，放不下的那一筆改成 Out of Bid（b.payloadR1023A），結標時就不會得標。 */
+(function(){
+'use strict';
+function z(){try{return LANG!=='en'}catch(_){return true}}
+function kg(){return +window.KGM_STAFF_KG_R1023A||107}
+window.kgmStaffPayloadR1023A=function(f,date,pax,pnr){
+  if(!f||!date||!window.kgmPayloadR1023A)return null;
+  var pl=null;try{pl=window.kgmPayloadR1023A(f.code,date,f.fr,f.to)}catch(_){}
+  if(!pl||!isFinite(pl.left))return null;
+  var used=0;   /* 同一班已經通知「請前往機場」的其他員工票 */
+  try{(S.bookings||[]).forEach(function(b){if(!b||!b.staffTix||b.dhR929||b.status==='cancelled'||b.pnr===pnr)return;
+    var r=(b.stbNoticeR929||{});Object.keys(r).forEach(function(k){var x=r[k];if(x&&x.go){
+      var on=false;try{on=(window.segs7?window.segs7(b):[]).some(function(s){return s&&s.f&&s.f.code===f.code&&s.date===date&&(s.key||s.f.code)===k})}catch(_){}
+      if(on)used+=Math.max(1,(b.paxList||[]).length)*kg()}})})}catch(_){}
+  var left=pl.left-used,need=Math.max(1,+pax||1)*kg();
+  return {ok:left>=need,left:left,need:need,kg:kg(),mzfw:pl.mzfw,zfw:pl.zfw,used:used};
+};
+function bagKgOf(cls){var f=null;try{f=(FARES&&FARES[cls])||(AWARD_FARES&&AWARD_FARES[cls])||null}catch(_){}
+  var m=/(\d+)\s*[×xX]\s*(\d+)\s*kg/.exec(String(f&&f.bag||''));return m?(+m[1])*(+m[2]):23}
+function cabBagKg(cab){var lo=null,kgv=0;try{Object.keys(FARES).forEach(function(c){var f=FARES[c];if(f&&f.cabin===cab&&(lo===null||(+f.pct||0)<lo)){lo=+f.pct||0;kgv=bagKgOf(c)}})}catch(_){}return kgv||46}
+function curCls(b){try{var bk=(S.bookings||[]).filter(function(x){return x&&x.pnr===b.pnr})[0];if(!bk)return '';
+  return ((bk.segmentFare0826A||{})[b.segKey])||(b.segKey==='inb'?bk.inbC:bk.outC)||''}catch(_){return ''}}
+window.kgmBigDealBagKgR1023A=function(b){var cls=curCls(b),from=bagKgOf(cls),to=cabBagKg(b.toCabin||b.cabin);return Math.max(0,to-(cls?from:23))*Math.max(1,+b.pax||1)};
+var MY=null;
+function inst(){var o=window.kgmBigDealRankR929;if(typeof o!=='function'||o===MY)return;
+  var w=function(code,date,fr,to,cab,notify){
+    var r=o.apply(this,arguments);
+    try{if(r&&r.list&&r.list.length&&window.kgmPayloadR1023A){
+      var pl=window.kgmPayloadR1023A(code,date,fr,to),left=pl&&isFinite(pl.left)?pl.left:Infinity,used=0;
+      r.payloadKg=isFinite(left)?left:null;
+      r.list.forEach(function(b){b.payloadR1023A=false;if(b.status!=='leading')return;var need=window.kgmBigDealBagKgR1023A(b);
+        if(used+need>left){b.status='outbid';b.payloadR1023A=true;b.payloadNeedR1023A=need}else used+=need});
+      r.payloadUsed=used}}catch(_){}
+    return r};
+  try{Object.keys(o).forEach(function(k){if(!(k in w))w[k]=o[k]})}catch(_){}MY=w;window.kgmBigDealRankR929=w}
+inst();[0,1500,5000,15000].forEach(function(ms){setTimeout(inst,ms)});
+var CSS='.k23-bagmail{margin:12px 0 4px;padding:12px 14px;border-radius:12px;background:#FFF6E5;border:1px solid #F0C778;color:#6B4A0E}'
+  +'.k23-bagmail b{display:block;font-size:14px;letter-spacing:.2px}.k23-bagmail p{margin:4px 0 0;font-size:12.5px;line-height:1.7;color:#6B5A2A}'
+  +'.k23-bagmail.sent{background:#E9F5EF;border-color:#9FD3B8;color:#0B6B48}.k23-bagmail.sent p{color:#3D6655}';
+try{var st=document.createElement('style');st.id='k23-css-r';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}catch(_){}
+})();
