@@ -264,7 +264,7 @@ window.kgmGrpAdmR1023A=function(act,id,arg){
   if(act==='ticket'){if(!maybeTicket(g))msg=z()?'還不能開票：要尾款付清而且名單齊全':'Needs balance and full names';else msg=z()?'✓ 已開票':'✓ Ticketed'}
   if(act==='csv'){var b2=bk(g.pnr),rows=[['#','Last','First','Type','Sex','DOB','Passport','Ticket']];(b2?b2.paxList:[]).forEach(function(p,i){rows.push([i+1,p.lastName,p.firstName,p.passengerType,p.gender||'',p.dob||'',p.passport||'',p.ticketR1023A||''])});
     var csv='﻿'+rows.map(function(r){return r.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=g.id+'_names.csv';document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},400);return}
-  if(act==='pnr'){try{var q=document.getElementById('jPnr');if(q)q.value=g.pnr;window.kgmSearchPnr0819J&&window.kgmSearchPnr0819J()}catch(_){}return}
+  if(act==='pnr'){S.adminTab='bookings';try{render()}catch(_){}setTimeout(function(){try{var q=document.getElementById('jPnr');if(q)q.value=g.pnr;window.kgmSearchPnr0819J&&window.kgmSearchPnr0819J()}catch(_){}},150);return}   /* 到定位管理開這筆 PNR */
   S.grpAdmMsgR1023A=msg;save1();try{render()}catch(_){}};
 function nextDue(g){if(!g.due)return g.status==='quoted'&&g.quote?(z()?'報價到期 ':'Quote ')+g.quote.validUntil.slice(5,16).replace('T',' '):'';
   if(g.status==='held')return (z()?'訂金 ':'Deposit ')+g.due.deposit;if(g.status==='deposit_paid')return (g.balance&&!g.balance.paid?(z()?'尾款 ':'Balance ')+g.due.balance:'')+(namesDone(g)<paxN(g)?(z()?'　名單 ':'  Names ')+g.due.names:'');return ''}
@@ -295,13 +295,18 @@ window.kgmGroupDeskHtmlR1023A=function(){
     var info='<div class="k23gd-info"><div><small>'+(z()?'聯絡人':'Contact')+'</small><b>'+E(g.contact.name)+'</b><span>'+E(g.contact.email)+' · '+E(g.contact.phone)+'</span></div><div><small>'+(z()?'旅行社／註冊編號':'Agency / licence')+'</small><b>'+E(g.agency||'—')+'</b><span>'+E(g.license||'—')+'</span></div><div><small>'+(z()?'備註':'Notes')+'</small><span>'+E(g.notes||'—')+'</span></div></div>';
     var hist='<details class="k23gd-h"><summary>'+(z()?'處理紀錄':'History')+' · '+(g.history||[]).length+'</summary>'+(g.history||[]).slice().reverse().map(function(h){return '<div><time>'+E(String(h.at).slice(0,16).replace('T',' '))+'</time> '+E(h.act)+' <small>'+E(h.by||'')+'</small></div>'}).join('')+'</details>';
     return tr+'<tr class="k23gd-open"><td colspan="8" onclick="event.stopPropagation()">'+legTable(g,true)+money3(g)+info+adm+hist+'</td></tr>'}).join('');
-  return '<section class="k23gd"><header><div><small>GROUP DESK</small><b>'+(z()?'團體訂位（旅行團）':'Group bookings')+'</b></div><span>'+(z()?'旅行社在前台「團體訂位」送出申請；系統可自動報價的會直接報價，其餘在這裡人工報價。團體 PNR 在下方定位清單標「團體」。':'Requests come from the website. Group PNRs are tagged below.')+'</span></header>'
+  return '<section class="k23gd"><header><div><small>GROUP DESK</small><b>'+(z()?'團體訂位（旅行團）':'Group bookings')+'</b></div><span>'+(z()?'旅行社在前台「團體訂位」送出申請；系統可自動報價的會直接報價，其餘在這裡人工報價。團體 PNR 在「定位管理」的清單上標「團體」，開啟後有團體資訊列。':'Requests come from the website. Group PNRs are tagged in Bookings.')+'</span></header>'
     +head+(S.grpAdmMsgR1023A?'<div class="k23g-msg">'+E(S.grpAdmMsgR1023A)+'</div>':'')
     +(show.length?'<div class="k23g-scroll"><table class="k23g-t k23gd-t"><thead><tr><th>'+(z()?'團號':'Group')+'</th><th>'+(z()?'團名／旅行社':'Name / agency')+'</th><th>'+(z()?'航班':'Flights')+'</th><th>'+(z()?'人數':'Pax')+'</th><th>'+(z()?'狀態':'Status')+'</th><th>'+(z()?'名單':'Names')+'</th><th>'+(z()?'金額':'Total')+'</th><th>'+(z()?'下一個期限':'Next deadline')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
       :'<div class="k23g-none">'+(z()?'這個分類沒有團體訂位。':'No groups here.')+'</div>')+'</section>'};
+/* 1023A T：後台獨立分頁「團體訂位」（groups23） */
+window.kgmGroupDeskPageR1023A=function(){var pm='use';try{pm=window.kgmPermR123?window.kgmPermR123('groups23'):'use'}catch(_){}
+  if(pm==='none')return '<div class="k23g-note bad">'+(z()?'你的職務沒有「團體訂位」分頁的權限，可在審核中心申請。':'No access to Group bookings.')+'</div>';
+  return '<div class="k23gp">'+window.kgmGroupDeskHtmlR1023A()+'</div>'};   /* 權限跟側邊欄同一份（kgmPermR123） */
+window.kgmGroupOpenR1023A=function(id){S.adminTab='groups23';S.grpFilterR1023A='all';S.grpOpenR1023A=id;try{render()}catch(_){}};
 /* 開啟的訂位是團體 PNR：資訊列 */
 window.kgmGroupBannerR1023A=function(b){if(!b||!b.groupR1023A)return '';var g=G().filter(function(x){return x.id===b.groupR1023A.id})[0];
-  return '<div class="k23g-banner"><b>'+(z()?'旅行團／團體 GROUP':'GROUP')+'</b><span>'+E(b.groupR1023A.id)+' · '+E(b.groupR1023A.name)+(b.groupR1023A.agency?' · '+E(b.groupR1023A.agency):'')+'</span>'+(g?stChip(g.status)+'<span>'+(z()?'名單 ':'Names ')+namesDone(g)+'/'+paxN(g)+'</span>':'')+'<em>'+(z()?'G 艙團體票：不可線上改票／退票，姓名與人數異動由團體業務處理。':'Group fare: changes via the group desk.')+'</em></div>'};
+  return '<div class="k23g-banner"><b>'+(z()?'旅行團／團體 GROUP':'GROUP')+'</b><span>'+E(b.groupR1023A.id)+' · '+E(b.groupR1023A.name)+(b.groupR1023A.agency?' · '+E(b.groupR1023A.agency):'')+'</span>'+(g?stChip(g.status)+'<span>'+(z()?'名單 ':'Names ')+namesDone(g)+'/'+paxN(g)+'</span>':'')+(S.adminAuthed?'<button type="button" class="k23g-btn ghost" onclick="kgmGroupOpenR1023A(\''+A(b.groupR1023A.id)+'\')">'+(z()?'開啟團體訂位 →':'Open group →')+'</button>':'')+'<em>'+(z()?'G 艙團體票：不可線上改票／退票，姓名與人數異動由團體業務處理。':'Group fare: changes via the group desk.')+'</em></div>'};
 window.kgmGroupTagR1023A=function(pnr){var b=bk(pnr);return b&&b.groupR1023A?'<i class="k23g-tag">'+(z()?'團體':'GROUP')+'</i>':''};
 
 var CSS='.k23g{max-width:1180px;margin:0 auto;padding:22px 20px 60px;color:#14231D}'
@@ -335,6 +340,7 @@ var CSS='.k23g{max-width:1180px;margin:0 auto;padding:22px 20px 60px;color:#1423
   +'.k23gd-q{background:#fff;border:1px solid #E3E8E5;border-radius:12px;padding:12px;margin:0 0 6px}.k23gd-ql{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:8px}.k23gd-ql>span{flex:1;min-width:240px;font-size:13px;font-weight:700}.k23gd-ql>span small{display:block;font-weight:500;color:#7A857F}.k23gd-ql label{display:flex;flex-direction:column;font-size:11.5px;color:#6B756F}.k23gd-ql .inp{width:120px}'
   +'.k23gd-h{margin-top:10px;font-size:12px;color:#5F6B66}.k23gd-h summary{cursor:pointer;font-weight:700}.k23gd-h div{padding:3px 0}.k23gd-h time{color:#8A948F}'
   +'.k23g-tag{font-style:normal;display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#FFF3E0;color:#B26A00;font-size:10.5px;font-weight:800;vertical-align:middle}'
+  +'.k23gp{max-width:1180px}.k23gp .k23gd{margin:0}'
   +'.k23g-banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:12px;background:#FFF6E5;border:1px solid #F0C778;margin:0 0 10px;font-size:13px}.k23g-banner b{color:#B26A00;letter-spacing:.5px}.k23g-banner em{font-style:normal;color:#6B5A2A;font-size:12px;flex-basis:100%}';
 try{var st=document.createElement('style');st.id='k23-css-g';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}catch(_){}
 })();

@@ -253,8 +253,14 @@ RW('group desk tag',"return '<button class=\"btn\" onclick=\"kgmPickBooking0910(
    "return '<button class=\"btn\" onclick=\"kgmPickBooking0910(\\''+AJ(x)+'\\')\"><b>'+EJ(x)+'</b>'+(window.kgmGroupTagR1023A?window.kgmGroupTagR1023A(x):'')+'<br>")
 RW('group desk banner',"+(b?'<div class=\"j-booking-layout\">'+detailsJ(dossierBookingJ(b))",
    "+(b&&window.kgmGroupBannerR1023A?window.kgmGroupBannerR1023A(b):'')+(b?'<div class=\"j-booking-layout\">'+detailsJ(dossierBookingJ(b))")
-RW('group desk list',"    +(matches.length?'<div class=\"j-dossier\"><h3>'+(ZJ()?'請選擇這位會員的行程'",
-   "    +(!b&&window.kgmGroupDeskHtmlR1023A?window.kgmGroupDeskHtmlR1023A():'')   /* 1023A：團體訂位 GROUP DESK */\n    +(matches.length?'<div class=\"j-dossier\"><h3>'+(ZJ()?'請選擇這位會員的行程'")
+# T（使用者：「把這個開到一個新的TAB in admin」）：GROUP DESK 不放在定位管理裡，改成「訂位與客服」底下自己的分頁「團體訂位」（groups23）
+RW('group tab side',"['bookings','定位管理'],['cases0831B','案件處理中心']","['bookings','定位管理'],['groups23','團體訂位'],['cases0831B','案件處理中心']",2)
+RW('group tab body',"else if(tab==='cardverify')body=(typeof window.kgmCardVerifyPageR1022A==='function'?window.kgmCardVerifyPageR1022A():'');   /* 1022A */",
+   "else if(tab==='cardverify')body=(typeof window.kgmCardVerifyPageR1022A==='function'?window.kgmCardVerifyPageR1022A():'');   /* 1022A */else if(tab==='groups23')body=(typeof window.kgmGroupDeskPageR1023A==='function'?window.kgmGroupDeskPageR1023A():'');   /* 1023A：團體訂位 */")
+RC('group tab perm service','kgm-0903b-r123',"service:{cardverify:'use',","service:{cardverify:'use',groups23:'use',")
+RC('group tab perm backend','kgm-0903b-r123',"flightadjust:'use',bookings:'use',","flightadjust:'use',bookings:'use',groups23:'use',")
+RW('group tab role',"if(r==='service')return ['bookings','cases0831B',","if(r==='service')return ['bookings','groups23','cases0831B',")
+RW('group tab order',"var ORDER7=['status','flightdata','groundops','bookings',","var ORDER7=['status','flightdata','groundops','bookings','groups23',")
 
 # ══ C：行李改運 —— 載重平衡不算改運出去的行李、加上改運進來的（散貨艙）；航班資料頁載重平衡下方畫改運面板（k23） ══
 RC('bag move kg','kgm-r7-admin-ops',"function bagKg7(id,n){return 15+(H(String(id)+'#'+n)%9);}",
