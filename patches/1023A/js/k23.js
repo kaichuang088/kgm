@@ -511,12 +511,13 @@ try{if(!document.getElementById('k23-css')){var st=document.createElement('style
   function band(d){return d<15?(z()?'延誤 15 分鐘內':'under 15 min'):d<=30?(z()?'延誤 15–30 分鐘':'15–30 min'):d<=60?(z()?'延誤 30–60 分鐘':'30–60 min'):d<=120?(z()?'延誤 1–2 小時':'1–2 h'):(z()?'延誤 2 小時以上':'over 2 h')}
   function nextLeg(code,date,fr,to){var t=tailOf(code,date,fr,to);if(!t)return null;var L=((S.tailAssign||{})[t]||[]).slice().sort(function(a,b){return span(a)[0]-span(b)[0]});
     for(var i=0;i<L.length;i++){var x=L[i];if(x.code===code&&x.date===date&&routeOf(x)===fr+'→'+to)return L[i+1]?{x:L[i+1],tail:t}:null}return null}
-  function tellPax(code,date,msg,title){var n=0;(S.bookings||[]).forEach(function(b){if(!b||b.status==='cancelled')return;var hit=(b.outF&&b.outF.code===code&&b.outF.date===date)||(b.inbF&&b.inbF.code===code&&b.inbF.date===date);if(!hit)return;n++;
-      b.statusNotifs=b.statusNotifs||[];b.statusNotifs.push({date:todayISO(),status:'Delayed',msg:msg});
+  function tellPax(code,date,msg,title,st,ev){var n=0;(S.bookings||[]).forEach(function(b){if(!b||b.status==='cancelled')return;var hit=(b.outF&&b.outF.code===code&&b.outF.date===date)||(b.inbF&&b.inbF.code===code&&b.inbF.date===date);if(!hit)return;n++;
+      b.statusNotifs=b.statusNotifs||[];b.statusNotifs.push({date:todayISO(),status:st||'Delayed',msg:msg});
       b.tripAlerts0809G=b.tripAlerts0809G||[];b.tripAlerts0809G.unshift({title:title,message:msg,at:new Date().toISOString()});
       b.notifs=b.notifs||[];b.notifs.unshift({msg:msg,date:todayISO(),read:false});
       if(b.userId){var u=(S.users||[]).filter(function(x){return x&&x.id===b.userId})[0];if(u){u.notifs=u.notifs||[];u.notifs.unshift({title:title,message:msg,date:todayISO(),type:'flight_status'})}}
-      try{var em=b.contactEmail||((b.paxList||[])[0]||{}).email;if(em&&typeof kgmNotify==='function')Promise.resolve(kgmNotify('flight.changed',{email:em,pnr:b.pnr,flight:code,date:date,message:msg})).catch(function(){})}catch(_){}});return n}
+      try{var em=b.contactEmail||((b.paxList||[])[0]||{}).email;if(em&&typeof kgmNotify==='function')Promise.resolve(kgmNotify(ev||'flight.changed',{email:em,pnr:b.pnr,flight:code,date:date,message:msg})).catch(function(){})}catch(_){}});return n}
+  window.kgmTellPaxR1023A=tellPax;   /* 1023A V：後台 AI 延誤／改時間／轉降也用同一個通知 */
   function cascade(code,date,fr,to,depth){
     depth=depth||0;if(depth>6)return [];var out=[],ov=(S.flightOverrides||{})[code+'_'+date]||{};if(!ov.arr)return out;
     var f=allF().filter(function(x){return x&&x.code===code&&!x.via&&(!fr||x.fr===fr&&x.to===to)})[0];if(!f)return out;fr=f.fr;to=f.to;
@@ -1350,4 +1351,58 @@ var CSS='.k23-kc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:
   +'.k22-cb-card.stark,.k22-cb-card.starg,.k22-cb-card.starm{color:#fff}.k22-cb-card.stark small,.k22-cb-card.starg small,.k22-cb-card.starm small,.k22-cb-card.stark span,.k22-cb-card.starg span,.k22-cb-card.starm span{color:rgba(255,255,255,.9)}'
   +'.k23-kc-n{font-size:12.5px;color:#5F6B66;margin:4px 0 10px}.k23-kc-n a{color:#0B3D2E;font-weight:700}.k23-cb-consent{margin:10px 0 0}';
 try{var st=document.createElement('style');st.id='k23-css-kc';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}catch(_){}
+})();
+
+/* ══ 1023A V：後台 AI 延誤／改起飛時間（使用者：「AI那個調整可能所有航班動態那些提醒一下也要喔」）══
+   原本 AI 聽不懂「KX180 10/27 延誤 45 分鐘」「改成 09:30 起飛」。新增工具 flight_delay：
+   寫進航班動態（S.flightOverrides，跟後台手動存檔同樣的欄位：狀態、新起飛／抵達、跨日、原因）→ 通知這班旅客（站內＋Email，跟手動延誤同一個 tellPax）
+   → 同一架接著飛的下一班過站不足 60 分鐘就連鎖延誤並通知（同一個 cascade）→ 當班組員收到報到時間異動（只在組員計畫已算好的日子）。 */
+(function(){
+'use strict';
+function z(){try{return LANG!=='en'}catch(_){return true}}
+function mins(t){var p=String(t||'0:0').split(':');return (+p[0])*60+(+p[1]||0)}
+function hm(m){m=((m%1440)+1440)%1440;return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2)}
+function dOf(t){var T=todayISO(),y=+T.slice(0,4),m;
+  if(/今天|今日|today/i.test(t))return T;if(/明天|tomorrow/i.test(t))return addDays(T,1);if(/後天/.test(t))return addDays(T,2);
+  if((m=/(\d{4})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/.exec(t)))return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+  if((m=/(?:^|[^\d:])(\d{1,2})\s*[\/月]\s*(\d{1,2})(?![\d:])/.exec(t))){var d=y+'-'+('0'+m[1]).slice(-2)+'-'+('0'+m[2]).slice(-2);return d<T?(y+1)+d.slice(4):d}
+  return T}
+window.kgmAiDelayR1023A=function(a){
+  a=a||{};var t=String(a.text||'').replace(/[：]/g,':'),u=t.toUpperCase();
+  var cm=/KX\s*(\d{1,4})/.exec(u),code=a.code||(cm?'KX'+cm[1]:'');if(!code)return {ok:false,msg:z()?'請告訴我班號，例如「KX180 10/27 延誤 45 分鐘」。':'Which flight?'};
+  var date=a.date||dOf(t);
+  var L=[].concat(FLIGHTS,S.customFlights||[]).filter(function(f){return f&&f.code===code&&!f.via&&!f.partner});
+  var aps=(u.match(/\b[A-Z]{3}\b/g)||[]);var f=L.filter(function(x){return aps.indexOf(x.fr)>=0})[0]||L[0];
+  if(!f)return {ok:false,msg:(z()?'找不到班號 ':'No flight ')+code};
+  try{if(typeof flyOn==='function'&&!flyOn(f,new Date(date+'T12:00:00')))return {ok:false,msg:code+' '+date+(z()?' 這天沒有飛。':' does not operate.')}}catch(_){}
+  var sf=f;try{sf=window.kgmSeasonFlightR48(f,date)||f}catch(_){}
+  var key=code+'_'+date,ov=(S.flightOverrides||{})[key]||{};
+  if(/cancel/i.test(String(ov.status||'')))return {ok:false,msg:code+' '+date+(z()?' 已取消，不能改時間。':' is cancelled.')};
+  var dep0=mins(sf.dep),arr0=mins(sf.arr)+1440*(+sf.dd||0),nd=null,m;
+  if((m=/(?:改成|改到|改為|改在|改|新的?起飛時間|起飛時間改)\s*(\d{1,2}):(\d{2})/.exec(t))||(m=/(\d{1,2}):(\d{2})\s*起飛/.exec(t)))nd=(+m[1])*60+(+m[2]);
+  var delta=null;
+  if(nd!=null){delta=nd-dep0;if(delta<-720)delta+=1440;if(delta>720)delta-=1440}
+  else if((m=/(\d+(?:\.\d+)?)\s*(?:個)?\s*(小時|hr|h\b)/i.exec(t))&&/延誤|延後|晚|delay|提早|提前/i.test(t))delta=Math.round(+m[1]*60);
+  else if((m=/(\d+)\s*(?:分鐘|分|min)/i.exec(t)))delta=+m[1];
+  if(delta!=null&&/提早|提前|earlier/i.test(t)&&nd==null)delta=-Math.abs(delta);
+  if(delta==null||delta===0)return {ok:false,msg:z()?'要延誤幾分鐘、或改成幾點起飛？例如「延誤 45 分鐘」「改成 09:30 起飛」。':'How long / what new time?'};
+  var why=((/(?:原因|因為|因)\s*[:是為]?\s*([^，。,.]+)/.exec(t)||[])[1]||a.reason||'').trim();
+  var ndep=dep0+delta,narr=arr0+delta,depDD=Math.floor(ndep/1440),arrDD=Math.floor(narr/1440);
+  var st=delta>0?'Delayed':'Time Change';
+  S.flightOverrides=S.flightOverrides||{};
+  S.flightOverrides[key]=Object.assign({},ov,{status:st,dep:hm(ndep),depDD:depDD,arr:hm(narr),arrDD:arrDD,depRemark:why||(delta>0?(z()?'營運調度':'Operational'):(z()?'時刻調整':'Retimed')),reason:why,manual:true,aiR1023A:1,by:(S.adminUser&&S.adminUser.empId)||'AI',at:new Date().toISOString()});
+  try{LS.set('kgmov4',S.flightOverrides)}catch(_){}
+  var title=(delta>0?(z()?'航班延誤 ':'Flight delayed '):(z()?'航班時間異動 ':'Schedule change '))+code;
+  var msg=(z()?('您搭乘的 '+code+' '+sf.fr+'→'+sf.to+'（'+date+'）'+(delta>0?'延誤約 '+delta+' 分鐘':(delta<0?'提前 '+(-delta)+' 分鐘':''))+'，新的起飛時間 '+hm(ndep)+(depDD?'（+'+depDD+'）':'')+'、預計抵達 '+hm(narr)+(arrDD?'（+'+arrDD+'）':'')+(why?'。原因：'+why:'')+'。報到櫃檯與登機時間依新時刻順延，造成不便敬請見諒。')
+    :('Your flight '+code+' on '+date+' now departs '+hm(ndep)+' and arrives '+hm(narr)+'.'));
+  var n=0;try{n=window.kgmTellPaxR1023A?window.kgmTellPaxR1023A(code,date,msg,title,st,'flight.changed'):0}catch(_){}
+  var cs=[];try{cs=window.kgmDelayCascadeR1023A?window.kgmDelayCascadeR1023A(code,date,sf.fr,sf.to,0):[]}catch(_){}
+  var crew=0;try{if(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(date)){var pl=kgmCrewPlanR121(date),cf=(pl.flights||[]).filter(function(x){return x.code===code&&x.fr===sf.fr})[0];
+    if(cf)(cf.pilots||[]).concat(cf.cabin||[]).forEach(function(q){if(!q||!q.empId)return;crew++;try{notifyStaff(q.empId,(z()?'【航班時間異動】':'[Retime] ')+code+' '+sf.fr+'→'+sf.to+'（'+date+'）新起飛 '+hm(ndep)+'，報到時間順延為 '+hm(ndep-60)+(why?'（'+why+'）':'')+'。')}catch(_){}})}}catch(_){}
+  try{logAct('AI 航班時間異動',code+' '+date+' '+sf.dep+'→'+hm(ndep)+'（'+(delta>0?'+':'')+delta+' 分）· 通知 '+n+' 筆訂位')}catch(_){}
+  try{window.kgmPayloadClearR1023A&&window.kgmPayloadClearR1023A()}catch(_){}
+  try{save()}catch(_){}
+  return {ok:true,msg:(z()?(code+' '+date+' '+sf.fr+'→'+sf.to+' 已改為 '+(st==='Delayed'?'延誤':'時間異動')+'：'+sf.dep+'–'+sf.arr+' → '+hm(ndep)+'–'+hm(narr)+(arrDD?'⁺'+arrDD:'')+'，航班動態已更新、已通知 '+n+' 筆訂位'+(crew?'、當班組員 '+crew+' 位':'')
+      +(cs.length?'；同一架的下一班過站不足 60 分鐘，已連鎖延誤並通知：'+cs.map(function(c){return c.code+' '+c.date+' '+c.dep+'–'+c.arr}).join('、'):'')+'。'):('Retimed '+code+'.'))};
+};
 })();

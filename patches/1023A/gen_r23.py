@@ -133,7 +133,7 @@ RC('ai aircraft swap','kgm-0909E-r229',CUR[_a0:_a1],
  "      return {ok:true,msg:(z()?'已將 ':'Swapped ')+a.code+' '+a.date+(z()?' 換成 ':' to ')+a.type+(z()?'，'+(r.bookings||0)+' 筆訂位已通知'+(r.pairR922?'（回程 '+r.pairR922.replace(' ok','')+' 同步）':''):'')}}},\n"
  "    fleet_retire:{tab:'fleetsched',zh:'飛機退役並由另一架接手（reg 要退役的機身、from 退役日 YYYY-MM-DD（至少 7 天後）、replace 接手的機身，同機型）：接手的那架從退役日起飛退役機原本的班，接手機原本的班改給同機型其他飛機',run:function(a){return window.kgmFleetRetireReplaceR1023A(a.reg,a.from,a.replace)}},\n")
 RC('ai plan retire','kgm-0909E-r229',"    var t=norm(text),acts=[];\n    if(/轉降|改降|備降|divert/i.test(t)",
- "    var t=norm(text),acts=[];\n    if(/退役|retire/i.test(t)){var rg23=(t.toUpperCase().match(/B-?\\d{5}/g)||[]).map(function(x){return x.replace(/^B-?/,'B-')}),dt23=(t.match(/\\d{4}-\\d{1,2}-\\d{1,2}/)||[])[0]||'';if(!dt23){var md23=/(\\d{1,2})\\s*[\\/月]\\s*(\\d{1,2})/.exec(t);if(md23){var y23=+todayISO().slice(0,4),c23=y23+'-'+('0'+md23[1]).slice(-2)+'-'+('0'+md23[2]).slice(-2);dt23=c23<todayISO()?(y23+1)+c23.slice(4):c23}}if(rg23.length)return [{tool:'fleet_retire',args:{reg:rg23[0],from:dt23,replace:rg23[1]||''}}]}   /* 1023A：退役＋接手 */\n    if(/轉降|改降|備降|divert/i.test(t)")
+ "    var t=norm(text),acts=[];\n    if(/退役|retire/i.test(t)){var rg23=(t.toUpperCase().match(/B-?\\d{5}/g)||[]).map(function(x){return x.replace(/^B-?/,'B-')}),dt23=(t.match(/\\d{4}-\\d{1,2}-\\d{1,2}/)||[])[0]||'';if(!dt23){var md23=/(\\d{1,2})\\s*[\\/月]\\s*(\\d{1,2})/.exec(t);if(md23){var y23=+todayISO().slice(0,4),c23=y23+'-'+('0'+md23[1]).slice(-2)+'-'+('0'+md23[2]).slice(-2);dt23=c23<todayISO()?(y23+1)+c23.slice(4):c23}}if(rg23.length)return [{tool:'fleet_retire',args:{reg:rg23[0],from:dt23,replace:rg23[1]||''}}]}   /* 1023A：退役＋接手 */\n    if(/KX\\s*\\d/i.test(t)&&/延誤|延後|晚飛|提早|提前|起飛時間|改(?:成|到|為|在)\\s*\\d{1,2}[:：]\\d{2}|\\d{1,2}[:：]\\d{2}\\s*起飛|delay/i.test(t)&&!/取消|cancel/i.test(t))return [{tool:'flight_delay',args:{text:t}}];   /* 1023A V：延誤／改時間 */\n    if(/轉降|改降|備降|divert/i.test(t)")
 
 # 1023A：票價調整頁重排（k22 kgmFareAdjPageR1022A 的表單部分換成 js/fa23.js；欄位 id 不變）
 _f0=CUR.index("    var form=ed?('<div class=\"fa22-f\">'");_f1=CUR.index("      :'<p>'+(z()?'只有執行長與定價人員可以調整",_f0)
@@ -159,6 +159,7 @@ RW('cancel refund label','<option value="refund">直接全額退費</option>','<
 # 1023A：後台 AI 給 Claude 的工具多兩個：取消航班（會追問原因與補償）、查詢後台資料
 RC('ai tools cancel query','kgm-0909E-r229',"    crew_swap:{tab:'sched',zh:'組員換班',run:function(a){return crewSwap(a)}},",
    "    flight_cancel:{tab:'status',zh:'取消航班（text 放使用者原話，例如「取消10/23 03:00以後出發的航班」「取消今日所有航班」；第一次呼叫會列出符合的班並追問原因，之後把使用者的回答原樣放 text 再呼叫：原因 → 補償方案（1 退費／2 改搭）→ 確認）',run:function(a){return window.kgmAiCancelR1023A(a)}},   /* 1023A */\n"
+   "    flight_delay:{tab:'status',zh:'航班延誤或改起飛時間（text 放使用者原話，例如「KX180 10/27 延誤 45 分鐘 原因 前一班晚到」「KX12 明天改成 23:10 起飛」）：更新航班動態、通知旅客與當班組員，下一班過站不足自動連鎖延誤',run:function(a){return window.kgmAiDelayR1023A(a)}},   /* 1023A V */\n"
    "    data_query:{tab:'status',any:true,zh:'查詢後台資料（q 放問題：班號＋日期、訂位代號、員工編號、機身、延誤／取消清單、案件）',run:function(a){return window.kgmAiQueryR1023A(a)}},   /* 1023A */\n"
    "    crew_swap:{tab:'sched',zh:'組員換班',run:function(a){return crewSwap(a)}},")
 
@@ -335,6 +336,11 @@ _crd=crd_doc.doc()
 RW('kgmcards policy doc',"window.kgmPolicyDocR914=function(id){",
    "/* 1023A：《KGM Cards 聯名卡使用辦法》（patches/1023A/crd_doc.py，PDF 同一份） */\nwindow.KGM_POLICY_DOCS_R914[\"KGM-CRD-020\"]="+json.dumps(_crd,ensure_ascii=False)+";\nwindow.kgmPolicyDocR914=function(id){")
 RW('kgmcards policy audit',"if(o.docs!==16)o.bad.push('辦法份數 '+o.docs+'（應為 16）');","if(o.docs!==17)o.bad.push('辦法份數 '+o.docs+'（應為 17）');   /* 1023A：加 KGM-CRD-020 */")
+
+# ══ V：AI 轉降也通知這班旅客（原本只通知組員）══
+RW('divert tell pax',"    /* 通知當事人 */\n    var nt=function(id,m){try{notifyStaff(id,m)}catch(_){}};",
+   "    try{window.kgmTellPaxR1023A&&window.kgmTellPaxR1023A(L.code,fd,(z()?('您搭乘的 '+L.code+' '+L.fr+'→'+L.to+'（'+fd+'）因'+rec.reason+'轉降 '+alt+'（預計 '+a1.s+' 落地），續航預計 '+cd.s+' 起飛、'+ca.s+' 抵達 '+L.to+'。請依機組廣播辦理，後續安排將另行通知，造成不便敬請見諒。'):('Your flight '+L.code+' diverted to '+alt+'.')),(z()?'航班轉降 ':'Flight diverted ')+L.code,'Diverted','flight.irrops')}catch(_){}   /* 1023A V：旅客也要通知 */\n"
+   "    /* 通知當事人 */\n    var nt=function(id,m){try{notifyStaff(id,m)}catch(_){}};")
 
 # ══ 結尾 ══
 open('p_h_r23.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
