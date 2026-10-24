@@ -265,6 +265,29 @@ RC('bag move lb','kgm-r7-admin-ops',"      for(var i=0;i<n;i++){var w=bagKg7(x.i
 RC('bag move panel','kgm-r7-admin-ops',"+loadBalance7(f,date,m,t)+'<div class=\"r7-ops-work\">'",
    "+loadBalance7(f,date,m,t)+(window.kgmBagMoveHtmlR1023A?window.kgmBagMoveHtmlR1023A(f,date,m,t):'')+'<div class=\"r7-ops-work\">'")
 
+# ══ I：泰籍組員班表太空（使用者：「泰國及組員班表太空了吧 偶爾也是可能一個月來TPE延長一次航班（可能隔天飛個短程）可以DH可能JL的回BKK或是執勤回TPE再回BKK」）══
+#    ① 排序：曼谷基地泰籍的「先到先走」（r＝上次下班時間）把從沒派過勤的虛擬組員當成 0 → 永遠排在休息好的正式泰籍組員前面；改成排最後；
+#       在曼谷的正式泰籍組員排在最前面（實測 28 天 B779 曼谷班泰籍機師 260 個位置，正式的只拿到 43 個）。
+#       （試過把虛擬泰籍排到外站組員後面：外站台籍組員改去接曼谷第五航權，60 天第 59 天缺 2 位機師，不採用。）
+#    ② 每月一次台北延長：正式泰籍組員飛到台北之後，可以從台北飛一趟短程來回（≤5 小時），之後執勤 TPE→BKK 或 DH 回曼谷
+#       （趟數規則照 1022A「基地→A→X→A→基地」，A＝台北；外站三天、DH 回基地也照原本的規則）。
+RC('th sort fresh last','kgm-0903b-r121',"r:(aw22||p.nat22==='TH')?lr22:0",
+   "r:(aw22||p.nat22==='TH')?((st.initial&&p.virtualR121)?9e15:lr22-((p.nat22==='TH'&&!p.virtualR121&&!aw22)?1e9:0)):0")   # 在曼谷的正式泰籍組員先排（虛擬泰籍與外站組員照原本先到先走）
+RC('th ext elig','kgm-0903b-r121',"    if(p.nat22==='TH'&&f.fr!=='BKK'&&f.to!=='BKK')return false;   /* 1022A：泰籍組員只飛曼谷航線 */",
+   "    if(p.nat22==='TH'&&f.fr!=='BKK'&&f.to!=='BKK'&&!thExt23(p,st,f,date))return false;   /* 1022A：泰籍組員只飛曼谷航線；1023A：每月一次台北延長 */")
+RC('th ext fn','kgm-0903b-r121',"function natPref22(p,f){",
+   "/* 1023A：泰籍正式組員每個月一次「台北延長」—— 人在台北時從台北飛一趟 5 小時內的短程（去），以及這一趟的回程（回台北） */\n"
+   "function thExt23(p,st,f,date){\n"
+   "  if(p.virtualR121)return false;\n"
+   "  var tp=function(a){return a==='TPE'||sameCity928(a,'TPE')},h=st.days||[],last=null,i;\n"
+   "  for(i=h.length-1;i>=0;i--){if(h[i]&&!h[i].deadhead){last=h[i];break}}\n"
+   "  var ext=function(x){return x&&!x.deadhead&&x.fr!=='BKK'&&x.to!=='BKK'};\n"
+   "  if(last&&ext(last)&&tp(last.fr)&&tp(f.to)&&(st.at===f.fr||sameCity928(st.at,f.fr)))return true;\n"
+   "  if(!(f.block>0&&f.block<=300)||!tp(f.fr)||!tp(st.at))return false;\n"
+   "  var mo=String(date).slice(0,7),n=0;h.forEach(function(x){if(ext(x)&&String(x.date).slice(0,7)===mo)n++});\n"
+   "  return n===0}\n"
+   "function natPref22(p,f){")
+
 # ══ 結尾 ══
 open('p_h_r23.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
