@@ -46,7 +46,7 @@ window.kgmPayloadR1023A=function(code,date,fr,to){
     var f0=legOf(code,fr,to);if(f0){
       var f=f0;try{f=(window.kgmSeasonFlightR48&&window.kgmSeasonFlightR48(f0,date))||f0}catch(_){}
       var t=f.acft;try{t=acftOfFlight(code,date,f.fr,f.to)||t}catch(_){}
-      var man=[];try{man=window.manifest7(f,date)||[]}catch(_){}
+      var man=[];window.KGM_NODH_R1023A=1;try{man=window.manifest7(f,date)||[]}catch(_){}finally{window.KGM_NODH_R1023A=0}   /* 背景呼叫：DH 組員照算，但不建立 DH 訂位（r7 dhRows929） */
       if(!man.length){try{man=simManifest(code,date,Object.assign({},f,{acft:t}))||[]}catch(_){}}
       if(window.kgmLoadBalanceR1022A){window.kgmLoadBalanceR1022A(f,date,man,t);var lb=(window.KGM_LB_R1022A||{})[code+'|'+date+'|'+f.fr];
         if(lb)v={type:t,mzfw:lb.mzfw,zfw:lb.zfw,left:lb.mzfw-lb.zfw,util:lb.util,pax:man.length,bagN:lb.bagN,holdKg:lb.holdKg,man:man,f:f}}
@@ -675,7 +675,10 @@ try{if(!document.getElementById('k23-css')){var st=document.createElement('style
         var r0=o0(L2,date),r1=adj(o0,L2,date,r0);if(!r0||!r1||r0===r1)return x;
         var dlt=(mn(r1.arr)+(+r1.dd||0)*1440)-(mn(r0.arr)+(+r0.dd||0)*1440);if(!dlt)return x;
         var ab=mn(x.arr)+(+x.dd||0)*1440+dlt,y=Object.assign({},x,{arr:hm(ab),dd:Math.floor(ab/1440)});try{y.dur=blockMin(y.fr,y.to,y.dep,y.arr,y.dd||0);y.durStr=durStr(y.dur)}catch(_){}return y}catch(_){return x}}
-    var k=[f.code,f.fr,f.to,date.slice(0,7),x.dep,x.arr,x.dd].join('|');if(MEMO[k])return MEMO[k];
+    /* 快取只存算出來的抵達／飛行時間；其他欄位（班期 days 等）每次從這一次的 x 取 ——
+       同一班號兩列（KX24／KX23）時，一三五日那列在週二會被套成二四六的時刻，鍵相同但班期不同，整個物件快取會讓二四六那列拿到一三五日的班期（flyOn 判成不飛、機隊沒派機） */
+    var k=[f.code,f.fr,f.to,f.dep,date.slice(0,7),x.dep,x.arr,x.dd].join('|'),mm=MEMO[k];
+    if(mm)return Object.assign({},x,mm);
     var su=null;try{su=o0(f,sumDate(date))}catch(_){}
     if(!su||!su.dep)return x;var ss=su.seasonR57||su.seasonR48;if(!ss){try{ss=window.kgmSeasonR57?window.kgmSeasonR57(sumDate(date)):''}catch(_){}}if(ss!=='summer')return x;
     var bs=0;try{bs=blockMin(f.fr,f.to,su.dep,su.arr,su.dd||0)}catch(_){bs=0}if(!(bs>0))return x;
@@ -683,9 +686,9 @@ try{if(!document.getElementById('k23-css')){var st=document.createElement('style
     var at=function(w){return dep+bs+w+off},in3=function(v){var m=((v%1440)+1440)%1440;return m>=180&&m<240};
     var a=at(w);
     if(in3(a)){var sg=w>0?1:-1,ok=false;for(var e=5;e<=20&&!ok;e+=5){if(!in3(at(w+sg*e))){w+=sg*e;ok=true}}if(!ok){var m=((a%1440)+1440)%1440;w-= (m-175)}a=at(w)}
-    var y=Object.assign({},x,{arr:hm(a),dd:Math.floor(a/1440),windR1023A:w});
-    try{y.dur=blockMin(y.fr,y.to,y.dep,y.arr,y.dd||0);y.durStr=durStr(y.dur)}catch(_){}
-    if(Object.keys(MEMO).length>6000)MEMO={};MEMO[k]=y;return y;
+    var c={arr:hm(a),dd:Math.floor(a/1440),windR1023A:w};
+    try{c.dur=blockMin(f.fr,f.to,x.dep,c.arr,c.dd||0);c.durStr=durStr(c.dur)}catch(_){}
+    if(Object.keys(MEMO).length>6000)MEMO={};MEMO[k]=c;return Object.assign({},x,c);
   }
   /* 要在最外層（1012A 洛杉磯線依星期挑列那層會在之後再包一次）：不是自己就再包一次；重算是從夏季算定值，包兩次結果一樣 */
   var MY=null;
@@ -1241,7 +1244,7 @@ window.kgmMailCsvR1023A=function(){try{var m=window.kgmMailMapR110(),rows=[['對
   (m.internal||[]).forEach(function(x){rows.push([z()?'內部（員工／主管）':'Internal',x.ev,z()?x.zh:x.en,x.when||''])});
   var csv='﻿'+rows.map(function(r){return r.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='KGM_email_notifications_'+BUILD_S()+'.csv';document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}catch(e){alert(String(e&&e.message||e))}};
-function BUILD_S(){try{return window.KGM_BUILD_LABEL||'1023A'}catch(_){return '1023A'}}
+function BUILD_S(){try{return window.KGM_BUILD_LABEL||'1025A'}catch(_){return '1025A'}}
 var CSS='.k23-mp{position:fixed;inset:0;z-index:99999;background:rgba(12,24,19,.55);display:flex;align-items:center;justify-content:center;padding:20px}'
   +'.k23-mp-box{width:min(760px,100%);height:min(88vh,980px);background:#fff;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3)}'
   +'.k23-mp-box header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid #E3E8E5}'

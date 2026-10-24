@@ -264,6 +264,12 @@ RW('group tab role',"if(r==='service')return ['bookings','cases0831B',","if(r===
 RW('group tab order',"var ORDER7=['status','flightdata','groundops','bookings',","var ORDER7=['status','flightdata','groundops','bookings','groups23',")
 
 # ══ C：行李改運 —— 載重平衡不算改運出去的行李、加上改運進來的（散貨艙）；航班資料頁載重平衡下方畫改運面板（k23） ══
+# 1023A 關卡修正：kgmPayloadR1023A（BigDeal 結算、候補、員工票通知在背景呼叫）走 manifest7 時，DH 組員照算重量，
+#   但不建立 DH 訂位、不存檔；組員班表還沒算好的那天不同步硬算（一天 1.5～6 秒）。只有航班資料頁本身才建立 DH 訂位（跟 1022A 一樣）。
+RC('dh nomake list','kgm-r7-admin-ops',"if(!(o[key]&&o[key].length)&&!DHDATE929[date]&&!(ws7&&date<ws7)){DHDATE929[date]=1;",
+   "if(!(o[key]&&o[key].length)&&!DHDATE929[date]&&!(ws7&&date<ws7)&&!(window.KGM_NODH_R1023A&&!(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(date)))){DHDATE929[date]=1;")
+RC('dh nomake rows','kgm-r7-admin-ops',"var b=dhBooking929(p,f,date);if(!had)made=true;",
+   "var b=(window.KGM_NODH_R1023A&&!had)?(function(){var nm=String(p.name||'').trim().split(/\\s+/);return {pnr:dhPnr929(p.empId,date,f.code),paxList:[{firstName:(nm.slice(0,-1).join(' ')||nm[0]||'').toUpperCase(),lastName:(nm.length>1?nm[nm.length-1]:'').toUpperCase()}],meals:{}}})():dhBooking929(p,f,date);if(!had&&!window.KGM_NODH_R1023A)made=true;   /* 1023A：背景算載重不建立 DH 訂位 */")
 RC('bag move kg','kgm-r7-admin-ops',"function bagKg7(id,n){return 15+(H(String(id)+'#'+n)%9);}",
    "function bagKg7(id,n){return 15+(H(String(id)+'#'+n)%9);}\n  window.kgmBagKgR1023A=bagKg7;   /* 1023A：行李改運用同一個重量 */")
 RC('bag move lb','kgm-r7-admin-ops',"      for(var i=0;i<n;i++){var w=bagKg7(x.id,i);Z[zn].n++;Z[zn].kg+=w;holdKg+=w;bagN++;}\n    });",
