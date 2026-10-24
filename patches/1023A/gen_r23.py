@@ -71,7 +71,7 @@ RC('sb st row editor','kgm-0816d-r40',"      +'<td class=\"r40-act\">'+act+'</td
    "      +'<td class=\"r40-act\">'+act+'</td></tr>';\n    var ed23=window.kgmSbSeatRowR1023A?window.kgmSbSeatRowR1023A(r,f,'st'):'';   /* 1023A */\n    r.famR1004B.forEach(function(m){")
 RC('sb st row editor end','kgm-0816d-r40',"        +'<td colspan=\"2\"><small class=\"k4b-sub\" style=\"margin:0\">'+(z()?'同一訂位 ':'Same PNR ')+'<span class=\"r40-mono\">'+E(r.pnr)+'</span> · '+(z()?'隨員工一起候補':'clears with employee')+'</small></td></tr>';\n    });\n    return h;",
    "        +'<td colspan=\"2\"><small class=\"k4b-sub\" style=\"margin:0\">'+(z()?'同一訂位 ':'Same PNR ')+'<span class=\"r40-mono\">'+E(r.pnr)+'</span> · '+(z()?'隨員工一起候補':'clears with employee')+'</small></td></tr>';\n    });\n    return h+ed23;")
-RW('k23 embed',JS('k22.js'),JS('k22.js')+JS('k23.js'))
+RW('k23 embed',JS('k22.js'),JS('k22.js')+JS('k23.js')+JS('grp23.js'))   # 1023A Q：團體訂位 js/grp23.js
 
 # 1023A：已候補成功（真的員工票已配位／模擬已按成功）的先占座位與 Payload，不再重新預判（員工票不在旅客名單，Payload 也還沒算到他們）
 RC('sb done first','kgm-0816d-r40',"  staff.forEach(function(r,i){\n    var n=Math.max(1,1+r.famR1004B",
@@ -94,9 +94,9 @@ RW('dossier services',"EJ(services.join(' · ')||'—')",
 
 # 1023A：管理員在航班動態選的機身要存檔（整年機隊重排會清掉窗期內的手動機身，重排完 k23 再套一次）—— r229 同步只認 save() 裡 LS.set 的寫法
 RW('tailpick init','cardBindR1022A:LS.get("kgm22_cards",[]),',
-   'cardBindR1022A:LS.get("kgm22_cards",[]),tailPickR1023A:LS.get("kgm23_tailpick",[]),crewSwapR1023A:LS.get("kgm23_crewswap",[]),')
+   'cardBindR1022A:LS.get("kgm22_cards",[]),tailPickR1023A:LS.get("kgm23_tailpick",[]),crewSwapR1023A:LS.get("kgm23_crewswap",[]),groupsR1023A:LS.get("kgm23_groups",[]),')
 RW('tailpick save','LS.set("kgm22_cards",S.cardBindR1022A||[]);',
-   'LS.set("kgm22_cards",S.cardBindR1022A||[]);LS.set("kgm23_tailpick",S.tailPickR1023A||[]);LS.set("kgm23_crewswap",S.crewSwapR1023A||[]);')
+   'LS.set("kgm22_cards",S.cardBindR1022A||[]);LS.set("kgm23_tailpick",S.tailPickR1023A||[]);LS.set("kgm23_crewswap",S.crewSwapR1023A||[]);LS.set("kgm23_groups",S.groupsR1023A||[]);')
 
 # 1023A：機隊依實際機身核對機型（0810J reconcile）會把人工換機紀錄覆寫成自動紀錄（manual 標記不見），重新整理後換機就失效 → 人工換機、機型相同就不覆寫
 RW('reconcile keep manual',"var rec=S.acftSub[key],changed=!rec||rec.sub!==tp||rec.route!==rt||rec.tail!==tail;",
@@ -242,6 +242,20 @@ RC('mail csv btn','kgm-0903a-r110',"      +'<button class=\"k110-go ghost\" oncl
    "      +'<button class=\"k110-go ghost\" onclick=\"kgmMailTestAllR110()\">'+(z()?'全部寄一次':'Send all')+'</button>'\n      +'<button class=\"k110-go ghost\" onclick=\"kgmMailCsvR1023A()\">'+(z()?'匯出清單 CSV':'Export CSV')+'</button>'   /* 1023A */")
 RC('mail test row','kgm-0903a-r110',"  var row=MAIL110.filter(function(x){return x.ev===ev})[0]||{zh:ev,en:ev};\n  try{\n    var r=await window.kgmPostR22('/send',{",
    "  var row=MAIL110.filter(function(x){return x.ev===ev})[0];\n  try{var mm23=window.kgmMailMapR110();row=row||(mm23.external||[]).concat(mm23.internal||[]).filter(function(x){return x.ev===ev})[0]}catch(_){}row=row||{zh:ev,en:ev};   /* 1023A：後面補進清單的事件也找得到名稱 */\n  var tp23=null;try{tp23=window.kgmMailHtmlR1023A?window.kgmMailHtmlR1023A(ev,{pnr:'',flight:'',date:''}):null}catch(_){}\n  try{\n    var r=await window.kgmPostR22('/send',{html:tp23?tp23.html:undefined,")
+# ══ Q：團體訂位 —— 前台路由（兩份 views 表都要有）、選單、首頁訂票卡分頁、旅客人數 9 位上限的說明；後台定位管理 GROUP DESK、團體標籤與資訊列 ══
+RW('group view',"prep:prepView,upgrade:upgradeView};","prep:prepView,upgrade:upgradeView,group23:function(){return window.kgmGroupViewR1023A?window.kgmGroupViewR1023A():homeView()}};",2)
+RW('group menu','{zh:"查詢票價",en:"Fare Search",nav:"booking"}]},','{zh:"查詢票價",en:"Fare Search",nav:"booking"},{zh:"團體訂位",en:"Group Booking",nav:"group23"}]},')
+RW('group home tab','box-shadow:${(!!s.useMiles)===v?"0 0 0 1px var(--border) inset":"none"}">${lab}</button>`).join("")}',
+   'box-shadow:${(!!s.useMiles)===v?"0 0 0 1px var(--border) inset":"none"}">${lab}</button>`).join("")}<button onclick="nav(\'group23\')" style="border:none;cursor:pointer;padding:10px 22px;font-size:14px;font-weight:600;color:var(--sub);background:transparent;border-radius:10px 10px 0 0">${LANG==="en"?"Group (10+)":"團體訂位"}<small style="font-size:11px;margin-left:4px;color:#9A7B2F">${LANG==="en"?"":"10 位以上"}</small></button>')
+RW('group pax note',"+'<p>'+(LANG==='en'?'Children must travel with an adult in the same cabin. Infants may not exceed the number of adults.':'兒童須與成人搭乘同一客艙；每位成人最多攜帶一位不佔位嬰兒。')+'</p></div>';",
+   "+'<p>'+(LANG==='en'?'Children must travel with an adult in the same cabin. Infants may not exceed the number of adults.':'兒童須與成人搭乘同一客艙；每位成人最多攜帶一位不佔位嬰兒。')+'</p>'\n    +'<p style=\"margin-top:6px\">'+(LANG==='en'?'10 or more travellers? ':'10 位以上同行？')+'<a href=\"javascript:void 0\" onclick=\"S.paxPickerOpen=false;nav(\\'group23\\')\" style=\"color:var(--g);font-weight:800\">'+(LANG==='en'?'Group booking →':'團體訂位 →')+'</a></p></div>';   /* 1023A */")
+RW('group desk tag',"return '<button class=\"btn\" onclick=\"kgmPickBooking0910(\\''+AJ(x)+'\\')\"><b>'+EJ(x)+'</b><br>",
+   "return '<button class=\"btn\" onclick=\"kgmPickBooking0910(\\''+AJ(x)+'\\')\"><b>'+EJ(x)+'</b>'+(window.kgmGroupTagR1023A?window.kgmGroupTagR1023A(x):'')+'<br>")
+RW('group desk banner',"+(b?'<div class=\"j-booking-layout\">'+detailsJ(dossierBookingJ(b))",
+   "+(b&&window.kgmGroupBannerR1023A?window.kgmGroupBannerR1023A(b):'')+(b?'<div class=\"j-booking-layout\">'+detailsJ(dossierBookingJ(b))")
+RW('group desk list',"    +(matches.length?'<div class=\"j-dossier\"><h3>'+(ZJ()?'請選擇這位會員的行程'",
+   "    +(!b&&window.kgmGroupDeskHtmlR1023A?window.kgmGroupDeskHtmlR1023A():'')   /* 1023A：團體訂位 GROUP DESK */\n    +(matches.length?'<div class=\"j-dossier\"><h3>'+(ZJ()?'請選擇這位會員的行程'")
+
 # ══ 結尾 ══
 open('p_h_r23.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

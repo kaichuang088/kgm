@@ -1063,7 +1063,17 @@ var ADD23=[
   {ev:'staff.standby_failed',who:'int',zh:'員工票候補未成行',en:'Staff standby not cleared',when:'航班關櫃仍未候補上'},
   {ev:'staff.tix_suspended',who:'int',zh:'員工票權利停權',en:'Staff travel suspended',when:'主管依規定停權（寫明期間與原因）'},
   {ev:'staff.tix_restored',who:'int',zh:'員工票權利恢復',en:'Staff travel restored',when:'停權期滿或主管提前恢復'},
-  {ev:'crew.swap_approved',who:'int',zh:'組員換班核准（兩位當事人）',en:'Crew swap approved',when:'後台 AI 換班方案核准：只對調兩人，各寄一封'}
+  {ev:'crew.swap_approved',who:'int',zh:'組員換班核准（兩位當事人）',en:'Crew swap approved',when:'後台 AI 換班方案核准：只對調兩人，各寄一封'},
+  {ev:'group.request_received',who:'ext',zh:'團體訂位申請已收到（團號）',en:'Group request received',when:'旅行社在前台送出團體訂位申請'},
+  {ev:'group.quoted',who:'ext',zh:'團體訂位報價（72 小時有效）',en:'Group quote',when:'系統自動報價或團體業務人工報價'},
+  {ev:'group.held',who:'ext',zh:'團體座位已保留・訂金付款資料',en:'Group seats held · deposit',when:'旅行社接受報價，系統保留座位並開立 10% 訂金'},
+  {ev:'group.deposit_paid',who:'ext',zh:'團體訂金已收到・尾款與名單期限',en:'Group deposit received',when:'訂金付款完成，同時開立尾款'},
+  {ev:'group.names_reminder',who:'ext',zh:'團體名單補齊提醒',en:'Group name list reminder',when:'名單期限前 3 天仍未齊全'},
+  {ev:'group.ticketed',who:'ext',zh:'團體機票已開立',en:'Group tickets issued',when:'尾款付清且名單齊全，自動開票'},
+  {ev:'group.expired',who:'ext',zh:'團體報價／保留逾期失效',en:'Group quote or hold expired',when:'報價超過 72 小時，或訂金逾期自動釋位'},
+  {ev:'group.declined',who:'ext',zh:'團體訂位無法承接',en:'Group request declined',when:'團體業務婉拒（附原因）'},
+  {ev:'group.cancelled',who:'ext',zh:'團體訂位已取消',en:'Group booking cancelled',when:'團體業務取消並釋出座位'},
+  {ev:'internal.group_request',who:'int',zh:'團體訂位待處理（團體業務）',en:'Group desk action needed',when:'需要人工報價、接受報價、訂金逾期等，寄團體業務信箱並通知執行長'}
 ];
 window.KGM_MAIL_ADD_R1023A=ADD23;
 /* 原清單有幾項寫成外部、其實是寄給員工的，清單上改列內部（事件名稱不變） */
@@ -1081,6 +1091,7 @@ instMap();[1500,6000].forEach(function(ms){setTimeout(instMap,ms)});
 /* ── 信件樣式 ─────────────────────────────────────────────── */
 var KINDS=[
   ['seat',/^(aircraft\.changed|flight\.aircraft_changed|flight\.type_changed|seat\.cleared)$/,'SEAT ASSIGNMENT CHANGE NOTICE','座位變更通知'],
+  ['grp',/^group\./,'GROUP BOOKING','團體訂位通知'],
   ['upgw',/^upgrade\.waitlist$/,'UPGRADE WAITLIST CONFIRMATION','升等候補登記確認'],
   ['upg',/^(upgrade\.|bigdeal\.result)/,'UPGRADE CONFIRMATION','升等確認'],
   ['bid',/^bigdeal\./,'BIGDEAL UPGRADE BIDDING','BigDeal 限時升等'],
@@ -1110,13 +1121,14 @@ function ctxOf(p){
       var cls=s.key==='inb'?b.inbC:b.outC;c.cls=cls;try{c.cabin=((FARES[cls]||AWARD_FARES[cls]||{}).cabin)||''}catch(_){}
       try{c.type=acftOfFlight(s.f.code,s.date,s.f.fr,s.f.to)}catch(_){}}
     c.email=px.email||b.contactEmail||'';c.ticket=b.ticketNumber||''}
+  try{if(b&&b.groupR1023A&&/^TBA\//.test(c.name||'')){var gg=(S.groupsR1023A||[]).filter(function(x){return x&&x.id===b.groupR1023A.id})[0];if(gg&&gg.contact)c.name=gg.contact.name}}catch(_){}   /* 團體名單還沒到：稱呼聯絡人 */
   if(!c.name&&p.passenger)c.name=String(p.passenger).toUpperCase();
   if(!c.name&&p.name)c.name=String(p.name);
   return c}
 function money(v,cur){if(v==null||v==='')return '';try{if(typeof fmtAmt==='function')return fmtAmt(Math.round(+v||0),cur||'TWD')}catch(_){}return (cur||'TWD')+' '+N(v)}
 window.kgmMailHtmlR1023A=function(ev,p){
   p=p||{};var K=kindOf(ev),k=K[0],c=ctxOf(p),zh=String(p.lang||p.language||(z()?'zh':'en')).indexOf('en')!==0;
-  var own=/^(pay|rcpt|mbr|int|stf|case|gen)$/.test(k),row=rowOf(null,ev),flight=p.flight||(own?'':c.flight)||'',date=p.date||(own?'':c.date)||'',fr=(p.from&&/^[A-Z]{3}$/.test(p.from)&&k!=='seat')?p.from:(c.fr||''),to=(p.to&&/^[A-Z]{3}$/.test(p.to)&&k!=='seat')?p.to:(c.to||'');
+  if(k==='grp'&&p.name)c.name=String(p.name);var own=/^(pay|rcpt|mbr|int|stf|case|gen|grp)$/.test(k),row=rowOf(null,ev),flight=p.flight||(own?'':c.flight)||'',date=p.date||(own?'':c.date)||'',fr=(p.from&&/^[A-Z]{3}$/.test(p.from)&&k!=='seat')?p.from:(c.fr||''),to=(p.to&&/^[A-Z]{3}$/.test(p.to)&&k!=='seat')?p.to:(c.to||'');
   var R=[];function add(l1,l2,v,st){if(v==null||v==='')return;R.push([l1,l2,v,st||''])}
   add('訂位代號','Booking reference',p.pnr);
   if(k==='bkg'||k==='ci')add('電子機票號碼','E-ticket number',p.ticketNumber||c.ticket);
@@ -1137,6 +1149,7 @@ window.kgmMailHtmlR1023A=function(ev,p){
   if(k==='ref'||k==='cxl'){var ir=p.irrops||(c.b&&c.b.irrops)||null;if(ir&&ir.cashRefund!=null)add('退款金額','Refund amount',money(ir.cashRefund,(c.b&&c.b.curr)||'TWD')+(ir.ancRefund?(zh?'（含附加服務 ':' (incl. extras ')+money(ir.ancRefund,(c.b&&c.b.curr)||'TWD')+(zh?'）':')'):''),'new');if(ir&&+ir.milesRefund)add('退還哩程','Miles returned',N(ir.milesRefund));if(p.amount!=null&&!(ir&&ir.cashRefund!=null))add('退款金額','Refund amount',money(p.amount,p.currency),'new');if(p.reason)add('原因','Reason',p.reason)}
   if(k==='stf'){if(p.seats!=null)add('當時可用座位','Seats available',p.seats);if(p.go!=null)add('結果','Result',p.go?(zh?'請前往機場候補':'Please come to the airport'):(zh?'請不要前往機場':'Do not come to the airport'),p.go?'new':'old')}
   if(p.caseId&&k!=='pay')add('案件編號','Case number',p.caseId);
+  if(k==='grp'||(k==='int'&&p.groupId)){add('團號','Group number',p.groupId);add('團名','Group name',p.groupName);add('旅行社','Agency',p.agency);add('人數','Passengers',p.pax);if(p.amount!=null)add(ev==='group.held'?'訂金':(ev==='group.deposit_paid'?'已收訂金':'金額'),'Amount',money(p.amount,p.currency),'new')}
   var title=zh?K[3]:K[2].replace(/\b\w+/g,function(w){return w.charAt(0)+w.slice(1).toLowerCase()});
   if(K[0]==='gen'&&row)title=zh?row.zh:row.en;
   var hello=zh?('親愛的 '+E(c.name||(k==='int'||k==='stf'?'同仁':'旅客'))+(k==='int'||k==='stf'?'　您好：':'　旅客您好：')):('Dear '+E(c.name||'Customer')+',');
@@ -1156,6 +1169,7 @@ window.kgmMailHtmlR1023A=function(ev,p){
     int:['以下事項需要您知悉或處理：','The following requires your attention:'],
     'case':['您的服務案件進度如下：','An update on your service case:'],
     mbr:['您的會員帳戶有以下異動：','There is an update to your membership account:'],
+    grp:['您的團體訂位有新的進度：','There is an update to your group booking:'],
     gen:['以下是您的通知內容：','Here are the details:']}[k]||['',''];
   var bag=k==='pay'&&/baggage/i.test(String(p.note||'')+JSON.stringify(p.items||[]));
   var lead=bag?(zh?'您在機場櫃檯報到時托運的行李超出免費額度（件數或重量），付款資料如下，請點選下方按鈕完成付款；付款完成後會自動寫入您的訂位。':'Your checked baggage at the airport exceeded the free allowance. Please pay using the button below.'):(zh?LEAD[0]:LEAD[1]);
@@ -1166,7 +1180,8 @@ window.kgmMailHtmlR1023A=function(ev,p){
     pay:['付款連結限本訂位使用，請勿轉寄。'],
     bkg:['請於出發前確認旅行證件、報到截止時間與行李規定。'],
     ci:['國際線櫃檯於起飛前 60 分鐘關閉，登機時間為起飛前 30 分鐘。'],
-    stf:['員工票為候補，實際是否登機依櫃檯候補順位辦理。']}[k]||[];
+    stf:['員工票為候補，實際是否登機依櫃檯候補順位辦理。'],
+    grp:['團體票（G）不可線上改票、退票；人數或姓名異動請洽 KGM 團體業務 groups@kgm-airways.com。','名單姓名須與護照相同；尾款付清且名單齊全後自動開票。']}[k]||[];
   var ttl=zh?('[KGM Airways] '+K[3]+' '+K[2].replace(/\b\w+/g,function(w){return w.charAt(0)+w.slice(1).toLowerCase()})):('[KGM Airways] '+title);
   if(K[0]==='gen'&&row)ttl='[KGM Airways] '+(zh?row.zh:row.en);
   var subject=ttl+(p.pnr?' · PNR '+p.pnr:'')+(flight?' · '+flight+(date?' '+date:''):'');
@@ -1185,7 +1200,7 @@ window.kgmMailHtmlR1023A=function(ev,p){
       +R.map(function(r){var v=r[3]==='old'?'<span style="color:#8A8F8C;text-decoration:line-through">'+E(r[2])+'</span>':(r[3]==='new'?'<span style="color:#0B6B48;font-size:14.5px">'+E(r[2])+'</span>':E(r[2]));
         return '<tr><td style="'+td+'width:38%;background:#F5F7F6;color:#5F6B66">'+E(r[0])+(r[1]?'<br><span style="font-size:11px;color:#8A948F">'+E(r[1])+'</span>':'')+'</td><td style="'+td+'font-weight:700">'+v+'</td></tr>'}).join('')
       +'</table></td></tr>':'')
-    +((k==='pay'&&payUrl)?'<tr><td style="padding:14px 28px 4px"><a href="'+E(payUrl)+'" style="display:inline-block;padding:11px 26px;border-radius:999px;background:#0B3D2E;color:#fff;font-weight:700;text-decoration:none;font-size:14px">'+(zh?'前往付款':'Pay now')+'</a></td></tr>':'')
+    +(((k==='pay'||k==='grp')&&payUrl)?'<tr><td style="padding:14px 28px 4px"><a href="'+E(payUrl)+'" style="display:inline-block;padding:11px 26px;border-radius:999px;background:#0B3D2E;color:#fff;font-weight:700;text-decoration:none;font-size:14px">'+(zh?'前往付款':'Pay now')+'</a></td></tr>':'')
     +(NOTES.length?'<tr><td style="padding:12px 28px 4px"><div style="font-size:12px;font-weight:700;color:#0B3D2E;margin-bottom:4px">'+(zh?'注意事項 Notes':'Notes')+'</div><ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.8;color:#5F6B66">'+NOTES.map(function(n){return '<li>'+E(n)+'</li>'}).join('')+'</ul></td></tr>':'')
     +'<tr><td style="padding:20px 28px 22px"><div style="border-top:1px solid #E3E8E5;padding-top:12px;font-size:11.5px;line-height:1.7;color:#8A948F">'
       +(zh?'此信件由系統自動發送，請勿直接回覆。如有疑問請聯絡 KGM 航空客服或使用網站 AI 助理。':'')+'<br>This is an automatically generated e-mail; please do not reply.<br>KGM Airways · '+E(ev)+'</div></td></tr>'
@@ -1211,6 +1226,7 @@ function sample(ev){var K=kindOf(ev),b=null;try{var t=todayISO();b=(S.bookings||
   if(K[0]==='pay'||K[0]==='rcpt'){p.id='CH261025-1001';p.items=[{label:'Baggage charge · 1 equivalent piece(s) × USD 140',amount:4410}];p.amount=4410;p.currency='TWD';p.payUrl='#/pay/sample';p.note='Airport baggage payment link'}
   if(K[0]==='ref'||K[0]==='cxl'){p.reason=z()?'天候因素':'Weather';p.amount=25330;p.currency='TWD'}
   if(K[0]==='stf'){p.empId='K60012';p.name='WANG/DAMING';p.go=true;p.seats=8}
+  if(K[0]==='grp'){p={groupId:'GRP2610-001A',groupName:z()?'北海道賞雪 7 日':'Hokkaido 7D',agency:z()?'山嵐旅行社':'Sanlan Travel',pax:24,amount:52800,currency:'TWD',flight:'KX180',date:addDays(todayISO(),45),payUrl:'#/pay/sample',name:'LIN/MEIHUA'}}
   if(K[0]==='int'){p={empId:'K60012',date:todayISO()};p.empId='K60012';p.name='WANG/DAMING';p.message=z()?'範例：您 '+todayISO()+' 的班表已更新，請至組員班表確認。':'Sample message.'}
   return p}
 window.kgmMailPreviewR1023A=function(ev){S._mailPrevR1023A=ev;try{var old=document.getElementById('k23MailPrev');if(old)old.remove()}catch(_){}
