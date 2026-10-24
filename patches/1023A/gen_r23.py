@@ -94,9 +94,9 @@ RW('dossier services',"EJ(services.join(' · ')||'—')",
 
 # 1023A：管理員在航班動態選的機身要存檔（整年機隊重排會清掉窗期內的手動機身，重排完 k23 再套一次）—— r229 同步只認 save() 裡 LS.set 的寫法
 RW('tailpick init','cardBindR1022A:LS.get("kgm22_cards",[]),',
-   'cardBindR1022A:LS.get("kgm22_cards",[]),tailPickR1023A:LS.get("kgm23_tailpick",[]),')
+   'cardBindR1022A:LS.get("kgm22_cards",[]),tailPickR1023A:LS.get("kgm23_tailpick",[]),crewSwapR1023A:LS.get("kgm23_crewswap",[]),')
 RW('tailpick save','LS.set("kgm22_cards",S.cardBindR1022A||[]);',
-   'LS.set("kgm22_cards",S.cardBindR1022A||[]);LS.set("kgm23_tailpick",S.tailPickR1023A||[]);')
+   'LS.set("kgm22_cards",S.cardBindR1022A||[]);LS.set("kgm23_tailpick",S.tailPickR1023A||[]);LS.set("kgm23_crewswap",S.crewSwapR1023A||[]);')
 
 # 1023A：機隊依實際機身核對機型（0810J reconcile）會把人工換機紀錄覆寫成自動紀錄（manual 標記不見），重新整理後換機就失效 → 人工換機、機型相同就不覆寫
 RW('reconcile keep manual',"var rec=S.acftSub[key],changed=!rec||rec.sub!==tp||rec.route!==rt||rec.tail!==tail;",
@@ -161,6 +161,21 @@ RC('ai tools cancel query','kgm-0909E-r229',"    crew_swap:{tab:'sched',zh:'組�
    "    flight_cancel:{tab:'status',zh:'取消航班（text 放使用者原話，例如「取消10/23 03:00以後出發的航班」「取消今日所有航班」；第一次呼叫會列出符合的班並追問原因，之後把使用者的回答原樣放 text 再呼叫：原因 → 補償方案（1 退費／2 改搭）→ 確認）',run:function(a){return window.kgmAiCancelR1023A(a)}},   /* 1023A */\n"
    "    data_query:{tab:'status',any:true,zh:'查詢後台資料（q 放問題：班號＋日期、訂位代號、員工編號、機身、延誤／取消清單、案件）',run:function(a){return window.kgmAiQueryR1023A(a)}},   /* 1023A */\n"
    "    crew_swap:{tab:'sched',zh:'組員換班',run:function(a){return crewSwap(a)}},")
+
+# 1023A：AI 換班核准只對調那兩位、那幾班（使用者：「按下接受此方案就會整個系統死當…AI調整班表只會調整到有影響那兩個喔不會調整其他的喔 很重要 也只有調整那一些要改的航班而已」）
+#   引擎每天算好的計畫（MEM121）回傳前套用對調紀錄 S.crewSwapR1023A（就地換人，重複套用結果一樣）；核准時不再整段重排（原本一天 1.5～6 秒、還會改到其他人）
+RC('crew swap overlay a','kgm-0903b-r121',"  inval121(date);\n  if(MEM121[date])return MEM121[date];",
+   "  inval121(date);\n  if(MEM121[date])return ov23(MEM121[date]);")
+RC('crew swap overlay b','kgm-0903b-r121',"  PRESTAMP121=stampUpTo121(CURSOR121);\n  return MEM121[date];\n};",
+   "  PRESTAMP121=stampUpTo121(CURSOR121);\n  return ov23(MEM121[date]);\n};\nfunction ov23(p){try{return window.kgmCrewSwapApplyR1023A?window.kgmCrewSwapApplyR1023A(p):p}catch(_){return p}}   /* 1023A：AI 換班對調 */")
+RC('crew swap only two','kgm-0909E-r229',"    ok.sort(function(a,b){return (a.v||0)-(b.v||0)||(a.same||0)-(b.same||0)||a.n-b.n});ok=ok.slice(0,3);   /* 1022A */",
+   "    ok.sort(function(a,b){return (a.v||0)-(b.v||0)||(a.same||0)-(b.same||0)||a.n-b.n});var nAll23=ok.length;ok=ok.filter(function(c){return !c.n}).slice(0,3);   /* 1023A：只列兩個人對調就成立的方案（不能把別的班丟給其他人） */\n    if(!ok.length&&nAll23)return {text:z()?('有 '+nAll23+' 個方案，但都要把其中一些班丟給其他人接手（換班後休息不夠），不符合「只動這兩個人」。請換一天或換目的地。'):'Every option needs a third person.'};")
+RC('crew swap who','kgm-0909E-r229',"+'</small></div>'\n          +(o.n?'<div class=\"k6sw-n\">'",
+   "+'</small></div>'\n          +(window.kgmSwapWhoR1023A?window.kgmSwapWhoR1023A(X,((typeof st!=='undefined'&&st[X])||{}).name||X,o):'')   /* 1023A：寫員工編號、換成是誰、DH 的 PNR */\n          +(o.n?'<div class=\"k6sw-n\">'")
+RC('crew swap who b','kgm-0909E-r229',"+'</small></div>'\n        +(o.n?'<div class=\"k6sw-n\">'",
+   "+'</small></div>'\n        +(window.kgmSwapWhoR1023A?window.kgmSwapWhoR1023A(X,((typeof st!=='undefined'&&st[X])||{}).name||X,o):'')   /* 1023A */\n        +(o.n?'<div class=\"k6sw-n\">'")
+RC('crew swap only two 18','kgm-0909E-r229',"return ok.slice(0,3)};   /* 1022A：同一班飛過去的排後面 */",
+   "return ok.filter(function(c){return !c.n}).slice(0,3)};   /* 1022A：同一班飛過去的排後面；1023A：只留兩個人對調就成立的方案 */")
 
 # ══ 結尾 ══
 open('p_h_r23.js','w',encoding='utf-8').write('\n'.join(out)+'\n')

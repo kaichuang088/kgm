@@ -891,3 +891,92 @@ try{if(!document.getElementById('k23-css')){var st=document.createElement('style
     try{Object.keys(a0).forEach(function(k){if(!(k in w))w[k]=a0[k]})}catch(_){}w.__k23=1;window.kgmAdminAiAskR929=w}
   hook();setTimeout(hook,0);setTimeout(hook,3000);
 })();
+
+/* ══ 1023A：AI 換班（使用者：「換其他人(AI)要寫員工編號換成是誰 然後自己可能變成DH也要寫PNR出來 然後按下接受此方案就會整個系統死當…
+   AI調整班表只會調整到有影響那兩個喔不會調整其他的喔 很重要 也只有調整那一些要改的航班而已」）
+   · 方案卡片寫清楚：誰（員工編號）原本飛哪幾班 → 改由誰（員工編號）飛；兩人這幾天如果有 DH（調位）一併列出 PNR（kgmDhEnsureR1008A，行程管理查得到）。
+   · 核准＝把兩人那幾班對調寫進 S.crewSwapR1023A（排班引擎每天的計畫回傳前套用），只清畫面快取，不重排引擎 → 不卡、不動到別人。 ══ */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function E(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function D(d,n){try{return addDays(d,n)}catch(_){return d}}
+  function dhOf(id,from,to){var out=[];try{Object.keys(S.crewPositioningR121||{}).forEach(function(k){var p=k.split('|');if(p[0]<from||p[0]>to)return;(S.crewPositioningR121[k]||[]).forEach(function(x){if(x&&x.empId===id){var r=null;try{r=window.kgmDhEnsureR1008A?window.kgmDhEnsureR1008A(id,p[0],p[1],p[2],p[3]):null}catch(_){}out.push(p[0].slice(5)+' '+p[1]+' '+p[2]+'→'+p[3]+' DH'+(r&&r.pnr?'（PNR '+r.pnr+'）':''))}})})}catch(_){}return out}
+  window.kgmSwapWhoR1023A=function(X,xName,o){
+    var from=D(o.end,-14)<o.end?Object.keys(o.pins||{}).sort()[0]:o.end,to=o.end;
+    var dx=dhOf(X,from,D(to,1)),dy=dhOf(o.id,from,D(to,1));
+    return '<div class="k23-who"><div><b>'+E(xName)+'</b> <code>'+E(X)+'</code> 原本飛 <i>'+E(o.fromX||'—')+'</i> → 改由 <b>'+E(o.name)+'</b> <code>'+E(o.id)+'</code> 飛</div>'
+      +'<div><b>'+E(o.name)+'</b> <code>'+E(o.id)+'</code> 原本飛 <i>'+E(o.fromY||'—')+'</i> → 改由 <b>'+E(xName)+'</b> <code>'+E(X)+'</code> 飛</div>'
+      +((dx.length||dy.length)?'<div class="k23-dh">DH：'+dx.map(function(t){return E(X)+' '+E(t)}).concat(dy.map(function(t){return E(o.id)+' '+E(t)})).join('；')+'</div>':'<div class="k23-dh">'+(z()?'兩人這幾天都不需要 DH（調位）。':'No deadheading needed.')+'</div>')
+      +'<div class="k23-dh">'+(z()?'只對調這兩位、這幾班，其他組員不會變動。':'Only these two crew and these flights change.')+'</div></div>';
+  };
+  window.kgmCrewSwapApplyR1023A=function(p){
+    var L=S.crewSwapR1023A;if(!p||!L||!L.length||!p.flights)return p;var d=p.date;
+    L.forEach(function(r){if(r.d!==d)return;p.flights.forEach(function(f){if(f.code!==r.code||f.fr!==r.fr)return;
+      ['pilots','cabin'].forEach(function(k){(f[k]||[]).forEach(function(c){if(c&&c.empId===r.from){c.empId=r.to;c.name=r.toName||c.name;if(r.toSen!=null)c.seniority=r.toSen;c.swapR1023A=1}})})})});
+    return p;
+  };
+  function legs(pinsDay){return String(pinsDay||'').split('|').filter(function(x){return x&&x!=='__LAYOVER__'}).map(function(x){var q=x.split('@');return {code:q[0],fr:q[1]}})}
+  var APPR23=function(){
+    var r=S.crewAiR928;if(!r||!r.ok||r.approved)return;
+    var X=r.X.id,Y=r.Y.id,st={};(S.staff||[]).forEach(function(s){if(s)st[s.empId]=s});
+    var recs=[];Object.keys(r.pins||{}).forEach(function(d){var pd=r.pins[d]||{};
+      legs(pd[X]).forEach(function(l){recs.push({d:d,code:l.code,fr:l.fr,from:Y,to:X,toName:(st[X]||{}).name||r.X.name})});
+      legs(pd[Y]).forEach(function(l){recs.push({d:d,code:l.code,fr:l.fr,from:X,to:Y,toName:(st[Y]||{}).name||r.Y.name})})});
+    S.crewSwapR1023A=(S.crewSwapR1023A||[]).filter(function(x){return x&&x.d>=D(todayISO(),-7)}).concat(recs);
+    r.approved=true;r.approvedAt=new Date().toISOString();r.changed=2;
+    try{window.kgmPlanCacheClearR196&&window.kgmPlanCacheClearR196()}catch(_){}
+    var msg=function(a,b,fa,fb){return (z()?'【換班核准】':'[Swap approved] ')+r.date+'：你原本的 '+fa+' 改由 '+b+' 執飛；你改飛 '+fb+'。'};
+    try{notifyStaff(X,msg(X,r.Y.name+'（'+Y+'）',r.X.from,r.X.to))}catch(_){}try{notifyStaff(Y,msg(Y,r.X.name+'（'+X+'）',r.Y.from,r.Y.to))}catch(_){}
+    try{logAct('AI 換班核准',r.X.name+'（'+X+'）⇄ '+r.Y.name+'（'+Y+'）'+r.date+' · '+recs.length+' 段')}catch(_){}
+    S._crMsg928=(z()?'✓ 已核准：只對調 '+r.X.name+'（'+X+'）與 '+r.Y.name+'（'+Y+'）的 '+recs.length+' 段，其他組員不變，兩位已收到通知。':'Approved; only the two crew were changed.');
+    try{save()}catch(_){}try{render()}catch(_){}
+  };
+  /* r229 的組員工具在之後（畫面第一次畫組員頁時）才定義 kgmCrewAiApproveR928 → 不是自己就再換回來 */
+  function inst(){if(window.kgmCrewAiApproveR928!==APPR23)window.kgmCrewAiApproveR928=APPR23}
+  inst();[0,1500,5000,15000,40000,90000].forEach(function(ms){setTimeout(inst,ms)});
+  var rd=window.render;if(typeof rd==='function'&&!rd.__k23ap){var w=function(){inst();return rd.apply(this,arguments)};try{Object.keys(rd).forEach(function(k){if(!(k in w))w[k]=rd[k]})}catch(_){}w.__k23ap=1;window.render=w;try{render=w}catch(_){}}
+  var CSS='.k23-who{margin:8px 0;padding:10px 12px;border:1px solid #E1E8E3;border-radius:10px;background:#F7FAF8;font-size:12.5px;line-height:1.7;color:#24312C}.k23-who code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:#123C32;color:#fff;border-radius:5px;padding:1px 6px}.k23-who i{font-style:normal;color:#8A6A2E}.k23-dh{font-size:11.5px;color:#5F6B66;margin-top:2px}';
+  try{var st2=document.createElement('style');st2.textContent=CSS;(document.head||document.documentElement).appendChild(st2)}catch(_){}
+})();
+
+/* ══ 1023A：前台 AI 一般問題（使用者：「前台AI不能只會回答那些喔其他基本KGM的問題要能夠正確清楚的回答喔」）
+   原本自由輸入只有在「主選單」狀態回不出來時才查規章；在航班查詢／酬賓等模式下，問「行李可以帶多重」會被當成查航班的條件。
+   現在最外層先判斷是不是一般問題：行李、改退票、報到／登機時間、登機組別、會員與哩程、特殊協助、寵物、嬰兒、單獨旅行孩童、
+   危險物品、客服 → 用網站自己的規則資料（票價方案 FARES、規章 KGM_POLICY_DOCS_R914、登機組別）直接回答；其他問句再全文找規章；
+   都找不到才交回原本的流程（有連線 Claude 時由 Claude 回答）。真人客服對話中、選位模式不攔。 ══ */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function find(q){try{return (window.kgmFrontAiFindR1006A&&window.kgmFrontAiFindR1006A(q,2))||[]}catch(_){return []}}
+  function pol(q,n){var h=find(q)[0];if(!h)return '';var b=String(h.body||'');return (n?b.slice(0,n):b)+(b.length>(n||1e9)?'…':'')}
+  var CABS=[['Economy','經濟艙'],['Premium','豪華經濟艙'],['Business','商務艙'],['First','頭等艙']],FAM={Basic:'基本',Value:'超值',Deluxe:'豪華'};
+  function fareRows(field){var out=[];CABS.forEach(function(c){var seen={};Object.keys(FARES).forEach(function(k){var f=FARES[k];if(!f||f.cabin!==c[0]||!f.familyR48||seen[f.familyR48])return;seen[f.familyR48]=1;out.push('· '+c[1]+'「'+(FAM[f.familyR48]||f.familyR48)+'」：'+field(f))})});return out.join('\n')}
+  var T=[
+    [/行李|托運|託運|超重|幾公斤|多重|baggage|luggage|suitcase/i,function(){return '託運行李額度（依艙等與票價方案，每位旅客）：\n'+fareRows(function(f){return f.bagZH||f.bag||'—'})+'\n（經濟艙「基本」短程 1 件、4,500 公里以上長程 2 件。）\n\n手提行李：'+pol('手提行李 七公斤',140)+'\n超額或超重請在報到前於「行程管理」加購，櫃檯現場加購會寄付款通知到您的信箱。'}],
+    [/改票|退票|手續費|取消訂位|退款|change|refund/i,function(){return '改票／退票手續費（依票價方案，整筆訂位）：\n'+fareRows(function(f){return '改票 '+(f.chgZH||'—')+'、退票 '+(f.refZH||'—')})+'\n改票另補票價差額；可在「行程管理」自己改或退，航班被 KGM 取消時該航段票價與附加服務全額退回。'}],
+    [/報到|check.?in|幾點到機場|櫃檯.*(開|關)|截止/i,function(){return '報到：\n· 線上報到：起飛前 48 小時開始（需託運超額行李、特殊協助、攜帶動物或證件須現場查驗者請到櫃檯）。\n· 機場櫃檯：起飛前 60 分鐘截止，建議國際線提早 2.5～3 小時到機場。\n· 登機：起飛前 30 分鐘開始登機。\n'+(pol('報到截止',120)?('規章：'+pol('報到截止',120)):'')}],
+    [/登機.*(時間|幾點)|幾點登機|boarding time/i,function(){return '所有航班一律於起飛前 30 分鐘開始登機，請在登機證上的時間前到登機門。'}],
+    [/登機組別|優先登機|zone|priority boarding/i,function(){return '登機組別：頭等艙 PRIORITY → 商務艙與金卡／鑽石卡會員 ZONE 1 → 豪華經濟艙與經濟艙「豪華」方案 ZONE 2 → 經濟艙依座位排數由後往前 ZONE 3／4（A380、777-9 分 3／4／5）；員工票最後一組。銀卡沒有優先登機。'}],
+    [/會員|等級|升級|金卡|銀卡|鑽石|哩程怎麼|累積|miles?|tier|member/i,function(){return (pol('會員等級 資格 晉升',260)||'')+'\n\n哩程累積與兌換規則請見「規章 › 無限萬哩遊會員」；您的哩程餘額可以直接問我「我還有多少里程」。'}],
+    [/寵物|狗|貓|動物|pet/i,function(){return '寵物（犬、貓）可以，需於起飛前申請：'+pol('寵物 受理',300)}],
+    [/嬰兒|小孩|兒童|孩童|infant|child/i,function(){return pol('嬰兒 成人 攜帶',220)+'\n單獨旅行孩童（5–11 歲）須申請 UM 服務：'+pol('單獨旅行孩童',160)}],
+    [/輪椅|特殊協助|身障|視障|聽障|氧氣|擔架|懷孕|孕婦|wheelchair|assistance|pregnan/i,function(){var p=/懷孕|孕婦|pregnan/i.test(String(window.__k23q||''));return p?'懷孕 28–36 週需附 7 日內醫師開立的適航證明（含預產期），請於報到前上傳；36 週以上（多胞胎 32 週以上）不予受理搭乘。':('特殊協助申請時限：'+pol('申請時限 輪椅',300))}],
+    [/危險物品|行動電源|充電寶|鋰電池|打火機|battery|power bank/i,function(){return '行動電源與備用鋰電池只能放手提行李、不能託運：'+pol('行動電源 鋰電池',280)}],
+    [/客服|電話|聯絡|真人|agent|contact/i,function(){return '可以按對話視窗下方「轉真人客服」，客服會在這裡直接接手；也可以在「行程管理」查訂位或申請案件。'}]
+  ];
+  function looksSearch(t){return /\b[A-Z]{3}\b.*\b[A-Z]{3}\b|\d{1,2}\s*[\/月]\s*\d{1,2}|\b20\d\d-\d\d-\d\d\b|從.+到|飛往|去程|回程|來回|單程/.test(t)}
+  window.kgmFrontFaqR1023A=function(t){window.__k23q=t;for(var i=0;i<T.length;i++){if(T[i][0].test(t)){var a='';try{a=T[i][1]()}catch(_){a=''}if(a)return a}}
+    if(!looksSearch(t)&&/\?|？|嗎|怎麼|如何|可以|能不能|多少|什麼|哪裡|規定|政策|how|what|can i|policy/i.test(t)){try{var l=window.kgmFrontAiLocalR1006A?window.kgmFrontAiLocalR1006A(t):'';if(l)return l}catch(_){}}
+    return ''};
+  var MY=null;
+  function inst(){var o=window.kgmSendAi0819I;if(typeof o!=='function'||o===MY)return;
+    var w=function(){
+      try{var inp=document.getElementById('aiInput'),t=String(inp&&inp.value||'').trim(),c=S.aiConversation0819I;
+        var live=c&&c.csIdR1006A&&(S.csQueueR1006A||{})[c.csIdR1006A]&&/waiting|active/.test((S.csQueueR1006A||{})[c.csIdR1006A].status);
+        if(t&&!live&&!(c&&c.mode==='seat65')){var a=window.kgmFrontFaqR1023A(t);
+          if(a){inp.value='';if(!c||!c.messages){try{window.kgmRestartAi0819I()}catch(_){}c=S.aiConversation0819I}
+            var now=new Date().toISOString();c.messages.push({role:'user',text:t,at:now});c.messages.push({role:'assistant',text:a,at:now,srcR1023A:'faq'});c.done=true;
+            try{save()}catch(_){}try{window.drawAi0819I&&window.drawAi0819I()}catch(_){}return}}}catch(_){}
+      return o.apply(this,arguments)};
+    try{Object.keys(o).forEach(function(k){if(!(k in w))w[k]=o[k]})}catch(_){}MY=w;window.kgmSendAi0819I=w;try{window.sendAI=sendAI=w}catch(_){}}
+  inst();[0,1500,5000,15000,40000].forEach(function(ms){setTimeout(inst,ms)});
+})();
