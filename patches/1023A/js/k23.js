@@ -1073,6 +1073,7 @@ var ADD23=[
   {ev:'group.expired',who:'ext',zh:'團體報價／保留逾期失效',en:'Group quote or hold expired',when:'報價超過 72 小時，或訂金逾期自動釋位'},
   {ev:'group.declined',who:'ext',zh:'團體訂位無法承接',en:'Group request declined',when:'團體業務婉拒（附原因）'},
   {ev:'group.cancelled',who:'ext',zh:'團體訂位已取消',en:'Group booking cancelled',when:'團體業務取消並釋出座位'},
+  {ev:'baggage.rerouted',who:'ext',zh:'行李改運通知',en:'Baggage rerouted',when:'航班資料頁把托運行李改到別的航班（載重限制），寄給該訂位'},
   {ev:'internal.group_request',who:'int',zh:'團體訂位待處理（團體業務）',en:'Group desk action needed',when:'需要人工報價、接受報價、訂金逾期等，寄團體業務信箱並通知執行長'}
 ];
 window.KGM_MAIL_ADD_R1023A=ADD23;
@@ -1247,4 +1248,87 @@ var CSS='.k23-mp{position:fixed;inset:0;z-index:99999;background:rgba(12,24,19,.
   +'.k23-mp-box header button{border:0;background:#F1F4F2;border-radius:999px;width:32px;height:32px;font-size:18px;cursor:pointer}'
   +'.k23-mp-box iframe{flex:1;border:0;width:100%;background:#EEF1EF}';
 try{var st=document.createElement('style');st.id='k23-css-s';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}catch(_){}
+})();
+
+/* ══ 1023A C：行李改運（使用者：「後台要可以調整說某些行李調整到哪天哪個航班（然後如果超過payload要優先顯示經濟艙訂購基本的）」）══
+   航班資料頁載重平衡下方「行李改運」：列出這一班每一件托運行李（跟載重平衡同一個重量 bagKg7），勾選後改到同航線的某一天某一班。
+   ・超過 Payload（MZFW − ZFW < 0）時，經濟艙「基本」票價的行李排最前面並自動建議要改運幾件；其餘依經濟其他方案 → 豪經 → 商務／頭等。
+   ・改運紀錄 S.bagMovesR1023A（kgm23_bagmoves）：原航班載重平衡不再算這幾件，目的航班加進散貨艙（loadBalance7 同一份），Payload 跟著變。
+   ・通知旅客（baggage.rerouted）；可以取消改運。 */
+(function(){
+'use strict';
+function z(){try{return LANG!=='en'}catch(_){return true}}
+function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function A(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function N(n){return Number(n||0).toLocaleString('en-US')}
+function MV(){return S.bagMovesR1023A=S.bagMovesR1023A||[]}
+function live(m){return m&&!m.undone}
+window.kgmBagOutR1023A=function(code,date,fr,pid,i){var L=S.bagMovesR1023A;if(!L||!L.length)return false;for(var k=0;k<L.length;k++){var m=L[k];if(live(m)&&m.code===code&&m.date===date&&m.fr===fr&&m.pid===pid&&m.i===i)return true}return false};
+window.kgmBagInR1023A=function(code,date,fr){return (S.bagMovesR1023A||[]).filter(function(m){return live(m)&&m.toCode===code&&m.toDate===date&&m.fr===fr})};
+function fareOf(x){var c=String(x.fare||''),f=null;try{f=FARES[c]||null}catch(_){}return f}
+function rank(x){var f=fareOf(x),cab=x.cabin||(f&&f.cabin)||'Economy';
+  if(cab==='Economy'){var t=String(f&&(f.tierEN||f.tier)||'');if(/basic|基本/i.test(t))return 0;if(/value|超值/i.test(t))return 1;return 2}
+  if(cab==='Premium')return 3;return 4}
+function famName(r){return [z()?'經濟基本':'Economy Basic',z()?'經濟超值':'Economy Value',z()?'經濟其他':'Economy other',z()?'豪華經濟':'Premium',z()?'商務／頭等':'Business / First'][r]}
+function bags(f,date,m){var out=[],kg=window.kgmBagKgR1023A||function(){return 20};
+  (m||[]).forEach(function(x){if(!x||x.dhR929)return;var n=(+x.freeBags||0)+(+x.extraBags||0);
+    for(var i=0;i<n;i++){if(window.kgmBagOutR1023A(f.code,date,f.fr,x.id,i))continue;
+      out.push({pid:x.id,i:i,kg:kg(x.id,i),name:x.name||((x.last||'')+'/'+(x.first||'')),pnr:(x.booking&&x.booking.pnr)||x.pnr||'',fare:x.fare||'',cabin:x.cabin||'Economy',tier:x.tier||'',r:rank(x),tag:'KX'+String(Math.abs((String(x.id)+'#'+i).split('').reduce(function(h,c){return (h*31+c.charCodeAt(0))|0},7))%900000+100000)})}});
+  return out}
+function own(){return [].concat(typeof FLIGHTS!=='undefined'?FLIGHTS:[],S.customFlights||[]).filter(function(x){return x&&!x.partner&&!x.via})}
+function targets(f,date){var out=[];for(var d=0;d<=3;d++){var dt=addDays(date,d);own().forEach(function(x){if(x.fr!==f.fr||x.to!==f.to)return;if(d===0&&(x.code===f.code||String(x.dep)<=String(f.dep)))return;var ok=true;try{ok=flyOn(x,new Date(dt+'T12:00:00'))}catch(_){}if(!ok)return;
+  var sx=x;try{sx=(window.kgmSeasonFlightR48&&window.kgmSeasonFlightR48(x,dt))||x}catch(_){}var st=((S.flightOverrides||{})[x.code+'_'+dt]||{}).status;if(/cancel/i.test(String(st||'')))return;out.push({code:x.code,date:dt,dep:sx.dep,arr:sx.arr})})}
+  out.sort(function(a,b){return (a.date+a.dep).localeCompare(b.date+b.dep)});return out.slice(0,8)}
+function st(f,date){var k=f.code+'|'+date+'|'+f.fr,o=S._bagMvR1023A;if(!o||o.k!==k)o=S._bagMvR1023A={k:k,sel:{},to:''};return o}
+window.kgmBagSelR1023A=function(key,on){var o=S._bagMvR1023A;if(!o)return;if(on)o.sel[key]=1;else delete o.sel[key];var e=document.getElementById('k23bmN');if(e)e.textContent=Object.keys(o.sel).length;var w=document.getElementById('k23bmKg');if(w){var t=0;Object.keys(o.sel).forEach(function(k){t+=+(document.querySelector('[data-k23bm="'+k+'"]')||{dataset:{}}).dataset.kg||0});w.textContent=N(t)}};
+window.kgmBagToR1023A=function(v){if(S._bagMvR1023A)S._bagMvR1023A.to=v};
+window.kgmBagSuggestR1023A=function(keys){var o=S._bagMvR1023A;if(!o)return;o.sel={};String(keys||'').split(',').filter(Boolean).forEach(function(k){o.sel[k]=1});try{render()}catch(_){}};
+window.kgmBagMoveR1023A=function(code,date,fr,to){
+  var o=S._bagMvR1023A;if(!o)return;var keys=Object.keys(o.sel);var tgt=String(o.to||'').split('|');
+  if(!keys.length){alert(z()?'請先勾選要改運的行李':'Select bags first');return}
+  if(tgt.length<2){alert(z()?'請選擇要改到哪一天哪一班':'Choose the target flight');return}
+  var f=own().filter(function(x){return x.code===code&&x.fr===fr})[0]||{code:code,fr:fr,to:to};
+  var m=[];try{m=window.manifest7?window.manifest7(Object.assign({},f,{date:date}),date):[]}catch(_){}
+  var L=bags(f,date,m),pick=L.filter(function(b){return o.sel[b.pid+'#'+b.i]});if(!pick.length)return;
+  var who=(S.adminUser&&(S.adminUser.empId||S.adminUser.name))||'staff',at=new Date().toISOString(),byPnr={};
+  pick.forEach(function(b){MV().push({id:'BM'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),code:code,date:date,fr:fr,to:to,toCode:tgt[0],toDate:tgt[1],pid:b.pid,i:b.i,kg:b.kg,tag:b.tag,pnr:b.pnr,name:b.name,fare:b.fare,at:at,by:who});if(b.pnr)(byPnr[b.pnr]=byPnr[b.pnr]||[]).push(b)});
+  var told=0;Object.keys(byPnr).forEach(function(pnr){var bk=(S.bookings||[]).filter(function(x){return x&&x.pnr===pnr})[0];if(!bk)return;told++;var n=byPnr[pnr].length;
+    var msg=(z()?('您搭乘的 '+code+'（'+date+'）因載重限制，'+n+' 件托運行李（'+byPnr[pnr].map(function(b){return b.tag}).join('、')+'）將改由 '+tgt[0]+'（'+tgt[1]+'）運送至 '+to+'。抵達後請至 KGM 行李服務櫃檯辦理（可選擇送到府，不另收費）。造成不便，敬請見諒。'):('Due to weight limits, '+n+' checked bag(s) will travel on '+tgt[0]+' ('+tgt[1]+'). Please visit the KGM baggage service desk on arrival.'));
+    bk.notifs=bk.notifs||[];bk.notifs.unshift({msg:msg,date:todayISO(),read:false});
+    try{var em=bk.contactEmail||((bk.paxList||[])[0]||{}).email;if(em&&typeof kgmNotify==='function')Promise.resolve(kgmNotify('baggage.rerouted',{email:em,pnr:pnr,flight:code,date:date,message:msg,subject:(z()?'行李改運通知 ':'Baggage rerouted ')+code+' '+date})).catch(function(){})}catch(_){}});
+  try{window.kgmPayloadClearR1023A&&window.kgmPayloadClearR1023A()}catch(_){}
+  try{logAct('行李改運',code+' '+date+' → '+tgt[0]+' '+tgt[1]+' · '+pick.length+' 件 '+pick.reduce(function(s,b){return s+b.kg},0)+' kg')}catch(_){}
+  o.sel={};S._bagMvMsgR1023A=(z()?'✓ 已改運 ':'✓ Moved ')+pick.length+(z()?' 件到 ':' bags to ')+tgt[0]+' '+tgt[1]+(told?(z()?'，已通知 '+told+' 筆訂位':', '+told+' booking(s) notified'):(z()?'（這幾件是模擬旅客的行李，沒有訂位可通知）':' (simulated passengers, no booking to notify)'));try{save()}catch(_){}try{render()}catch(_){}};
+window.kgmBagUndoR1023A=function(id){var m=MV().filter(function(x){return x.id===id})[0];if(!m)return;m.undone=new Date().toISOString();try{window.kgmPayloadClearR1023A&&window.kgmPayloadClearR1023A()}catch(_){}S._bagMvMsgR1023A=z()?'已取消改運':'Move cancelled';try{save()}catch(_){}try{render()}catch(_){}};
+window.kgmBagMoveHtmlR1023A=function(f,date,m,t){
+  try{
+    var o=st(f,date),L=bags(f,date,m),pl=null;try{pl=window.kgmPayloadR1023A(f.code,date,f.fr,f.to)}catch(_){}
+    var left=pl&&isFinite(pl.left)?pl.left:null,over=left!=null&&left<0;
+    L.sort(function(a,b){return over?(a.r-b.r||b.kg-a.kg):(a.r-b.r||String(a.name).localeCompare(String(b.name)))});
+    var sug=[],need=over?-left:0,acc=0;if(over)L.forEach(function(b){if(acc<need&&b.r<=2){sug.push(b.pid+'#'+b.i);acc+=b.kg}});
+    var outs=MV().filter(function(x){return live(x)&&x.code===f.code&&x.date===date&&x.fr===f.fr}),ins=window.kgmBagInR1023A(f.code,date,f.fr);
+    var tg=targets(f,date);if(!o.to&&tg[0])o.to=tg[0].code+'|'+tg[0].date;
+    var grp={};L.forEach(function(b){(grp[b.r]=grp[b.r]||[]).push(b)});
+    var rows=Object.keys(grp).sort().map(function(r){return '<tr class="k23bm-g"><td colspan="6">'+E(famName(+r))+' · '+grp[r].length+(z()?' 件':' bags')+'</td></tr>'+grp[r].slice(0,r<=2?400:60).map(function(b){var k=b.pid+'#'+b.i;
+      return '<tr class="'+(sug.indexOf(k)>=0?'sug':'')+'"><td><input type="checkbox" data-k23bm="'+E(k)+'" data-kg="'+b.kg+'"'+(o.sel[k]?' checked':'')+' onchange="kgmBagSelR1023A(\''+A(k)+'\',this.checked)"></td><td>'+E(b.tag)+'</td><td>'+E(b.name)+(b.pnr?'<small>'+E(b.pnr)+'</small>':'')+'</td><td>'+E(b.fare)+'<small>'+E(b.cabin)+'</small></td><td>'+E(b.tier||'')+'</td><td>'+b.kg+' kg</td></tr>'}).join('')}).join('');
+    var tsel='<select class="inp" onchange="kgmBagToR1023A(this.value)">'+tg.map(function(x){var p2=null;try{p2=window.kgmPayloadR1023A(x.code,x.date,f.fr,f.to)}catch(_){}var v=x.code+'|'+x.date;return '<option value="'+E(v)+'"'+(v===o.to?' selected':'')+'>'+E(x.date+'　'+x.code+'　'+x.dep+'–'+x.arr)+(p2&&isFinite(p2.left)?(z()?'　Payload 餘 ':'　margin ')+N(Math.round(p2.left))+' kg':'')+'</option>'}).join('')+'</select>';
+    return '<section class="r7-ops-card k23bm"><div class="r7-kicker">BAGGAGE REROUTE · '+E(f.code)+' '+E(date)+'</div><h2>'+(z()?'行李改運':'Move checked bags to another flight')+'</h2>'
+      +'<div class="k23bm-top"><div class="'+(over?'bad':'')+'"><small>Payload '+(z()?'餘量':'margin')+'</small><b>'+(left==null?'—':N(Math.round(left))+' kg')+'</b><span>'+(over?(z()?'超出 '+N(Math.round(-left))+' kg':'over by '+N(Math.round(-left))+' kg'):(z()?'在限制內':'within limits'))+'</span></div>'
+        +'<div><small>'+(z()?'本班托運行李':'Bags on board')+'</small><b>'+L.length+'</b><span>'+N(L.reduce(function(s,b){return s+b.kg},0))+' kg</span></div>'
+        +'<div><small>'+(z()?'已改運出去／改進來':'Moved out / in')+'</small><b>'+outs.length+' / '+ins.length+'</b><span>'+N(outs.reduce(function(s,b){return s+b.kg},0))+' / '+N(ins.reduce(function(s,b){return s+b.kg},0))+' kg</span></div></div>'
+      +(over?'<div class="k23bm-warn"><b>'+(z()?'超過 Payload：經濟艙「基本」票價的行李排在最前面':'Over payload: Economy Basic bags are listed first')+'</b><span>'+(z()?'建議改運 '+sug.length+' 件（約 '+N(acc)+' kg）才能回到限制內。':'Suggest moving '+sug.length+' bags ('+N(acc)+' kg).')+'</span><button type="button" class="k23g-btn ghost" onclick="kgmBagSuggestR1023A(\''+A(sug.join(','))+'\')">'+(z()?'勾選建議的行李':'Select suggested')+'</button></div>':'')
+      +(S._bagMvMsgR1023A?'<div class="k23g-msg">'+E(S._bagMvMsgR1023A)+'</div>':'')
+      +'<div class="k23bm-bar"><span>'+(z()?'已選 ':'Selected ')+'<b id="k23bmN">'+Object.keys(o.sel).length+'</b>'+(z()?' 件・':' · ')+'<b id="k23bmKg">'+N(L.filter(function(b){return o.sel[b.pid+'#'+b.i]}).reduce(function(s,b){return s+b.kg},0))+'</b> kg</span><label>'+(z()?'改到':'Move to')+' '+(tg.length?tsel:'<em>'+(z()?'3 天內沒有同航線航班':'No flight within 3 days')+'</em>')+'</label>'
+        +'<button type="button" class="k23g-btn"'+(tg.length?'':' disabled')+' onclick="kgmBagMoveR1023A(\''+A(f.code)+'\',\''+A(date)+'\',\''+A(f.fr)+'\',\''+A(f.to)+'\')">'+(z()?'改運並通知旅客':'Move and notify')+'</button></div>'
+      +'<div class="k23bm-list"><table class="k23g-t"><thead><tr><th></th><th>'+(z()?'行李條碼':'Tag')+'</th><th>'+(z()?'旅客':'Passenger')+'</th><th>'+(z()?'票價／艙等':'Fare / cabin')+'</th><th>'+(z()?'會員':'Tier')+'</th><th>'+(z()?'重量':'Weight')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +((outs.length||ins.length)?'<div class="k23bm-log"><b>'+(z()?'改運紀錄':'Moves')+'</b>'+outs.map(function(x){return '<div>'+E(x.tag)+' '+E(x.name)+' '+x.kg+' kg → '+E(x.toCode+' '+x.toDate)+' <small>'+E(String(x.at).slice(0,16).replace('T',' '))+' '+E(x.by)+'</small> <button type="button" class="k23g-btn ghost" onclick="kgmBagUndoR1023A(\''+A(x.id)+'\')">'+(z()?'取消改運':'Undo')+'</button></div>'}).join('')
+        +ins.map(function(x){return '<div>'+E(x.tag)+' '+E(x.name)+' '+x.kg+' kg ← '+E(x.code+' '+x.date)+(z()?'（改運進來，算在散貨艙）':' (inbound, bulk hold)')+'</div>'}).join('')+'</div>':'')
+      +'</section>';
+  }catch(e){return ''}};
+var CSS='.k23bm h2{margin:2px 0 10px}.k23bm-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}.k23bm-top>div{border:1px solid #E3E8E5;border-radius:12px;padding:10px 12px;background:#fff}.k23bm-top small{display:block;font-size:11px;color:#7A857F;font-weight:700}.k23bm-top b{display:block;font-size:18px;color:#0B3D2E}.k23bm-top span{font-size:12px;color:#5F6B66}.k23bm-top .bad{border-color:#E8A6A0;background:#FDF2F1}.k23bm-top .bad b{color:#A3271C}'
+  +'.k23bm-warn{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:#FFF6E5;border:1px solid #F0C778;margin-bottom:10px;font-size:13px}.k23bm-warn b{color:#8A5A00}'
+  +'.k23bm-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 10px;font-size:13px}.k23bm-bar label{display:flex;gap:6px;align-items:center}.k23bm-bar select{min-width:300px}'
+  +'.k23bm-list{max-height:420px;overflow:auto;border:1px solid #E3E8E5;border-radius:12px}.k23bm-list thead th{position:sticky;top:0;background:#fff}.k23bm-g td{background:#F5F7F6;font-weight:800;color:#0B3D2E;font-size:12px}.k23bm tr.sug td{background:#FFF8E8}'
+  +'.k23bm-log{margin-top:10px;font-size:12.5px}.k23bm-log>div{padding:4px 0;border-bottom:1px solid #EEF1EF}.k23bm-log small{color:#8A948F}';
+try{var s2=document.createElement('style');s2.id='k23-css-bm';s2.textContent=CSS;(document.head||document.documentElement).appendChild(s2)}catch(_){}
 })();

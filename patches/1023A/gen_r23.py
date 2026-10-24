@@ -94,9 +94,9 @@ RW('dossier services',"EJ(services.join(' · ')||'—')",
 
 # 1023A：管理員在航班動態選的機身要存檔（整年機隊重排會清掉窗期內的手動機身，重排完 k23 再套一次）—— r229 同步只認 save() 裡 LS.set 的寫法
 RW('tailpick init','cardBindR1022A:LS.get("kgm22_cards",[]),',
-   'cardBindR1022A:LS.get("kgm22_cards",[]),tailPickR1023A:LS.get("kgm23_tailpick",[]),crewSwapR1023A:LS.get("kgm23_crewswap",[]),groupsR1023A:LS.get("kgm23_groups",[]),')
+   'cardBindR1022A:LS.get("kgm22_cards",[]),tailPickR1023A:LS.get("kgm23_tailpick",[]),crewSwapR1023A:LS.get("kgm23_crewswap",[]),groupsR1023A:LS.get("kgm23_groups",[]),bagMovesR1023A:LS.get("kgm23_bagmoves",[]),')
 RW('tailpick save','LS.set("kgm22_cards",S.cardBindR1022A||[]);',
-   'LS.set("kgm22_cards",S.cardBindR1022A||[]);LS.set("kgm23_tailpick",S.tailPickR1023A||[]);LS.set("kgm23_crewswap",S.crewSwapR1023A||[]);LS.set("kgm23_groups",S.groupsR1023A||[]);')
+   'LS.set("kgm22_cards",S.cardBindR1022A||[]);LS.set("kgm23_tailpick",S.tailPickR1023A||[]);LS.set("kgm23_crewswap",S.crewSwapR1023A||[]);LS.set("kgm23_groups",S.groupsR1023A||[]);LS.set("kgm23_bagmoves",S.bagMovesR1023A||[]);')
 
 # 1023A：機隊依實際機身核對機型（0810J reconcile）會把人工換機紀錄覆寫成自動紀錄（manual 標記不見），重新整理後換機就失效 → 人工換機、機型相同就不覆寫
 RW('reconcile keep manual',"var rec=S.acftSub[key],changed=!rec||rec.sub!==tp||rec.route!==rt||rec.tail!==tail;",
@@ -255,6 +255,15 @@ RW('group desk banner',"+(b?'<div class=\"j-booking-layout\">'+detailsJ(dossierB
    "+(b&&window.kgmGroupBannerR1023A?window.kgmGroupBannerR1023A(b):'')+(b?'<div class=\"j-booking-layout\">'+detailsJ(dossierBookingJ(b))")
 RW('group desk list',"    +(matches.length?'<div class=\"j-dossier\"><h3>'+(ZJ()?'請選擇這位會員的行程'",
    "    +(!b&&window.kgmGroupDeskHtmlR1023A?window.kgmGroupDeskHtmlR1023A():'')   /* 1023A：團體訂位 GROUP DESK */\n    +(matches.length?'<div class=\"j-dossier\"><h3>'+(ZJ()?'請選擇這位會員的行程'")
+
+# ══ C：行李改運 —— 載重平衡不算改運出去的行李、加上改運進來的（散貨艙）；航班資料頁載重平衡下方畫改運面板（k23） ══
+RC('bag move kg','kgm-r7-admin-ops',"function bagKg7(id,n){return 15+(H(String(id)+'#'+n)%9);}",
+   "function bagKg7(id,n){return 15+(H(String(id)+'#'+n)%9);}\n  window.kgmBagKgR1023A=bagKg7;   /* 1023A：行李改運用同一個重量 */")
+RC('bag move lb','kgm-r7-admin-ops',"      for(var i=0;i<n;i++){var w=bagKg7(x.id,i);Z[zn].n++;Z[zn].kg+=w;holdKg+=w;bagN++;}\n    });",
+   "      for(var i=0;i<n;i++){if(window.kgmBagOutR1023A&&window.kgmBagOutR1023A(f.code,date,f.fr,x.id,i))continue;var w=bagKg7(x.id,i);Z[zn].n++;Z[zn].kg+=w;holdKg+=w;bagN++;}   /* 1023A：改運出去的不算 */\n    });\n"
+   "    try{(window.kgmBagInR1023A?window.kgmBagInR1023A(f.code,date,f.fr):[]).forEach(function(q){Z.BULK.n++;Z.BULK.kg+=q.kg;holdKg+=q.kg;bagN++})}catch(_){}   /* 1023A：別班改運進來的放散貨艙 */")
+RC('bag move panel','kgm-r7-admin-ops',"+loadBalance7(f,date,m,t)+'<div class=\"r7-ops-work\">'",
+   "+loadBalance7(f,date,m,t)+(window.kgmBagMoveHtmlR1023A?window.kgmBagMoveHtmlR1023A(f,date,m,t):'')+'<div class=\"r7-ops-work\">'")
 
 # ══ 結尾 ══
 open('p_h_r23.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
