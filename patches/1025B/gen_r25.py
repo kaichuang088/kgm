@@ -121,7 +121,7 @@ RW('kx5 0005',"winter:['00:00','05:45',1]","winter:['00:05','05:50',1]",2)
 RW('kx5 reseed',"        if(o&&o.userR1012B)return;","        if(o&&o.userR1012B&&!(o.winter&&o.winter.dep==='00:00'))return;   /* 1025B：冬季 00:00 → 00:05 重新寫入 */")
 
 # ══ k25.js：接在 grp23 後面（r229 最後）══
-RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js')+JS('wind25.js')+JS('geo25.js').replace('/*GEO25*/null',open('geo/geo25.json',encoding='utf-8').read()).replace("/*TEX25*/''","'data:image/jpeg;base64,"+__import__('base64').b64encode(open('geo/tex/bm4096.jpg','rb').read()).decode()+"'")+JS('ap25.js')+JS('fd25.js'))
+RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js')+JS('wind25.js')+JS('geo25.js').replace('/*GEO25*/null',open('geo/geo25.json',encoding='utf-8').read()).replace("/*TEX25*/''","'data:image/jpeg;base64,"+__import__('base64').b64encode(open('geo/tex/bm4096.jpg','rb').read()).decode()+"'")+JS('ap25.js')+JS('fd25.js')+JS('grp25.js'))
 RC('dh card label','kgm-0907A-r196',"'DH PNR '+E(r.pnr)+(r.last?(z()?(' · '+E(r.last)+' / '+E(r.first||'')):","'DH PNR '+E(r.pnr)+(r.last?(z()?('<span style=\"display:block;font-weight:700\">姓 '+E(r.last)+'　名 '+E(r.first||'')+'</span>'):")   # 1025B：PNR 一行、姓名一行
 
 # ══ J：AI 換班「正在找…」→ 網頁無回應：要看的日子（例 12/03～12/04）還沒算好時，planOf 會一口氣同步從游標算到那天（每天約 1 秒，40 天就卡 40 秒）。
@@ -309,6 +309,15 @@ RC('sell54 payload','kgm-0823c-r54',"  var inv=cabinInventory54(flight,date,cab)
    "  /* 1025B R：飛行時間太長（冬季逆風、繞開關閉空域）載不了整架客滿 → 經濟艙可賣座位扣掉 Payload 限座的人數（kgmPaxCapR1025B） */\n"
    "  if(cab==='Economy'&&typeof window.kgmPaxCapR1025B==='function'){try{var pc25=window.kgmPaxCapR1025B(flight,date);if(pc25&&pc25.blocked>0)inv=Object.assign({},inv,{capacity:Math.max(0,inv.capacity-pc25.blocked),left:Math.max(0,inv.left-pc25.blocked),payloadBlockedR1025B:pc25.blocked})}catch(_){}}\n"
    "  var cap=inv.capacity;if(!cap||!inv.left)return 0;")
+
+# ══ A：團體訂位重做（js/grp25.js）—— 一般訂票流程加團體模式 ══
+RW('grp25 home tab',open('geo/_hometab_old.txt',encoding='utf-8').read(),open('geo/_hometab_new.txt',encoding='utf-8').read())
+RC('grp25 sell54','kgm-0823c-r54',"function sell54(code,date,flight){\n  if(!flight||!date)return 0;\n",
+   "window.KGM_FAM54_R1025B=FAM54;   /* 1025B A：團體模式要知道每艙「超值」第一個代號 */\nfunction sell54(code,date,flight){\n  if(!flight||!date)return 0;\n  /* 1025B A：團體模式每一艙只賣「團體」代號，數量＝整艙空位（扣 Payload 限座）；不是團體模式回 null 照舊 */\n  if(window.kgmGrpSellR1025B){var g25=window.kgmGrpSellR1025B(code,date,flight);if(g25!=null)return g25}\n")
+RW('grp25 pax note',"'+(LANG==='en'?'10 or more travellers? ':'10 位以上同行？')+'<a href=\"javascript:void 0\" onclick=\"S.paxPickerOpen=false;nav(\\'group23\\')\" style=\"color:var(--g);font-weight:800\">'+(LANG==='en'?'Group booking →':'團體訂位 →')+'</a></p></div>';   /* 1023A */",
+   "'+(LANG==='en'?'10 or more travellers? ':'10 位以上同行？')+(window.kgmGrpBoundR1025B&&window.kgmGrpBoundR1025B()?'<a href=\"javascript:void 0\" onclick=\"S.paxPickerOpen=false;kgmGrpModeR1025B(1)\" style=\"color:var(--g);font-weight:800\">'+(LANG==='en'?'Switch to group booking →':'切換到團體訂位 →')+'</a>':'<a href=\"javascript:void 0\" onclick=\"S.paxPickerOpen=false;kgmGrpAskAiR1025B()\" style=\"color:var(--g);font-weight:800\">'+(LANG==='en'?'Bind a group account with the AI assistant →':'請先由 AI 客服綁定團體帳號 →')+'</a>')+'</p></div>';   /* 1023A；1025B：團體要先綁定 */")
+
+RW('grp25 case type',"miles_claim:['里程補登','Missing miles claim']};   /* 1008A */","miles_claim:['里程補登','Missing miles claim'],group_account:['團體帳號綁定','Group account']};   /* 1008A；1025B：AI 客服綁定團體帳號 */")
 
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
