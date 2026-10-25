@@ -131,7 +131,7 @@ owWrap();setTimeout(owWrap,0);setTimeout(owWrap,3000);setTimeout(owWrap,12000);
 /* 旅客人數：團體模式 10–99（首頁訂票卡的人數選單改成直接輸入） */
 function pcWrap(){var O=window.passengerCounts;if(typeof O!=='function'||O.__grp25)return;
   var w=function(){if(!on())return O.apply(this,arguments);var s=S.search,a=Math.max(1,+s.adults||1),c=Math.max(0,+s.children||0),i=Math.max(0,+s.infants||0);if(a+c>MAXP)c=Math.max(0,MAXP-a);if(a>MAXP)a=MAXP;if(i>a)i=a;s.adults=a;s.children=c;s.infants=i;s.pax=a+c;return {adults:a,children:c,infants:i,seats:a+c,total:a+c+i}};
-  w.__grp25=1;window.passengerCounts=w;try{passengerCounts=w}catch(_){}}
+  try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__grp25=1;window.passengerCounts=w;try{passengerCounts=w}catch(_){}}
 pcWrap();setTimeout(pcWrap,0);setTimeout(pcWrap,3000);
 function ppWrap(){var O=window.paxPickerHTML;if(typeof O!=='function'||O.__grp25)return;
   var w=function(){if(!on())return O.apply(this,arguments);if(!S.paxPickerOpen)return '';var p=passengerCounts();
@@ -139,7 +139,7 @@ function ppWrap(){var O=window.paxPickerHTML;if(typeof O!=='function'||O.__grp25
     return '<div class="pax-pick-pop"><div class="pax-pick-head"><b>'+(z()?'團體人數':'Group size')+'</b><button onclick="S.paxPickerOpen=false;render()">×</button></div>'
       +row('adults','成人','Adults',z()?'12 歲以上':'12+')+row('children','兒童','Children',z()?'2–11 歲・成人票價 75%':'2–11 · 75%')+row('infants','嬰兒','Infants',z()?'未滿 2 歲・不佔位・每位成人 1 位':'under 2 · lap')
       +'<p>'+(z()?'團體 '+MINP+'–'+MAXP+' 位（成人＋兒童）；不到 '+MINP+' 位請切回一般訂票。':MINP+'–'+MAXP+' travellers')+'</p></div>'};
-  w.__grp25=1;window.paxPickerHTML=w;try{paxPickerHTML=w}catch(_){}}
+  try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__grp25=1;window.paxPickerHTML=w;try{paxPickerHTML=w}catch(_){}}
 ppWrap();setTimeout(ppWrap,0);setTimeout(ppWrap,3000);
 window.kgmGrpPaxR1025B=function(k,v){var n=Math.max(0,Math.min(MAXP,Math.round(+v||0)));S.search[k]=n;if(k==='adults'&&n<1)S.search.adults=1;passengerCounts();S.openFare=null;try{render()}catch(_){}};
 /* 搜尋前檢查人數 */
@@ -165,7 +165,7 @@ function pvWrap(){var O=window.paxView;if(typeof O!=='function'||O.__grp25)retur
       +'<div class="k25g-pay"><div><small>'+(z()?'付款':'Payment')+'</small>'+(du.late?'<b>'+(z()?'出發前 14 天內：訂位時一次付清':'Within 14 days: pay in full')+'</b>':'<b>'+(z()?'訂位時付訂金 10%，尾款最晚 ':'Deposit 10% now, balance by ')+E(du.balance)+'</b><span>'+(z()?'尾款付款連結訂位後立即寄出，未付清前每 7 天提醒一次；逾期未付自動取消並釋出座位（訂金不退）。':'Balance link is sent immediately and reminded weekly.')+'</span>')+'</div>'
       +'<div><small>'+(z()?'團體票規':'Group fare rules')+'</small><b>'+(z()?'改票／退票手續費＝該艙「超值」× 0.75':'Change / refund fee = cabin Value fee × 0.75')+'</b><span>'+(z()?'開票後一位旅客一個 PNR，各自報到、改票。':'One PNR per traveller after ticketing.')+'</span></div></div>'
       +'<div class="k25g-act"><button class="btn btn-o" onclick="S.phase=\''+(S.search.type==='RT'?'sel_inb':'sel_out')+'\';render()">'+(z()?'← 返回選航班':'← Back')+'</button><button class="btn btn-g" onclick="kgmGrpPaxNextR1025B()">'+(z()?'下一步：確認訂位':'Continue')+'</button></div></div>'};
-  w.__grp25=1;window.paxView=w;try{paxView=w}catch(_){}}
+  try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__grp25=1;window.paxView=w;try{paxView=w}catch(_){}}
 pvWrap();setTimeout(pvWrap,0);setTimeout(pvWrap,3000);setTimeout(pvWrap,12000);
 window.kgmGrpPaxNextR1025B=function(){var d=draft(),a=acct(),p=passengerCounts();if(!String(d.name||'').trim()){alert(z()?'請填團名。':'Enter the group name.');return}
   var L=[];for(var i=0;i<p.seats;i++){var chd=i>=p.adults;L.push({title:'',lastName:'TBA',firstName:(chd?'CHD':'ADT')+('0'+(i+1)).slice(-2),passengerType:chd?'CHD':'ADT',email:i===0?a.contact.email:'',phone:i===0?a.contact.phone:'',groupNameTbaR1023A:true})}
@@ -175,7 +175,7 @@ window.kgmGrpPaxNextR1025B=function(){var d=draft(),a=acct(),p=passengerCounts()
 function payWrap(){var O=window.payView;if(typeof O!=='function'||O.__grp25)return;
   var w=function(){var h=O.apply(this,arguments);if(!on())return h;var tot=0,cur='TWD';try{var q=journeyPrice();tot=q.total||q.grand||q.amount||0;cur=journeyCurr()}catch(_){}var du=dues(firstDate()),dep=du.late?tot:Math.round(tot*DEP);
     return '<div class="k25g-paynote"><b>'+(z()?'團體訂位付款':'Group payment')+'</b><span>'+(du.late?(z()?'出發前 14 天內訂位，本次付清全額。':'Paying in full.'):(z()?'本次信用卡只扣訂金 ':'Card charged deposit ')+'<b>'+M(dep,cur)+'</b>'+(z()?'（10%）；尾款 ':'; balance ')+'<b>'+M(tot-dep,cur)+'</b>'+(z()?' 最晚 '+du.balance+' 前付清，付款連結訂位後立即寄出。':' due '+du.balance))+'</span></div>'+h};
-  w.__grp25=1;window.payView=w;try{payView=w}catch(_){}}
+  try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__grp25=1;window.payView=w;try{payView=w}catch(_){}}
 payWrap();setTimeout(payWrap,0);setTimeout(payWrap,3000);
 /* 訂位成立 → 團體紀錄＋尾款請款，直接到整團劃位 */
 function doPayWrap(){var O=window.doPay;if(typeof O!=='function'||O.__grp25)return;
@@ -278,8 +278,8 @@ window.kgmGrpTickR1025B=tick;setTimeout(tick,11000);setInterval(function(){try{i
 /* ── 改票／退票手續費 × 0.75（團體票，訂位上帶 groupR1025B） ── */
 function curBk(){try{return S.mgResult||(S.chgPnr&&bk(S.chgPnr))||(S.seatChangePnr&&bk(S.seatChangePnr))||null}catch(_){return null}}
 function feeWrap(){
-  var C=window.changeFeeOf;if(typeof C==='function'&&!C.__grp25){var w=function(k){var v=C.apply(this,arguments),b=window.__grp25raw?null:curBk();if(b&&b.groupR1025B&&v>0)return Math.round(v*FEE);return v};w.__grp25=1;window.changeFeeOf=w;try{changeFeeOf=w}catch(_){}}
-  var R=window.refundPolicyOf;if(typeof R==='function'&&!R.__grp25){var w2=function(k){var v=R.apply(this,arguments),b=window.__grp25raw?null:curBk();if(b&&b.groupR1025B&&v&&v.fee>0)return Object.assign({},v,{fee:Math.round(v.fee*FEE),groupR1025B:1});return v};w2.__grp25=1;window.refundPolicyOf=w2;try{refundPolicyOf=w2}catch(_){}}}
+  var C=window.changeFeeOf;if(typeof C==='function'&&!C.__grp25){var w=function(k){var v=C.apply(this,arguments),b=window.__grp25raw?null:curBk();if(b&&b.groupR1025B&&v>0)return Math.round(v*FEE);return v};try{Object.keys(C).forEach(function(k){if(!(k in w))w[k]=C[k]})}catch(_){}w.__grp25=1;window.changeFeeOf=w;try{changeFeeOf=w}catch(_){}}
+  var R=window.refundPolicyOf;if(typeof R==='function'&&!R.__grp25){var w2=function(k){var v=R.apply(this,arguments),b=window.__grp25raw?null:curBk();if(b&&b.groupR1025B&&v&&v.fee>0)return Object.assign({},v,{fee:Math.round(v.fee*FEE),groupR1025B:1});return v};try{Object.keys(R).forEach(function(k){if(!(k in w2))w2[k]=R[k]})}catch(_){}w2.__grp25=1;window.refundPolicyOf=w2;try{refundPolicyOf=w2}catch(_){}}}
 feeWrap();setTimeout(feeWrap,0);setTimeout(feeWrap,3000);setTimeout(feeWrap,12000);
 function feeTxt(cab){var f=fam()||{},v=f[cab]&&f[cab].Value&&f[cab].Value[0],c=null,r=null;window.__grp25raw=1;   /* 跟改票／退票實際扣的同一支（changeFeeOf、refundPolicyOf），乘 0.75 */
   try{c=window.changeFeeOf(v);var p=window.refundPolicyOf(v);r=p&&p.allowed?p.fee:null}catch(_){}finally{window.__grp25raw=0}
@@ -374,7 +374,7 @@ function viewWrap(){var O=window.kgmGroupViewR1023A;if(typeof O!=='function'||O.
     var v=S.grpViewR1023A,g=v?G().filter(function(x){return x.id===v.id&&x.kind==='v25'})[0]:null;
     if(g)return '<div class="k25g">'+detailV25(g)+'</div>';
     return '<div class="k25g"><div class="k25top"><div class="k25top-r"><div><small class="k25eyebrow">GROUP TRAVEL</small><h1>'+(z()?'我的團體訂位':'My group bookings')+'</h1><p>'+E(a.company)+' · '+E(typeName(a.type))+' · '+(z()?'統編 ':'Tax ID ')+E(a.taxId)+' · '+(z()?'綁定案件 ':'Case ')+E(a.caseNo)+'</p></div><button type="button" class="k25g-btn" onclick="nav(\'home\');setTimeout(function(){kgmGrpModeR1025B(1)},50)">'+(z()?'＋ 新的團體訂位':'＋ New booking')+'</button></div></div>'+list()+'</div>'};
-  w.__grp25=1;window.kgmGroupViewR1023A=w}
+  try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__grp25=1;window.kgmGroupViewR1023A=w}
 viewWrap();setTimeout(viewWrap,0);setTimeout(viewWrap,3000);
 
 /* ── 後台「團體訂位」頁重做 ── */
@@ -424,7 +424,7 @@ function deskWrap(){var O=window.kgmGroupDeskPageR1023A;if(typeof O!=='function'
   var w=function(){var pm='use';try{pm=window.kgmPermR123?window.kgmPermR123('groups23'):'use'}catch(_){}if(pm==='none')return O.apply(this,arguments);
     var old=G().some(function(g){return g.kind!=='v25'});
     return '<div class="k23gp">'+admDesk()+(old?'<details class="k25gd-old"><summary>'+(z()?'1023A 舊版團體申請（報價制）':'Earlier quote-based requests')+'</summary>'+(window.kgmGroupDeskHtmlR1023A?window.kgmGroupDeskHtmlR1023A():'')+'</details>':'')+'</div>'};
-  w.__grp25=1;window.kgmGroupDeskPageR1023A=w}
+  try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__grp25=1;window.kgmGroupDeskPageR1023A=w}
 deskWrap();setTimeout(deskWrap,0);setTimeout(deskWrap,3000);
 
 /* ── 前台選單「團體訂位」：沒有綁定就不顯示 ── */

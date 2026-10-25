@@ -319,5 +319,9 @@ RW('grp25 pax note',"'+(LANG==='en'?'10 or more travellers? ':'10 位以上同�
 
 RW('grp25 case type',"miles_claim:['里程補登','Missing miles claim']};   /* 1008A */","miles_claim:['里程補登','Missing miles claim'],group_account:['團體帳號綁定','Group account']};   /* 1008A；1025B：AI 客服綁定團體帳號 */")
 
+# ══ vfy2d P3：r64（0823J）每次重畫 AI 視窗都把空位表換成舊版 k64 —— 連 0920F 新版（照使用者參考圖）也被換掉，換不換看有沒有多一次重畫（1025A 也會，只是比較少遇到）══
+RC('ai avail keep 920F','kgm-0823j-r64',"      if(String(m.text||'').indexOf('kgm-i-matrix')<0&&!isNone)continue;",
+   "      if(String(m.text||'').indexOf('data-k920f')>=0)return;   /* 1025B：0920F 新版空位表（參考圖格式）不換成這一層的舊版 */\n      if(String(m.text||'').indexOf('kgm-i-matrix')<0&&!isNone)continue;")
+
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

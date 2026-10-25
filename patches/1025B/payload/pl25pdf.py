@@ -41,12 +41,12 @@ def deco(c, doc):
     c.setFillColor(colors.white); c.setFont('CJK', 12); c.drawString(14 * mm, H - 10.5 * mm, 'KGM AIRWAYS')
     c.setFillColor(colors.HexColor('#E9C46A')); c.setFont('CJK', 10); c.drawString(48 * mm, H - 10.5 * mm, '每班 Payload 限座表  ·  2026／27 冬季與 2027 夏季')
     c.setFillColor(MUT); c.setFont('CJK', 7.5)
-    c.drawString(14 * mm, 8 * mm, '1025B · 資料來源：網站 kgmPaxCapR1025B（販售系統 sell54 用同一支計算）')
+    c.drawString(14 * mm, 8 * mm, '1026A · 資料來源：網站 kgmPaxCapR1025B（販售系統 sell54 用同一支計算）')
     c.drawRightString(W - 14 * mm, 8 * mm, '第 %d 頁' % doc.page)
     c.restoreState()
 
 doc = BaseDocTemplate(out, pagesize=landscape(A4), leftMargin=14 * mm, rightMargin=14 * mm, topMargin=22 * mm, bottomMargin=14 * mm,
-                      title='KGM Airways Payload 限座表 1025B', author='KGM Airways')
+                      title='KGM Airways Payload 限座表 1026A', author='KGM Airways')
 doc.addPageTemplates([PageTemplate(id='p', frames=[Frame(14 * mm, 14 * mm, W - 28 * mm, H - 36 * mm, id='f')], onPage=deco)])
 S = []
 
