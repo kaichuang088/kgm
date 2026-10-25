@@ -91,5 +91,22 @@ RC('gnd reserve early','kgm-0907A-r194',"  people.forEach(function(P){if(!P.off&
 RC('gnd headcount','kgm-0907A-r194',"var GTARGET8=492,   /* 1012A：1～2 班的櫃檯 5 人、3 班 7 人、換班別那天排休：桃園 444＋松山 48 */",
    "var GTARGET8=525,   /* 1012A：1～2 班的櫃檯 5 人、3 班 7 人、換班別那天排休：桃園 444＋松山 48；1026B：週日清晨（週休多、早班輪到的人少）櫃檯與登機門排不滿，桃園加到 477（實測 28 天、開三次頁都沒有低於最少人力） */")
 
+# ══ 5：Residence 競標面板（行程管理）—— 原本重畫後 40／200／700 毫秒才掛上去，背景排班佔住主執行緒時會晚 1 秒以上（vfy6 H32 偶發）；重畫完先立刻掛一次 ══
+RC('927d mount now','kgm-0907B-r182',"    [40,200,700].forEach(function(ms){setTimeout(mountTrip927D,ms)});",
+   "    try{mountTrip927D()}catch(_){}   /* 1026B：先立刻掛一次（外層重畫洗掉的話，下面幾次會再掛回來） */\n    [40,200,700].forEach(function(ms){setTimeout(mountTrip927D,ms)});")
+
+# ══ 6：寄信事件清單補上 1025B 團體訂位重做後新寄的 5 種信（網站實際會寄、清單沒列），名單提醒時間改成實際的 7／3／1／0 天；
+#    航班時刻異動（flight.changed）的寄送時機補上避戰航路延遲抵達（1025B 起用同一個事件寄；1026B 輪擋彈性是讀取時套用、不寄信）
+RW('mail flight.changed',"when:'班表調整影響到已開票旅客'}","when:'班表調整影響到已開票旅客；避戰航路起飛前 48 小時延遲抵達通知也用這個事件'}")
+RW('mail names when',"when:'名單期限前 3 天仍未齊全'}","when:'名單期限前 7／3／1 天與當天仍未齊全（團體業務也可手動寄）'}")
+RW('mail group 1025B',"Group booking cancelled',when:'團體業務取消並釋出座位'},",
+   "Group booking cancelled',when:'團體業務取消並釋出座位'},\n"
+   "  /* 1026B：1025B 團體訂位重做後新寄的信 */\n"
+   "  {ev:'group.account_bound',who:'ext',zh:'團體帳號已綁定（案件號）',en:'Group account activated',when:'AI 客服依案件號完成旅行社帳號綁定，可開始團體訂位'},\n"
+   "  {ev:'group.booked',who:'ext',zh:'團體訂位成立・訂金收據與尾款／名單期限',en:'Group booked · deposit received',when:'團體訂位付完訂金成立（寫明尾款與名單期限，請先整團劃位）'},\n"
+   "  {ev:'group.balance_reminder',who:'ext',zh:'團體尾款付款提醒（附付款連結）',en:'Group balance reminder',when:'尾款期限（最慢起飛前 14 天）前每 7 天一次，剩 3 天、1 天再寄；團體業務也可手動寄'},\n"
+   "  {ev:'group.balance_paid',who:'ext',zh:'團體尾款已收到',en:'Group balance received',when:'尾款付款完成；名單齊全後自動開票'},\n"
+   "  {ev:'group.reduced',who:'ext',zh:'團體人數減少・尾款更新',en:'Group size reduced',when:'旅行社減少人數（最多 3 位），寫明剩餘人數與新尾款'},")
+
 open('p_h_r26.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

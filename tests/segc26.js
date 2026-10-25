@@ -1,0 +1,10 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext()).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file:///tmp/j/'+process.argv[2],{waitUntil:'domcontentloaded'});await p.waitForTimeout(18000);
+const r=await p.evaluate(()=>{const td=todayISO();let n=0,bad=[],via=0;const own=FLIGHTS.filter(f=>f&&!f.partner&&/^KX\d+$/.test(f.code));
+ (S.bookings||[]).filter(b=>b&&b.status!=='cancelled').slice(0,4000).forEach(b=>{let L=[];try{L=segs7(b,true)}catch(_){return}L.forEach(s=>{const f=s.f;if(!f||f.partner||!/^KX\d+$/.test(f.code)||!s.date||s.date<td)return;
+   const rows=own.filter(x=>x.code===f.code&&x.fr===f.fr&&x.to===f.to&&!x.via);if(!rows.length)return;n++;if(s.through)via++;
+   const ok=rows.some(x=>{const q=kgmSeasonFlightR48(x,s.date);return q.dep===f.dep&&q.arr===f.arr});
+   if(!ok&&bad.length<12){const q=kgmSeasonFlightR48(rows[0],s.date);bad.push(b.pnr+' '+s.date+' '+f.code+' '+f.fr+f.to+' seg '+f.dep+'-'+f.arr+' season '+q.dep+'-'+q.arr+(s.through?' via':''))}})});
+ return {n,via,bad}});
+console.log(process.argv[2],JSON.stringify(r,null,1),errs.slice(0,2));await b.close()})();
