@@ -114,7 +114,7 @@ RW('kx5 0005',"winter:['00:00','05:45',1]","winter:['00:05','05:50',1]",2)
 RW('kx5 reseed',"        if(o&&o.userR1012B)return;","        if(o&&o.userR1012B&&!(o.winter&&o.winter.dep==='00:00'))return;   /* 1025B：冬季 00:00 → 00:05 重新寫入 */")
 
 # ══ k25.js：接在 grp23 後面（r229 最後）══
-RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js'))
+RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js')+JS('wind25.js'))
 RC('dh card label','kgm-0907A-r196',"'DH PNR '+E(r.pnr)+(r.last?(z()?(' · '+E(r.last)+' / '+E(r.first||'')):","'DH PNR '+E(r.pnr)+(r.last?(z()?('<span style=\"display:block;font-weight:700\">姓 '+E(r.last)+'　名 '+E(r.first||'')+'</span>'):")   # 1025B：PNR 一行、姓名一行
 
 # ══ J：AI 換班「正在找…」→ 網頁無回應：要看的日子（例 12/03～12/04）還沒算好時，planOf 會一口氣同步從游標算到那天（每天約 1 秒，40 天就卡 40 秒）。
@@ -209,6 +209,28 @@ RC('r196 bg step','kgm-0907A-r196',"window.kgmRosterReadyR196=function(){return 
    "window.kgmRosterReadyR196=function(){return READY196};\n"
    "/* 1025B：背景（cw25）組員引擎算完 60 天後，在瀏覽器空檔一天一天把班表索引也補好 —— 進「組員班表」就是 60/60，不用停在那一頁等 */\n"
    "window.kgmRosterStepR196=function(){if(READY196<DAYS196&&window.KGM_ROT_FINAL_R913&&window.KGM_FULLDONE_1006A)buildStep196();return READY196};")
+
+# ══ D：冬季飛行時間每一班各自算（js/wind25.js）══
+RW('wind flight',"    var w=window.kgmWindDeltaR1023A(f.fr,f.to),off=0,dep=mn(x.dep);",
+   "    var wf25=null;try{wf25=window.kgmWindFlightR1025B&&window.kgmWindFlightR1025B(f,x,su,bs,date)}catch(_){}   /* 1025B：每一班依航路高空風、機型速度、起降時段算 */\n"
+   "    var w=wf25?wf25.w:window.kgmWindDeltaR1023A(f.fr,f.to),off=0,dep=mn(x.dep);\n"
+   "    /* 1025B：同一班號的前一段（同一架飛機）冬季落地後，地面時間要跟夏季一樣夠（60～90 分）；不夠就把這一段起飛往後挪（KX54 墨爾本冬季原本只剩 35 分 → 機隊排班拆機） */\n"
+   "    var sh25=0;try{sh25=gt25(o0,f,date,x)}catch(_){}if(sh25>0){dep+=sh25;x=Object.assign({},x,{dep:hm(dep),gtShiftR1025B:sh25})}")
+RW('wind flight c',"    var c={arr:hm(a),dd:Math.floor(a/1440),windR1023A:w};","    var c={dep:x.dep,gtShiftR1025B:x.gtShiftR1025B||0,arr:hm(a),dd:Math.floor(a/1440),windR1023A:w,windAirR1025B:wf25?wf25.air:null,windGndR1025B:wf25?wf25.gnd:null};")
+RW('wind flight key',"    var k=[f.code,f.fr,f.to,f.dep,date.slice(0,7),x.dep,x.arr,x.dd].join('|'),mm=MEMO[k];","    var k=[f.code,f.fr,f.to,f.dep,date.slice(0,7),x.dep,x.arr,x.dd,x.acft||'',window.kgmWindFlightR1025B?'n':'o'].join('|'),mm=MEMO[k];")
+RW('wind route sea',"    try{var x=window.kgmSeasonFlightR48(f,date);if(x&&x.dep){r.dep=x.dep;r.arr=x.arr;r.dd=x.dd}}catch(_){}","    try{var x=window.kgmSeasonFlightR48(f,date);if(x&&x.dep){r.dep=x.dep;r.arr=x.arr;r.dd=x.dd;r.wa=x.windAirR1025B;r.wg=x.windGndR1025B}}catch(_){}")
+RW('wind route label',"+(dl&&!wi.off?'<u>'+(dl>0?'+':'')+dl+(z()?' 分':' min')+'</u>':'')","+(dl&&!wi.off?'<u'+(wi.wa!=null?' title=\"'+(z()?('高空風 '+(wi.wa>0?'+':'')+wi.wa+' 分・起降時段／除冰 '+(wi.wg>0?'+':'')+wi.wg+' 分'):('Winds '+wi.wa+' min · ground '+wi.wg+' min'))+'\"':'')+'>'+(dl>0?'+':'')+dl+(z()?' 分':' min')+'</u>':'')")
+
+RW('wind 03 nearest',"    if(in3(a)){var sg=w>0?1:-1,ok=false;for(var e=5;e<=20&&!ok;e+=5){if(!in3(at(w+sg*e))){w+=sg*e;ok=true}}if(!ok){var m=((a%1440)+1440)%1440;w-= (m-175)}a=at(w)}",
+   "    if(in3(a)){var m3=((a%1440)+1440)%1440,up3=240-m3,dn3=m3-175;w+=(up3<=dn3?up3:-dn3);a=at(w)}   /* 1025B：落在 03 點就挪到較近的 04:00 或 02:55（原本先往同方向推 20 分、推不出去就退到 02:55 —— KX20 成田→檀香山冬季因此比夏季快 90 分） */")
+RW('wind gt fn',"  var MEMO={};\n  function adj(o0,f,date,x){",
+   "  var MEMO={};\n"
+   "  function sg25(v){v=((v%1440)+1440)%1440;return v>720?v-1440:v}\n"
+   "  function gt25(o0,f,date,x){var P=[].concat(FLIGHTS,S.customFlights||[]).filter(function(y){return y&&!y.via&&!y.partner&&y.code===f.code&&y.to===f.fr&&y.fr!==f.to})[0];if(!P)return 0;\n"
+   "    var su=o0(f,sumDate(date)),ps=o0(P,sumDate(date));if(!su||!ps||!su.dep||!ps.arr)return 0;var gs=sg25(mn(su.dep)-mn(ps.arr));if(gs<0||gs>360)return 0;\n"
+   "    var p0=o0(P,date),p1=adj(o0,P,date,p0);if(!p1||!p1.arr)return 0;var need=Math.max(60,Math.min(90,gs)),gw=sg25(mn(x.dep)-mn(p1.arr));if(gw<-360||gw>360)return 0;\n"
+   "    return gw<need?Math.ceil((need-gw)/5)*5:0}\n"
+   "  function adj(o0,f,date,x){")
 
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')

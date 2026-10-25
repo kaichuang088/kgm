@@ -130,7 +130,7 @@ for pno in range(doc.page_count):
         fl = None; rb = fitz.Rect(b['spans'][0]["bbox"])
         for g in pg.get_drawings():
             gr = g["rect"]
-            if g.get("fill") and gr.x0 <= rb.x0 and gr.x1 >= rb.x1 and gr.y0 <= rb.y0 and gr.y1 >= rb.y1 and gr.height < 26: fl = g["fill"]
+            if g.get("fill") and sum(g["fill"]) < 2.4 and gr.x0 <= rb.x0 and gr.x1 >= rb.x1 and gr.y0 <= rb.y0 and gr.y1 >= rb.y1 and gr.height < 26: fl = g["fill"]   # 1025B：排除淺色框（同一位置的米白色底框會被誤取 → 白字蓋在米白上變成白框）
         assert fl, ('band fill', pno + 1, b['text'])
         b['fill'] = fl
         for u in b['spans']:
