@@ -96,7 +96,14 @@ RC('stamp full2','kgm-0903b-r121',"      h=(h*31+c)|0;\n    }\n    return h;"," 
 # ══ H⑦：機隊整年重排做完之前，組員排班引擎一律不算（實測提早點開組員班表，即使所有輸入都相同，結果從第 4 天起仍會分岔 —— 有依查詢順序累積的狀態）。
 #    之前呼叫只回「準備中」的空班表，組員班表頁顯示進度。══
 RC('crew gate plan','kgm-0903b-r121',"window.kgmCrewPlanR121=function(date){\n  date=date||T();",
-   "window.kgmCrewPlanR121=function(date){\n  date=date||T();\n  if(!window.KGM_FULLDONE_1006A)return {date:date,sig:'pending',flights:[],standby:[],violations:[],pilotsUsed:0,pendingR1025B:true};   /* 1025B：機隊排完才算 */")
+   "window.kgmCrewPlanR121=function(date){\n  date=date||T();\n  if(!window.KGM_FULLDONE_1006A)return {date:date,sig:'pending',flights:[],standby:[],violations:[],pilotsUsed:0,pendingR1025B:true};   /* 1025B：機隊排完才算 */\n"
+   "  if(before121(date))return {date:date,sig:'before',flights:[],standby:[],violations:[],pilotsUsed:0,beforeR1025B:true};   /* 1025B：起算日以前（機隊排班沒有資料的日子）—— 回空班表，不要整份倒掉從那天重算 */")
+RC('crew before inval','kgm-0903b-r121',"  if(date&&CURSOR121&&date<CURSOR121&&!MEM121[date])_wipe121=true;",
+   "  if(date&&CURSOR121&&date<CURSOR121&&!MEM121[date]&&!before121(date))_wipe121=true;   /* 1025B：起算日以前的日子不觸發重算（「給旅客評分」「旅客回饋」會問過去 30 天，原本一打開就把整份組員班表倒掉、從更早的日子重算兩分鐘，起算日一變結果也跟別人不同） */")
+RC('crew before fn','kgm-0903b-r121',"function inval121(date){",
+   "/* 1025B：已經算出來的最早一天；比它更早、又沒算過的日子＝起算日以前 */\n"
+   "function before121(date){if(!date||!CURSOR121||MEM121[date]||date>=CURSOR121)return false;var lo=null;for(var k in MEM121){if(lo===null||k<lo)lo=k}return !!(lo&&date<lo)}\n"
+   "function inval121(date){")
 RC('crew gate step','kgm-0903b-r121',"window.kgmCrewStepR121=function(budgetMs,until){","window.kgmCrewStepR121=function(budgetMs,until){\n  if(!window.KGM_FULLDONE_1006A)return;   /* 1025B：機隊排完才算 */")
 
 RC('crew prog label','kgm-0907A-r196',"+'<span>'+READY196+' / '+DAYS196+(z()?' 天':' days')+'</span></div>'",
@@ -114,7 +121,7 @@ RW('kx5 0005',"winter:['00:00','05:45',1]","winter:['00:05','05:50',1]",2)
 RW('kx5 reseed',"        if(o&&o.userR1012B)return;","        if(o&&o.userR1012B&&!(o.winter&&o.winter.dep==='00:00'))return;   /* 1025B：冬季 00:00 → 00:05 重新寫入 */")
 
 # ══ k25.js：接在 grp23 後面（r229 最後）══
-RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js')+JS('wind25.js'))
+RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js')+JS('wind25.js')+JS('ap25.js'))
 RC('dh card label','kgm-0907A-r196',"'DH PNR '+E(r.pnr)+(r.last?(z()?(' · '+E(r.last)+' / '+E(r.first||'')):","'DH PNR '+E(r.pnr)+(r.last?(z()?('<span style=\"display:block;font-weight:700\">姓 '+E(r.last)+'　名 '+E(r.first||'')+'</span>'):")   # 1025B：PNR 一行、姓名一行
 
 # ══ J：AI 換班「正在找…」→ 網頁無回應：要看的日子（例 12/03～12/04）還沒算好時，planOf 會一口氣同步從游標算到那天（每天約 1 秒，40 天就卡 40 秒）。
@@ -239,6 +246,47 @@ RW('sea type fl20b',"      try{if((code==='KX304'||code==='KX303')&&date&&t!=='A
    "      try{var m25=SEAS20[code];if(m25&&date){var od25=origin20(code,fr,to,date);if(sea20(od25)==='winter'){var sub25=(S.acftSub||{})[code+'_'+date],ov25=(S.flightOverrides||{})[code+'_'+date];   /* 1025B：冬季照 SEAS20（KX304／303 A388、KX306／305 A21N），沒人工換機就回冬季機型 —— 原本只有 KX304／303 夏季有這一層，冬季被 r76 底表（KX306 釘 B779）與 r71（EQV→B789）蓋掉，排班整季派錯 */\n"
    "        if(!(sub25&&(sub25.sub||sub25.to||sub25.acft))&&!(ov25&&ov25.acft))return m25.winter}}}catch(_){}\n"
    "      try{if((code==='KX304'||code==='KX303')&&date&&t!=='A359'&&t!=='B779'){var od=origin20(code,fr,to,date);")
+
+# ══ E：後台卡頓（背景算完之後還一直卡）══
+RW('hol memo',"function kgmHolDirR929(f,date,why){\n  date=date||(f&&f.date);if(!f||!date)return 1;\n",
+   "var HOLM25={},HOLN25=0;   /* 1025B：假期方向是純函式（假期表＋起訖國家＋日期），算過就記住；營收背景結算一次要問幾萬次（實測 6 秒內 1.1 秒都在這裡） */\n"
+   "function kgmHolDirR929(f,date,why){\n  date=date||(f&&f.date);if(!f||!date)return 1;\n"
+   "  var HL25=(window.KGM_HOLIDAYS_R929||KGM_HOLIDAYS_R929),hk25=why?null:(f.fr+'|'+f.to+'|'+date+'|'+HL25.length);if(hk25&&HOLM25[hk25]!=null)return HOLM25[hk25];\n"
+   "  if(hk25){var r25=kgmHolDirR929(f,date,[]);if(++HOLN25>60000){HOLM25={};HOLN25=0}HOLM25[hk25]=r25;return r25}\n")
+RW('finance bg pause',"    if(!financeMonth.running){financeMonth.running=true;setTimeout(function step(){var job=financeMonth.jobs[0];if(!job){financeMonth.running=false;return}",
+   "    if(!financeMonth.running){financeMonth.running=true;setTimeout(function step(){var job=financeMonth.jobs[0];if(!job){financeMonth.running=false;return}\n"
+   "      try{if(!(S.adminAuthed&&S.view==='admin'&&S.adminTab==='finance')){setTimeout(step,2000);return}}catch(_){}   /* 1025B：離開營收分析就暫停（原本整年 12 個月在背景一直算，切到別頁也卡），回來接著算 */")
+
+RW('auc pre idle',"    (function step(){var t=Date.now();while(Q.length&&Date.now()-t<30){var x=Q.shift();try{window.kgmEnsureAuctionsR922(x[0],x[1],x[2])}catch(_){}}if(Q.length)setTimeout(step,60)})();",
+   "    /* 1025B：一班就要 100 毫秒以上（Payload 艙單），原本每 60 毫秒一段、每補到一班就整份存檔 → 開頁後好幾分鐘一直卡。\n"
+   "       改成瀏覽器空閒、而且使用者 1.5 秒內沒有操作才補一班；存檔最多 10 秒一次 */\n"
+   "    function idle25(f){if(window.requestIdleCallback)window.requestIdleCallback(f,{timeout:4000});else setTimeout(f,200)}\n"
+   "    var sv25=0;function flush25(force){if(window.KGM_AUC_DIRTY_R1025B&&(force||Date.now()-sv25>10000)){window.KGM_AUC_DIRTY_R1025B=0;sv25=Date.now();window.KGM_AUC_DEFER_SAVE_R1025B=0;try{save()}catch(_){}}}\n"
+   "    (function step(dl){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500){setTimeout(function(){idle25(step)},700);return}\n"
+   "      window.KGM_AUC_DEFER_SAVE_R1025B=1;var t=Date.now(),n=0;\n"
+   "      while(Q.length&&(n===0||(dl&&dl.timeRemaining&&dl.timeRemaining()>12))&&Date.now()-t<40){var x=Q.shift();n++;try{window.kgmEnsureAuctionsR922(x[0],x[1],x[2])}catch(_){}}\n"
+   "      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);if(Q.length)idle25(step)})();")
+RW('auc save defer',"      if(made){try{save()}catch(_){}}\n      if(mk12&&!window.__kgmBdSkipR929)M12[mk12]=Date.now();",
+   "      if(made){if(window.KGM_AUC_DEFER_SAVE_R1025B)window.KGM_AUC_DIRTY_R1025B=1;else try{save()}catch(_){}}   /* 1025B：背景預補時集中存檔 */\n"
+   "      if(mk12&&!window.__kgmBdSkipR929)M12[mk12]=Date.now();")
+
+RW('auc page budget',open('auc_old.txt',encoding='utf-8').read(),
+   "              if(Date.now()-t0929>150){P929.push([f.code,dd,f]);return}   /* 1025B：競標頁每次重畫最多同步補 150 毫秒（原本 800 毫秒，而且超過之後還是每一班都補一次競標），其餘交給空閒時補 */\n"
+   "              n+=window.kgmEnsureAuctionsR922(f.code,dd,f);")
+RW('auc page idle',"            var Q=window.__kgmBdPendR929;if(!Q)return;var t1=Date.now();\n            while(Q.length&&Date.now()-t1<40){var x=Q.shift();try{window.kgmEnsureAuctionsR922(x[0],x[1],x[2])}catch(_){}}\n            if(Q.length){setTimeout(step929,30);return}",
+   "            var Q=window.__kgmBdPendR929;if(!Q)return;\n"
+   "            /* 1025B：使用者正在操作就先讓開；瀏覽器空閒才補；存檔集中（每補到一班就整份存檔是卡頓來源） */\n"
+   "            var I25=function(f){if(window.requestIdleCallback)window.requestIdleCallback(f,{timeout:4000});else setTimeout(f,200)};\n"
+   "            if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500){setTimeout(function(){I25(step929)},700);return}\n"
+   "            var t1=Date.now();window.KGM_AUC_DEFER_SAVE_R1025B=1;\n"
+   "            while(Q.length&&Date.now()-t1<40){var x=Q.shift();try{window.kgmEnsureAuctionsR922(x[0],x[1],x[2])}catch(_){}}\n"
+   "            window.KGM_AUC_DEFER_SAVE_R1025B=0;if(window.KGM_AUC_DIRTY_R1025B&&(!Q.length||Date.now()-(step929.sv||0)>10000)){window.KGM_AUC_DIRTY_R1025B=0;step929.sv=Date.now();try{save()}catch(_){}}\n"
+   "            if(Q.length){I25(step929);return}")
+RW('auc settle 60s',"if(L6.sg!==sg6||t6-L6.t>5000){","if(L6.sg!==sg6||t6-L6.t>60000){")
+
+# ══ G：後台機場欄位用前台選擇器（js/ap25.js）—— r158 的區域分組與名稱匯出給它用 ══
+RC('ap lib export','kgm-0908a-r158',"window.kgmApOpenR158=function(which){",
+   "window.kgmApLibR1025B={regions:regions158,city:cityLabel158,sub:subLabel158,rank:rank158};   /* 1025B：後台機場欄位共用同一套分組與名稱 */\nwindow.kgmApOpenR158=function(which){")
 
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')

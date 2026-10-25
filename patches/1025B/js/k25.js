@@ -251,3 +251,42 @@
 (function(){try{if(document.getElementById('k25-cal-css'))return;var cs=document.createElement('style');cs.id='k25-cal-css';
   cs.textContent='.k196-cal,.k196-wk{grid-template-columns:repeat(7,minmax(0,1fr))!important}.k196-cal>div{min-width:0}.k196-cal i.k196-pnr{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;word-break:break-word;line-height:1.35}';
   document.head.appendChild(cs)}catch(_){}})();
+
+/* ══ E：記錄使用者最後一次操作（點擊、按鍵、捲動、觸控）—— 背景補算（組員引擎暖機、競標預補）看到使用者正在操作就先讓開 ══ */
+(function(){try{if(window.__k25in)return;window.__k25in=1;var f=function(){window.KGM_LAST_INPUT_R1025B=Date.now()};
+  ['pointerdown','keydown','wheel','touchstart','input'].forEach(function(ev){document.addEventListener(ev,f,{capture:true,passive:true})})}catch(_){}})();
+
+/* ══ E：第一次打開才慢的頁，先在背景空檔算好（地勤當天／明天派工、員工票狀態預設那一頁）——
+   機隊與組員都算完之後才做，使用者 2 秒內有操作就先讓開，一次只做一件 ══ */
+(function(){
+  var done25={};
+  function idle(f){if(window.requestIdleCallback)window.requestIdleCallback(f,{timeout:5000});else setTimeout(f,300)}
+  function jobs(){var t=todayISO(),t1=addDays(t,1);return [
+    ['g1',function(){window.kgmGroundPlanR1008A&&window.kgmGroundPlanR1008A('TPE',t)}],
+    ['g2',function(){window.kgmGroundPlanR1008A&&window.kgmGroundPlanR1008A('TSA',t)}],
+    ['g3',function(){window.kgmGroundPlanR1008A&&window.kgmGroundPlanR1008A('TPE',t1)}],
+    ['g4',function(){window.kgmGroundPlanR1008A&&window.kgmGroundPlanR1008A('TSA',t1)}],
+    ['s1',function(){window.kgmStxStatusRowsR1004B&&window.kgmStxStatusRowsR1004B(t,'TPE','','')}]]}
+  function tick(){try{
+    if(String(window.KGM_SIDE||'')==='front')return;
+    if(!window.KGM_FULLDONE_1006A||!window.KGM_CREW_SAVE_R1025B)return setTimeout(tick,5000);
+    if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<2000)return setTimeout(tick,1500);
+    var day=todayISO(),L=jobs().filter(function(j){return done25[day+j[0]]!==1});if(!L.length)return setTimeout(tick,60000);
+    idle(function(){try{L[0][1]()}catch(_){}done25[day+L[0][0]]=1;setTimeout(tick,800)});
+  }catch(_){setTimeout(tick,5000)}}
+  setTimeout(tick,10000);
+})();
+
+/* ══ E：員工票狀態頁每畫一次就把每一班的候補名單重算一遍（實測第一次 1.9 秒、之後每次 0.9 秒）——
+   同一班、同一分鐘、而且這段時間沒有任何存檔（任何狀態變動都會 save）就沿用上一次的結果 ══ */
+(function(){
+  var SV=0,M={},N=0;
+  function hookSave(){var s0=window.save;if(typeof s0!=='function'||s0.__k25sv)return;var w=function(){SV++;return s0.apply(this,arguments)};
+    try{Object.keys(s0).forEach(function(k){if(!(k in w))w[k]=s0[k]})}catch(_){}w.__k25sv=1;window.save=w}
+  function hookPlan(){var p0=window.kgmStandbyPlanR1004B;if(typeof p0!=='function'||p0.__k25m)return;
+    var w=function(code,date,fr,to){var k=[code,date,fr||'',to||'',SV,Math.floor(Date.now()/60000)].join('|');if(M[k])return M[k];
+      var r=p0.apply(this,arguments);if(++N>3000){M={};N=0}M[k]=r;return r};
+    w.__k25m=1;window.kgmStandbyPlanR1004B=w}
+  function hook(){hookSave();hookPlan()}
+  hook();setTimeout(hook,0);setTimeout(hook,3500);setTimeout(hook,15000);
+})();
