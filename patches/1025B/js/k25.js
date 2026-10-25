@@ -125,3 +125,99 @@
         +(z()?' · Payload 餘 ':' · Payload left ')+Math.round(pl.left).toLocaleString()+' kg（'+(pl.limitBy==='mtow'?(z()?'最大起飛重量':'MTOW'):(z()?'最大無燃油重量':'MZFW'))+'）· '+lim+(blocked?(z()?' · '+blocked+' 筆員工票因 Payload 上不了':' · '+blocked+' blocked by payload'):'')+'</em>'}catch(_){return ''}};
   try{var st=document.createElement('style');st.textContent='.k6ss-f em.k25-wl,.k25-wl{display:block;margin-top:5px;font-style:normal;font-size:11px;line-height:1.55;padding:4px 9px;border-radius:8px;background:#eef6f1;color:#1f5a45;font-weight:600}.k6ss-f em.k25-wl.y,.k25-wl.y{background:#fdf3d8;color:#7a5608}.k6ss-f em.k25-wl.r,.k25-wl.r{background:#fbe6e0;color:#9b2d17}';document.head.appendChild(st)}catch(_){}
 })();
+
+/* ── N：後台 AI 建立臨時航班（使用者：「後台AI可能說創建臨時航班之類的也要可以喔然後可能問機型或是時間都要給予適當建議」）
+      「加開 TPE-NRT 11/5」「11/8 臨時航班 台北到首爾 B789」→ 依距離建議機型，列三個方案（機身、去回程時刻），選方案、決定是否販售 → 建立。
+      規則跟航線管理「新增航線／臨時航班」同一套：機身那個時間必須已經在出發站（kgmTailAtR913，沒勤務視為在基地）、前後勤務不重疊、
+      寫進同一份 S.customFlights（effFrom＝effTo＝那一天、tempR49）與 S.tailAssign（manualR69，機隊重排保留）。
+      時刻避開當地 00:30–05:59 抵達（全網不在 03 點抵達的規則也一起守）；回程＝抵達＋轉機時間（窄體 60、廣體 90、A388 120 分）。 ── */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function AF(){try{return allF()}catch(_){return [].concat(FLIGHTS,S.customFlights||[])}}
+  function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
+  function hm(n){n=((n%1440)+1440)%1440;return ('0'+Math.floor(n/60)).slice(-2)+':'+('0'+n%60).slice(-2)}
+  function D(d,n){try{return addDays(d,n)}catch(_){var x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}}
+  function tz(a){try{return +TZ[a]||8}catch(_){return 8}}
+  function abs(date,t,ap){return Date.parse(date+'T00:00:00Z')/60000+mn(t)-tz(ap)*60}
+  function today(){var d=new Date(Date.now()+8*3600e3);return d.toISOString().slice(0,10)}
+  function dateIn(t){var n=today(),y=+n.slice(0,4),m;if(/今天|今日/.test(t))return n;if(/明天|明日/.test(t))return D(n,1);if(/後天/.test(t))return D(n,2);
+    if((m=/(20\d\d)[-\/.年](\d{1,2})[-\/.月](\d{1,2})/.exec(t)))return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+    if((m=/(?:^|[^\d])(\d{1,2})\s*[\/月]\s*(\d{1,2})(?!\d)/.exec(t))){var d=y+'-'+('0'+m[1]).slice(-2)+'-'+('0'+m[2]).slice(-2);if(d<D(n,-1))d=(y+1)+d.slice(4);return d}return ''}
+  function aps(t){var out=[],u=t.toUpperCase(),m,re=/\b([A-Z]{3})\b/g;while((m=re.exec(u))){if(/^KX/.test(m[1]))continue;try{if(CITY_ZH[m[1]]&&out.indexOf(m[1])<0)out.push(m[1])}catch(_){}}
+    var hits=[];try{Object.keys(CITY_ZH).forEach(function(k){var nm=String(CITY_ZH[k]||'').replace(/(桃園|松山|成田|羽田|關西|仁川|金浦|浦東|虹橋|國際)$/,'');if(nm.length>=2){var i=t.indexOf(nm);if(i>=0)hits.push([i,k,nm.length])}})}catch(_){}
+    hits.sort(function(a,b){return a[0]-b[0]||b[2]-a[2]});hits.forEach(function(h){if(out.indexOf(h[1])<0&&!out.some(function(o){try{return window.kgmSameCityR928&&window.kgmSameCityR928(o,h[1])}catch(_){return false}}))out.push(h[1])});
+    if(out[0]==='TSA'&&/桃園/.test(t))out[0]='TPE';return out.slice(0,2)}
+  var TYPES=['A21N','B78X','B789','B779','A359','A35K','A339R','A339L','A388'];
+  function typeIn(t){var u=t.toUpperCase().replace(/\s/g,'');for(var i=0;i<TYPES.length;i++)if(u.indexOf(TYPES[i])>=0)return TYPES[i];if(/A321/.test(u))return 'A21N';if(/A380/.test(u))return 'A388';if(/777/.test(u))return 'B779';if(/787-?10/.test(u))return 'B78X';if(/787/.test(u))return 'B789';if(/A350/.test(u))return 'A359';if(/A330/.test(u))return 'A339R';return ''}
+  function timeIn(t){var m=/(\d{1,2})\s*[:：點]\s*(\d{2})?/.exec(t.replace(/\d{1,2}\s*[\/月]\s*\d{1,2}/,''));return m?((+m[1])*60+(+(m[2]||0))):null}
+  function dur(fr,to){var d=0;try{d=Math.max(55,Math.round((distOf(fr,to)||1200)/780*60+35))}catch(_){d=150}return Math.round(d/5)*5}   /* 時刻取整到 5 分鐘 */
+  function rec(fr,to){var d=0;try{d=+distOf(fr,to)||0}catch(_){}
+    if(d<1500)return {d:d,types:['A21N','A339R','B78X'],why:z()?'短程（'+Math.round(d).toLocaleString()+' km）：A321neo 最省；臨時需求大再用 A330／787-10':'short-haul'};
+    if(d<3000)return {d:d,types:['A21N','B78X','A339R','B789'],why:z()?'區域線（'+Math.round(d).toLocaleString()+' km）：A321neo 或 787-10／A330':'regional'};
+    if(d<5000)return {d:d,types:['B78X','B789','A339R','A359'],why:z()?'中程（'+Math.round(d).toLocaleString()+' km）：787 或 A330-900neo':'medium-haul'};
+    if(d<9000)return {d:d,types:['B789','A359','A339L','B779'],why:z()?'長程（'+Math.round(d).toLocaleString()+' km）：787-9／A350-900':'long-haul'};
+    return {d:d,types:['B779','A359','A35K','A388'],why:z()?'超長程（'+Math.round(d).toLocaleString()+' km）：777-9／A350（載重與航程夠）':'ultra long-haul'}}
+  function turn(t){return t==='A388'?120:(/^A21|^A32/.test(t)?60:90)}
+  function legsOf(tl){return ((S.tailAssign||{})[tl]||[]).filter(function(x){return x&&x.date&&!x.cancelledR1023A}).map(function(x){var fr=x.fr||String(x.route||'').split('→')[0],to=x.to||String(x.route||'').split('→')[1];
+    var a=abs(x.date,x.dep,fr),f=AF().filter(function(q){return q&&!q.via&&q.code===x.code&&q.fr===fr&&q.to===to})[0],du=(f&&+f.dur)||((function(){try{return blockMin(fr,to,x.dep,x.arr,x.dd||0)}catch(_){return 180}})());return [a,a+du]})}
+  function free(tl,a,b){return !legsOf(tl).some(function(r){return !(b+75<=r[0]||r[1]+75<=a)})}
+  function atStation(tl,date,depMin,fr){var at=null;try{at=window.kgmTailAtR913(tl,date,depMin)}catch(_){}if(at==null)at=(S.tsaFleet&&S.tsaFleet[tl])?'TSA':'TPE';if(at==='TSA'&&fr==='TPE')at='TPE';if(at==='TPE'&&fr==='TSA')at='TSA';return at===fr}
+  function badArr(m){m=((m%1440)+1440)%1440;return m>=30&&m<360}
+  function newCode(){var used={};AF().forEach(function(f){if(f&&f.code)used[f.code]=1});for(var n=2001;n<2999;n++)if(!used['KX'+n])return 'KX'+n;return 'KX2999'}
+  function plan(P){
+    var r=rec(P.fr,P.to),types=P.type?[P.type]:r.types,du=dur(P.fr,P.to),out=[];
+    var starts=P.time!=null?[P.time,P.time+30,P.time-30,P.time+60,P.time-60,P.time+90,P.time+120]:[];for(var s=7*60;s<=22*60;s+=30)starts.push(s);
+    types.forEach(function(t){var tails=[];try{tails=(tailsFor(t)||[]).slice()}catch(_){}
+      tails=tails.filter(function(tl){return (S.tailStatus||{})[tl]!=='maintenance'&&!(S.fleetMaintenanceR830||[]).some(function(m){return m.tail===tl&&P.date>=m.from&&P.date<=m.until})});
+      for(var i=0;i<starts.length&&out.filter(function(o){return o.type===t}).length<(P.type?3:1);i++){var dep=starts[i];if(dep<5*60||dep>23*60+30)continue;
+        var arrL=dep+du+Math.round((tz(P.to)-tz(P.fr))*60);if(badArr(arrL))continue;
+        var a=abs(P.date,hm(dep),P.fr),b=a+du,rdep=arrL+turn(t),rArrL=rdep+du+Math.round((tz(P.fr)-tz(P.to))*60);if(P.round&&badArr(rArrL))continue;
+        var end=P.round?(b+turn(t)+du):b;
+        var tl=tails.filter(function(x){return atStation(x,P.date,dep,P.fr)&&free(x,a,end)})[0];if(!tl)continue;
+        if(out.some(function(o){return o.dep===hm(dep)&&o.type===t}))continue;
+        out.push({type:t,tail:tl,dep:hm(dep),arr:hm(arrL),dd:Math.floor(arrL/1440),rdep:hm(rdep),rdd:Math.floor(rdep/1440),rarr:hm(rArrL),rad:Math.floor(rArrL/1440),du:du})}});
+    return {r:r,opts:out.slice(0,3)}}
+  function optTxt(o,i,P){var dd=function(n){return n>0?'⁺'+n:''};return (i+1)+'）'+o.type+' '+o.tail+'：'+P.fr+' '+o.dep+' → '+P.to+' '+o.arr+dd(o.dd)+(P.round?('，回程 '+P.to+' '+o.rdep+dd(o.rdd)+' → '+P.fr+' '+o.rarr+dd(o.rad)):'')}
+  function start(t){
+    var A=aps(t),d=dateIn(t);if(A.length<2)return z()?'請告訴我航線與日期，例如「加開 TPE-NRT 11/5」或「11/8 臨時航班 台北到首爾 B789 09:30」。':'Tell me the route and date.';
+    if(!d)d=D(today(),1);
+    var P={kind:'temp',fr:A[0],to:A[1],date:d,type:typeIn(t),time:timeIn(t),round:!/單程|只飛去|one-?way/i.test(t),sale:!/不(開放)?販售|不賣|no ?sale/i.test(t),at:Date.now()};
+    var pl=plan(P);P.opts=pl.opts;S.adminAiPendR1025B=P;
+    var head=(z()?'臨時航班 ':'Temporary flight ')+P.fr+'→'+P.to+' '+P.date+(P.round?(z()?'（含回程）':' (return incl.)'):'')+'\n'+(z()?'建議機型：':'Suggested type: ')+pl.r.why+(P.type?(z()?'（你指定 '+P.type+'）':''):'')+'；'+(z()?'飛行約 ':'block ~')+Math.floor(pl.opts[0]?pl.opts[0].du/60:dur(P.fr,P.to)/60)+(z()?' 小時 ':'h ')+((pl.opts[0]?pl.opts[0].du:dur(P.fr,P.to))%60)+(z()?' 分':'m');
+    if(!pl.opts.length){S.adminAiPendR1025B=null;return head+'\n\n'+(z()?'這一天找不到「當時已經在 '+P.fr+'」而且前後勤務排得開的機身'+(P.type?'（'+P.type+'）':'')+'。可以換一天、換機型，或先安排一段調機。':'No aircraft available.')}
+    return head+'\n\n'+(z()?'可行方案（機身當時已在 '+P.fr+'、前後勤務排得開、不在凌晨抵達）：':'Options:')+'\n'+pl.opts.map(function(o,i){return optTxt(o,i,P)}).join('\n')
+      +'\n\n'+(z()?'回覆 1／2／3 選方案；也可以改「機型 B789」「時間 10:30」「單程」。預設開放販售，要只排班不賣票請說「不販售」。':'Reply 1/2/3.');
+  }
+  function create(P,o){
+    var code=newCode(),code2=P.round?('KX'+(+code.slice(2)+1)):'',f={code:code,fr:P.fr,to:P.to,dep:o.dep,arr:o.arr,dd:o.dd,dur:o.du,acft:o.type,days:'daily',effFrom:P.date,effTo:P.date,tempR49:true,newRouteR830:true,noSaleR913:!P.sale,aiTempR1025B:true,createdAtR1025B:new Date().toISOString()};
+    S.customFlights=S.customFlights||[];S.customFlights.push(f);S.tailAssign=S.tailAssign||{};var L=S.tailAssign[o.tail]=S.tailAssign[o.tail]||[];
+    L.push({date:P.date,code:code,route:P.fr+'→'+P.to,fr:P.fr,to:P.to,dep:o.dep,arr:o.arr,dd:o.dd,manualR69:true,newRouteR830:true,aiTempR1025B:true});
+    var r2=null;if(P.round){var rd=D(P.date,o.rdd);r2={code:code2,fr:P.to,to:P.fr,dep:o.rdep,arr:o.rarr,dd:o.rad-o.rdd,dur:o.du,acft:o.type,days:'daily',effFrom:rd,effTo:rd,tempR49:true,newRouteR830:true,noSaleR913:!P.sale,aiTempR1025B:true,createdAtR1025B:f.createdAtR1025B};
+      S.customFlights.push(r2);L.push({date:rd,code:code2,route:P.to+'→'+P.fr,fr:P.to,to:P.fr,dep:o.rdep,arr:o.rarr,dd:r2.dd,manualR69:true,newRouteR830:true,aiTempR1025B:true})}
+    try{if(window.kgmClearRotationCacheR72)window.kgmClearRotationCacheR72()}catch(_){}
+    try{logAct('AI 建立臨時航班',code+' '+P.fr+'→'+P.to+' '+P.date+' '+o.type+' '+o.tail+(r2?'（回程 '+code2+'）':''))}catch(_){}
+    try{save()}catch(_){}
+    return '✓ '+(z()?'已建立 ':'Created ')+code+' '+P.fr+'→'+P.to+' '+P.date+' '+o.dep+'–'+o.arr+(r2?('，回程 '+code2+' '+P.to+'→'+P.fr+' '+r2.effFrom+' '+o.rdep+'–'+o.rarr):'')+' · '+o.type+' '+o.tail+' · '+(P.sale?(z()?'已開放販售（訂票頁查得到）':'on sale'):(z()?'不開放販售（只排班）':'not on sale'))+(z()?'。飛機排班已寫入這架；組員班表會在背景重排。':'.');
+  }
+  function step(t){var P=S.adminAiPendR1025B;if(!P||P.kind!=='temp')return null;if(Date.now()-P.at>30*60000){S.adminAiPendR1025B=null;return null}
+    if(/^(算了|不要了|放棄|cancel)$/i.test(t.trim())){S.adminAiPendR1025B=null;return z()?'好，沒有建立。':'Cancelled.'}
+    P.at=Date.now();var ch=false,ty=typeIn(t),tm=timeIn(t);if(ty&&ty!==P.type){P.type=ty;ch=true}if(tm!=null&&/時間|點|:|：/.test(t)&&!/^\s*[123]\s*$/.test(t)){P.time=tm;ch=true}
+    if(/單程/.test(t)&&P.round){P.round=false;ch=true}if(/來回|含回程/.test(t)&&!P.round){P.round=true;ch=true}
+    if(/不(開放)?販售|不賣|只排班/.test(t))P.sale=false;else if(/開放販售|要賣|販售/.test(t))P.sale=true;
+    if(ch){var pl=plan(P);P.opts=pl.opts;if(!pl.opts.length)return z()?'改了之後找不到可用的機身與時間，換一個機型或時間試試。':'No options.';
+      return (z()?'更新後的方案：':'Updated options:')+'\n'+pl.opts.map(function(o,i){return optTxt(o,i,P)}).join('\n')+'\n\n'+(z()?'回覆 1／2／3 選方案（目前'+(P.sale?'開放販售':'不販售')+'）。':'Reply 1/2/3.')}
+    var m=/^\s*(?:方案\s*)?([123])\b/.exec(t);if(m){var o=P.opts[+m[1]-1];if(!o)return z()?'沒有這個方案。':'No such option.';S.adminAiPendR1025B=null;return create(P,o)}
+    if(/販售|不賣|只排班/.test(t))return z()?('已記下：'+(P.sale?'開放販售':'不販售')+'。請回覆 1／2／3 選方案。'):'Noted.';
+    return null}
+  function isTemp(t){return /臨時航班|加班機|加開|加飛|增開|開一班|新增.{0,6}航班|extra (section|flight)|temporary flight/i.test(t)&&!/取消|延誤|查|哪些|有沒有/.test(t)}
+  window.kgmAiTempFlightR1025B=function(a){var t=String((a&&a.text)||'');var r=(S.adminAiPendR1025B&&!isTemp(t))?step(t):start(t);return {ok:true,msg:r||(z()?'請回覆 1／2／3 選方案。':'Reply 1/2/3.')}};
+  function hook(){var a0=window.kgmAdminAiAskR929;if(typeof a0!=='function'||a0.__k25)return;
+    var w=async function(text){var t=String(text||'').trim(),r=null;
+      try{if(isTemp(t))r=start(t);else if(S.adminAiPendR1025B)r=step(t)}catch(e){r=(z()?'處理時發生錯誤：':'Error: ')+(e&&e.message||e)}
+      if(r==null)return a0.apply(this,arguments);
+      try{var st=S.adminAiR929||(S.adminAiR929=LS.get('kgm_adminai929',{})||{}),k=(S.adminUser||{}).empId||'ADMIN',L=st[k]=st[k]||[];
+        L.push({role:'user',text:t,at:new Date().toISOString()});L.push({role:'assistant',text:r,at:new Date().toISOString(),src:'local',note:z()?'站內 AI 引擎處理（依同一套權限執行）':'Built-in engine'});LS.set('kgm_adminai929',st)}catch(_){}
+      try{window.kgmAdminAiDrawR929&&window.kgmAdminAiDrawR929()}catch(_){}try{render()}catch(_){}};
+    try{Object.keys(a0).forEach(function(k){if(!(k in w))w[k]=a0[k]})}catch(_){}w.__k25=1;window.kgmAdminAiAskR929=w}
+  hook();setTimeout(hook,0);setTimeout(hook,3500);setTimeout(hook,8000);
+})();

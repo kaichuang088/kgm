@@ -129,6 +129,8 @@ RW('swap warm days',"    for(var w6=-4;w6<=10;w6++){planOf(K.AD(date,w6));await 
 RC('stx workload','kgm-0816d-r40',"      +'<td class=\"k6ss-f\"><b>'+E(f.code)+'</b><span>'+E(f.fr)+' → '+E(f.to)+'</span><small>'+E(f.dep||'')+' · '+E(ac)+'</small><em>'+E(det)+'</em></td>'",
    "      +'<td class=\"k6ss-f\"><b>'+E(f.code)+'</b><span>'+E(f.fr)+' → '+E(f.to)+'</span><small>'+E(f.dep||'')+' · '+E(ac)+'</small><em>'+E(det)+'</em>'+(window.kgmStxWorkloadR1025B?window.kgmStxWorkloadR1025B(p,f.code,d,f.fr,f.to):'')+'</td>'")   # 1025B
 
+RW('ai tool temp',"    flight_delay:{tab:'status',zh:'航班延誤或改起飛時間","    flight_temp:{tab:'fleetsched',zh:'建立臨時航班（text 放使用者原話，例如「加開 TPE-NRT 11/5」「11/8 臨時航班 台北到首爾 B789 09:30」；第一次呼叫會依距離建議機型並列出三個方案（機身已在出發站、前後勤務排得開），之後把使用者的回答原樣放 text 再呼叫：選 1／2／3、改機型或時間、要不要販售）',run:function(a){return window.kgmAiTempFlightR1025B(a)}},   /* 1025B */\n    flight_delay:{tab:'status',zh:'航班延誤或改起飛時間")
+
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
