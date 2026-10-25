@@ -1,0 +1,15 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1400,height:950}})).newPage();
+ const errs=[];p.on('pageerror',e=>errs.push(String(e).slice(0,300)));p.on('console',m=>{if(/error|warn/i.test(m.type()))errs.push(m.type()+': '+m.text().slice(0,200))});
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(25000);
+ await p.evaluate(()=>{const u=(S.users||[]).find(x=>x.id==='KGMDEMO0911');if(u)S.user=u;S.view='home';render();window.kgmToggleAi0819I()});await p.waitForTimeout(2000);
+ await p.evaluate(()=>{kgmStartAi0819I('award')});await p.waitForTimeout(2000);
+ await p.evaluate(()=>kgmAiChoose0819I('date',new Date(Date.now()+86400000*30).toISOString().slice(0,10)));await p.waitForTimeout(2000);
+ await p.evaluate(()=>{kgmAiRoutePickR920F('fr','TPE')});await p.waitForTimeout(1200);
+ await p.evaluate(()=>{kgmAiRoutePickR920F('to','KIX')});await p.waitForTimeout(1500);
+ await p.evaluate(()=>kgmAiChoose0819I('seats',1));await p.waitForTimeout(1200);
+ await p.evaluate(()=>kgmAiChoose0819I('cabin','Business'));await p.waitForTimeout(4500);
+ console.log(await p.evaluate(()=>{const w=document.getElementById('aiWindow');return [...w.querySelectorAll('.kgm-i-bubble')].slice(-3).map(b=>b.innerText.replace(/\s+/g,' ').slice(0,300)).join('\n---\n')}));
+ console.log(await p.evaluate(()=>JSON.stringify((S.aiConversation0819I||{}).messages.slice(-2).map(m=>({r:m.role,t:String(m.text||'').slice(0,200),src:m.srcR1025B||m.srcR1023A||''})))));
+ await p.screenshot({path:'/tmp/j/p3dbg.png'});
+ console.log(await p.evaluate(()=>{const w=document.getElementById('aiWindow');return JSON.stringify({wd:w.querySelectorAll('.k63-wd').length,sym:w.querySelectorAll('[data-k63s]').length,foot:w.querySelectorAll('.k63-foot').length,list:w.querySelectorAll('.k920f-list').length,city:(w.querySelector('.k920f-city b')||{innerText:''}).innerText,k64:w.querySelectorAll('.k64-avail').length})}));await b.close()})();
