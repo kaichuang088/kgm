@@ -117,6 +117,14 @@ RW('kx5 reseed',"        if(o&&o.userR1012B)return;","        if(o&&o.userR1012B
 RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js'))
 RC('dh card label','kgm-0907A-r196',"'DH PNR '+E(r.pnr)+(r.last?(z()?(' · '+E(r.last)+' / '+E(r.first||'')):","'DH PNR '+E(r.pnr)+(r.last?(z()?(' · 姓 '+E(r.last)+'　名 '+E(r.first||'')):")
 
+# ══ J：AI 換班「正在找…」→ 網頁無回應：要看的日子（例 12/03～12/04）還沒算好時，planOf 會一口氣同步從游標算到那天（每天約 1 秒，40 天就卡 40 秒）。
+#    先一天一天往前算、每天之間讓畫面回應；機隊還沒排完就先等。══
+RW('swap warm days',"    for(var w6=-4;w6<=10;w6++){planOf(K.AD(date,w6));await yieldUI()}",
+   "    /* 1025B：先一天一天算到要用的最後一天（每天之間讓畫面回應），不要在 planOf 裡一口氣同步算幾十天 */\n"
+   "    for(var g25=0;g25<300&&!window.KGM_FULLDONE_1006A;g25++)await new Promise(function(r){setTimeout(r,500)});\n"
+   "    var tg25=K.AD(date,10);for(var h25=0;h25<400&&window.kgmCrewHasDayR121&&!window.kgmCrewHasDayR121(tg25);h25++){try{window.kgmCrewStepR121(1,tg25)}catch(_){break}await new Promise(function(r){setTimeout(r,30)})}\n"
+   "    for(var w6=-4;w6<=10;w6++){planOf(K.AD(date,w6));await yieldUI()}")
+
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
