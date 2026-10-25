@@ -125,6 +125,10 @@ RW('swap warm days',"    for(var w6=-4;w6<=10;w6++){planOf(K.AD(date,w6));await 
    "    var tg25=K.AD(date,10);for(var h25=0;h25<400&&window.kgmCrewHasDayR121&&!window.kgmCrewHasDayR121(tg25);h25++){try{window.kgmCrewStepR121(1,tg25)}catch(_){break}await new Promise(function(r){setTimeout(r,30)})}\n"
    "    for(var w6=-4;w6<=10;w6++){planOf(K.AD(date,w6));await yieldUI()}")
 
+# ══ M：員工票狀態每班寫 workload（旅客、行李、貨運、燃油、Payload 餘量、卡在座位還是 Payload）══
+RC('stx workload','kgm-0816d-r40',"      +'<td class=\"k6ss-f\"><b>'+E(f.code)+'</b><span>'+E(f.fr)+' → '+E(f.to)+'</span><small>'+E(f.dep||'')+' · '+E(ac)+'</small><em>'+E(det)+'</em></td>'",
+   "      +'<td class=\"k6ss-f\"><b>'+E(f.code)+'</b><span>'+E(f.fr)+' → '+E(f.to)+'</span><small>'+E(f.dep||'')+' · '+E(ac)+'</small><em>'+E(det)+'</em>'+(window.kgmStxWorkloadR1025B?window.kgmStxWorkloadR1025B(p,f.code,d,f.fr,f.to):'')+'</td>'")   # 1025B
+
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
