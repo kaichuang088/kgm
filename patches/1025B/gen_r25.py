@@ -232,6 +232,14 @@ RW('wind gt fn',"  var MEMO={};\n  function adj(o0,f,date,x){",
    "    return gw<need?Math.ceil((need-gw)/5)*5:0}\n"
    "  function adj(o0,f,date,x){")
 
+# ══ 機型同步：冬夏不同機型（1020B SEAS20：KX304/303 冬 A388、KX306/305 冬 A21N）實際排班一直沒派對 ——
+#    r76 的 acftOfFlight 只看航段底表機型（KX306 底表釘夏季 B779），不看季節表；機隊排班照它派機，冬季整季派成 B779、KX304 頭幾天 B789，
+#    「每日異動」卻寫應有 A388／A21N（兩個不一致的來源）。══
+RW('sea type fl20b',"      try{if((code==='KX304'||code==='KX303')&&date&&t!=='A359'&&t!=='B779'){var od=origin20(code,fr,to,date);",
+   "      try{var m25=SEAS20[code];if(m25&&date){var od25=origin20(code,fr,to,date);if(sea20(od25)==='winter'){var sub25=(S.acftSub||{})[code+'_'+date],ov25=(S.flightOverrides||{})[code+'_'+date];   /* 1025B：冬季照 SEAS20（KX304／303 A388、KX306／305 A21N），沒人工換機就回冬季機型 —— 原本只有 KX304／303 夏季有這一層，冬季被 r76 底表（KX306 釘 B779）與 r71（EQV→B789）蓋掉，排班整季派錯 */\n"
+   "        if(!(sub25&&(sub25.sub||sub25.to||sub25.acft))&&!(ov25&&ov25.acft))return m25.winter}}}catch(_){}\n"
+   "      try{if((code==='KX304'||code==='KX303')&&date&&t!=='A359'&&t!=='B779'){var od=origin20(code,fr,to,date);")
+
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
