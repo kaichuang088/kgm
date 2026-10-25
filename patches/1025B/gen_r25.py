@@ -102,6 +102,21 @@ RC('crew gate step','kgm-0903b-r121',"window.kgmCrewStepR121=function(budgetMs,u
 RC('crew prog label','kgm-0907A-r196',"+'<span>'+READY196+' / '+DAYS196+(z()?' 天':' days')+'</span></div>'",
    "+'<span>'+(window.KGM_FULLDONE_1006A?(READY196+' / '+DAYS196+(z()?' 天':' days')):(z()?'機隊排班中，排完會自動排組員班表（大家看到的是同一份）':'Fleet rotation in progress; crew roster starts automatically'))+'</span></div>'")   # 1025B
 
+# ══ Q：Residence「機型異動（A359）已改派、退款」誤判 —— 1023A 的撤回只處理未來的班；已起飛的（例：KX3 2026-10-20，A388、有 Residence）沒撤回。
+#    已起飛的也撤回（退款收回、里程收回、訂位恢復 Residence），機隊排完後自己跑一次。══
+RW('res undo past',"if(!r||r.voidR1023A||!b.date||b.date<T0||!hasRes(b))return;","if(!r||r.voidR1023A||!b.date||!hasRes(b))return;   /* 1025B：已起飛的誤判也撤回 */")
+RW('res undo past2',"if(!r||!b.date||b.date<T0||!hasRes(b))return;","if(!r||!b.date||!hasRes(b))return;   /* 1025B */")
+RW('res undo run',"  window.kgmResUndoR1023A=undo;\n","  window.kgmResUndoR1023A=undo;\n  (function u25(n){if(window.KGM_FULLDONE_1006A){try{undo()}catch(_){}return}if(n<120)setTimeout(function(){u25(n+1)},3000)})(0);   /* 1025B：機隊排完自己跑一次 */\n")
+
+# ══ L：KX5（2026-11-29 起；之前同一班叫 KX3）冬季洛杉磯 00:00 出發 → 00:05（使用者：「KX5晚5分鐘出發不要有00:00這種出發時間」）；
+#    季節班表已鎖定的舊紀錄（冬季 00:00）重新寫入；抵達由冬季風向修正自己重算。全網其他班沒有 00:00 出發（dumptt23 六個日期檢查）。══
+RW('kx5 0005',"winter:['00:00','05:45',1]","winter:['00:05','05:50',1]",2)
+RW('kx5 reseed',"        if(o&&o.userR1012B)return;","        if(o&&o.userR1012B&&!(o.winter&&o.winter.dep==='00:00'))return;   /* 1025B：冬季 00:00 → 00:05 重新寫入 */")
+
+# ══ k25.js：接在 grp23 後面（r229 最後）══
+RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js'))
+RC('dh card label','kgm-0907A-r196',"'DH PNR '+E(r.pnr)+(r.last?(z()?(' · '+E(r.last)+' / '+E(r.first||'')):","'DH PNR '+E(r.pnr)+(r.last?(z()?(' · 姓 '+E(r.last)+'　名 '+E(r.first||'')):")
+
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
