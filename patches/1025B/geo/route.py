@@ -104,6 +104,8 @@ def dij(a,b):
     return out
 res={}
 pairs=sorted({tuple(sorted((r['fr'],r['to']))) for r in json.load(open('/tmp/j/dumptt25.json')) if r['code'].startswith('KX') and not r['via']})
+# 華航校正用的六條（台北直飛；KGM 自己沒飛 LHR／AMS／FRA 直飛），Payload 限座校正要用同一套航路
+pairs=sorted(set(pairs)|{tuple(sorted(('TPE',x))) for x in ('LHR','AMS','FRA','VIE','PRG','FCO')})
 for a,b in pairs:
     A,B=AP[a],AP[b];d0=hav(A,B);h,names=hit(A,B)
     if not h or not names:continue

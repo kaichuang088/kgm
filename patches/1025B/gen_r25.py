@@ -301,5 +301,14 @@ RW('fd landing',_fdold,
    "(window.kgmOpsLandingR1025B?window.kgmOpsLandingR1025B(q,date):'<section class=\"r7-ops-card\" style=\"text-align:center;margin-top:12px;padding:35px\"><b>'+(q?(z()?'該日無航班':'No flight on this date'):(z()?'輸入航班號碼或航線開始':'Enter a flight or route to begin'))+'</b></section>')+'</div>';   /* 1025B */")
 
 # ══ 結尾 ══
+# ══ R：Payload 限座（js/geo25.js kgmPaxCapR1025B）—— sell54 的經濟艙可賣座位扣掉飛太久載不了的人數；空重表給外面讀 ══
+RC('oew7 export','kgm-r7-admin-ops',"            B779:[181000,252650],A388:[277000,373000]};\n",
+   "            B779:[181000,252650],A388:[277000,373000]};\n  window.KGM_OEW7_R1025B=OEW7;   /* 1025B R：Payload 限座讀同一份空重 */\n")
+RC('sell54 payload','kgm-0823c-r54',"  var inv=cabinInventory54(flight,date,cab),cap=inv.capacity;if(!cap||!inv.left)return 0;",
+   "  var inv=cabinInventory54(flight,date,cab);\n"
+   "  /* 1025B R：飛行時間太長（冬季逆風、繞開關閉空域）載不了整架客滿 → 經濟艙可賣座位扣掉 Payload 限座的人數（kgmPaxCapR1025B） */\n"
+   "  if(cab==='Economy'&&typeof window.kgmPaxCapR1025B==='function'){try{var pc25=window.kgmPaxCapR1025B(flight,date);if(pc25&&pc25.blocked>0)inv=Object.assign({},inv,{capacity:Math.max(0,inv.capacity-pc25.blocked),left:Math.max(0,inv.left-pc25.blocked),payloadBlockedR1025B:pc25.blocked})}catch(_){}}\n"
+   "  var cap=inv.capacity;if(!cap||!inv.left)return 0;")
+
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

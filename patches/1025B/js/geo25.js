@@ -39,6 +39,34 @@
     if(!r){var tas=window.kgmTasR1025B(t),m0=window.kgmAirMinR1025B([a,b],tas,win),m1=window.kgmAirMinR1025B([a].concat(w.wp,[b]),tas,win);
       r={raw:m1-m0,min:Math.max(0,Math.round((m1-m0)/5)*5),km:w.extra,d0:w.d0,d1:w.d1,zones:w.zones,zonesTxt:w.zonesTxt,type:t,win:win};if(++WN>4000){WM={};WN=0}WM[k]=r}
     return r};
+  /* ②' Payload 限座（使用者：「冬季航班飛行就是我講到的Payload, like China Airlines（他們以下幾乎是A359並且是直飛）… LHR 80 AMS 107 FRA 59 VIE 25 PRG 40 FCO 31
+        可能會扣這麼多是因為戰爭和航程那些的」）
+        飛得越久要帶的油越多，最大起飛重量扣掉空重和油之後能載的人就越少 → 經濟艙要少賣幾位（可賣的數量，不是指定哪幾個座位）。
+        飛行時間＝沿實際航路（避開關閉空域）＋當季高空風＋該機型巡航速度的空中時間＋滑行 30 分（跟時刻表無關的物理估算，同一套用在校正）。
+        用華航 A359（306 席）六條冬季直飛校正（patches/1025B/geo/pl_fit.py，誤差 RMSE 約 15 席；AMS 比更遠的 LHR 還多，任何依距離／風的模型都對不上）：
+          · 輪擋超過 T0 小時才開始少賣；A359 的 T0＝11.839 小時 → 換算成「滿載航程」＝型錄航程 × 0.684（含貨郵承諾、備用油）；
+          · 每多飛 1 小時少賣全機座位的 14.8%。
+        其他機型：T0＝0.5 小時滑行＋型錄航程 × 係數 ÷ 巡航速度；少賣比例相同；最多整個經濟艙。
+        係數：亞洲—歐洲（一端在歐洲，走中亞／高加索走廊）用華航校正的 0.684（備降場少、要多帶應變油、貨郵承諾，華航自己的情況）；
+        其他長程（越太平洋、澳紐、中東）沒有校正資料 → 用型錄航程（係數 1.0）當滿載航程。華航係數直接套到美國線會讓 B779 紐約回台北經濟艙全部不能賣，
+        這不是實際航空公司的情況，所以分開。 */
+  var PF={T0:11.839,frac:0.148,rf:0.684,rfOther:1.0},RNG={A359:15000,A35K:16100,B789:14140,B78X:11730,B779:13500,B77W:13650,A388:14800,A339:13300,A21N:7400,A21X:8700},PM={},PN=0,SC={};   /* 型錄航程 km */
+  function seats(t){if(SC[t])return SC[t];var o={all:0,y:0};try{(seatSections7(t)||[]).forEach(function(s){var n=0;(s.rows||[]).forEach(function(r){(r.cells||[]).forEach(function(x){if(x&&!x.aisle&&x.id)n++})});o.all+=n;if(s.name==='Economy')o.y+=n})}catch(_){}if(o.all)SC[t]=o;return o}
+  var QM={},QN=0;
+  window.kgmPaxCapR1025B=function(f,date,opt){
+    if(!f||f.partner||f.codeshare||f.via)return null;
+    /* 訂票頁每畫一次會問上千次（sell54）：同一班同一天 5 秒內直接用（機型異動後最多 5 秒生效） */
+    var qk=opt?null:f.code+'|'+date+'|'+f.fr+'|'+f.to,qv=qk&&QM[qk];if(qv&&Date.now()-qv.t<5000)return qv.v;
+    if(qk){var rv=window.kgmPaxCapR1025B(f,date,{_q:1});if(++QN>5000){QM={};QN=0}QM[qk]={t:Date.now(),v:rv};return rv}var a=geo(f.fr),b=geo(f.to);if(!a||!b||!window.kgmAirMinR1025B)return null;
+    if(opt&&opt._q)opt=null;
+    var t=(opt&&opt.type)||'';if(!t){try{t=acftOfFlight(f.code,date,f.fr,f.to)}catch(_){t=f.acft||''}}if(!t||t==='EQV')t=f.acft&&f.acft!=='EQV'?f.acft:'B789';
+    var win=false;if(opt&&opt.win!=null)win=!!opt.win;else{try{win=window.kgmSeasonAtR112(date)==='winter'}catch(_){win=/-(1[12]|0[1-3])-/.test(date)}}
+    var st=(opt&&opt.seats)?{all:opt.seats,y:opt.seats}:seats(t),k=f.fr+'|'+f.to+'|'+t+'|'+(win?'w':'s')+'|'+st.all,r=PM[k];if(r)return r;
+    var tb=t.replace(/[LR]$/,''),rg=RNG[t]||RNG[tb]||RNG.B789,tas=window.kgmTasR1025B(t),eu=function(g){return g[0]>34&&g[1]>-25&&g[1]<45},asEu=eu(a)!==eu(b),rf=asEu?PF.rf:PF.rfOther;
+    var w=window.kgmWarRouteR1025B(f.fr,f.to),pts=w?[a].concat(w.wp,[b]):[a,b],air=window.kgmAirMinR1025B(pts,tas,win),T=(air+30)/60,T0=0.5+rf*rg/tas;
+    var blk=st.all?Math.max(0,Math.min(st.y,Math.round(st.all*PF.frac*Math.max(0,T-T0)))):0,mx=st.all-blk;
+    r={type:t,win:win,blockMin:Math.round(air+30),limitMin:Math.round(T0*60),seats:st.all,ySeats:st.y,blocked:blk,maxPax:mx,payloadKg:mx*100,km:w?w.d1:null,war:!!w,basis:asEu?'ci':'range'};
+    if(++PN>3000){PM={};PN=0}PM[k]=r;return r};
   /* ③ 起飛前 48 小時自動通知延遲抵達 */
   function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
   function hm(m){m=((m%1440)+1440)%1440;return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2)}
@@ -170,5 +198,7 @@
     if(w){h+='<span class="lg gc">'+(z()?'大圓直飛':'Great circle')+'</span><span class="lg zn">'+(z()?'關閉空域':'Closed airspace')+'</span>'}
     var info=w?((z()?'避開 ':'Avoiding ')+E(w.zonesTxt.join(z()?'、':', '))+(z()?'・航路 ':' · track ')+w.d1.toLocaleString()+' km（'+(z()?'直飛 ':'direct ')+w.d0.toLocaleString()+'，+'+w.extra.toLocaleString()+'）'+(wd?((z()?'・多飛約 ':' · about ')+'<b>'+Math.round(wd.raw)+(z()?' 分鐘':' min')+'</b>'):''))
       :(z()?'航路不經過關閉空域，照大圓航線飛行':'Track does not cross closed airspace');
-    return {legend:h,info:info,war:w,delay:wd}};
+    var pc=null;try{pc=window.kgmPaxCapR1025B(f,date)}catch(_){}
+    if(pc&&pc.blocked>0)info+=(z()?'・Payload 限座：經濟艙少賣 ':' · Payload limit: economy capped by ')+'<b>'+pc.blocked+(z()?' 席':' seats')+'</b>';
+    return {legend:h,info:info,war:w,delay:wd,cap:pc}};
 })();
