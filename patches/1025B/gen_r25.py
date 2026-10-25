@@ -52,6 +52,56 @@ RW('cx isCancel neg',"  function isCancel(t){return /取消/.test(t)&&",
 RW('cx hook await',"if(S.adminAiPendR1023A&&isCancel(t)){S.adminAiPendR1023A=null;r=start(t)}","if(S.adminAiPendR1023A&&isCancel(t)&&target25(t)){S.adminAiPendR1023A=null;r=await start(t)}")
 RW('cx hook await2',"if(!r&&S.adminAiPendR1023A)r=step(t);if(!r&&isCancel(t))r=start(t);if(!r)r=q(t)}","if(!r&&S.adminAiPendR1023A)r=await step(t);if(!r&&isCancel(t))r=await start(t);if(!r)r=q(t)}")
 
+# ══ H①：組員班表每台電腦都一樣 —— 實測兩個全新瀏覽器前 10 天 3,157 班有 455 班派的人不同。
+#    根因：重名修正拿「隨機產生的模擬員工」（地勤、行政，名字與編號是 Math.random）來比，哪位組員撞名被改名每台不同，
+#    名字決定國籍（日韓姓氏）、國籍影響排班 → 分岔。改成：重名時模擬員工讓位（組員保留依編號產生的名字），
+#    虛擬組員避開的名單也不含模擬員工；舊瀏覽器裡被這樣改掉的組員名字還原（只還原「現在的名字＝系統產生的改名」的人，手動改過的不動）。══
+RC('name set no sim','kgm-0903b-r121',"function staffNameSet12(){var o={};(S.staff||[]).forEach(function(s){if(s&&s.name)o[String(s.name).trim().toUpperCase()]=1});return o}",
+   "function staffNameSet12(){var o={};(S.staff||[]).forEach(function(s){if(s&&s.name&&!s.simulated)o[String(s.name).trim().toUpperCase()]=1});return o}   /* 1025B：隨機模擬員工不算（不然每台電腦虛擬組員的名字不同） */")
+RC('name fix prio','kgm-0903b-r121',"function fixStaffNames12(){try{if(S.nameFixR1012A&&S.nameFixR1012A.len===(S.staff||[]).length)return;var seen={},ren={};\n    (S.staff||[]).slice().sort(function(a,b){return String(a.empId).localeCompare(String(b.empId))}).forEach(function(s){",
+   "function fixStaffNames12(){try{if(S.nameFixR1012A&&S.nameFixR1012A.len===(S.staff||[]).length&&S.nameFixR1012A.v25)return;var seen={},ren={};\n"
+   "    /* 1025B：舊版拿隨機模擬員工比重名，被改掉名字的正式員工先還原（現在的名字必須是系統產生的改名，手動改過的不動） */\n"
+   "    if(!(S.nameFixR1012A&&S.nameFixR1012A.v25))(S.staff||[]).forEach(function(s){if(!s||s.simulated||!s.nameWasR1012A)return;var auto=false;for(var k=0;k<12&&!auto;k++)if(s.name===cap12(nameOf12(s.empId,k)))auto=true;if(auto){ren[s.empId]={was:s.name,now:s.nameWasR1012A};s.name=s.nameWasR1012A;delete s.nameWasR1012A}});\n"
+   "    (S.staff||[]).slice().sort(function(a,b){return ((a&&a.simulated)?1:0)-((b&&b.simulated)?1:0)||String(a.empId).localeCompare(String(b.empId))}).forEach(function(s){   /* 1025B：撞名時隨機模擬員工讓位 */")
+RC('name fix v25','kgm-0903b-r121',"    S.nameFixR1012A={at:new Date().toISOString(),n:Object.keys(ren).length,len:(S.staff||[]).length};",
+   "    S.nameFixR1012A={at:new Date().toISOString(),n:Object.keys(ren).length,len:(S.staff||[]).length,v25:1};")
+RC('virt names v25','kgm-0903b-r121',"if(!ex.n12R1012A){uniq12(ex.list);ex.n12R1012A=1;try{save()}catch(_){}}","if(!ex.n12R1012A||ex.n12R1025B!==1||(ex.pre25&&window.KGM_FULLDONE_1006A)){uniq12(ex.list);ex.n12R1012A=1;ex.n12R1025B=1;ex.pre25=!window.KGM_FULLDONE_1006A;try{save()}catch(_){}}   /* 1025B：機隊排完前取的名字（當時名冊不完整）排完後重取 */")
+RC('virt names v25b','kgm-0903b-r121',"uniq12(list);S.crewExtraR121={pilot:want.pilot,cabin:want.cabin,list:list,n12R1012A:1};","uniq12(list);S.crewExtraR121={pilot:want.pilot,cabin:want.cabin,list:list,n12R1012A:1,n12R1025B:1,pre25:!window.KGM_FULLDONE_1006A};")
+
+# ══ H②：開頁後背景先算＋算好的班表存 IndexedDB，同一天輸入沒變直接讀回（js/cw25.js，放在 r121 裡才看得到引擎狀態）══
+RC('crew warm idb','kgm-0903b-r121',"window.kgmCrewWarmProgressR923=function(){return CURSOR121||''};","window.kgmCrewWarmProgressR923=function(){return CURSOR121||''};"+JS('cw25.js'))
+
+# ══ H③：組員需求人數（決定虛擬組員有幾位）原本用「第一次被呼叫當下」的飛機排班算、之後永不重算；
+#    機隊整年重排還沒做完就被叫到（例如很早點開組員相關頁面），人數就不同 → 每台電腦組員庫不同。改成機隊排完才定下來，之前只算不留（5 秒內重用）。══
+RC('demand after full','kgm-0903b-r121',"  if(demand121.cache)return demand121.cache;","  if(demand121.cache&&(demand121.full||Date.now()-demand121.at<5000))return demand121.cache;   /* 1025B：機隊整年排完才定下來 */")
+RC('demand after full2','kgm-0903b-r121',"  return demand121.cache=out;","  demand121.full=!!window.KGM_FULLDONE_1006A;demand121.at=Date.now();\n  return demand121.cache=out;")
+
+# ══ H④：機隊整年重排做完之前就算出來的組員班表（例如很早就點開組員班表），機隊排完一律作廢重算 ——
+#    原本只比「航段數量」，數量一樣就沿用用舊機隊算的結果 → 每台電腦不同。══
+RC('crew pre wipe','kgm-0903b-r121',"  if(SOURCE121!==S.tailAssign)_wipe121=true;","  if(SOURCE121!==S.tailAssign)_wipe121=true;\n  if(window.KGM_CREW_PRE_R1025B&&window.KGM_FULLDONE_1006A){window.KGM_CREW_PRE_R1025B=false;_wipe121=true;try{OW22={};OWD22='';OX22={};BLK121={};FL121={};POOL121=null;NAT22={};demand121.cache=null}catch(_){}}   /* 1025B：連同依日期快取的外站接續班、航段時間、航班清單、組員庫一起清 */")
+RC('crew pre mark','kgm-0903b-r121',"function buildDay121(date){\n  if(MEM121[date])return MEM121[date];","function buildDay121(date){\n  if(MEM121[date])return MEM121[date];\n  if(!window.KGM_FULLDONE_1006A)window.KGM_CREW_PRE_R1025B=true;   /* 1025B：機隊還沒排完就算的 → 排完後作廢 */")
+
+# ══ H⑤：正式組員職級在「第一次建組員庫」時固定存檔（S.crewRankR1009B），那一刻庫裡有哪些人（泰籍是否已加入、機型族平衡）看開頁時機
+#    → 14 位組員固定下來的職級每台不同。改成機隊整年排完、組員庫完整後才固定；已經存了舊職級的瀏覽器重設一次。══
+RC('rank fix after full','kgm-0903b-r121',"(function(){var RS9=S.crewRankR1009B=S.crewRankR1009B||{},st9={},n9=0;",
+   "(function(){try{if(window.KGM_FULLDONE_1006A&&localStorage.getItem('kgm25_rk')!=='1'){S.crewRankR1009B={};localStorage.setItem('kgm25_rk','1')}}catch(_){}   /* 1025B：舊的固定職級是開頁時機決定的 → 重設一次 */\n    var RS9=S.crewRankR1009B=S.crewRankR1009B||{},st9={},n9=0;")
+RC('rank fix after full2','kgm-0903b-r121',"if(r){if(r!==p.rank){p.rank=r;p.rankZH=LVZH1009B[r]||p.rankZH}}else{RS9[p.empId]=p.rank;n9++}});",
+   "if(r){if(r!==p.rank){p.rank=r;p.rankZH=LVZH1009B[r]||p.rankZH}}else if(window.KGM_FULLDONE_1006A){RS9[p.empId]=p.rank;n9++}});   /* 1025B：機隊排完才固定 */")
+
+# ══ H⑥：組員班表外層的快取（r196 客艙職位、r210 排班鏈、覆蓋率）都用 r121 的「各機身航段數」指紋；機隊整年排完前後數量可能一樣 → 排完前算的結果沿用。
+#    指紋加上「機隊是否已排完」，排完那一刻依指紋的快取全部作廢（游標前的指紋也一樣 → 引擎本身也重算）。══
+RC('stamp full','kgm-0903b-r121',"    for(i=0;i<k.length;i++)h=(h*31+((TA[k[i]]||[]).length))|0;\n    return h;","    for(i=0;i<k.length;i++)h=(h*31+((TA[k[i]]||[]).length))|0;\n    return h+(window.KGM_FULLDONE_1006A?'F':'p');   /* 1025B */")
+RC('stamp full2','kgm-0903b-r121',"      h=(h*31+c)|0;\n    }\n    return h;","      h=(h*31+c)|0;\n    }\n    return h+(window.KGM_FULLDONE_1006A?'F':'p');   /* 1025B */")
+
+# ══ H⑦：機隊整年重排做完之前，組員排班引擎一律不算（實測提早點開組員班表，即使所有輸入都相同，結果從第 4 天起仍會分岔 —— 有依查詢順序累積的狀態）。
+#    之前呼叫只回「準備中」的空班表，組員班表頁顯示進度。══
+RC('crew gate plan','kgm-0903b-r121',"window.kgmCrewPlanR121=function(date){\n  date=date||T();",
+   "window.kgmCrewPlanR121=function(date){\n  date=date||T();\n  if(!window.KGM_FULLDONE_1006A)return {date:date,sig:'pending',flights:[],standby:[],violations:[],pilotsUsed:0,pendingR1025B:true};   /* 1025B：機隊排完才算 */")
+RC('crew gate step','kgm-0903b-r121',"window.kgmCrewStepR121=function(budgetMs,until){","window.kgmCrewStepR121=function(budgetMs,until){\n  if(!window.KGM_FULLDONE_1006A)return;   /* 1025B：機隊排完才算 */")
+
+RC('crew prog label','kgm-0907A-r196',"+'<span>'+READY196+' / '+DAYS196+(z()?' 天':' days')+'</span></div>'",
+   "+'<span>'+(window.KGM_FULLDONE_1006A?(READY196+' / '+DAYS196+(z()?' 天':' days')):(z()?'機隊排班中，排完會自動排組員班表（大家看到的是同一份）':'Fleet rotation in progress; crew roster starts automatically'))+'</span></div>'")   # 1025B
+
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
