@@ -121,7 +121,7 @@ RW('kx5 0005',"winter:['00:00','05:45',1]","winter:['00:05','05:50',1]",2)
 RW('kx5 reseed',"        if(o&&o.userR1012B)return;","        if(o&&o.userR1012B&&!(o.winter&&o.winter.dep==='00:00'))return;   /* 1025B：冬季 00:00 → 00:05 重新寫入 */")
 
 # ══ k25.js：接在 grp23 後面（r229 最後）══
-RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js')+JS('wind25.js')+JS('ap25.js'))
+RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js')+JS('wind25.js')+JS('geo25.js').replace('/*GEO25*/null',open('geo/geo25.json',encoding='utf-8').read()).replace("/*TEX25*/''","'data:image/jpeg;base64,"+__import__('base64').b64encode(open('geo/tex/bm4096.jpg','rb').read()).decode()+"'")+JS('ap25.js')+JS('fd25.js'))
 RC('dh card label','kgm-0907A-r196',"'DH PNR '+E(r.pnr)+(r.last?(z()?(' · '+E(r.last)+' / '+E(r.first||'')):","'DH PNR '+E(r.pnr)+(r.last?(z()?('<span style=\"display:block;font-weight:700\">姓 '+E(r.last)+'　名 '+E(r.first||'')+'</span>'):")   # 1025B：PNR 一行、姓名一行
 
 # ══ J：AI 換班「正在找…」→ 網頁無回應：要看的日子（例 12/03～12/04）還沒算好時，planOf 會一口氣同步從游標算到那天（每天約 1 秒，40 天就卡 40 秒）。
@@ -294,6 +294,11 @@ RC('ap lib export','kgm-0908a-r158',"window.kgmApOpenR158=function(which){",
 RW('vc memo gen',"      if(VCAT111!==VCGEN111){VCMEM111={};VCAT111=VCGEN111}",
    "      var g25=VCGEN111+'|'+(window.kgmInvSigR1025B?window.kgmInvSigR1025B():Date.now());if(VCAT111!==g25){VCMEM111={};VCAT111=g25}   /* 1025B：不再每次重畫都清空 */")
 RW('vc memo no per-render bump',"  render=window.render=function(){\n    VCGEN111++;\n","  render=window.render=function(){\n")
+
+# ══ C：航班資料頁還沒開航班時的畫面（js/fd25.js kgmOpsLandingR1025B：今日出發、最近開啟、查無航班時最近有飛的日期）══
+_fdold=open('fd_old.txt',encoding='utf-8').read()
+RW('fd landing',_fdold,
+   "(window.kgmOpsLandingR1025B?window.kgmOpsLandingR1025B(q,date):'<section class=\"r7-ops-card\" style=\"text-align:center;margin-top:12px;padding:35px\"><b>'+(q?(z()?'該日無航班':'No flight on this date'):(z()?'輸入航班號碼或航線開始':'Enter a flight or route to begin'))+'</b></section>')+'</div>';   /* 1025B */")
 
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')

@@ -15,7 +15,8 @@
   var GEO25={ATH:[37.94,23.94],AUH:[24.43,54.65],BCN:[41.30,2.08],BUD:[47.44,19.26],CAN:[23.39,113.30],CEB:[10.31,123.98],CGO:[34.52,113.84],CHC:[-43.49,172.53],CKG:[29.72,106.64],
     CNX:[18.77,98.96],CTU:[30.58,103.95],DAD:[16.04,108.20],DMK:[13.91,100.61],DTW:[42.21,-83.35],EWR:[40.69,-74.17],FCO:[41.80,12.25],HEL:[60.32,24.96],HGH:[30.23,120.43],IAH:[29.98,-95.34],
     KTI:[11.40,104.80],LAS:[36.08,-115.15],MAD:[40.47,-3.56],MLE:[4.19,73.53],ONT:[34.06,-117.60],PEN:[5.30,100.28],PER:[-31.94,115.97],PHX:[33.43,-112.01],PRG:[50.10,14.26],SHA:[31.20,121.34],
-    SZX:[22.64,113.81],WAW:[52.17,20.97],XMN:[24.54,118.13]};
+    SZX:[22.64,113.81],WAW:[52.17,20.97],XMN:[24.54,118.13],
+    HIJ:[34.44,132.92],KOJ:[31.80,130.72],MXP:[45.63,8.72],OKJ:[34.76,133.86]};   /* 1025B 第二輪：廣島／鹿兒島／米蘭／岡山原本漏了，這幾條航線冬季沒有算到風 */
   function geo(c){try{var g=AIRPORT_GEO[c];if(g)return g}catch(_){}return GEO25[c]||null}
   function rad(x){return x*Math.PI/180}
   function deg(x){return x*180/Math.PI}
@@ -56,6 +57,11 @@
   function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
   function typeOf(f,x){var t=String((x&&x.acft)||(f&&f.acft)||'');if(TAS[t])return t;return 'B789'}
   var AIRM={};
+  /* 1025B 第二輪：沿任意航點（避開關閉空域的航路）算空中時間（分鐘），跟上面同一套風場 —— 航班資料路線圖、避戰延誤、Payload 都讀這裡 */
+  window.kgmAirMinR1025B=function(pts,tas,win){var t=0;for(var i=0;i<pts.length-1;i++){var L=hav(pts[i],pts[i+1]),pp=path(pts[i],pts[i+1],10),tail=0;
+      pp.forEach(function(o){tail+=u(o.lat,win,o.lon)*o.east});tail/=Math.max(1,pp.length);t+=L*1.03/Math.max(400,tas+tail)}return t*60};
+  window.kgmTasR1025B=function(t){return TAS[t]||TAS.B789};
+  window.kgmGeoR1025B=geo;
   window.kgmWindFlightR1025B=function(f,x,su,bs,date){
     var a=geo(f.fr),b=geo(f.to);if(!a||!b)return null;
     var d=0;try{d=+distOf(f.fr,f.to)||0}catch(_){d=0}if(d<300)return null;
