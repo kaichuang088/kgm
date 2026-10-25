@@ -115,7 +115,7 @@ RW('kx5 reseed',"        if(o&&o.userR1012B)return;","        if(o&&o.userR1012B
 
 # ══ k25.js：接在 grp23 後面（r229 最後）══
 RW('k25 embed',open('../1023A/js/grp23.js',encoding='utf-8').read(),open('../1023A/js/grp23.js',encoding='utf-8').read()+JS('k25.js'))
-RC('dh card label','kgm-0907A-r196',"'DH PNR '+E(r.pnr)+(r.last?(z()?(' · '+E(r.last)+' / '+E(r.first||'')):","'DH PNR '+E(r.pnr)+(r.last?(z()?(' · 姓 '+E(r.last)+'　名 '+E(r.first||'')):")
+RC('dh card label','kgm-0907A-r196',"'DH PNR '+E(r.pnr)+(r.last?(z()?(' · '+E(r.last)+' / '+E(r.first||'')):","'DH PNR '+E(r.pnr)+(r.last?(z()?('<span style=\"display:block;font-weight:700\">姓 '+E(r.last)+'　名 '+E(r.first||'')+'</span>'):")   # 1025B：PNR 一行、姓名一行
 
 # ══ J：AI 換班「正在找…」→ 網頁無回應：要看的日子（例 12/03～12/04）還沒算好時，planOf 會一口氣同步從游標算到那天（每天約 1 秒，40 天就卡 40 秒）。
 #    先一天一天往前算、每天之間讓畫面回應；機隊還沒排完就先等。══
@@ -130,6 +130,85 @@ RC('stx workload','kgm-0816d-r40',"      +'<td class=\"k6ss-f\"><b>'+E(f.code)+'
    "      +'<td class=\"k6ss-f\"><b>'+E(f.code)+'</b><span>'+E(f.fr)+' → '+E(f.to)+'</span><small>'+E(f.dep||'')+' · '+E(ac)+'</small><em>'+E(det)+'</em>'+(window.kgmStxWorkloadR1025B?window.kgmStxWorkloadR1025B(p,f.code,d,f.fr,f.to):'')+'</td>'")   # 1025B
 
 RW('ai tool temp',"    flight_delay:{tab:'status',zh:'航班延誤或改起飛時間","    flight_temp:{tab:'fleetsched',zh:'建立臨時航班（text 放使用者原話，例如「加開 TPE-NRT 11/5」「11/8 臨時航班 台北到首爾 B789 09:30」；第一次呼叫會依距離建議機型並列出三個方案（機身已在出發站、前後勤務排得開），之後把使用者的回答原樣放 text 再呼叫：選 1／2／3、改機型或時間、要不要販售）',run:function(a){return window.kgmAiTempFlightR1025B(a)}},   /* 1025B */\n    flight_delay:{tab:'status',zh:'航班延誤或改起飛時間")
+
+
+# ══ K：請假（使用者：「地勤可能請了那天班就是那天會變成休息找其他人代替 然後下是組元可能請假他剛到國外就要幫他取消請假區間的班表並且在請假節數格天排回程當組元或是DH」）
+#    組員那一半 r121／r229（0928B）本來就做了（請假日不排、結束隔天在外站沒排到班就 DH 回基地），實測通過；
+#    地勤的 8 小時班（r194，1022A）完全沒讀請假 → 核准後當天照樣排他上班。══
+RC('gnd lv fn','kgm-0907A-r194',"function person8(p,date){",
+   "/* 1025B：已核准的請假（整天 → 這天休；指定時段 → 那段時間不排工作） */\n"
+   "var IGN25=null;\n"
+   "function lv25(id,date){try{if(IGN25===id)return null;var L=S.leave||[];for(var i=0;i<L.length;i++){var l=L[i];if(!l||l.empId!==id||l.status!=='approved')continue;\n"
+   "  var a=String(l.start||''),b=String(l.end||l.start||'');if(!a||!(a<=date&&date<=b))continue;\n"
+   "  if(l.part&&l.part.from&&l.part.to){var m=function(x){var q=String(x).split(':');return (+q[0])*60+(+q[1]||0)},x=m(l.part.from),y=m(l.part.to);if(y<=x)y+=1440;if(x<180){x+=1440;y+=1440}return {l:l,part:1,blk:[x,y],no:l.caseNo||l.id||''}}\n"
+   "  return {l:l,no:l.caseNo||l.id||''}}}catch(_){}return null}\n"
+   "function lvsig25(){try{var o='';(S.leave||[]).forEach(function(l){if(l&&l.status==='approved')o+=l.empId+l.start+(l.end||'')+(l.part?l.part.from+l.part.to:'')+','});return o.length+':'+(function(h){for(var i=0;i<o.length;i++)h=(h*31+o.charCodeAt(i))|0;return h})(7)}catch(_){return ''}}\n"
+   "function person8(p,date){")
+RC('gnd lv person','kgm-0907A-r194',"  if(!d||d.off)return {id:p.empId,p:p,off:true,base:d};",
+   "  if(!d||d.off)return {id:p.empId,p:p,off:true,base:d};\n  var lv=lv25(p.empId,date);if(lv&&!lv.part)return {id:p.empId,p:p,off:true,base:d,leaveR1025B:lv};   /* 1025B：請假 → 這天休，工作由同仁接手 */")
+RC('gnd lv person2','kgm-0907A-r194',"    ord:H(p.empId+'|'+date)};","    ord:H(p.empId+'|'+date),blk25:lv&&lv.part?lv.blk:null,leaveR1025B:lv||null};")
+RC('gnd lv ok8','kgm-0907A-r194',"function ok8(P,t,maxGap){\n  if(P.off)return false;","function ok8(P,t,maxGap){\n  if(P.off)return false;\n  if(P.blk25&&t.a<P.blk25[1]&&t.b>P.blk25[0])return false;   /* 1025B：指定時段請假 */")
+RC('gnd lv stamp','kgm-0907A-r194',"return a+'|'+b+'|'+(z()?'z':'e');","return a+'|'+b+'|'+(z()?'z':'e')+'|'+lvsig25();   /* 1025B：請假核准／撤銷後重排 */")
+RC('gnd lv shift','kgm-0907A-r194',"  P.from=s;P.to=e;P.meal=meal;P.fillR1022A=fill;",
+   "  P.from=s;P.to=e;P.meal=meal;P.fillR1022A=fill;\n"
+   "  /* 1025B：指定時段請假落在班內 → 那段寫請假（不排簡報／服務台／用餐） */\n"
+   "  if(P.blk25&&P.blk25[1]>s&&P.blk25[0]<e){var x0=Math.max(s,P.blk25[0]),x1=Math.min(e,P.blk25[1]),nf=[];\n"
+   "    fill.forEach(function(f){if(f.b<=x0||f.a>=x1){nf.push(f);return}if(f.a<x0)nf.push(Object.assign({},f,{b:x0}));if(f.b>x1)nf.push(Object.assign({},f,{a:x1}))});\n"
+   "    if(x0<=s)P.from=x1;else if(x1>=e)P.to=x0;else nf.push({a:x0,b:x1,k:'leave'});   /* 壓到班頭就從請假結束上班、壓到班尾就在請假開始下班；在中間才寫一段請假 */\n"
+   "    nf.sort(function(a,b){return a.a-b.a});P.fillR1022A=nf;if(meal&&meal[1]>x0&&meal[0]<x1)P.meal=null}")
+RC('gnd lv fill','kgm-0907A-r194',"var FILL22={","var FILL22={leave:['請假（指定時段）','Leave (part day)','已核准的請假時段：這段時間不排工作，原本的櫃檯／登機門工作由同仁接手','Approved part-day leave; no duties in this window'],   /* 1025B */\n  ")
+RC('gnd lv fill tag','kgm-0907A-r194',"if(it.f){var L22=FILL22[it.f.k];rows.push('<article class=\"k8-svc\"><time>'+hm(it.f.a)+'–'+hm(it.f.b)+'<i>'+(z()?'勤務':'Duty')+'</i></time>",
+   "if(it.f){var L22=FILL22[it.f.k];rows.push('<article class=\"'+(it.f.k==='leave'?'k8-break k25lv-part':'k8-svc')+'\"><time>'+hm(it.f.a)+'–'+hm(it.f.b)+'<i>'+(it.f.k==='leave'?(z()?'請假':'Leave'):(z()?'勤務':'Duty'))+'</i></time>")
+RC('gnd lv duty','kgm-0907A-r194',"  window.kgmGroundDutyR99=duty;window.kgmGroundShiftR90=duty;",
+   "  /* 1025B：請假 —— 整天請假這天就是休（不論派工是否已排出）；指定時段寫在班別後面 */\n"
+   "  var duty0R25=duty;duty=function(id,date){var r=duty0R25.apply(this,arguments);\n"
+   "    try{var lv=lv25(id,date);if(lv&&r&&!r.off){var zh=(typeof LEAVE_ZH!=='undefined'&&LEAVE_ZH[lv.l.type])||'';\n"
+   "      if(!lv.part)return {off:true,k:'off',label:(z()?'請假':'Leave')+(zh&&z()?'（'+zh+'）':''),from:'',to:'',hours:0,leaveR1025B:lv.no,baseR1025B:(r.from||'')+'–'+(r.to||'')};\n"
+   "      r=Object.assign({},r,{leaveTxtR1025B:(z()?'・請假 ':' · leave ')+lv.l.part.from+'–'+lv.l.part.to,leavePartR1025B:lv.no})}}catch(_){}\n"
+   "    return r};\n"
+   "  window.kgmGroundDutyR99=duty;window.kgmGroundShiftR90=duty;")
+RC('gnd lv people','kgm-0907A-r194',"label:q.off?(z()?'例休':'Rest day'):","label:q.off?(q.leaveR1025B?(z()?'請假':'Leave'):(z()?'例休':'Rest day')):")
+RC('gnd lv jobs','kgm-0907A-r194',"  if(q.off)return '<div class=\"k74-person-jobs k8-jobs\"><div class=\"k74-empty\">'+(z()?'本日例休（每週固定連休兩天）。':'Rest day.')+'</div></div>';",
+   "  if(q.off&&q.leaveR1025B)return cover25html(ap,date,id,q);   /* 1025B */\n"
+   "  if(q.off)return '<div class=\"k74-person-jobs k8-jobs\"><div class=\"k74-empty\">'+(z()?'本日例休（每週固定連休兩天）。':'Rest day.')+'</div></div>';")
+RC('gnd lv cover','kgm-0907A-r194',"window.kgmGroundPeopleR1008A=function(ap,date){",JS('gl25.js')+"window.kgmGroundPeopleR1008A=function(ap,date){")
+RW('gnd lv approve',"    try{if(window.kgmCrewLeaveApplyR928&&window.kgmCrewLeaveApplyR928(l)){removed=0;replaced=0;l._crewAsync928=1}}catch(_e928){}",
+   "    try{if(window.kgmCrewLeaveApplyR928&&window.kgmCrewLeaveApplyR928(l)){removed=0;replaced=0;l._crewAsync928=1}}catch(_e928){}\n"
+   "    try{if(myRoleR==='ground'&&window.kgmGroundLeaveApplyR1025B){var g25=window.kgmGroundLeaveApplyR1025B(l);if(g25){removed=0;replaced=0;l._gnd25=g25}}}catch(_g25){}   /* 1025B：地勤 8 小時班（r194）當天改休、工作由同仁接手並通知 */")
+RW('gnd lv old sched',"    if(myRoleR==='pilot'||myRoleR==='cabin')lst=null;","    if(myRoleR==='pilot'||myRoleR==='cabin'||myRoleR==='ground')lst=null;   /* 1025B：地勤也不用舊 S.crewSched（實際班表是 r194） */")
+RW('gnd lv msg','+(l._crewAsync928?"　請假期間的航班由系統改派給符合法規的組員，班表異動另行通知。":""));','+(l._crewAsync928?"　請假期間的航班由系統改派給符合法規的組員，班表異動另行通知。":"")+(l._gnd25?"　"+l._gnd25:""));')
+
+RW('replan warm full',"    function warm(until,done){var g=0;(function step(){try{window.kgmCrewStepR121(140,until)}catch(_){}",
+   "    function warm(until,done){var g=0;(function step(){if(!window.KGM_FULLDONE_1006A){setTimeout(step,1000);return}   /* 1025B：組員引擎要等機隊排完才算（不然 4000 次空轉後拿半套班表比對） */try{window.kgmCrewStepR121(140,until)}catch(_){}")
+
+RW('gnd lv sig74',"rx74.msg||'',ns74].join('|');","rx74.msg||'',ns74,(window.kgmGroundLvSigR1025B?window.kgmGroundLvSigR1025B():'')].join('|');   /* 1025B：請假核准後面板要重畫 */")
+
+RC('gnd lv label','kgm-0907A-r194',"    return s.label+'　'+s.from+'–'+s.to+'（'+s.hours+'h）';","    return s.label+'　'+s.from+'–'+s.to+'（'+s.hours+'h'+(s.leaveTxtR1025B||'')+'）';   /* 1025B */")
+
+RC('gnd lv head','kgm-0902a-r102',"      +'<b>'+E(d.off?d.label:(d.label+'　'+d.from+' – '+d.to))+'</b>'",
+   "      +'<b>'+E(d.off?d.label:(d.label+'　'+d.from+' – '+d.to+(d.leaveTxtR1025B?'（'+String(d.leaveTxtR1025B).replace(/^[・· ]+/,'')+'）':'')))+'</b>'   /* 1025B：指定時段請假 */")
+RC('gnd lv head2','kgm-0902a-r102',"      +'<span>'+(d.off?(z()?'例休':'Rest day'):","      +'<span>'+(d.off?(d.leaveR1025B?(z()?('已核准請假 '+d.leaveR1025B+'・當天工作由同仁接手'):'Approved leave · duties covered'):(z()?'例休':'Rest day')):")
+RC('gnd lv week','kgm-0902a-r102',"          +'<b>'+E(q.off?(z()?'休':'Off'):q.label)+'</b>'","          +'<b>'+E(q.off?(q.leaveR1025B?(z()?'請假':'Leave'):(z()?'休':'Off')):q.label)+'</b>'")
+RC('gnd lv offdays','kgm-0902a-r102',"  var offDays=wk.filter(function(x){return duty102(id,x).off}).map(","  var offDays=wk.filter(function(x){var q=duty102(id,x);return q.off&&!q.leaveR1025B}).map(")
+RC('gnd lv role','kgm-0907A-r194',"  var q=P.people[id];if(q.off)return z()?'旅客服務地勤・本日例休':'Passenger Service Agent · rest day';",
+   "  var q=P.people[id];if(q.off)return q.leaveR1025B?(z()?'旅客服務地勤・本日請假':'Passenger Service Agent · on leave'):(z()?'旅客服務地勤・本日例休':'Passenger Service Agent · rest day');")
+RC('gnd lv tile','kgm-0907A-r194',"      +tile(z()?'例休':'Rest day',P.off,z()?'人':'staff')",
+   "      +(function(){var n=0;Object.keys(P.people).forEach(function(k){if(P.people[k].leaveR1025B&&P.people[k].off)n++});return tile(z()?'例休':'Rest day',P.off-n,(z()?'人':'staff')+(n?(z()?('（另請假 '+n+' 人）'):(' (+'+n+' on leave)')):''))})()   /* 1025B */")
+RW('gnd lv r12',"var lab=!d?'—':(d.off?(z12()?'例休':'Rest day'):","var lab=!d?'—':(d.off?(d.leaveR1025B?(z12()?'請假':'Leave'):(z12()?'例休':'Rest day')):")
+
+RC('gnd lv sum','kgm-0902a-r102',"      return {early:R.by.early.length,mid:R.by.mid.length,late:R.by.late.length,\n        off:R.by.off.length,total:R.total};",
+   "      var lv25=0;try{R.by.off.forEach(function(x){var q=window.kgmGroundDutyR99(x.empId,date);if(q&&q.leaveR1025B)lv25++})}catch(_){}   /* 1025B：請假另列 */\n"
+   "      return {early:R.by.early.length,mid:R.by.mid.length,late:R.by.late.length,\n        off:R.by.off.length-lv25,lv:lv25,total:R.total};")
+RC('gnd lv sum2','kgm-0902a-r102',"      +'<span class=\"off\">'+(z()?'例休 ':'Rest ')+S7.off+'</span>'","      +'<span class=\"off\">'+(z()?'例休 ':'Rest ')+S7.off+'</span>'+(S7.lv?('<span class=\"off\">'+(z()?'請假 ':'Leave ')+S7.lv+'</span>'):'')")
+
+RC('crew lv cell','kgm-0907A-r196',"        h+='<span class=\"rest\">'+(z()?'休':'OFF')+'</span>';",
+   "        var lv25=false;try{lv25=window.kgmCrewOffR928&&window.kgmCrewOffR928(id,x.date)}catch(_){}   /* 1025B：核准的請假寫「請假」，不是「休」 */\n"
+   "        h+=lv25?('<span class=\"rest\" style=\"color:#8a5a12;background:#fff3dc;border-radius:6px;padding:1px 6px\">'+(lv25==='leave'?(z()?'請假':'LEAVE'):(z()?'停派':'REMOVED'))+'</span>'):('<span class=\"rest\">'+(z()?'休':'OFF')+'</span>');")
+
+RC('r196 bg step','kgm-0907A-r196',"window.kgmRosterReadyR196=function(){return READY196};",
+   "window.kgmRosterReadyR196=function(){return READY196};\n"
+   "/* 1025B：背景（cw25）組員引擎算完 60 天後，在瀏覽器空檔一天一天把班表索引也補好 —— 進「組員班表」就是 60/60，不用停在那一頁等 */\n"
+   "window.kgmRosterStepR196=function(){if(READY196<DAYS196&&window.KGM_ROT_FINAL_R913&&window.KGM_FULLDONE_1006A)buildStep196();return READY196};")
 
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')

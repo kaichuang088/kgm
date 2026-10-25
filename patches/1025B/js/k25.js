@@ -221,3 +221,33 @@
     try{Object.keys(a0).forEach(function(k){if(!(k in w))w[k]=a0[k]})}catch(_){}w.__k25=1;window.kgmAdminAiAskR929=w}
   hook();setTimeout(hook,0);setTimeout(hook,3500);setTimeout(hook,8000);
 })();
+
+/* ══ K：請假紀錄卡片寫清楚結果（地勤：誰接手；組員：請假期間幾班改派、結束後怎麼回基地）══ */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function hook(){var P0=window.kgmLeavePhotosR928;if(typeof P0!=='function'||P0.__k25)return;
+    var w=function(i){var h='';try{h=P0.apply(this,arguments)||''}catch(_){}
+      try{var l=(S.leave||[])[i];if(!l||l.status!=='approved')return h;var g=l.groundCoverR1025B,c=l.crewReplanR928,t='';
+        if(g)t=(z()?('地勤代班：'+(g.tasks?('已排出的 '+g.tasks+' 項工作由 '+g.people+' 位同仁接手'+(g.short?('，'+g.short+' 項低於最少人力'):'')):'這段期間的派工還沒排出')+(g.laterDays?('；其餘 '+g.laterDays+' 天在前一天排派工時自動排給同仁'):'')):'Ground cover recorded');
+        else if(c)t=(z()?('組員班表：請假期間 '+(c.removed||0)+' 班改由其他組員執飛'+(c.others?('，連帶 '+c.others+' 位組員班表異動'):'')+'；人在外站時，請假結束隔天排回程（執勤或 DH）'):'Crew roster re-planned');
+        if(t)h+='<div style="margin-top:6px;font-size:11.5px;color:#0b493b;background:#eef6f2;border-radius:8px;padding:6px 9px">✓ '+E(t)+'</div>'}catch(_){}
+      return h};
+    w.__k25=1;window.kgmLeavePhotosR928=w}
+  hook();setTimeout(hook,0);setTimeout(hook,3500);
+})();
+
+/* ══ 寄信服務連不上（例如離線）時，沒有接 .catch 的呼叫會變成「未處理的錯誤」；最外層統一接住，只記事件類型與錯誤碼（不記收件人）══ */
+(function(){
+  function hook(){var N0=window.kgmNotify;if(typeof N0!=='function'||N0.__k25)return;
+    var w=function(type){var r;try{r=N0.apply(this,arguments)}catch(e){r=Promise.reject(e)}
+      try{if(r&&typeof r.catch==='function')r.catch(function(e){try{var L=window.KGM_MAIL_FAIL_R1025B=window.KGM_MAIL_FAIL_R1025B||[];if(L.length<50)L.push({type:String(type||''),code:(e&&e.code)||'',at:Date.now()})}catch(_){}})}catch(_){}
+      return r};
+    w.__k25=1;window.kgmNotify=w}
+  hook();setTimeout(hook,0);setTimeout(hook,3500);
+})();
+
+/* ══ 組員班表月曆：DH PNR 標籤寫了「姓／名」之後比較長，1fr 會被撐開（七欄寬窄不一、標籤被裁掉）→ 七欄等寬、標籤可換行 ══ */
+(function(){try{if(document.getElementById('k25-cal-css'))return;var cs=document.createElement('style');cs.id='k25-cal-css';
+  cs.textContent='.k196-cal,.k196-wk{grid-template-columns:repeat(7,minmax(0,1fr))!important}.k196-cal>div{min-width:0}.k196-cal i.k196-pnr{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;word-break:break-word;line-height:1.35}';
+  document.head.appendChild(cs)}catch(_){}})();

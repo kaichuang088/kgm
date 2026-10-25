@@ -38,7 +38,11 @@
     if(!window.KGM_FULLDONE_1006A)return;
     if((tick.tried|0)<4&&!(window.KGM_CREW_RESTORE_R1025B&&window.KGM_CREW_RESTORE_R1025B.ok)){tick.tried=(tick.tried|0)+1;BUSY25=true;restore25(function(){BUSY25=false});return}   /* 開頁時讀回的若被機隊重排倒掉，機隊做完再讀一次 */
     try{inval121(null)}catch(_){}
-    if(CURSOR121&&CURSOR121>=target()){save25();return}
+    if(CURSOR121&&CURSOR121>=target()){save25();
+      /* 1025B：再把組員班表畫面那一層的索引（r196，一天約 0.1～0.2 秒）在空檔補滿 */
+      if(window.kgmRosterStepR196&&window.kgmRosterReadyR196&&window.kgmRosterReadyR196()<60){BUSY25=true;
+        idle(function(){var t0=Date.now(),r0=-1;try{while(Date.now()-t0<120){var r=window.kgmRosterStepR196();if(r===r0||r>=60)break;r0=r}}catch(_){}BUSY25=false;setTimeout(tick,30)})}
+      return}
     BUSY25=true;
     idle(function(){try{window.kgmCrewStepR121(1,target())}catch(_){}BUSY25=false;
       if(CURSOR121&&CURSOR121>=target())save25();
