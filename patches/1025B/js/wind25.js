@@ -55,11 +55,12 @@
   function tin(ap,m){return 7+Math.min(8,0.35*near(dens().arr[ap],m))+0.7*curve(ap,m)}
   function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
   function typeOf(f,x){var t=String((x&&x.acft)||(f&&f.acft)||'');if(TAS[t])return t;return 'B789'}
+  var AIRM={};
   window.kgmWindFlightR1025B=function(f,x,su,bs,date){
     var a=geo(f.fr),b=geo(f.to);if(!a||!b)return null;
     var d=0;try{d=+distOf(f.fr,f.to)||0}catch(_){d=0}if(d<300)return null;
     var ty=typeOf(f,x),tas=TAS[ty];
-    var air=(airH(a,b,d,tas,true)-airH(a,b,d,tas,false))*60;
+    var ak=f.fr+'|'+f.to+'|'+tas,air=AIRM[ak];if(air==null){air=(airH(a,b,d,tas,true)-airH(a,b,d,tas,false))*60;AIRM[ak]=air}   /* 高空風只看航線＋機型速度，算一次就記住（開頁時每班每月都會問） */
     var off=0;try{off=Math.round((TZ[f.to]-TZ[f.fr])*60)||0}catch(_){}
     var ds=mn(su.dep),dw=mn(x.dep),as=ds+bs+off,aw=dw+bs+air+off;
     var gnd=(tout(f.fr,dw,true)-tout(f.fr,ds,false))+(tin(f.to,aw)-tin(f.to,as));

@@ -281,12 +281,31 @@
    同一班、同一分鐘、而且這段時間沒有任何存檔（任何狀態變動都會 save）就沿用上一次的結果 ══ */
 (function(){
   var SV=0,M={},N=0;
-  function hookSave(){var s0=window.save;if(typeof s0!=='function'||s0.__k25sv)return;var w=function(){SV++;return s0.apply(this,arguments)};
+  function hookSave(){var s0=window.save;if(typeof s0!=='function'||s0.__k25sv)return;var w=function(){SV++;window.KGM_SAVEV_R1025B=SV;return s0.apply(this,arguments)};
     try{Object.keys(s0).forEach(function(k){if(!(k in w))w[k]=s0[k]})}catch(_){}w.__k25sv=1;window.save=w}
   function hookPlan(){var p0=window.kgmStandbyPlanR1004B;if(typeof p0!=='function'||p0.__k25m)return;
     var w=function(code,date,fr,to){var k=[code,date,fr||'',to||'',SV,Math.floor(Date.now()/60000)].join('|');if(M[k])return M[k];
       var r=p0.apply(this,arguments);if(++N>3000){M={};N=0}M[k]=r;return r};
     w.__k25m=1;window.kgmStandbyPlanR1004B=w}
   function hook(){hookSave();hookPlan()}
+  hook();setTimeout(hook,0);setTimeout(hook,3500);setTimeout(hook,15000);
+})();
+
+/* ══ L：可售座位相關資料的指紋（訂位筆數與狀態、票價規則、可售座位人工值、航班異動、換機、自訂航班、分鐘）——
+   頁面每畫一次會 save 好幾次，不能拿存檔次數當「資料變了」；這個指紋 200 毫秒內只算一次 ══ */
+(function(){var C='',T0=0;
+  function h(s,x){for(var i=0;i<s.length;i++)x=(x*31+s.charCodeAt(i))|0;return x}
+  window.kgmInvSigR1025B=function(){var now=Date.now();if(now-T0<200&&C)return C;T0=now;var x=7;
+    try{(S.bookings||[]).forEach(function(b){if(b)x=h((b.pnr||'')+(b.status||'')+((b.cancelledSegsR60||[]).length)+(b.seats?Object.keys(b.seats).length:0),x)})}catch(_){}
+    var n=function(o){try{return o?Object.keys(o).length:0}catch(_){return 0}};
+    C=[x,(S.bookings||[]).length,n(S.fareRulesR929),n(S.seatInventory),n(S.flightOverrides),n(S.acftSub),(S.customFlights||[]).length,Math.floor(now/60000)].join('|');return C}})();
+/* ══ L：前台選航班頁每畫一次都重找轉機組合（實測一次 0.63 秒）—— 同樣的起訖／日期，沒有存檔、同一分鐘內就沿用（回傳複本，呼叫端改了也不影響） ══ */
+(function(){
+  var M={},N=0;
+  function cl(v){try{return typeof structuredClone==='function'?structuredClone(v):JSON.parse(JSON.stringify(v))}catch(_){return v}}
+  function hook(){var f0=window.findConnectionsFull;if(typeof f0!=='function'||f0.__k25m)return;
+    var w=function(fr,to,date,max){var k=[fr,to,date,max==null?'':max,window.kgmInvSigR1025B()].join('|');
+      if(M[k])return cl(M[k]);var r=f0.apply(this,arguments);if(++N>200){M={};N=0}M[k]=cl(r);return r};
+    try{Object.keys(f0).forEach(function(x){if(!(x in w))w[x]=f0[x]})}catch(_){}w.__k25m=1;window.findConnectionsFull=w;try{findConnectionsFull=w}catch(_){}}
   hook();setTimeout(hook,0);setTimeout(hook,3500);setTimeout(hook,15000);
 })();

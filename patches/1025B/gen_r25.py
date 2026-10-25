@@ -233,7 +233,9 @@ RW('wind 03 nearest',"    if(in3(a)){var sg=w>0?1:-1,ok=false;for(var e=5;e<=20&
 RW('wind gt fn',"  var MEMO={};\n  function adj(o0,f,date,x){",
    "  var MEMO={};\n"
    "  function sg25(v){v=((v%1440)+1440)%1440;return v>720?v-1440:v}\n"
-   "  function gt25(o0,f,date,x){var P=[].concat(FLIGHTS,S.customFlights||[]).filter(function(y){return y&&!y.via&&!y.partner&&y.code===f.code&&y.to===f.fr&&y.fr!==f.to})[0];if(!P)return 0;\n"
+   "  var GI25=null,GN25=-1;function prev25(f){var L=[].concat(FLIGHTS,S.customFlights||[]);if(!GI25||GN25!==L.length){GI25={};GN25=L.length;L.forEach(function(y){if(y&&!y.via&&!y.partner)(GI25[y.code+'>'+y.to]=GI25[y.code+'>'+y.to]||[]).push(y)})}   /* 1025B：班號＋抵達站索引（原本每次掃整份航班表） */\n"
+   "    return (GI25[f.code+'>'+f.fr]||[]).filter(function(y){return y.fr!==f.to})[0]||null}\n"
+   "  function gt25(o0,f,date,x){var P=prev25(f);if(!P)return 0;\n"
    "    var su=o0(f,sumDate(date)),ps=o0(P,sumDate(date));if(!su||!ps||!su.dep||!ps.arr)return 0;var gs=sg25(mn(su.dep)-mn(ps.arr));if(gs<0||gs>360)return 0;\n"
    "    var p0=o0(P,date),p1=adj(o0,P,date,p0);if(!p1||!p1.arr)return 0;var need=Math.max(60,Math.min(90,gs)),gw=sg25(mn(x.dep)-mn(p1.arr));if(gw<-360||gw>360)return 0;\n"
    "    return gw<need?Math.ceil((need-gw)/5)*5:0}\n"
@@ -287,6 +289,11 @@ RW('auc settle 60s',"if(L6.sg!==sg6||t6-L6.t>5000){","if(L6.sg!==sg6||t6-L6.t>60
 # ══ G：後台機場欄位用前台選擇器（js/ap25.js）—— r158 的區域分組與名稱匯出給它用 ══
 RC('ap lib export','kgm-0908a-r158',"window.kgmApOpenR158=function(which){",
    "window.kgmApLibR1025B={regions:regions158,city:cityLabel158,sub:subLabel158,rank:rank158};   /* 1025B：後台機場欄位共用同一套分組與名稱 */\nwindow.kgmApOpenR158=function(which){")
+
+# ══ L：前台選航班頁每畫一次 1.3 秒 —— 可售票種（validCodes）每次重畫就清空重算；改成「訂位／規則／可售座位等資料有變或過了一分鐘才重算」，明確要求重算的照舊 ══
+RW('vc memo gen',"      if(VCAT111!==VCGEN111){VCMEM111={};VCAT111=VCGEN111}",
+   "      var g25=VCGEN111+'|'+(window.kgmInvSigR1025B?window.kgmInvSigR1025B():Date.now());if(VCAT111!==g25){VCMEM111={};VCAT111=g25}   /* 1025B：不再每次重畫都清空 */")
+RW('vc memo no per-render bump',"  render=window.render=function(){\n    VCGEN111++;\n","  render=window.render=function(){\n")
 
 # ══ 結尾 ══
 open('p_h_r25.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
