@@ -18,7 +18,18 @@ out=[]
 RW('k23 wrap yield bt26',"  function wrap(){var o=window.kgmSeasonFlightR48;if(typeof o!=='function'||o===MY)return;\n    var w=function(f,date){var x=o.apply(this,arguments);try{if(x&&date)return adj(o,f,String(date),x)}catch(_){}return x};",
    "  function wrap(){var o=window.kgmSeasonFlightR48;if(typeof o!=='function'||o===MY||o.__bt26)return;   /* 1026B：輪擋彈性那層要在最外層 */\n    var w=function(f,date){var x=o.apply(this,arguments);try{if(x&&date)return adj(o,f,String(date),x)}catch(_){}return x};")
 _g25=open('../1025B/js/grp25.js',encoding='utf-8').read()
-RW('bt26 embed',_g25,_g25+JS('bt26.js'))
+RW('bt26 embed',_g25,_g25+JS('bt26.js')+JS('zn26.js'))
+
+# ══ 2：關閉空域（2026-10-25 查證）＋後台可調整 —— geo25 換成 geo26（航路改在瀏覽器裡算、預設那一組預先算好嵌入）══
+import base64
+_tex="'data:image/jpeg;base64,"+base64.b64encode(open('../1025B/geo/tex/bm4096.jpg','rb').read()).decode()+"'"
+_g25old=open('../1025B/js/geo25.js',encoding='utf-8').read().replace('/*GEO25*/null',open('../1025B/geo/geo25.json',encoding='utf-8').read()).replace("/*TEX25*/''",_tex)
+_geo26=json.load(open('geo/geo26.json',encoding='utf-8'))
+try:_geo26['baked']=json.load(open('geo/baked26.json',encoding='utf-8'))
+except FileNotFoundError:pass
+RW('geo26',_g25old,JS('geo26.js').replace('/*GEO26*/null',json.dumps(_geo26,ensure_ascii=False,separators=(',',':'))).replace("/*TEX25*/''",_tex))
+RW('zones S init','bagMovesR1023A:LS.get("kgm23_bagmoves",[]),','bagMovesR1023A:LS.get("kgm23_bagmoves",[]),warZonesR1026B:LS.get("kgm26_zones",null),')
+RW('zones save','LS.set("kgm23_bagmoves",S.bagMovesR1023A||[]);','LS.set("kgm23_bagmoves",S.bagMovesR1023A||[]);LS.set("kgm26_zones",S.warZonesR1026B||null);')
 
 open('p_h_r26.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
