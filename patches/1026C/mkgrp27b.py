@@ -51,4 +51,29 @@ rep("""stepCard('booked',1,z()?'訂位成立・訂金':'Booked',true,(z()?'訂�
 rep("""Math.round(((g.deposit.amount+(g.balance.paid?g.balance.amount:0))/(g.total||1))*100)""","""Math.round((((g.deposit.paid===false?0:g.deposit.amount)+(g.balance.paid?g.balance.amount:0))/(g.total||1))*100)""")
 rep("""(z()?'已付 ':'Paid ')+M(g.deposit.amount+(g.balance.paid?g.balance.amount:0),g.curr)+'</span>'+(!g.balance.paid&&act?""",
     """(z()?'已付 ':'Paid ')+M((g.deposit.paid===false?0:g.deposit.amount)+(g.balance.paid?g.balance.amount:0),g.curr)+'</span>'+(g.deposit.paid===false&&g.deposit.token?'<button type="button" class="k25g-btn full" onclick="kgmOpenPayR45(\\''+A(g.deposit.token)+'\\')">'+(z()?'付訂金 ':'Pay deposit ')+M(g.deposit.amount,g.curr)+'</button>':'')+(!g.balance.paid&&act&&g.deposit.paid!==false?""")
+
+# 1027A 使用者：「後台團體頁要有地方核准帳號／新增用戶＋開放期間」→ 使用中的帳號也看得到、改得了開放期間（原本只有停用）；清單預設展開
+rep(r"""</td><td>'+(x.status==='active'?(z()?'使用中':'Active'):(z()?'已停用':'Revoked'))+'</td><td>'+(x.status==='active'?'<button type="button" class="k25g-btn ghost" onclick="kgmGrpAdmR1025B(\'unbind\',\''+A(u.id)+'\')">'+(z()?'停用':'Revoke')+'</button>':'')+'</td></tr>'""",
+    r"""</td><td>'+(x.status==='active'?((x.to&&x.to<T())?(z()?'已過期':'Expired'):(z()?'使用中':'Active')):(z()?'已停用':'Revoked'))+'</td>'
+      +'<td class="k27ga-per">'+(x.status==='active'?'<input id="k27gpF'+E(u.id)+'" type="date" class="inp" value="'+E(x.from||'')+'"><span>～</span><input id="k27gpE'+E(u.id)+'" type="date" class="inp" value="'+E(x.to||'')+'"><button type="button" class="k25g-btn ghost" onclick="var r=kgmGrpPeriodR1026C(\''+A(u.id)+'\',document.getElementById(\'k27gpF'+A(u.id)+'\').value,document.getElementById(\'k27gpE'+A(u.id)+'\').value);S.grp25AdmMsg=r?\''+(z()?'✓ 已更新開放期間':'Period updated')+'\':\''+(z()?'結束日期不能早於開始日期':'End before start')+'\';render()">'+(z()?'更新':'Update')+'</button>':E((x.from||'')+(x.to?' ～ '+x.to:'')))+'</td>'   /* 1026C：開放期間可改 */
+      +'<td>'+(x.status==='active'?'<button type="button" class="k25g-btn ghost" onclick="kgmGrpAdmR1025B(\'unbind\',\''+A(u.id)+'\')">'+(z()?'停用':'Revoke')+'</button>':'')+'</td></tr>'""")
+rep(r"""<th>'+(z()?'狀態':'Status')+'</th><th></th></tr></thead><tbody>'
+    +(accts.length?accts.map(""",r"""<th>'+(z()?'狀態':'Status')+'</th><th>'+(z()?'開放期間':'Open period')+'</th><th></th></tr></thead><tbody>'
+    +(accts.length?accts.map(""")
+rep(r"""'<tr><td colspan="7" class="k25g-none">'+(z()?'還沒有團體帳號。""",r"""'<tr><td colspan="8" class="k25g-none">'+(z()?'還沒有團體帳號。""")
+rep(r"""var ac='<details class="k25gd-acc"'+(S.grp25AccOpen?' open':'')""",r"""var ac='<details class="k25gd-acc"'+(S.grp25AccOpen!==false?' open':'')""")
+rep(r"""window.kgmGrpAddUserR1026C=function(q,d){""",r"""window.kgmGrpPeriodR1026C=function(uid,from,to){var u=(S.users||[]).filter(function(x){return x&&x.id===uid})[0];if(!u||!u.groupAccountR1025B)return false;if(from&&to&&to<from)return false;   /* 1026C：改開放期間 */
+  var x=u.groupAccountR1025B,was=(x.from||'')+'～'+(x.to||'');x.from=from||x.from||T();x.to=to||'';x.periodAt=new Date().toISOString();x.periodBy=(S.adminUser&&(S.adminUser.empId||S.adminUser.name))||'';if(S.user&&S.user.id===uid)S.user.groupAccountR1025B=x;
+  acctMail(u,x,'group.account_bound',(z()?'您的團體帳號（'+x.company+'）開放期間已更新為 '+x.from+' ～ '+(x.to||'不限')+'。':'Your group account period was updated.'));
+  try{logAct(z()?'團體帳號開放期間':'Group account period',x.company+' · '+was+' → '+x.from+'～'+(x.to||'—'))}catch(_){}save1();return true};
+window.kgmGrpAddUserR1026C=function(q,d){""")
+rep(r"""  +'.k27ga{""",r"""  +'.k25gd-acc .k25g-btn{white-space:nowrap}.k25gd-acc td:nth-last-child(-n+3){white-space:nowrap}.k25gd-acc td:first-child{min-width:130px}.k27ga-per{white-space:nowrap}.k27ga-per input{width:138px;height:32px;display:inline-block}.k27ga-per span{margin:0 4px;color:#8A948F}.k27ga-per button{margin-left:6px}'
+  +'.k27ga{""")
+
+# 1027A：團體帳號表欄位太多擠成直排 → 類型併到名稱下、會員與案件併一欄
+rep(r"""<th>'+(z()?'名稱':'Name')+'</th><th>'+(z()?'類型':'Type')+'</th><th>'+(z()?'統編／執照':'Tax / licence')+'</th><th>'+(z()?'會員':'Member')+'</th><th>'+(z()?'案件':'Case')+'</th>""",
+    r"""<th>'+(z()?'名稱／類型':'Name / type')+'</th><th>'+(z()?'統編／執照':'Tax / licence')+'</th><th>'+(z()?'會員／案件':'Member / case')+'</th>""")
+rep(r"""<small>'+E(x.contact&&x.contact.name||'')+' · '+E(x.contact&&x.contact.phone||'')+'</small></td><td>'+E(typeName(x.type))+'</td><td>'+E(x.taxId)+'<small>'+E(x.license||'')+'</small></td><td>'+E(u.email||'')+'<small>'+E(u.id||'')+'</small></td><td>'+E(x.caseNo)+'<small>'+E(String(x.boundAt||'').slice(0,10))+'</small></td>""",
+    r"""<small>'+E(typeName(x.type))+' · '+E(x.contact&&x.contact.name||'')+' · '+E(x.contact&&x.contact.phone||'')+'</small></td><td>'+E(x.taxId)+'<small>'+E(x.license||'')+'</small></td><td>'+E(u.email||'')+'<small>'+E(x.caseNo)+' · '+E(String(x.boundAt||'').slice(0,10))+'</small></td>""")
+rep(r"""'<tr><td colspan="8" class="k25g-none">""",r"""'<tr><td colspan="6" class="k25g-none">""")
 open('js/grp25_27.js','w',encoding='utf-8').write(s);print('ok')
