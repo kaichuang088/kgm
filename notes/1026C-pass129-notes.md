@@ -1,0 +1,50 @@
+# 1026C（pass 129；交付版號 1027A；程式內部標記 1026C／R1026C，資料夾 `patches/1026C/`）
+
+重建：`cd patches/1026C && python3 mkgrp27.py && python3 mkgrp27b.py && python3 gen_r27.py && bash build.sh <1004B.html> <out.html>`
+（1026C＝1026B 全部＋`p_h_r27.js`）。`gen_r27.py` 比對基準是 1026B 最終版 `/tmp/j/kgm1026B_w23.html`（`patches/1026B/build.sh` 重建）。
+`js/grp25_27.js` 是產生的：`mkgrp27.py` 在 `js/grp25_cur.js` 上逐段改，`mkgrp27b.py` 再改（包機掛勾、案件編號、團體帳號卡片 `js/gq27.js` 插進去）。
+交付版號 1027A（`p_h_ver.js`／`p_h_ver2.js` 目標 1027A，166 處）。最終檔 `/tmp/j/kgm1026C_w73.html`。
+
+## 長程式（`js/`）
+
+| 檔案 | 內容 |
+|---|---|
+| `bt26.js` | 1026B 版改：夏令時間（依日期的時差）、EARLY27（DST 後短程可提前，使用者同意）、NOMID27、雪梨宵禁 `SYD:[1320,360]`（最晚 21:55 落地）；`hasOv` 不把天氣預測的預估時刻當人工改 |
+| `sc27.js` | 時刻異動信（全部受影響的真實訂位、分批、只寄一次；REL27 北美改前一天的重新標日）；`hasOv` 同上 |
+| `ch27.js` | 販售通路（只開放包機／只開放旅客）、夥伴直飛配額、搜尋 `findConnectionsFull` 快取 |
+| `grp25_27.js`＋`grp27x.js`＋`gq27.js` | 團體兩方案（Q 0.93／U 1.08）、Residence／酬賓／網路報到擋團體、隨時免費選位、團體帳號卡片頁（核准、新增用戶、改開放期間、停用／重新開放） |
+| `cr27.js` | 包機（包現有班整班／另加一架，≥183 天）與自創航班（≥90 天）申請、後台人工核准、10% 訂金 7 天、建立航班＋調機、只賣給申請人 |
+| `fd25.js`（1025B，gen 逐段改） | 航班資料頁：狀態「延誤＋原因」、行李改運排序、資料卡切頁關閉、路線圖 48 小時開放＋預估飛行時間 |
+| `zn27.js` | 後台「航班營運 → 關閉空域・Payload」新分頁（zn26 面板搬過來）＋ Payload 限座人工調整（`S.paxCapAdjR1026C`，`kgm27_paxcap`） |
+| `nt27.js` | 通知管理：發送通知／寄信清單兩分頁、左選對象右單一表單、寄信清單搜尋 |
+| `rt27.js` | 公告排版（**粗體**、*斜體*、__底線__、條列、編號）工具列＋網站顯示轉格式（`kgmRichR1026C`）；Manager 團隊（`kgmTeamOfR1026C`／`kgmTeamGroupsR1026C`） |
+| `fb27.js` | 旅客回饋分析（取代 r49 `feedback49`）：平均＋分布、需要關注航班、意見主題、篩選、分頁 20 筆 |
+
+離線資料：`geo/mkzones27.py` → `geo/geo27.json`（1026B 18 區＋巴基斯坦）、`geo/baked27.json`（`tests/bake27.js` 從網站匯出，102 組，受空域影響 36 組）。
+PDF：`timetable/tt27.py`（tt26 副本，字型名改 k27）＋`timetable/tt27days.py`（KX30 營運日）、`payload/pl27pdf.py`、`pol/grp27_pdf.py`＋`pol/pack27.py`。
+
+## 坑（下一輪要知道）
+
+- **航班資料頁原本讀 FLIGHTS 底表時刻**（KX331 寫 12:35、實際 14:20）：`matches7`／`predict7` 已改讀季節時刻。predict7 快取有 `sigR1026C`（季節時刻＋人工延誤），換班表就重算。
+- **天氣預測會寫進 `S.flightDateOverride`（`predictionUpdatedAt`）**：判斷「人工改時刻」要排除這種（bt26／sc27 `hasOv` 已改）。
+- **開航班不能同步算組員班表**：`dhList929` 那天還沒算好就 `dhLater929`（背景一小段一小段算、3 秒後開始、每段隔 0.9 秒，算好重畫）；`kgmDhWarmR1004B` 等 `kgmCrewHasDayR121`。
+- **路線圖同一張不要重複排**：geo26 `PEND27`；`setTimeout(go,0)`（不等 idle，背景一直忙）。
+- **時刻表 PDF 底稿已 subset**：在 1026B 交付 PDF 上寫字要用新的字型名（k27），沿用 k26reg 會出方框。
+- r77 定值表的「回程同日」規則會把 KX30 營運日改掉 → `na27 r77 no return-day kx30`。
+- 輪轉檢查條 sig 要含 settled／最終重排／輪轉指紋，不然重排中的紅字一直留著。
+- 後台開頁的同步整年重排（apply131 等）在最終重排做完前不做（`admin boot sync rebuild`）。
+- cw25 組員班表每 5 天存一次進度（`KGM_CREW_PART_R1026C`），`KGM_CREW_SAVE_R1025B` 照舊只在算滿才設。
+- 背景補模擬資料的三個計時器改 `kgmSafeRenderR1026C`（正在輸入就延後重畫）。
+- 前台 AI 舊卡片（r63 `k63-cards`）有新卡片（`kgm-i-menu`）就不畫。
+
+## 巴基斯坦
+
+使用者提供圖卡（Formosa Review）「巴基斯坦禁止台灣三大航空飛越領空」。2026-10-26 查證：只找到 2025-05 印巴衝突全面關閉 48 小時（華航、長榮歐洲線改道），
+沒有巴基斯坦民航局針對台灣航空公司的正式公告 → 依使用者資料預設關閉，依據欄照實寫，可在後台開放。受影響：杜哈、阿布達比、曼谷—巴黎／慕尼黑／法蘭克福／伊斯坦堡。
+
+## 已知未修
+
+- KX182 商務艙 12/2–12/8 售罄顯示（1026B 原版就這樣，#385）。
+- KX53 PER-MEL 澳洲夏令週輪擋短 65 分（1026B 原版）。
+- 寄信 Worker 連不到時一封信會送兩次（JSON 與 p= 備援）。
+- 網站時區表固定值的澳航國內聯營問題（CLAUDE.md 已知未修）。

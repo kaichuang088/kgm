@@ -1,7 +1,7 @@
 # KGM Airways — 專案規則（給 Claude Code）
 
 KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一個自包含的 HTML 檔**（約 8.4 MB）。
-版號由使用者指定（目前是 1026B，下一版由使用者命名；1026B 程式內部標記、`patches/1026B/`、`notes/1026B-*` 都用 1026B／R1026B；1026A 開工時叫 1025B，程式內部標記、`patches/1025B/`、`notes/1025B-*` 都用 1025B／R1025B、不改名；1025A 開工時叫 1023A，程式內部標記用 1023A／R1023A、不改名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
+版號由使用者指定（目前是 1027A，下一版由使用者命名；1027A 開工時叫 1026C，程式內部標記、`patches/1026C/`、`notes/1026C-*` 都用 1026C／R1026C、不改名；1026B 程式內部標記、`patches/1026B/`、`notes/1026B-*` 都用 1026B／R1026B；1026A 開工時叫 1025B，程式內部標記、`patches/1025B/`、`notes/1025B-*` 都用 1025B／R1025B、不改名；1025A 開工時叫 1023A，程式內部標記用 1023A／R1023A、不改名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
 
 ## 使用者的固定要求（逐字，一律遵守）
 
@@ -44,6 +44,8 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1026A（內部標記 1025B）：`bash patches/1025B/build.sh <1004B.html> <out.html>`（1025B＝1025A 全部＋`p_h_r25.js`；`gen_r25.py` **在 `patches/1025B/` 下執行**，比對基準 1025A 最終版 `/tmp/j/kgm1025A_w43.html`；長程式 `js/k25.js`、`cw25.js`（組員班表背景）、`gl25.js`（地勤請假代班）、`wind25.js`（冬季每班高空風、`kgmAirMinR1025B`）、`geo25.js`（避戰航路、48 小時延遲抵達通知、Payload 限座 `kgmPaxCapR1025B`、航班資料衛星照片路線圖；資料 `geo/geo25.json`＋`geo/tex/bm4096.jpg` 由 gen 嵌入）、`ap25.js`（後台機場選擇器）、`fd25.js`（航班資料作業台版面）、`grp25.js`（團體訂位重做））。Payload 表 PDF：`payload/pl25pdf.py <pl25.json> <out>`（`tests/pl25dump.js` 匯出）。見 `notes/1025B-pass127-notes.md`。
 - 1026B：`bash patches/1026B/build.sh <1004B.html> <out.html>`（1026B＝1026A 全部＋`p_h_r26.js`；`gen_r26.py` **在 `patches/1026B/` 下執行**，比對基準 1026A 最終版 `/tmp/j/kgm1026A_w50.html`；長程式 `js/bt26.js`（全網輪擋彈性、搜尋／訂位航段讀季節時刻）、`zn26.js`（後台關閉空域面板，航班調整頁上方）、`geo26.js`（取代 geo25；空域資料 `geo/geo26.json`（`geo/mkzones26.py`）＋預設航路 `geo/baked26.json`））。時刻表 PDF：`timetable/tt26.py <1026A PDF> <out> <dumptt26.json>`；Payload PDF：`payload/pl26pdf.py`。見 `notes/1026B-pass128-notes.md`。
 - 1026B 坑：**`bt26` 一定要是 `kgmSeasonFlightR48` 最外層**（k23 冬季風向那層看到 `__bt26` 就不重包；裡面那串在 `ACT>0` 時只給原始值，要加過彈性的值一律從最外層讀）；航班表 FLIGHTS 不動（用 getter 會被幾層抄進季節表）。外站過站固定 60／75／90 分（窄體／廣體／A388）、第五航權 75 分——**設 45／60 分機隊排班引擎開頁卡 400 秒**。不新增 00:00–03:59 抵達、宵禁機場只加到宵禁前 5 分；前後班用各自的出發日找。搜尋 `sortedFlights`、訂位航段 `kgmApplySeasonR112`／`kgmSeasonLegR205` 改讀季節時刻（人工改時刻的照舊）。關閉空域狀態 `S.warZonesR1026B`（`kgm26_zones`），航路在瀏覽器算（0.25° A*），俄／烏／白／伊朗／約旦緩衝 0.3°（0.5° 會封死高加索走廊）。地勤 `GTARGET8=525`（桃園 477）。輪擋調整**不寄**時刻異動信。
+- 1027A（內部標記 1026C）：`cd patches/1026C && python3 mkgrp27.py && python3 mkgrp27b.py && python3 gen_r27.py && bash build.sh <1004B.html> <out.html>`（1026C＝1026B 全部＋`p_h_r27.js`；比對基準 1026B 最終版 `/tmp/j/kgm1026B_w23.html`；`js/grp25_27.js` 是 mkgrp27／mkgrp27b 從 `grp25_cur.js` 產生的，不要直接改；長程式 `bt26.js`（夏令時間依日期、EARLY27、雪梨宵禁 21:55）、`sc27.js`（時刻異動信）、`ch27.js`（販售通路、夥伴直飛配額）、`cr27.js`（包機／自創航班）、`gq27.js`（團體帳號卡片）、`zn27.js`（航班營運→關閉空域・Payload 分頁＋`S.paxCapAdjR1026C`）、`nt27.js`（通知管理版面）、`rt27.js`（公告排版 `kgmRichR1026C`＋Manager 團隊 `kgmTeamOfR1026C`）、`fb27.js`（旅客回饋分析））。空域 `geo/mkzones27.py`（加巴基斯坦）→`geo/geo27.json`＋`geo/baked27.json`（`tests/bake27.js`）。PDF：`timetable/tt27.py`＋`tt27days.py`、`payload/pl27pdf.py`、`pol/grp27_pdf.py`＋`pol/pack27.py`（KGM-GRP-021）。見 `notes/1026C-pass129-notes.md`。
+- 1026C 坑：航班資料頁 `matches7`／`predict7` 讀季節時刻（predict7 快取 `sigR1026C`）；**天氣預測寫進 `S.flightDateOverride`（帶 `predictionUpdatedAt`）不算人工改時刻**（bt26／sc27 `hasOv`）。**開航班不能同步算組員班表**（`dhLater929` 背景分段）；路線圖 `PEND27` 去重。時刻表 PDF 底稿已 subset → 寫字要用新字型名（k27）。r77「回程同日」會改 KX30 營運日。前台 AI 舊卡片 r63 看到 `.kgm-i-menu` 就不畫。背景補模擬資料的重畫走 `kgmSafeRenderR1026C`（正在輸入就延後）。rt27 文字節點掃描在大表格後台頁不跑（效能）。
 - 1025B 坑：**FAM54 在 r54 閉包裡**（r54 匯出 `KGM_FAM54_R1025B`）；團體模式所有包裝都只在 `S.search.grp25`＋已綁定才生效，`sell54` 最前面問 `kgmGrpSellR1025B`（null＝照舊）。航班資料頁要 sticky：body／#app 的 overflow-x:hidden 會讓 sticky 失效，這頁用 `html.k25fd-on` 改 clip。Payload 係數：亞洲—歐洲 0.684（華航校正）、其他長程 1.0。避戰空域清單是假設（`geo/route.py` ZONES）。vfy2d P3 偶爾因取樣時間失敗（重跑會過）。
 - 1025A 坑：**背景程式不要呼叫 `manifest7`**（它會順便建立 DH 訂位並存檔）；要用就像 `kgmPayloadR1023A` 包 `KGM_NODH_R1023A=1`。**`kgmSeasonFlightR48` 包裝的快取不能存整個物件**（同班號兩列 KX24／KX23、KX4／KX3 會拿到另一列的 `days`，`flyOn` 判不飛、機隊沒派機）；量多列航班用 `tests/mrow23.js`（整年排班漏掉應為 0）。航班資料頁外層 `main` 是 overflow:hidden，CSS sticky 不會黏（導覽列用 JS fixed）。
 - 1022A 組員規則（r121）：落地到下一班起飛 ≥24h（`KGM_SHORTHAUL_REST_R922=1350`）；第五航權最多「基地→A→X→A→基地」（`trip22`）；派到外站前確認 3 天內（航班日期）有同機型族的班飛走（`onward22`）；落地日＋3 還沒排到 → DH 回基地、沒直飛就回 A（`due22`）。泰籍（`nat22`，正式員工 K65000–／K85000– `nationality:'TH'`、base BKK）只飛 BKK 航線、每班每職類最多一半；日／韓依姓氏、本國航班優先；虛擬組員基地一律 TPE（泰籍 BKK），不再以第一班出發站為基地。人力係數機師 3.0／客艙 2.0、虛擬副機師 62%。**量要量 60 天、等 `KGM_FULLDONE_1006A`**（`tests/crew22p.js`、`viol22b.js`）；在基地閒置的虛擬組員判到 3n+12 位合格就停（效能），改這段要重量 t_sched922。
@@ -107,9 +109,9 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/1026B/.test(t)` 改成新版號
+3. 版號更新（見下），並把 `vfy1.js` 的 `/1027A/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00（冬季另加 UTC 22:00–24:00）跑會因 KX180 當天已起飛或已截止報到而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
-5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1026B.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
+5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1027A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
 7. `node t_sched922.js`（組員班表延遲）、`node t_admlag.js`（後台 27 個分頁逐頁量）
