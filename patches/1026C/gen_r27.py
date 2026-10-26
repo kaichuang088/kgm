@@ -19,7 +19,7 @@ RW('bt26 dst',_bt26old,JS('bt26.js'))
 
 # ══ 2：時刻異動通知（js/sc27.js，接在 zn26 後面）══
 _zn=open('../1026B/js/zn26.js',encoding='utf-8').read()
-RW('sc27 embed',_zn,_zn+JS('zn27.js')+JS('nt27.js')+JS('sc27.js')+JS('ch27.js'))   # 1026C：zn27＝關閉空域・Payload 分頁
+RW('sc27 embed',_zn,_zn+JS('zn27.js')+JS('nt27.js')+JS('rt27.js')+JS('sc27.js')+JS('ch27.js'))   # 1026C：zn27＝關閉空域・Payload 分頁
 
 # ══ 1b：航班動態等畫面的 UTC 換算（_utcOf）也用依日期的時差（航班動態卡片寫的飛行時間、抵達日期）══
 RW('utcOf dst',"return Date.UTC(+d[0],+d[1]-1,+d[2],0,0,0)+(((+t[0])*60+(+t[1]))-_tzMin(ap))*60000;",
@@ -300,6 +300,36 @@ RW('safe render fn',"window.kgmCsMountR1006A=mount;","window.kgmCsMountR1006A=mo
 RW('safe render refund',"if(window.kgmRefundSimSeedR1010A()){try{render()}catch(_){}}return}","if(window.kgmRefundSimSeedR1010A()){try{(window.kgmSafeRenderR1026C||render)()}catch(_){}}return}")
 RW('safe render card',"if(cardSim()){try{render()}catch(_){}return}","if(cardSim()){try{(window.kgmSafeRenderR1026C||render)()}catch(_){}return}")
 RW('safe render case',"if(caseSim22(0,false)){try{render()}catch(_){}return}","if(caseSim22(0,false)){try{(window.kgmSafeRenderR1026C||render)()}catch(_){}return}")
+# ══ 15：關閉空域加「巴基斯坦」（使用者提供圖卡「巴基斯坦禁止台灣三大航空飛越領空」）—— geo/mkzones27.py → geo/geo27.json（＝1026B 的 18 區＋巴基斯坦，預設關閉、後台可開放）；
+#   預設航路重新預先算好（tests/bake27.js → geo/baked27.json）。2026-10-26 查證：只找到 2025-05 印巴衝突時全面關閉 48 小時，沒有針對台灣的正式公告 → 依據欄照實寫。
+_g26o=json.load(open('../1026B/geo/geo26.json',encoding='utf-8'))
+try:_g26o['baked']=json.load(open('../1026B/geo/baked26.json',encoding='utf-8'))
+except FileNotFoundError:pass
+_g27=json.load(open('geo/geo27.json',encoding='utf-8'))
+try:_g27['baked']=json.load(open('geo/baked27.json',encoding='utf-8'))
+except FileNotFoundError:pass
+RW('geo27 zones',json.dumps(_g26o,ensure_ascii=False,separators=(',',':')),json.dumps(_g27,ensure_ascii=False,separators=(',',':')))
+# ══ 16：前台 AI 視窗開場卡片只能一組（使用者：「AI正常只能顯示一個喔不會有兩個」，1026B 原版就兩組）——0823 r63 的舊卡片（k63-cards）跟 0913A 的新卡片（kgm-i-menu）
+#   都插在歡迎詞下面 → 有新卡片就不畫舊的（新卡片項目較完整：酬賓釋位通知、行李、座艙配置、里程）。
+#   探索行程多一個「旅行團訂購申請」（使用者 1027A）：已開通團體帳號＝直接到團體訂位頁；還沒有＝在 AI 對話裡開始團體帳號綁定（AI 客服核對資料、案件編號）。
+RW('ai one card set',"    if(have)return;\n    box.insertAdjacentHTML('afterend',cardsHtml63());",
+   "    if(host.querySelector('.kgm-i-menu')){if(have)have.remove();return}   /* 1026C：新版卡片（0913A）在就不畫舊的 */\n    if(have)return;\n    box.insertAdjacentHTML('afterend',cardsHtml63());")
+RW('ai group btn',"[Z?'預選座位':'Seat selection',\"kgmAiGoManageR913('seat')\"]])",
+   "[Z?'預選座位':'Seat selection',\"kgmAiGoManageR913('seat')\"],[Z?'旅行團訂購申請':'Group travel request',\"kgmAiGroupR1026C()\"]])")
+RW('ai group fn',"window.kgmCsMountR1006A=mount;",
+   "window.kgmCsMountR1006A=mount;\n"
+   "  window.kgmAiGroupR1026C=function(){try{var u=S.user,x=u&&u.groupAccountR1025B,td=todayISO();   /* 1026C：AI「旅行團訂購申請」 */\n"
+   "    if(x&&x.status==='active'&&(!x.from||x.from<=td)&&(!x.to||x.to>=td)){S.aiOpen0819H=false;try{nav('group23')}catch(_){S.view='group23';render()}return}\n"
+   "    var inp=document.getElementById('aiInput');if(inp){inp.value=(LANG==='en'?'I would like to apply for group travel booking (bind a group account)':'我要申請旅行團訂位（綁定團體帳號）');window.kgmSendAi0819I&&window.kgmSendAi0819I()}}catch(_){}};")
+# ══ 17：Manager I／II／III 團隊群組（js/rt27.js kgmTeamOfR1026C／kgmTeamGroupsR1026C）——員工聊天加「團隊群組」、員工公告加「我的團隊」（主管發給自己團隊不用送審）══
+RW('team chat groups',"    var _myDepts=_DEPTS.filter(function(dp){return isCEO()||myRole()===dp[2];});",
+   "    var _myDepts=_DEPTS.filter(function(dp){return isCEO()||myRole()===dp[2];});\n    try{(window.kgmTeamGroupsR1026C?window.kgmTeamGroupsR1026C(_me,isCEO()):[]).forEach(function(t){_DEPTS.push(t);_myDepts.push(t)})}catch(_){}   /* 1026C：主管團隊群組 */")
+RW('team staffcast',"  if(!isCEO()){queueChg(\"staffcast\",\"員工公告（\"+dept+\"）：\"+m.slice(0,20),{dept:dept,msg:m});S._scMsg2=\"\";return;}",
+   "  if(dept===\"team\"){var me26=(S.adminUser||{}).empId,tm=window.kgmTeamOfR1026C?window.kgmTeamOfR1026C(me26):[];if(!tm.length){alert(\"你的團隊目前沒有成員\");return;}   /* 1026C：主管發給自己團隊，不用送審 */\n"
+   "    tm.forEach(function(id){notifyStaff(id,\"【團隊公告・\"+((S.adminUser||{}).name||me26)+\"】\"+m);});S.staffChat=S.staffChat||[];S.staffChat.push({from:me26,fromName:(S.adminUser||{}).name||me26,to:\"dept_team_\"+me26,msg:m,ts:todayISO()+\" \"+new Date().toTimeString().slice(0,5),read:{}});\n"
+   "    logAct(\"團隊公告\",tm.length+\" 人：\"+m.slice(0,30));S._scMsg2=\"\";S.adminSaved=\"✓ 已發給團隊 \"+tm.length+\" 人\";save();render();return;}\n"
+   "  if(!isCEO()){queueChg(\"staffcast\",\"員工公告（\"+dept+\"）：\"+m.slice(0,20),{dept:dept,msg:m});S._scMsg2=\"\";return;}")
+RW('team chat no dup','      if(c.to==="all")return;\n      if(c.from===_me)_parts[c.to]=1;','      if(c.to==="all"||String(c.to).indexOf("dept_")===0)return;   /* 1026C：群組訊息不再多開一個「個人」頻道 */\n      if(c.from===_me)_parts[c.to]=1;')
 #   ⑥ 旅客資料卡（PASSENGER & MEMBER RECORD）沒有分頁標記、哪一頁都看得到 → 換到別的分頁就關掉（使用者圖五）。
 RW('fd27 pax close',"S.fdTabR1025B=b.getAttribute('data-t')||b.getAttribute('data-go');apply();",
    "var nt27=b.getAttribute('data-t')||b.getAttribute('data-go'),rr27=(S.opsPassengerR7&&nt27!==S.fdTabR1025B)||(/^(bm|all)$/.test(nt27)&&!/^(bm|all)$/.test(S.fdTabR1025B||''));if(S.opsPassengerR7&&nt27!==S.fdTabR1025B)S.opsPassengerR7=null;S.fdTabR1025B=nt27;if(rr27){try{render()}catch(_){}}else apply();   /* 1026C：換分頁關掉旅客資料卡；到行李改運才算候選航班 Payload */")

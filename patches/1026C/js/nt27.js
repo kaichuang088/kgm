@@ -32,6 +32,11 @@
     if(nav.getAttribute('data-sig')!==nsig){nav.setAttribute('data-sig',nsig);
       nav.innerHTML=CH.filter(function(x){return cards[x[0]]}).map(function(x){return '<button type="button" data-nt27c="'+x[0]+'" class="'+(x[0]===sel?'on':'')+'"><s>'+x[2]+'</s><span><b>'+(z()?x[3][0]:x[3][1])+'</b><small>'+(z()?x[4][0]:x[4][1])+'</small></span></button>'}).join('')}
     Object.keys(cards).forEach(function(k){cards[k].classList.toggle('k27nt-on',k===sel);cards[k].classList.add('k27nt-card')});
+    /* 1026C：員工公告改成多行；每張表單的輸入框加排版工具列；主管多一個對象「我的團隊」 */
+    try{var sc=cards.staff;if(sc){var ip=sc.querySelector('input.inp:not([type])');if(ip){var ta=document.createElement('textarea');ta.className='inp';ta.rows=4;ta.placeholder=ip.placeholder;ta.value=ip.value;ta.setAttribute('oninput',ip.getAttribute('oninput')||'');ip.replaceWith(ta)}
+        var sl=sc.querySelector('select');var me=(S.adminUser||{}).empId,mm=me&&window.kgmMgrOfR1012A&&window.kgmMgrOfR1012A(me);
+        if(sl&&mm&&!sl.querySelector('option[value="team"]')){var o=document.createElement('option');o.value='team';o.textContent=(z()?'我的團隊（':'My team (')+(window.kgmTeamOfR1026C?window.kgmTeamOfR1026C(me).length:0)+(z()?' 人）':')');if(S._scDept==='team')o.selected=true;sl.insertBefore(o,sl.firstChild)}}
+      Object.keys(cards).forEach(function(k){[].forEach.call(cards[k].querySelectorAll('textarea'),function(t){window.kgmRichBarR1026C&&window.kgmRichBarR1026C(t)})})}catch(_){}
     /* 寄信清單：搜尋 */
     if(mail&&!mail.querySelector('.k27nt-q')){var bar=mail.querySelector('.k110-bar');if(bar){var q=document.createElement('input');q.className='inp k27nt-q';q.placeholder=z()?'搜尋事件或信件內容（例：booking、改票、團體）':'Search events';q.value=S.ntQ27||'';
         q.addEventListener('input',function(){S.ntQ27=q.value;filt(mail)});bar.appendChild(q)}}
@@ -52,9 +57,10 @@
    +'.k27nt-nav span{display:flex;flex-direction:column;min-width:0}.k27nt-nav b{font-size:13.5px}.k27nt-nav small{font-size:11.5px;color:#66726C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
    +'.k27nt-forms > .k27nt-card{display:none!important}.k27nt-forms > .k27nt-card.k27nt-on{display:flex!important;flex-direction:column;gap:12px;grid-column:2;margin:0!important;padding:22px 24px!important;border:1px solid #E4E9E6!important;border-radius:16px!important;background:#fff!important;box-shadow:0 1px 2px rgba(16,40,30,.04)!important}'
    +'.k27nt-card > :first-child{font:700 17px/1.4 system-ui,sans-serif!important;color:#0F2A21!important;margin:0!important}'
-   +'.k27nt-card .inp,.k27nt-card select,.k27nt-card textarea{width:100%;box-sizing:border-box}.k27nt-card textarea{min-height:110px}.k27nt-card > div{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.k27nt-card > div > .inp,.k27nt-card > div > select,.k27nt-card > div > input{flex:1;min-width:150px;width:auto}'
+   +'.k27nt-card .inp,.k27nt-card select,.k27nt-card textarea{width:100%;box-sizing:border-box}.k27nt-card textarea{min-height:110px;flex:1 1 100%}.k27nt-card .k27rt-bar,.k27nt-card .k27rt-prev{flex:1 1 100%;width:100%;box-sizing:border-box}.k27nt-card > div{display:flex!important;gap:10px;flex-wrap:wrap;align-items:center}.k27nt-card > div > textarea,.k27nt-card > div > .k27rt-bar,.k27nt-card > div > .k27rt-prev{flex:1 1 100%!important;width:100%!important}.k27nt-card > div > .inp,.k27nt-card > div > select,.k27nt-card > div > input{flex:1;min-width:150px;width:auto}'
    +'.k27nt-card > button,.k27nt-card > div > button{align-self:flex-end;padding:10px 22px!important;border-radius:999px!important}'
    +'.k27nt-q{flex:1;min-width:240px;height:40px}'
-   +'@media(max-width:900px){.k27nt-forms{grid-template-columns:1fr!important}.k27nt-nav{grid-row:auto;flex-direction:row;overflow-x:auto}.k27nt-nav button{min-width:150px}.k27nt-nav small{display:none}.k27nt-forms > .k27nt-card.k27nt-on{grid-column:1}}';
+   +'.k6cs-act{display:flex;gap:6px;flex-wrap:wrap}.k6cs-act button{white-space:nowrap}'   /* 1026C：客服接手按鈕不要被擠成直排 */
+   +'@media(max-width:900px){.k6cs-hd{flex-wrap:wrap;gap:8px}.k6cs-act{width:100%}.k27nt-card > div > select{flex:1 1 100%!important;width:100%!important}.k27nt-forms{grid-template-columns:1fr!important}.k27nt-nav{grid-row:auto;flex-direction:row;overflow-x:auto}.k27nt-nav button{min-width:150px}.k27nt-nav small{display:none}.k27nt-forms > .k27nt-card.k27nt-on{grid-column:1}}';
     document.head.appendChild(cs)}catch(_){}
 })();
