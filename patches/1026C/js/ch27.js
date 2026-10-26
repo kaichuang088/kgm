@@ -81,3 +81,18 @@
    +'.k27s .k26z-add label{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:#55605B}.k27s .k26z-add select{border:1px solid #CFD9D3;border-radius:10px;padding:7px 10px;font:inherit;font-size:12.5px;background:#fff}';
     document.head.appendChild(cs)}catch(_){}
 })();
+/* 1026C（交付 1027A）：前台搜尋卡（使用者：「前後台一樣非常卡頓」）——一次轉機搜尋裡同一條航段同一天會被重抓幾十次
+   （實測 TPE→NRT 一次畫面 12,516 次 sortedFlights、0.9 秒；HKG→NRT 11 個日期抓了 840 次，每次都整份複製）。
+   轉機搜尋（三個版本）拿到清單都只讀、要用時自己複製 → 在「這一次搜尋」裡同一條同一天只抓一次；搜尋結束就丟掉，不跨次快取。 */
+(function(){function arm(){var F=window.findConnectionsFull;if(typeof F!=='function'||F.__memo27)return;
+  /* 再加：同一組輸入 20 秒內再問（訂票頁換日期時日期列 7 天有 6 天一樣）直接用上次的結果（回傳複本）；班表或單日調整一變 key 就不同 */
+  var CC=new Map();function ck(a){try{return [a[0],a[1],a[2],a[3],(S.customFlights||[]).length,Object.keys(S.flightDateOverride||{}).length,Object.keys(S.flightOverrides||{}).length,S.hotelPref0809C||'',S.wantHotel?1:0,(window.kgmSalesModeR1026C?((S.salesModeR1026C||{}).rules||[]).length:0)].join('|')}catch(_){return ''}}
+  function cp(r){return (r||[]).map(function(c){return Object.assign({},c,{f1:Object.assign({},c.f1),f2:Object.assign({},c.f2)})})}
+  var w=function(){var key=ck(arguments),hit=key&&CC.get(key);if(hit&&Date.now()-hit.t<20000)return cp(hit.r);
+    var res=w0.apply(this,arguments);if(key&&Array.isArray(res)){if(CC.size>200)CC.clear();CC.set(key,{t:Date.now(),r:cp(res)})}return res};
+  var w0=function(){var SF=window.sortedFlights;if(typeof SF!=='function'||SF.__memo27run)return F.apply(this,arguments);
+    var memo=new Map(),m=function(fr,to,date){var k=fr+'|'+to+'|'+date,r=memo.get(k);if(!r){r=SF.apply(this,arguments);memo.set(k,r)}return r};m.__memo27run=1;
+    window.sortedFlights=m;try{sortedFlights=m}catch(_){}
+    try{return F.apply(this,arguments)}finally{window.sortedFlights=SF;try{sortedFlights=SF}catch(_){}}};
+  try{Object.keys(F).forEach(function(k){if(!(k in w))w[k]=F[k]})}catch(_){}w.__memo27=1;window.findConnectionsFull=w;try{findConnectionsFull=w}catch(_){}}
+  arm();setTimeout(arm,0);setTimeout(arm,3000);setTimeout(arm,12000)})();
