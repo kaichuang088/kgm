@@ -4,7 +4,7 @@
    做法：訂位存的是開票當時的時刻（outF／inbF／mcFlights 的 dep／arr／dd）；跟現在的季節時刻（kgmSeasonFlightR48，含 1026B 輪擋彈性、
    1026C 夏令時間與提前出發）比，有不一樣的段就寄一封（一筆訂位所有改了的段合成一封），寄完把訂位上的時刻改成新的、記在
    b.schedChgR1026C（同一個變動只寄一次；之後又改才再寄）。
-   · 只寄真實訂位：模擬資料（simulated、simR1010A、csSimR1012A、名稱含 sim／mock 的欄位）、組員 DH（dhR929）一律跳過；
+   · 只寄真實訂位：模擬資料（simulated、simR1010A、csSimR1012A、名稱含 sim／mock 的欄位）、組員 DH（dhR929）一律跳過（示範帳號 demoAccount 不算模擬，照寄）；
    · 人工改過時間（後台改時刻／航班動態延誤）的那一段不在這裡處理（那邊本來就有自己的通知）；
    · 已起飛、已取消的不寄；夥伴營運航段時刻不會變，不處理；
    · 分批：開頁 25 秒後開始，每 4 秒最多處理 3 筆訂位；同一個瀏覽器開很多分頁只有一個分頁在寄（localStorage 鎖 kgm27_sclock）。
@@ -14,7 +14,7 @@
   function z(){try{return (typeof LANG==='undefined'||LANG!=='en')}catch(_){return true}}
   function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
   function isMock(b){if(!b)return true;if(b.simulated||b.simR1010A||b.csSimR1012A||b.dhR929||b.mockR1026C)return true;
-    for(var k in b){if(Object.prototype.hasOwnProperty.call(b,k)&&/sim|mock|demo|seed/i.test(k)&&b[k]&&!/^schedChg/.test(k))return true}return false}
+    for(var k in b){if(Object.prototype.hasOwnProperty.call(b,k)&&/sim|mock|seed/i.test(k)&&b[k]&&!/^schedChg/.test(k))return true}return false}
   function hasOv(code,fr,to,date){try{var c=typeof getBOV==='function'?getBOV(code,fr,to):null;if(c&&(c.dep||c.arr))return true}catch(_){}
     try{var d=(S.flightDateOverride||{})[code+'_'+fr+'_'+to+'_'+date];if(d&&(d.dep||d.arr))return true}catch(_){}
     try{var s=(S.flightOverrides||{})[code+'_'+date];if(s&&(s.dep||s.arr||/cancel/i.test(String(s.status||''))))return true}catch(_){}return false}
@@ -65,6 +65,18 @@
       while(QI<Q.length&&done<3&&Date.now()-t0<25){var b=Q[QI++];if(!b||b.status==='cancelled')continue;if(isMock(b)){ST.mock++;continue}ST.scanned++;
         var ch=changesOf(b);if(ch.length){apply(b,ch);done++;changed=true}}
       if(changed){ST.last=new Date().toISOString();try{save()}catch(_){}}}catch(e){ST.err=String(e&&e.message||e)}}
+  /* 模擬資料一律不真的寄出（使用者：「就寄送有真實的就啊反正系統也知道哪些是mock的」）：
+     寄信事件照樣記在寄信紀錄（標「模擬・未寄出」），只是不送到 Worker。判斷：信裡的訂位代號是模擬訂位、或收件人是模擬會員。 */
+  function mockPayload(p){if(!p||typeof p!=='object')return false;if(p.mockR1026C)return true;
+    try{if(p.pnr){var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===p.pnr})[0];if(b&&isMock(b))return true}}catch(_){}
+    try{var em=String(p.email||'').toLowerCase();if(em){var u=(S.users||[]).filter(function(x){return x&&String(x.email||'').toLowerCase()===em})[0];if(u&&isMock(u))return true}}catch(_){}
+    return false}
+  ST.mockMail=0;
+  function nWrap(){var o=window.kgmNotify;if(typeof o!=='function'||o.__mock27)return;
+    var w=function(type,payload){try{if(mockPayload(payload)){ST.mockMail++;try{S.emailEventLog=S.emailEventLog||[];S.emailEventLog.unshift({type:type,at:new Date().toISOString(),payload:{pnr:payload.pnr||'',mockR1026C:true},mockSkippedR1026C:true});if(S.emailEventLog.length>60)S.emailEventLog.length=60}catch(_){}
+        return Promise.resolve({ok:true,mock:true,skipped:true})}}catch(_){}return o.apply(this,arguments)};
+    try{Object.keys(o).forEach(function(k){if(!(k in w))w[k]=o[k]})}catch(_){}w.__mock27=1;window.kgmNotify=w;try{kgmNotify=w}catch(_){}}
+  nWrap();[0,1600,6500,21000,32000].forEach(function(ms){setTimeout(nWrap,ms)});
   window.kgmSchedNoticeScanR1026C=function(b){return b?changesOf(b):null};
   window.kgmIsMockBookingR1026C=isMock;
   setTimeout(function(){tick();setInterval(tick,4000)},25000);
