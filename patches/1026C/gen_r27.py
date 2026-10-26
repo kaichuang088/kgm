@@ -130,5 +130,16 @@ RC('na27 r77 mig','kgm-0823p-r77',"      if(!(old&&old.userR929A))S.seasonSchedu
 
 RC('na27 r77 no return-day kx30','kgm-0823p-r77',"    var out=byStart['KX'+(n+1)];\n    if(!out||!out.via)return;",
    "    var out=byStart['KX'+(n+1)];\n    if(!out||!out.via)return;\n    if(back.code==='KX30')return;   /* 1026C：KX30 改成前一天 23:50 起飛（營運日日一三五是定值）—— 不再當 KX31 的同日回程去改營運日（改了會多出星期二班、KX29 跟著多星期三） */")
+# ══ 9：機隊排班「接不上 3・時間重疊 3／接縫需調機 1 架」（使用者截圖）——重新整理後、整年最終重排做完之前，輪轉檢查量到的是「重排到一半」的輪轉
+#   （實測重新整理後第 15 秒：接不上 45、重疊 36；最終重排做完 0／0、接縫 0；全新瀏覽器也是 0）。重排中的數字不是結果 → 這段時間改寫「機隊重排中」，做完自動重畫成真正的數字。
+RW('rot audit pending',"  }catch(_){}\n  return '<section class=\"k72-strip\"><div class=\"k72-h\">'",
+   "  }catch(_){}\n  try{if(String(window.KGM_SIDE||'')!=='front'&&!window.KGM_ROT_FINAL_R913){var pend27=zz()?'機隊重排中（開頁後約 1 分鐘），完成後自動更新':'Rebuilding — updates automatically';\n"
+   "    items=items.map(function(x){return /覆蓋|Legs covered/.test(x.k)?x:{k:x.k,v:pend27,ok:true}})}}catch(_){}   /* 1026C：重排中不顯示半成品的紅字 */\n"
+   "  return '<section class=\"k72-strip\"><div class=\"k72-h\">'")
+
+#   根因（為什麼紅字一直在）：輪轉檢查條只在 data-sig 變了才重畫，而 sig 只看「上一次重建的摘要」（覆蓋段數、拆機、無機），
+#   重排做完（settled）、背景換機改了輪轉都不會變 → 重排中量到的半成品數字一直留在畫面上。→ sig 加上 settled／最終重排／輪轉指紋。
+RW('rot strip sig',"    var sig=[s?s.assigned:'-',s?s.total:'-',s?s.split:'-',s?s.orphan:'-',S._fsTail||''].join('|');",
+   "    var sig=[s?s.assigned:'-',s?s.total:'-',s?s.split:'-',s?s.orphan:'-',S._fsTail||'',window.KGM_ROT_SETTLED_R1012A||0,window.KGM_ROT_FINAL_R913?1:0,(function(){try{return window.kgmRosterStampR121?window.kgmRosterStampR121():''}catch(_){return ''}})()].join('|');   /* 1026C：重排完、輪轉有變都要重畫 */")
 open('p_h_r27.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
