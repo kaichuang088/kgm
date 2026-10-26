@@ -116,5 +116,19 @@ RW('bigdeal tick slices',"""    Object.keys(g).forEach(function(k){
     return ks.length;
   };""")
 
+# ══ 8：北美出發不過午夜（使用者：「我覺得北美不要太多-1喔盡量都在23:55前出發 不然很亂」「圖二KX25在隔天吧」）══
+#   台北出發往北美、過了午夜才起飛的只有 5 段（tests/legs 整週量）：KX26 台北→西雅圖 夏 00:35／冬 00:20、KX30 台北→溫哥華（→多倫多）夏 01:15／冬 02:10、KX8 台北→底特律 冬 00:15。
+#   · KX26（每天）、KX30：改成前一天 23:50 起飛（同一架飛機、實際提早 45／30、85／140 分）→ 營運日跟著往前一天（KX30 一二四六 → 日一三五；溫哥華→多倫多那段實際日期不變）。
+#   · KX8 冬季：改成跟夏季同一個接法 —— 當天 21:40 起飛、底特律 22:45 前後到、隔天 01:00 KX7 回（原本冬季 00:15 起飛、在底特律停 24 小時）。
+#   r77 定值表寫定值（季節時刻的修正一律寫定值）；KX30 台北→多倫多那列存檔帶 userR929A → 舊預設值才遷移（同 1018B KX31 做法）。抵達時刻由 bt26 輪擋彈性照舊重算。
+RC('na27 r77 kx30','kgm-0823p-r77',"'KX30|TPE|YYZ':{summer:['01:15','05:35',0,[1,2,4,6],'B789'],winter:['02:10','07:00',0,[1,2,4,6],'B789']},",
+   "'KX30|TPE|YYZ':{summer:['23:50','05:35',1,[1,3,5,7],'B789'],winter:['23:50','07:00',1,[1,3,5,7],'B789']},'KX30|TPE|YVR':{summer:['23:50','19:45',0,[1,3,5,7],'B789'],winter:['23:50','20:30',0,[1,3,5,7],'B789']},'KX26|TPE|SEA':{summer:['23:50','19:25',0,'daily','B779'],winter:['23:50','18:45',0,'daily','B779']},'KX8|TPE|DTW':{summer:['23:50','21:55',0,[2,5,7],'B789'],winter:['21:40','19:45',0,[2,5,7],'B789']},")
+RC('na27 r77 mig','kgm-0823p-r77',"      if(!(old&&old.userR929A))S.seasonSchedulesR48[k]={summer:rec(v.summer)",
+   "      var MIG27={'KX30|TPE|YYZ':['01:15-05:35','02:10-07:00']};   /* 1026C：舊的系統預設才遷移（北美不過午夜起飛） */\n"
+   "      if(old&&old.userR929A&&MIG27[k]){['summer','winter'].forEach(function(se){if(old[se]&&MIG27[k].indexOf(old[se].dep+'-'+old[se].arr)>=0){old[se]=rec(v[se]);old.updatedAt=new Date().toISOString()}})}\n"
+   "      if(!(old&&old.userR929A))S.seasonSchedulesR48[k]={summer:rec(v.summer)")
+
+RC('na27 r77 no return-day kx30','kgm-0823p-r77',"    var out=byStart['KX'+(n+1)];\n    if(!out||!out.via)return;",
+   "    var out=byStart['KX'+(n+1)];\n    if(!out||!out.via)return;\n    if(back.code==='KX30')return;   /* 1026C：KX30 改成前一天 23:50 起飛（營運日日一三五是定值）—— 不再當 KX31 的同日回程去改營運日（改了會多出星期二班、KX29 跟著多星期三） */")
 open('p_h_r27.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

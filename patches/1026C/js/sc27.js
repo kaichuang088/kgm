@@ -27,24 +27,33 @@
   function today(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
   function cityOf(c){try{return (z()?CITY_ZH[c]:CITY_EN[c])||c}catch(_){return c}}
   function sup(dd){dd=+dd||0;return dd>0?'⁺'+dd:dd<0?'⁻'+(-dd):''}
+  /* 1026C（交付 1027A）：北美出發不過午夜 —— 原本午夜後起飛（00:00–04:59）的訂位：
+     REL27＝-1：改成前一天 23:xx 起飛（同一架飛機、實際提早幾十分）→ 訂位日期改成前一天，通知寫「提前 N 分、改為前一天」；
+     REL27＝0：同一天改成晚上起飛（KX8 冬季 00:15 → 當天 21:40）→ 實際是延後 21 小時多，不能用「±12 小時取近」算成提前。 */
+  var REL27={'KX26|TPE|SEA':-1,'KX30|TPE|YVR':-1,'KX30|TPE|YYZ':-1,'KX8|TPE|DTW':0};
+  function addD(d,n){try{return addDays(d,n)}catch(_){var x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}}
   function changesOf(b){var td=today(),ch=[];
     legsOf(b).forEach(function(L){var o=L.o;if(o.partner||o.codeshare||!/^KX\d+$/.test(String(o.code||'')))return;if(o.date<td)return;if(hasOv(o.code,o.fr,o.to,o.date))return;
-      var r=rowOf(o);if(!r)return;var x=null;try{x=window.kgmSeasonFlightR48(r,o.date)}catch(_){x=null}if(!x||!x.dep||!x.arr)return;
-      if(x.dep===o.dep&&x.arr===o.arr&&(+x.dd||0)===(+o.dd||0))return;
-      var dDep=mn(x.dep)-mn(o.dep);if(dDep>720)dDep-=1440;if(dDep<-720)dDep+=1440;
-      ch.push({L:L,x:x,from:{dep:o.dep,arr:o.arr,dd:+o.dd||0},to:{dep:x.dep,arr:x.arr,dd:+x.dd||0,dur:x.dur,durStr:x.durStr},dDep:dDep})});
+      var rel=REL27[o.code+'|'+o.fr+'|'+o.to],nd=o.date;if(rel===-1&&mn(o.dep)<300)nd=addD(o.date,-1);
+      var r=rowOf(Object.assign({},o,{date:nd}));if(!r)return;var x=null;try{x=window.kgmSeasonFlightR48(r,nd)}catch(_){x=null}if(!x||!x.dep||!x.arr)return;
+      if(nd!==o.date&&mn(x.dep)<1200){nd=o.date;try{x=window.kgmSeasonFlightR48(rowOf(o)||r,o.date)}catch(_){}if(!x||!x.dep)return}   /* 還沒改成前一天晚上起飛 → 照原日期比 */
+      if(nd===o.date&&x.dep===o.dep&&x.arr===o.arr&&(+x.dd||0)===(+o.dd||0))return;
+      var dDep=mn(x.dep)-mn(o.dep);
+      if(nd!==o.date)dDep-=1440;                                   /* 前一天 23:50 對原本 00:20 → −30 */
+      else if(!(rel===0&&mn(o.dep)<300&&mn(x.dep)>=1200)){if(dDep>720)dDep-=1440;if(dDep<-720)dDep+=1440}
+      ch.push({L:L,x:x,from:{dep:o.dep,arr:o.arr,dd:+o.dd||0,date:o.date},to:{dep:x.dep,arr:x.arr,dd:+x.dd||0,dur:x.dur,durStr:x.durStr,date:nd},dDep:dDep})});
     return ch}
   function msgOf(b,ch){var Z=z(),major=ch.some(function(c){return Math.abs(c.dDep)>30});
     var head=Z?(major?'班表調整通知':'航班時刻異動通知'):(major?'Schedule change':'Flight time change');
-    var lines=ch.map(function(c){var o=c.L.o;return o.code+' '+cityOf(o.fr)+'→'+cityOf(o.to)+' '+o.date+(Z?'：原 ':': was ')+c.from.dep+'–'+c.from.arr+sup(c.from.dd)+(Z?' → 新 ':' → now ')+c.to.dep+'–'+c.to.arr+sup(c.to.dd)
-      +(c.dDep?(Z?'（起飛'+(c.dDep>0?'延後 ':'提前 ')+Math.abs(c.dDep)+' 分）':' (departure '+(c.dDep>0?'+':'−')+Math.abs(c.dDep)+' min)'):(Z?'（起飛不變，抵達時間調整）':' (departure unchanged; arrival adjusted)'))});
+    var lines=ch.map(function(c){var o=c.L.o,dch=c.to.date&&c.from.date&&c.to.date!==c.from.date;return o.code+' '+cityOf(o.fr)+'→'+cityOf(o.to)+' '+(c.from.date||o.date)+(Z?'：原 ':': was ')+c.from.dep+'–'+c.from.arr+sup(c.from.dd)+(Z?' → 新 ':' → now ')+(dch?c.to.date+' ':'')+c.to.dep+'–'+c.to.arr+sup(c.to.dd)
+      +(c.dDep?(Z?'（起飛'+(c.dDep>0?'延後 ':'提前 ')+(Math.abs(c.dDep)>=60?Math.floor(Math.abs(c.dDep)/60)+' 小時 '+(Math.abs(c.dDep)%60?Math.abs(c.dDep)%60+' 分':''):Math.abs(c.dDep)+' 分')+(dch?'，改為前一天晚上起飛':'')+'）':' (departure '+(c.dDep>0?'+':'−')+Math.abs(c.dDep)+' min'+(dch?', now the evening before':'')+')'):(Z?'（起飛不變，抵達時間調整）':' (departure unchanged; arrival adjusted)'))});
     var tail=Z?(major?'依《航班異常處理及旅客權益辦法》（KGM-IRR-013）第 2 條，起飛時間變動逾 30 分鐘屬班表調整；如新時刻不便，可免費改搭其他航班或申請全額退票。'
                     :'本公司依實際飛行條件調整表定時刻（加入滑行、天候與航路彈性）。您的訂位與座位不變，請依新時刻前往機場。')
                :(major?'Under KGM-IRR-013 Art. 2, a departure change of more than 30 minutes is a schedule change; you may rebook free of charge or request a full refund.'
                     :'We have adjusted the published times to include taxi, weather and routing allowances. Your booking and seats are unchanged.');
     return {title:head+(Z?'（訂位代號 ':' (PNR ')+b.pnr+(Z?'）':')'),text:lines.join('\n')+'\n'+tail,major:major}}
   function apply(b,ch){var m=msgOf(b,ch),now=new Date().toISOString();
-    ch.forEach(function(c){var o=c.L.o;o.dep=c.to.dep;o.arr=c.to.arr;o.dd=c.to.dd;if(c.to.dur){o.dur=c.to.dur;o.durStr=c.to.durStr||o.durStr}});
+    ch.forEach(function(c){var o=c.L.o;if(c.to.date&&c.to.date!==o.date){o.dateWasR1026C=o.date;o.date=c.to.date}o.dep=c.to.dep;o.arr=c.to.arr;o.dd=c.to.dd;if(c.to.dur){o.dur=c.to.dur;o.durStr=c.to.durStr||o.durStr}});
     b.schedChgR1026C=b.schedChgR1026C||[];ch.forEach(function(c){var o=c.L.o;b.schedChgR1026C.push({at:now,code:o.code,date:o.date,fr:o.fr,to:o.to,from:c.from,to2:{dep:c.to.dep,arr:c.to.arr,dd:c.to.dd},dDep:c.dDep})});
     b.statusNotifs=b.statusNotifs||[];b.statusNotifs.push({date:today(),status:'Time Change',msg:m.text});
     b.tripAlerts0809G=b.tripAlerts0809G||[];b.tripAlerts0809G.unshift({title:m.title,message:m.text,at:now});
