@@ -235,7 +235,7 @@
      最外層把自營航班的起飛／抵達／飛行時間換成 kgmSeasonFlightR48（＝航班動態、時刻表、機隊排班用的那一份）；
      後台對這一班這一天（或全部日期）手動改過時間的照舊用手動值。 */
   function hasOv(f,date){try{var c=typeof getBOV==='function'?getBOV(f.code,f.fr,f.to):null;if(c&&(c.dep||c.arr))return true}catch(_){}
-    try{var d=(S.flightDateOverride||{})[f.code+'_'+f.fr+'_'+f.to+'_'+date];if(d&&(d.dep||d.arr))return true}catch(_){}
+    try{var d=(S.flightDateOverride||{})[f.code+'_'+f.fr+'_'+f.to+'_'+date];if(d&&(d.dep||d.arr)&&(!d.predictionUpdatedAt||d.manual))return true}catch(_){}   /* 1026C：天氣預測寫進來的預估時刻不是人工改的 */
     try{var s=(S.flightOverrides||{})[f.code+'_'+date];if(s&&(s.dep||s.arr))return true}catch(_){}return false}
   function rowOf(it,date){var a=lx().get(it.code+'|'+it.fr+'|'+it.to);if(!a||!a.length){if(it.via){var L=all();for(var i=0;i<L.length;i++){var y=L[i];if(y&&y.via===it.via&&y.code===it.code&&y.fr===it.fr&&y.to===it.to)return y}}return null}
     if(a.length===1)return a[0];for(var j=0;j<a.length;j++){if(a[j].dep===it.dep)return a[j]}

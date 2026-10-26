@@ -16,7 +16,7 @@
   function isMock(b){if(!b)return true;if(b.simulated||b.simR1010A||b.csSimR1012A||b.dhR929||b.mockR1026C)return true;
     for(var k in b){if(Object.prototype.hasOwnProperty.call(b,k)&&/sim|mock|seed/i.test(k)&&b[k]&&!/^schedChg/.test(k))return true}return false}
   function hasOv(code,fr,to,date){try{var c=typeof getBOV==='function'?getBOV(code,fr,to):null;if(c&&(c.dep||c.arr))return true}catch(_){}
-    try{var d=(S.flightDateOverride||{})[code+'_'+fr+'_'+to+'_'+date];if(d&&(d.dep||d.arr))return true}catch(_){}
+    try{var d=(S.flightDateOverride||{})[code+'_'+fr+'_'+to+'_'+date];if(d&&(d.dep||d.arr)&&(!d.predictionUpdatedAt||d.manual))return true}catch(_){}   /* 1026C：天氣預測的預估時刻不算人工改 */
     try{var s=(S.flightOverrides||{})[code+'_'+date];if(s&&(s.dep||s.arr||/cancel/i.test(String(s.status||''))))return true}catch(_){}return false}
   function rowOf(L){var all=[];try{all=FLIGHTS}catch(_){}var c=all.filter(function(f){return f&&f.code===L.code&&f.fr===L.fr&&f.to===L.to&&(!!f.via)===(!!L.via)});
     if(!c.length)return null;if(c.length===1)return c[0];for(var i=0;i<c.length;i++){var q=null;try{q=window.kgmSeasonFlightR48(c[i],L.date)}catch(_){}if(q&&q.dep===L.dep)return c[i]}

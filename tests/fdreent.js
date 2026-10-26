@@ -1,0 +1,14 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1360,height:950}})).newPage();
+ await p.goto('file://'+(process.env.F||'/tmp/j/kgm.html'),{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(2500);
+ await p.evaluate(()=>{window.__lt=[];new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__lt.push([Math.round(e.startTime),Math.round(e.duration)]))).observe({entryTypes:['longtask']});S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='flightdata';render()});
+ await p.waitForFunction(()=>window.KGM_FULLDONE_1006A,null,{timeout:300000,polling:2000});await p.waitForTimeout(3000);
+ const res=[];
+ const win=async(lab,fn,ms)=>{const t=await p.evaluate(()=>performance.now());await p.evaluate(fn);await p.waitForTimeout(ms);const L=await p.evaluate(t=>window.__lt.filter(x=>x[0]>=t),t);res.push(lab+': max '+Math.max(0,...L.map(x=>x[1]))+' ms, total '+L.reduce((s,x)=>s+x[1],0)+' ms, n '+L.length)};
+ await win('open KX180 today',()=>{const f=FLIGHTS.find(f=>f.code==='KX180');kgmFdOpenR1025B('KX180',todayISO(),f.fr,f.to)},15000);
+ await win('to tab man',()=>{document.querySelector('.k25fd-tabs button[data-t="man"]').click()},5000);
+ await win('to tab bm',()=>{document.querySelector('.k25fd-tabs button[data-t="bm"]').click()},6000);
+ await win('leave to dashboard',()=>{S.adminTab='dashboard';render()},6000);
+ await win('re-enter flightdata',()=>{S.adminTab='flightdata';render()},15000);
+ await win('open KX12 tomorrow',()=>{kgmFdOpenR1025B('KX12',addDays(todayISO(),1),'TPE','ONT')},15000);
+ console.log(res.join('\n'));await b.close()})();

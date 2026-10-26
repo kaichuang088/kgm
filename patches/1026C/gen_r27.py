@@ -141,5 +141,136 @@ RW('rot audit pending',"  }catch(_){}\n  return '<section class=\"k72-strip\"><d
 #   重排做完（settled）、背景換機改了輪轉都不會變 → 重排中量到的半成品數字一直留在畫面上。→ sig 加上 settled／最終重排／輪轉指紋。
 RW('rot strip sig',"    var sig=[s?s.assigned:'-',s?s.total:'-',s?s.split:'-',s?s.orphan:'-',S._fsTail||''].join('|');",
    "    var sig=[s?s.assigned:'-',s?s.total:'-',s?s.split:'-',s?s.orphan:'-',S._fsTail||'',window.KGM_ROT_SETTLED_R1012A||0,window.KGM_ROT_FINAL_R913?1:0,(function(){try{return window.kgmRosterStampR121?window.kgmRosterStampR121():''}catch(_){return ''}})()].join('|');   /* 1026C：重排完、輪轉有變都要重畫 */")
+
+# ══ 10：航班資料頁（使用者 1027A：圖一～圖五、KX12、今天的航線圖）══
+#   ① 時刻兩個來源（實測明天 120 班：航班資料頁「SCHEDULED」與預估起飛都是 FLIGHTS 底表時刻，不是季節／加彈性後的實際時刻 ——
+#     KX331 深圳→台北 頁面寫 12:35，實際 14:20；KX19 成田→台北 12:05，實際 13:30；同一頁上排「今日出發」卻是實際時刻）。
+#     → matches7（航班資料頁、旅客資料卡共用）回傳季節時刻那一列；predict7 自己也先換成季節時刻，班表或人工延誤改了就重算（原本算過一次就一直用舊的）。
+#   ② 預估起飛晚 15 分鐘以上不能寫「準時」：寫「延誤 +N 分」＋原因（人工／前段延誤的原因照寫；臨時換機寫「臨時更換飛機」；起飛站天候；其餘「航管流量管制」）。
+#   ③ 查 KX12：完全相同的班號排第一個（原本照底表順序，KX120／KX122 會排在前面）。
+RW('fd27 pred season',"function predict7(f,date,force){S.flightPredR7=S.flightPredR7||{};var k=opKey(f,date);if(S.flightPredR7[k]&&!force)return S.flightPredR7[k];",
+   "function predict7(f,date,force){S.flightPredR7=S.flightPredR7||{};try{f=(window.kgmSeasonFlightR48&&window.kgmSeasonFlightR48(f,date))||f}catch(_){}   /* 1026C：季節／加彈性後的實際時刻 */\n"
+   "    var k=opKey(f,date),ov27=(S.flightOverrides||{})[f.code+'_'+date]||{},sg27=[f.dep,f.arr,ov27.status||'',ov27.dep||'',ov27.arr||'',ov27.reason||''].join('|');if(S.flightPredR7[k]&&!force&&S.flightPredR7[k].sigR1026C===sg27)return S.flightPredR7[k];")
+RW('fd27 pred delay',"/* 1018A：人工標的轉降／取消不被預測蓋掉 */S.flightPredR7[k]=p;",
+   "/* 1018A：人工標的轉降／取消不被預測蓋掉 */\n"
+   "    p.sigR1026C=sg27;p.windR1026C=wd27;try{   /* 1026C：人工／前段延誤的時刻照用；晚 15 分鐘以上＝延誤＋原因 */\n"
+   "      if(ov27.dep&&ov27.status==='Delayed'){p.estDep=ov27.dep;if(ov27.arr)p.estArr=ov27.arr;p.depDelta=mins(ov27.dep)+(+ov27.depDD||0)*1440-mins(f.dep)}\n"
+   "      if(!/^(Diverted|Cancelled)$/.test(p.status)&&p.depDelta>=15){p.status='Delayed';var sub27=(S.acftSub||{})[f.code+'_'+date]||(S.acftSub||{})[f.code+'_'+date+'_'+f.fr+f.to];\n"
+   "        p.reasonR1026C=(ov27.status==='Delayed'&&(ov27.reason||ov27.depRemark))||(sub27?(z()?'臨時更換飛機':'Aircraft change'):(a.impact>=7?(z()?('起飛站天候（'+({'Light rain':'降雨',Showers:'陣雨',Crosswind:'強側風'}[a.condition]||a.condition)+'）'):('Weather at origin ('+a.condition+')')):(z()?'航管流量管制':'ATC flow control')))}\n"
+   "    }catch(_){}\n"
+   "    S.flightPredR7[k]=p;")
+RW('fd27 pred expose',"window.refreshDailyOpsR7=function(force){",
+   "window.kgmOpsPredR1026C=function(f,d){try{return predict7(f,d)}catch(_){return null}};   /* 1026C：航班資料頁狀態用同一份預測 */\n  window.refreshDailyOpsR7=function(force){")
+RW('fd27 matches season',"if(!ok)return false;var k=opKey(f,date);if(seen[k])return false;seen[k]=1;return true;});}",
+   "if(!ok)return false;var k=opKey(f,date);if(seen[k])return false;seen[k]=1;return true;})\n"
+   "    .map(function(f,i){var x=f;try{x=(window.kgmSeasonFlightR48&&window.kgmSeasonFlightR48(f,date))||f}catch(_){}return [x,i,String(f.code).toUpperCase()===q?0:1]})   /* 1026C：季節時刻；班號完全相同的排第一 */\n"
+   "    .sort(function(a,b){return a[2]-b[2]||a[1]-b[1]}).map(function(a){return a[0]});}")
+_fd=open('js/fd25.js',encoding='utf-8').read()
+RW('fd27 stat',_fd[_fd.index("  function stat(code,d){"):_fd.index("  function gate(code,d)")],
+   """  function stat(code,d,f,long){var o=(S.flightOverrides||{})[code+'_'+d]||{},s=o.status||'Scheduled',why=o.reason||o.depRemark||'',dl=0;
+    /* 1026C：預估起飛晚 15 分鐘以上不寫「準時」—— 跟下面 EST DEP 同一份預測（predict7），寫延誤＋原因（使用者：「你寫準時卻起飛時間延後兩小時？要寫原因」） */
+    if(f&&window.kgmOpsPredR1026C&&!/^(Cancelled|Diverted|Departed)$/.test(s)){var p=window.kgmOpsPredR1026C(f,d);if(p&&p.status==='Delayed'){s='Delayed';why=p.reasonR1026C||why;dl=p.depDelta||0}}
+    var m={Scheduled:['準時','On time','ok'],'On Time':['準時','On time','ok'],Delayed:['延誤','Delayed','warn'],Cancelled:['取消','Cancelled','bad'],Diverted:['轉降','Diverted','bad'],Departed:['已起飛','Departed','mut'],Boarding:['登機中','Boarding','ok'],'Time Change':['時間更改','Retimed','warn']}[s]||[s,s,'mut'];
+    return '<i class="k25fd-st '+m[2]+'"'+(why?' title="'+E(why)+'"':'')+'>'+E(z()?m[0]:m[1])+(dl>0?' +'+dl+(z()?' 分':'m'):'')+'</i>'+(long&&why&&s!=='Scheduled'?'<small class="k27fd-why">'+E(why)+'</small>':'')}
+""")
+RW('fd27 stat row',"'</small>'+stat(f.code,d)+'<u>'","'</small>'+stat(f.code,d,f)+'<u>'")
+RW('fd27 stat id',"'</dt><dd>'+stat(f.code,d)+'</dd>","'</dt><dd>'+stat(f.code,d,f,1)+'</dd>")
+
+#   ④ 旅客名單「網路報到」：沒有網路報到的寫字（使用者：「圖二是Simulate的Data但是都要Fill In不能 -」）—— 到櫃檯報到過的寫「櫃檯報到」，其餘「未報到」。
+RW('fd27 webci',"'<span title=\"'+(z()?'未網路報到':'Not checked in online')+'\" style=\"color:#C9C2B3\">—</span>'",
+   "'<span title=\"'+(z()?'未網路報到':'Not checked in online')+'\" style=\"display:inline-block;padding:1px 7px;border-radius:999px;background:'+(x.physical?'#EEF3F8;color:#2F4F6B':'#F4F1EA;color:#8A7F68')+';font-weight:700;font-size:11px;white-space:nowrap\">'+(x.physical?(z()?'櫃檯報到':'At counter'):(z()?'未報到':'Not yet'))+'</span>'")
+
+#   ⑤ 行李改運：同一類裡依票價方案由低到高（同一家族的各方案依票價比例），再依會員等級由低到高（非會員→Bronze→Silver→Gold→Diamond）（使用者圖三）。
+RW('fd27 bm sort',"L.sort(function(a,b){return over?(a.r-b.r||b.kg-a.kg):(a.r-b.r||String(a.name).localeCompare(String(b.name)))});",
+   "var TR27={Bronze:1,Silver:2,Gold:3,Platinum:4,Diamond:5,Black:6},fp27=function(b){var f=fareOf(b);return f&&isFinite(+f.pct)?+f.pct:9};   /* 1026C：票價方案低→高，再會員等級低→高 */\n"
+   "    L.sort(function(a,b){return a.r-b.r||fp27(a)-fp27(b)||String(a.fare).localeCompare(String(b.fare))||(TR27[a.tier]||0)-(TR27[b.tier]||0)||(over?b.kg-a.kg:0)||String(a.name).localeCompare(String(b.name))});")
+
+
+#   ⑦ 預估抵達＝預估起飛＋當天高空風（使用者：「航線圖要寫預估飛行時間，比班表多或少，要隨風向變化」）：
+#     原本預估抵達跟預估起飛各自亂數（起飛晚 10 分、抵達卻早 7 分）。→ 抵達＝起飛的延誤＋當天風造成的飛行時間差（wind25 同一套風場沿實際航路算當季空中時間，
+#     當天噴流強弱 ±20%）＋目的地天候等待＋航管進場流量 ±3 分。路線圖說明、EST ARR、航班資料 PDF 都讀這一份。
+RW('fd27 pred wind',"var a=weather7(f.fr,date,f.dep),b=weather7(f.to,date,f.arr),dep=(H(k+'DEP')%13)-4+a.impact,arr=(H(k+'ARR')%19)-7+b.impact+(H(k+'FLOW')%7)-3,",
+   "var a=weather7(f.fr,date,f.dep),b=weather7(f.to,date,f.arr),dep=(H(k+'DEP')%13)-4+a.impact,wd27=wind27(f,date,k),arr=dep+(wd27?wd27.diff:0)+Math.max(0,b.impact-2)+(H(k+'FLOW')%7)-3,   /* 1026C：抵達跟著起飛＋當天高空風 */")
+RW('fd27 wind fn',"window.refreshDailyOpsR7=function(force){",
+   "function wind27(f,date,k){try{   /* 1026C：當天高空風造成的飛行時間差（分鐘，正＝比班表慢） */\n"
+   "    var G=window.kgmGeoR1025B,A=G&&G(f.fr),B=G&&G(f.to);if(!A||!B||!window.kgmAirMinR1025B||!window.kgmTasR1025B)return null;\n"
+   "    var t='';try{t=acftOfFlight(f.code,date,f.fr,f.to)}catch(_){}if(!t||t==='EQV')t=f.acft&&f.acft!=='EQV'?f.acft:'B789';\n"
+   "    var tas=window.kgmTasR1025B(t),win=false;try{win=window.kgmSeasonAtR112(date)==='winter'}catch(_){win=/-(1[12]|0[1-3])-/.test(date)}\n"
+   "    var w=null;try{w=window.kgmWarRouteR1025B&&window.kgmWarRouteR1025B(f.fr,f.to)}catch(_){}\n"
+   "    var km=w&&w.d1?w.d1:(function(){try{return +distOf(f.fr,f.to)||0}catch(_){return 0}})();if(km<300)return null;\n"
+   "    var still=km*1.03/tas*60,sea=window.kgmAirMinR1025B([A].concat(w&&w.wp||[],[B]),tas,win),comp=sea-still,j=((H(k+'JET')%41)-20)/100,jit=((H(k+'JIT')%9)-4)/100*still*0.5;\n"
+   "    var day=still+comp*(1+j)+jit;return {diff:Math.round(day-sea),air:Math.round(day),seaAir:Math.round(sea),comp:Math.round(comp),jet:j,type:t}}catch(_){return null}}\n"
+   "  window.refreshDailyOpsR7=function(force){")
+
+#   ⑧ 路線圖起飛前 48 小時才開放（使用者：「航線圖起飛前兩天才看得到」），開放後標題下寫預估飛行時間、比班表多／少幾分、當天高空風（跟 EST ARR 同一份預測）。
+#     48 小時以前：卡片只寫「起飛前 48 小時開放（台北時間 幾月幾日 幾點起）」，不畫圖。
+RW('fd27 map gate',"  function mapBox(card,c){var box=card.querySelector(':scope > .k25map');",
+   """  function tzd27(a,d){try{if(window.kgmTzAtR1026C){var v=+window.kgmTzAtR1026C(a,d);if(isFinite(v))return v}}catch(_){}return tzh(a)}
+  function depU27(f,d){var x=sea(f,d);return Date.parse(d+'T00:00:00Z')+(mn(x.dep||f.dep)-tzd27(f.fr,d)*60)*60000}
+  function hm27(n){n=Math.round(Math.abs(n));return Math.floor(n/60)+(z()?' 小時 ':'h ')+String(n%60).padStart(2,'0')+(z()?' 分':'m')}
+  function flyTxt27(c){try{var f=c.f,d=c.d,x=sea(f,d),p=window.kgmOpsPredR1026C&&window.kgmOpsPredR1026C(f,d);if(!p)return '';
+    var blk=(mn(x.arr||f.arr)+(+(x.dd!=null?x.dd:f.dd)||0)*1440-tzd27(f.to,d)*60)-(mn(x.dep||f.dep)-tzd27(f.fr,d)*60),df=(p.arrDelta||0)-(p.depDelta||0),w=p.windR1026C;
+    var wt=w?(Math.abs(w.comp)<8?(z()?'以側風為主':'mostly crosswind'):((w.comp<0?(z()?'順風':'tailwind'):(z()?'逆風':'headwind'))+(Math.abs(w.jet)<0.05?'':(w.jet>0?(z()?'，比季節平均強':', stronger than usual'):(z()?'，比季節平均弱':', weaker than usual'))))):'';
+    return '<p class="k27fly"><b>'+(z()?'預估飛行時間 ':'Est. block ')+hm27(blk+df)+'</b><span class="'+(df>0?'up':df<0?'dn':'')+'">'+(df===0?(z()?'與班表相同':'same as schedule'):((z()?(df>0?'比班表多 ':'比班表少 '):(df>0?'+':'−'))+Math.abs(df)+(z()?' 分':' min')))+'</span>'
+      +(wt?'<em>'+(z()?'當天高空風：':'Winds aloft: ')+wt+'</em>':'')+'<em>'+(z()?'班表 ':'Scheduled ')+hm27(blk)+(z()?'・預計 ':' · ETA ')+E(p.estArr)+(z()?' 抵達':'')+'</em></p>'}catch(_){return ''}}
+  function mapBox(card,c){
+    /* 1026C：起飛前 48 小時才開放航路圖 */
+    var dU=depU27(c.f,c.d),lk=card.querySelector(':scope > .k27map-lock');
+    if(isFinite(dU)&&dU-Date.now()>48*3600000){card.classList.add('k27locked');if(!lk){lk=document.createElement('div');lk.className='k27map-lock';card.insertBefore(lk,card.firstChild)}
+      var o=new Date(dU-48*3600000+8*3600000),ls=c.f.code+'|'+c.d+'|'+(z()?'z':'e');
+      if(lk.getAttribute('data-sig')!==ls){lk.setAttribute('data-sig',ls);lk.innerHTML='<div class="r7-kicker">FLIGHT PLAN ROUTE</div><h2>'+(z()?'飛行計畫航路':'Flight plan route')+'</h2><p>'+(z()?('起飛前 48 小時開放（台北時間 '+(o.getUTCMonth()+1)+' 月 '+o.getUTCDate()+' 日 '+String(o.getUTCHours()).padStart(2,'0')+':'+String(o.getUTCMinutes()).padStart(2,'0')+' 起）。屆時依當天高空風與關閉空域產生航路、預估飛行時間。'):('Opens 48 hours before departure ('+o.toISOString().slice(0,16).replace('T',' ')+' Taipei time), with the day\\'s winds aloft and closed airspace.'))+'</p>'}
+      return}
+    card.classList.remove('k27locked');if(lk)lk.remove();
+    var box=card.querySelector(':scope > .k25map');""")
+RW('fd27 map fly',"(z()?'這條航線不經過關閉空域，照大圓航線飛。':'This route does not cross closed airspace.'))+'</p>';",
+   "(z()?'這條航線不經過關閉空域，照大圓航線飛。':'This route does not cross closed airspace.'))+'</p>'+flyTxt27(c);   /* 1026C：預估飛行時間 */")
+RW('fd27 map css',"+'.k25map-hd{padding:20px 22px 14px}.k25map-hd p{margin:0!important}'",
+   "+'.k25map-hd{padding:20px 22px 14px}.k25map-hd p{margin:0!important}'"
+   "+'.k25map-hd .k27fly{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-top:10px!important;padding:10px 14px;border-radius:12px;background:#F4F8F6;border:1px solid #E1EAE5;font-size:12.5px;color:#3d4944}'"
+   "+'.k27fly b{font:700 15px/1.3 system-ui,sans-serif;color:#0B3D2E}.k27fly span{font-weight:700;padding:2px 9px;border-radius:999px;background:#E5F1EC;color:#0B493B}.k27fly span.up{background:#FFF3DC;color:#8A5A12}.k27fly em{font-style:normal;color:#66726C}'"
+   "+'.k27locked > :not(.k27map-lock){display:none!important}.k27map-lock{padding:4px 0}.k27map-lock p{margin:6px 0 0!important;color:#66726C;font-size:13px}'"
+   "+'#app main.k25fd-main section.r7-manifest[data-k23fd]{padding-top:0!important}#app main.k25fd-main section.r7-manifest[data-k23fd] > .k25fd-sechd{padding-top:18px}'   /* 1026C：旅客名單捲動時表頭上方 16px 空隙會露出上一列（半列） */")
+#   ⑨ 離開再進入／開一個航班就「網頁沒有回應」（使用者：「每次跳出去再回去都會套圖四這種」）：實測開 KX180（今天）主執行緒一次卡 7.4～9.4 秒（1026B 也一樣 6.6 秒）。
+#     CPU 剖析：6.3 秒在旅客名單的 DH 組員列（dhRows929 → crewOnFlight）—— 那一天的組員班表背景還沒算到，就在畫面上同步算（CLAUDE.md：不要同步算還沒算好的一天）；
+#     1.4 秒在行李改運的「改到哪一班」下拉選單，替 3 天內 8 個候選航班各算一次 Payload（每個都要建艙單）。
+#     → DH：那天還沒算好就先不列，交給背景一小段一小段算（kgmCrewStepR121，跟組員班表分頁同一套，結果一樣），算好自動重畫（正在輸入時不重畫）；
+#       候選航班的 Payload 餘量只在「行李改運」或「全部」分頁算（其他分頁看不到這個下拉選單）。
+RW('fd27 dh later',"    if(!(o[key]&&o[key].length)&&!DHDATE929[date]&&!(ws7&&date<ws7)&&!(window.KGM_NODH_R1023A&&!(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(date)))){DHDATE929[date]=1;",
+   "    if(!(o[key]&&o[key].length)&&!DHDATE929[date]&&!(ws7&&date<ws7)&&window.kgmCrewHasDayR121&&window.kgmCrewStepR121&&!window.kgmCrewHasDayR121(date)){dhLater929(date);return []}   /* 1026C：那天的組員班表還沒算好 → 背景算，不在畫面上同步算 */\n"
+   "    if(!(o[key]&&o[key].length)&&!DHDATE929[date]&&!(ws7&&date<ws7)&&!(window.KGM_NODH_R1023A&&!(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(date)))){DHDATE929[date]=1;")
+RW('fd27 dh later fn',"  var DHDATE929={};",
+   "  var DHDATE929={},DHLATER929={};\n"
+   "  function dhLater929(date){if(DHLATER929[date])return;DHLATER929[date]=1;var n=0;   /* 1026C：一小段一小段算到那一天，算好重畫航班資料頁 */\n"
+   "    setTimeout(function go(){n++;try{if(window.kgmCrewHasDayR121(date)){DHLATER929[date]=0;var a=document.activeElement;\n"
+   "        if(S.view==='admin'&&S.adminTab==='flightdata'&&String(S.opsSelectedR7||'').split('|')[1]===date&&!(a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)))try{render()}catch(_){}return}\n"
+   "      var cu=window.kgmCrewWarmProgressR923&&window.kgmCrewWarmProgressR923();if(cu&&cu>=date){DHLATER929[date]=0;DHDATE929[date]=1;return}   /* 游標已經過了那天（快取被清過）：不再同步重算，那天先不列 DH */\n"
+   "      if(window.KGM_FULLDONE_1006A)window.kgmCrewStepR121(120,date)}catch(_){DHLATER929[date]=0;return}\n"
+   "      if(n<3000)setTimeout(go,window.KGM_FULLDONE_1006A?900:2000);else DHLATER929[date]=0},3000)}   /* 先讓航班頁（含路線圖）畫完再算 */")
+RW('fd27 bm lazy payload',"var tsel='<select class=\"inp\" onchange=\"kgmBagToR1023A(this.value)\">'+tg.map(function(x){var p2=null;try{p2=window.kgmPayloadR1023A(x.code,x.date,f.fr,f.to)}catch(_){}",
+   "var lz27=S.view==='admin'&&S.adminTab==='flightdata'&&!/^(bm|all)$/.test(S.fdTabR1025B||'');   /* 1026C：候選航班的 Payload 只在看得到下拉選單的分頁算 */\n"
+   "    var tsel='<select class=\"inp\" onchange=\"kgmBagToR1023A(this.value)\">'+tg.map(function(x){var p2=null;if(!lz27)try{p2=window.kgmPayloadR1023A(x.code,x.date,f.fr,f.to)}catch(_){}")
+RW('fd27 dh warm wait',"""    (function step(){
+      var until=Date.now()+40;
+      while(i<crew.length&&Date.now()<until){try{window.kgmCrewChainR210(crew[i].empId,t0,n)}catch(_){}i++}""",
+   """    var w27=0;setTimeout(function step(){   /* 1026C：第一段也放到空檔做；那天的組員班表還沒算好就先等背景算（組員鏈會在畫面上同步算那一天，實測一段卡 0.4～1 秒） */
+      if(window.kgmCrewHasDayR121&&!window.kgmCrewHasDayR121(date)&&w27++<200){setTimeout(step,1500);return}
+      var until=Date.now()+40;
+      while(i<crew.length&&Date.now()<until){try{window.kgmCrewChainR210(crew[i].empId,t0,n)}catch(_){}i++}""")
+RW('fd27 dh warm wait end',"""      try{if(S.view==='admin'&&/flightdata|stxstatus/.test(String(S.adminTab||'')))render()}catch(_){}
+    })();""","""      try{if(S.view==='admin'&&/flightdata|stxstatus/.test(String(S.adminTab||'')))render()}catch(_){}
+    },0);""")
+#   ⑩ 今天的航班「看不到航線圖」：實測開航班後 6.5～12 秒圖才出來。根因：航班資料頁每 0.5 秒（還有每次 DOM 變動）重整一次版面，每次都叫一次畫圖，
+#     圖還沒畫好（快取還沒有）就再排一張 —— 同一張圖排了十幾次、每次約 1 秒。→ 同一張圖正在畫就不再排（畫好放進快取，下一次直接用）。
+RW('fd27 map dedupe',"    if(CACHE[key]){put(CACHE[key]);return}\n    var go=function(){tex(function(){if(!TEX)return;",
+   "    if(CACHE[key]){put(CACHE[key]);return}\n    if(PEND27[key]){PEND27[key]=el;return}PEND27[key]=el;   /* 1026C：同一張圖正在畫就不再排（原本每 0.5 秒排一張，實測 6～12 秒才出圖） */\n    var go=function(){tex(function(){var el2=PEND27[key];delete PEND27[key];if(el2&&el2!==el&&el2.isConnected)el=el2;if(!TEX)return;")
+RW('fd27 map dedupe var',"  var CACHE={},CN=0;","  var CACHE={},CN=0,PEND27={};")
+RW('fd27 map soon',"    if(window.requestIdleCallback)window.requestIdleCallback(go,{timeout:600});else setTimeout(go,30)};\n  window.kgmRouteMapLegendR1025B",
+   "    setTimeout(go,0)};   /* 1026C：不等空檔（開頁後背景一直在算組員班表，等空檔要好幾秒） */\n  window.kgmRouteMapLegendR1025B")
+#   ⑥ 旅客資料卡（PASSENGER & MEMBER RECORD）沒有分頁標記、哪一頁都看得到 → 換到別的分頁就關掉（使用者圖五）。
+RW('fd27 pax close',"S.fdTabR1025B=b.getAttribute('data-t')||b.getAttribute('data-go');apply();",
+   "var nt27=b.getAttribute('data-t')||b.getAttribute('data-go'),rr27=(S.opsPassengerR7&&nt27!==S.fdTabR1025B)||(/^(bm|all)$/.test(nt27)&&!/^(bm|all)$/.test(S.fdTabR1025B||''));if(S.opsPassengerR7&&nt27!==S.fdTabR1025B)S.opsPassengerR7=null;S.fdTabR1025B=nt27;if(rr27){try{render()}catch(_){}}else apply();   /* 1026C：換分頁關掉旅客資料卡；到行李改運才算候選航班 Payload */")
+RW('fd27 why css',"+'.k25fd-id .k25fd-st{font-family:system-ui,sans-serif;font-size:11px;padding:2px 9px}'",
+   "+'.k25fd-id .k25fd-st{font-family:system-ui,sans-serif;font-size:11px;padding:2px 9px}'+'.k27fd-why{display:block;margin-top:3px;font:500 11px/1.3 system-ui,sans-serif;color:#F3D99A;white-space:nowrap}'   /* 1026C：延誤原因 */")
+
 open('p_h_r27.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
