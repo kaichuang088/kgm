@@ -35,3 +35,16 @@
     var B=window.kgmResFareBadgeR920;if(typeof B==='function'&&!B.__grp27r){var bw=function(){if(grpOn()){try{document.querySelectorAll('.k920-resbid').forEach(function(n){n.remove()})}catch(_){}return 0}return B.apply(this,arguments)};bw.__grp27r=1;window.kgmResFareBadgeR920=bw}
   }
   arm();setTimeout(arm,0);setTimeout(arm,3000);setTimeout(arm,12000)})();
+/* 1026C（交付 1027A）：團體旅客開票後用自己的 PNR 申請哩程升等 —— 彈性（U）照「超值」規則可以；優惠（Q）不行，理由寫團體方案（不要寫成「基本票種」） */
+(function(){function arm(){var C=window.canUpgradeWithMiles;if(typeof C!=='function'||C.__grp27u)return;
+  var w=function(type,cls){var r=C.apply(this,arguments);try{var f=FARES[cls];if(f&&f.groupPlanR1026C==='Q'&&r&&r.ok===false)r=Object.assign({},r,{why:(typeof LANG!=='undefined'&&LANG==='en')?'Group Saver (Q) fares cannot be upgraded with miles.':'團體優惠（Q）方案不可哩程升等（團體彈性 U 可以）'})}catch(_){}return r};
+  try{Object.keys(C).forEach(function(k){if(!(k in w))w[k]=C[k]})}catch(_){}w.__grp27u=1;window.canUpgradeWithMiles=w;try{canUpgradeWithMiles=w}catch(_){}}
+  arm();setTimeout(arm,0);setTimeout(arm,3000);setTimeout(arm,12000);setTimeout(arm,30000)})();
+/* 1026C（交付 1027A）：團體隨時免費選位（使用者：「團體定位要可以免費隨時選位置，所以價錢要在高一點，然後是一次選全部鎖需要的位置」）
+   選位頁每一格的價錢都問 seatFee(排,欄,艙,機型)：手上這張票（S.outC／S.inbC——訂票流程跟行程管理改座位都會先放進來）是團體代號就回 0。
+   Sky Couch（三格連成一張臥舖）是另外賣的產品，照舊收費。 */
+(function(){function isGC(c){try{return !!(c&&FARES[c]&&FARES[c].groupPlanR1026C)}catch(_){return false}}
+  function arm(){var F=window.seatFee;if(typeof F!=='function'||F.__grp27s)return;
+    var w=function(row,col,cabK,acft){try{if((isGC(S.outC)||isGC(S.inbC))&&!(cabK==='econ'&&typeof window.isSkySeatR29==='function'&&window.isSkySeatR29(acft,row,col)))return 0}catch(_){}return F.apply(this,arguments)};
+    try{Object.keys(F).forEach(function(k){if(!(k in w))w[k]=F[k]})}catch(_){}w.__grp27s=1;window.seatFee=w;try{seatFee=w}catch(_){}}
+  arm();setTimeout(arm,0);setTimeout(arm,3000);setTimeout(arm,12000);setTimeout(arm,30000)})();

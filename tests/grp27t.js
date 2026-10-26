@@ -32,7 +32,7 @@ const {chromium}=require('playwright');
  console.log('consent rows',await p.evaluate(()=>[...document.querySelectorAll('#app .k914-consent,#app [class*=consent]')].filter(e=>e.offsetHeight).map(e=>e.innerText.replace(/\s+/g,' ').slice(0,200)).join(' || ')));
  await p.evaluate(()=>{const b=document.getElementById('payBtn');if(b)b.click()});await p.waitForTimeout(1500);console.log('after blocked pay',await p.evaluate(()=>S.view+' modal '+!!document.querySelector('[id*="914"]')));
  await p.screenshot({path:'/tmp/j/grp_gate.png'});
- await p.evaluate(()=>{try{kgmPolicySetAgreedR914('KGM-GRP-021',true)}catch(e){};document.querySelectorAll('[id*="914"]').forEach(x=>{if(/modal|ov/i.test(x.id))x.remove()});render()});await p.waitForTimeout(800);const cbs=[];for(const c of cbs){try{await c.check({timeout:3000})}catch(e){}}
+ await p.evaluate(()=>{try{kgmPolicySetAgreedR914('KGM-GRP-021',true)}catch(e){};try{kgmPolicyCloseR914()}catch(e){};render()});await p.waitForTimeout(800);const cbs=[];for(const c of cbs){try{await c.check({timeout:3000})}catch(e){}}
  console.log('checked',await p.evaluate(()=>[...document.querySelectorAll('#app input[type=checkbox]')].map(c=>c.checked?1:0).join('')));
  const inputs=await p.evaluate(()=>[...document.querySelectorAll('#app input,#app select')].filter(e=>e.offsetHeight).map(e=>e.tagName+'#'+e.id+'.'+e.name+'['+(e.placeholder||'')+']').join(' | '));console.log(inputs);
  await p.fill('#cnum','4111111111111111').catch(()=>{});await p.fill('#ccvv','123').catch(()=>{});await p.fill('#cname','WANG XIAOMING').catch(()=>{});

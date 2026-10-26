@@ -34,7 +34,7 @@ RW('sales save','LS.set("kgm26_zones",S.warZonesR1026B||null);','LS.set("kgm26_z
 # ══ 3：團體訂位兩方案（js/grp25_27.js＝mkgrp27.py＋mkgrp27b.py 在現行 grp25 上逐段改；js/grp27x.js 團體不能網路報到）══
 RW('grp27',open('js/grp25_cur.js',encoding='utf-8').read(),JS('grp25_27.js')+JS('grp27x.js'))
 RW('grp27 seat text','const _seat929=_staffFare?(LANG==="en"?"Assigned at check-in":"報到時指派")',
-   'const _seat929=(FARES[c]&&FARES[c].groupPlanR1026C)?(LANG==="en"?"Paid seat selection (after ticketing, until 72h before departure)":"付費選位（開票後至起飛前 72 小時）"):_staffFare?(LANG==="en"?"Assigned at check-in":"報到時指派")')
+   'const _seat929=(FARES[c]&&FARES[c].groupPlanR1026C)?(LANG==="en"?"Free seat selection, any time (whole group at once)":"免費選位（隨時；可整團一次劃位）"):_staffFare?(LANG==="en"?"Assigned at check-in":"報到時指派")')
 
 RW('grp27 counter fee','_cv6(chgLabel||"—")+(_staffFare?"":`<small class="k929-chgn">',
    '_cv6(chgLabel||"—")+(_staffFare?"":(FARES[c]&&FARES[c].groupPlanR1026C)?`<small class="k929-chgn">${LANG==="en"?"Per passenger · counter same fee":"每位旅客 · 櫃檯同價"}</small>`:`<small class="k929-chgn">')   # 1026C：團體方案改票費一律方案金額

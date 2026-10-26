@@ -11,12 +11,12 @@ rep("var DISC=0.05,DEP=0.10,FEE=0.75,MINP=10,MAXP=99,RED=3,NAMES_D=14,BAL_D=14;\
    代號：全站沒用過的字母只剩 Q、U → 團體優惠 Q（E-Q／P-Q／B-Q）、團體彈性 U（E-U／P-U／B-U）。
    優惠：改票每人 NT$1,400、退票每人 NT$2,600；名單（確認人數）出發前 28 天、尾款出發前 21 天；名單期限前可 ±3 位不收手續費（加人看當天空位）；行李經濟艙短程 1×23、長程 2×23。
    彈性：改票每人 NT$600、退票每人 NT$1,500；名單出發前 14 天、尾款出發前 7 天；名單期限前可 ±6 位不收手續費；行李 2×23；可依「超值」規則申請哩程升等。
-   兩者：不能用酬賓機票、不能網路報到（出發當日由領隊或全體旅客到機場櫃檯辦理）、開票後到起飛前 72 小時可付費選位、座位保留到起飛前 60 分鐘；
+   兩者：不能用酬賓機票、不能網路報到（出發當日由領隊或全體旅客到機場櫃檯辦理）、隨時免費選位（整團一次鎖位；使用者 1027A：「團體定位要可以免費隨時選位置，所以價錢要在高一點」）、座位保留到起飛前 60 分鐘；
    超過免費名額的增減，每一位都收手續費（加人＝改票費、減人＝退票費）；每位旅客艙等可以不一樣（名單頁逐位調整）。
-   價格：本艙一般 1 位可賣的最低價 × 優惠 0.90／彈性 1.05（兩個方案有落差）。訂金照舊 10%。 */
+   價格：本艙一般 1 位可賣的最低價 × 優惠 0.93／彈性 1.08（使用者指定；免費選位所以比原本 0.90／1.05 高）。訂金照舊 10%。 */
 var DEP=0.10,FEE=1,MINP=10,MAXP=99;
-var PLANS={Q:{k:'Q',zh:'團體優惠',en:'Group Saver',mul:0.90,chg:1400,ref:2600,names:28,bal:21,free:3,upg:false},
-           U:{k:'U',zh:'團體彈性',en:'Group Flex',mul:1.05,chg:600,ref:1500,names:14,bal:7,free:6,upg:true}};
+var PLANS={Q:{k:'Q',zh:'團體優惠',en:'Group Saver',mul:0.93,chg:1400,ref:2600,names:28,bal:21,free:3,upg:false},
+           U:{k:'U',zh:'團體彈性',en:'Group Flex',mul:1.08,chg:600,ref:1500,names:14,bal:7,free:6,upg:true}};
 window.KGM_GRP_PLANS_R1026C=PLANS;
 window.KGM_GRP_RULES_R1025B={deposit:DEP,min:MINP,max:MAXP,plans:PLANS};
 function planOf(x){if(!x)return PLANS.U;if(typeof x==='string'){var f=(typeof FARES!=='undefined')?FARES[x]:null;return PLANS[(f&&f.groupPlanR1026C)||x]||PLANS.U}return PLANS[x.plan]||PLANS.U}
@@ -60,7 +60,7 @@ function mkCodes(){if(GC.Economy)return true;var f=fam();if(!f||typeof FARES==='
     GC[cab]={};['Q','U'].forEach(function(k){var code=pre+'-'+k,P=PLANS[k],base=FARES[k==='Q'?bq:bu]||{};
       if(!(FARES[code]&&FARES[code].groupPlanR1026C)){var o=Object.assign({},base,{zh:k+' '+CABZ[cab]+' '+P.zh,en:k+' '+cab+' '+P.en,tier:P.zh+' '+P.en,tierEN:P.en,
           chgZH:'NT$'+P.chg.toLocaleString(),chgEN:'NT$'+P.chg.toLocaleString(),refZH:'NT$'+P.ref.toLocaleString(),refEN:'NT$'+P.ref.toLocaleString(),
-          displayCodeR48:k,groupPlanR1026C:k,familyR48:k==='Q'?'Basic':'Value',freeSeat:0,rec:false});   /* 1026C：改票／退票費＝方案金額（每位旅客），changeFeeOf／refundPolicyOf 最外層直接回方案值 */
+          displayCodeR48:k,groupPlanR1026C:k,familyR48:k==='Q'?'Basic':'Value',freeSeat:1,rec:false});   /* 1026C：改票／退票費＝方案金額（每位旅客），changeFeeOf／refundPolicyOf 最外層直接回方案值 */
         if(cab==='Economy')o.bag=k==='Q'?'短程 1×23kg／長程 2×23kg':'2×23kg';
         FARES[code]=o}   /* 基底的 __halfR101 標記要留著（沒有標記的票價表手續費會被 r101 再除一次） */
       GC[cab][k]=code})});
@@ -82,7 +82,7 @@ function ccWrap(){var O=window.CAB_CODES;if(typeof O!=='function'||O.__grp27)ret
 ccWrap();setTimeout(ccWrap,0);setTimeout(ccWrap,3000);setTimeout(ccWrap,12000);""")
 rep("""  if(cab==='First'||cab==='Resident'||!fi.familyR48)return 0;if(code!==gcode(cab))return 0;""",
     """  if(cab==='First'||cab==='Resident'||!fi.familyR48)return 0;if(!isG(code))return 0;""")
-rep("""/* 團體票價：這一艙當下一般可賣（1 位）的最低價 × 0.95 */""","""/* 團體票價：這一艙當下一般可賣（1 位）的最低價 × 方案係數（優惠 0.90、彈性 1.05） */""")
+rep("""/* 團體票價：這一艙當下一般可賣（1 位）的最低價 × 0.95 */""","""/* 團體票價：這一艙當下一般可賣（1 位）的最低價 × 方案係數（優惠 0.93、彈性 1.08） */""")
 rep("""function grpPrice(O,self,f,code,pax){var cab=(FARES[code]||{}).cabin||'Economy',k=[f.code,f.date,f.fr,f.to,cab,pax,""","""function grpPrice(O,self,f,code,pax){var cab=(FARES[code]||{}).cabin||'Economy',k=[f.code,f.date,f.fr,f.to,code,pax,""")
 rep("""  try{Object.keys(FARES).forEach(function(cd){var x=FARES[cd];if(!x||x.cabin!==cab||!x.familyR48)return;""","""  try{Object.keys(FARES).forEach(function(cd){var x=FARES[cd];if(!x||x.cabin!==cab||!x.familyR48||x.groupPlanR1026C)return;""")
 rep("""  if(best==null)best=+O.call(self,f,code,pax)||0;var v=Math.round(best*(1-DISC));""","""  if(best==null){var fb=gcode(cab,'U');var bc=(fam()||{})[cab];bc=bc&&(bc.Value||bc.Basic||[])[0];window.__grp25raw=1;try{best=+O.call(self,f,bc||fb,pax)||0}finally{window.__grp25raw=0}}var v=Math.round(best*planOf(code).mul);""")
@@ -103,7 +103,7 @@ rep("""(z()?' 個座位，名單最晚 ':' seats held as TBA; names due ')+E(du.
     """(z()?' 個座位（'+P.zh+' '+P.k+'），名單（確認人數）最晚 ':' seats held as TBA ('+P.en+'); names due ')+E(du.names)+(z()?' 前提供（出發前 '+P.names+' 天）。':'.')+'</p></div>'""")
 rep("""(du.late?'<b>'+(z()?'出發前 14 天內：訂位時一次付清':'Within 14 days: pay in full')+'</b>'""","""(du.late?'<b>'+(z()?'出發前 '+P.bal+' 天內：訂位時一次付清':'Within '+P.bal+' days: pay in full')+'</b>'""")
 rep("""+'<div><small>'+(z()?'團體票規':'Group fare rules')+'</small><b>'+(z()?'改票／退票手續費＝該艙「超值」× 0.75':'Change / refund fee = cabin Value fee × 0.75')+'</b><span>'+(z()?'開票後一位旅客一個 PNR，各自報到、改票。':'One PNR per traveller after ticketing.')+'</span></div></div>'""",
-    """+'<div><small>'+(z()?'團體票規（'+P.zh+' '+P.k+'）':'Group fare rules ('+P.en+')')+'</small><b>'+(z()?'改票每人 NT$'+P.chg.toLocaleString()+'・退票每人 NT$'+P.ref.toLocaleString():'Change NT$'+P.chg.toLocaleString()+' · refund NT$'+P.ref.toLocaleString()+' per person')+'</b><span>'+(z()?'開票後一位旅客一個 PNR；團體旅客不能網路報到（出發當日由領隊或全體旅客到櫃檯辦理）；開票後到起飛前 72 小時可付費選位；不能使用酬賓機票'+(P.upg?'；可依「超值」規則申請哩程升等':'；不能申請哩程升等')+'。':'One PNR per traveller; airport check-in only.')+'</span></div></div>'""")
+    """+'<div><small>'+(z()?'團體票規（'+P.zh+' '+P.k+'）':'Group fare rules ('+P.en+')')+'</small><b>'+(z()?'改票每人 NT$'+P.chg.toLocaleString()+'・退票每人 NT$'+P.ref.toLocaleString():'Change NT$'+P.chg.toLocaleString()+' · refund NT$'+P.ref.toLocaleString()+' per person')+'</b><span>'+(z()?'開票後一位旅客一個 PNR；團體旅客不能網路報到（出發當日由領隊或全體旅客到櫃檯辦理）；隨時免費選位（可整團一次劃位）；不能使用酬賓機票、不能參加 Residence 競標'+(P.upg?'；可依「超值」規則申請哩程升等':'；不能申請哩程升等')+'。':'One PNR per traveller; airport check-in only.')+'</span></div></div>'""")
 rep("""  var w=function(){var h=O.apply(this,arguments);if(!on())return h;var tot=0,cur='TWD';try{var q=journeyPrice();tot=q.total||q.grand||q.amount||0;cur=journeyCurr()}catch(_){}var du=dues(firstDate()),dep=du.late?tot:Math.round(tot*DEP);""",
     """  var w=function(){var h=O.apply(this,arguments);if(!on())return h;var tot=0,cur='TWD';try{var q=journeyPrice();tot=q.total||q.grand||q.amount||0;cur=journeyCurr()}catch(_){}var P=curPlan(),du=dues(firstDate(),P),dep=du.late?tot:Math.round(tot*DEP);""")
 rep("""(du.late?(z()?'出發前 14 天內訂位，本次付清全額。':'Paying in full.')""","""(du.late?(z()?'出發前 '+P.bal+' 天內訂位，本次付清全額。':'Paying in full.')""")
@@ -216,7 +216,7 @@ rep("""    /* 選航班頁的票價卡（article.k929-fare）：其他方案（�
 
 # ── 8 前台「我的團體訂位」：方案、增減、每位艙等；舊版（1023A 報價制）拿掉 ──
 rep("""+'<div class="k25box rules"><small>'+(z()?'團體票規':'Fare rules')+'</small><ul><li>'+(z()?'改票／退票手續費：「超值」× 0.75（':'Fees ×0.75 (')+E(feeTxt(g.cabin))+(z()?'，每段每位）':')')+'</li><li>'+(z()?'名單期限前可減少 '+RED+' 位（已減 '+g.reduced+'）':'Reduce up to '+RED)+'</li><li>'+(z()?'訂金不退；尾款逾期自動取消':'Deposit non-refundable')+'</li><li>'+(z()?'開票後一人一個 PNR':'One PNR per traveller')+'</li></ul></div></aside""",
-    """+'<div class="k25box rules"><small>'+(z()?'團體票規・':'Fare rules · ')+E(z()?planOf(g).zh+' '+planOf(g).k:planOf(g).en)+'</small><ul><li>'+E(feeTxt(g))+'</li><li>'+(z()?'名單期限前 ±'+planOf(g).free+' 位免手續費（已用 '+(g.adj||0)+'）；超過每位收手續費':'±'+planOf(g).free+' free before names')+'</li><li>'+(z()?'訂金不退；尾款逾期自動取消':'Deposit non-refundable')+'</li><li>'+(z()?'不能網路報到：出發當日由領隊或全體旅客到櫃檯辦理':'Airport check-in only')+'</li><li>'+(z()?'開票後到起飛前 72 小時可付費選位；座位保留到起飛前 60 分鐘':'Paid seats until 72h; seats held until 60 min')+'</li><li>'+(z()?'開票後一人一個 PNR':'One PNR per traveller')+'</li></ul></div></aside""")
+    """+'<div class="k25box rules"><small>'+(z()?'團體票規・':'Fare rules · ')+E(z()?planOf(g).zh+' '+planOf(g).k:planOf(g).en)+'</small><ul><li>'+E(feeTxt(g))+'</li><li>'+(z()?'名單期限前 ±'+planOf(g).free+' 位免手續費（已用 '+(g.adj||0)+'）；超過每位收手續費':'±'+planOf(g).free+' free before names')+'</li><li>'+(z()?'訂金不退；尾款逾期自動取消':'Deposit non-refundable')+'</li><li>'+(z()?'不能網路報到：出發當日由領隊或全體旅客到櫃檯辦理':'Airport check-in only')+'</li><li>'+(z()?'隨時免費選位（可整團一次劃位）；座位保留到起飛前 60 分鐘':'Free seat selection any time; seats held until 60 min')+'</li><li>'+(z()?'開票後一人一個 PNR':'One PNR per traveller')+'</li></ul></div></aside""")
 rep("""function list(){var u=me(),L=G().filter(function(g){return g.kind==='v25'&&u&&g.userId===u.id});var old=G().filter(function(g){return g.kind!=='v25'&&u&&g.contact&&String(g.contact.email||'').toLowerCase()===String(u.email||'').toLowerCase()});""",
     """function list(){var u=me(),L=G().filter(function(g){return g.kind==='v25'&&u&&g.userId===u.id});""")
 rep("""    +(old.length?'<p class="k25g-p">'+(z()?'1023A 舊版團體申請：':'Earlier requests: ')+old.map(function(g){return E(g.id)+'（'+E(g.status)+'）'}).join('、')+'</p>':'')+'</div>'}""","""+'</div>'}""")
@@ -231,7 +231,7 @@ rep("""    +(canReduce(g)?'<div class="k25g-reduce"><b>'+(z()?'減少人數':'Re
     """    +(canReduce(g)||canAdd(g)?'<div class="k25g-reduce"><b>'+(z()?'增減人數':'Group size')+'</b><span>'+(z()?(freeLeft(g)>0?'名單期限（'+g.due.names+'）前還有 '+freeLeft(g)+' 位免手續費的增減名額（'+planOf(g).zh+' ±'+planOf(g).free+'）；':'免費名額已用完或過了名單期限；')+'超過的每一位：加人收改票費 NT$'+planOf(g).chg.toLocaleString()+'、減人收退票費 NT$'+planOf(g).ref.toLocaleString()+'。加人要看當天的空位。':'')+'</span>'
       +(canAdd(g)?'<button type="button" class="k25g-btn ghost" onclick="kgmGrpAddR1026C(\\''+A(g.id)+'\\')">'+(z()?'加 1 位':'Add 1')+'</button>':'')+(canReduce(g)?'<button type="button" class="k25g-btn ghost" onclick="kgmGrpReduceR1025B(\\''+A(g.id)+'\\')">'+(z()?'減少 1 位':'Remove 1')+'</button>':'')+'</div>':'');""")
 rep("""'<p class="k25g-p">'+(z()?'一位旅客一個 PNR，可在「行程管理」用各自的 PNR 與姓氏報到、選位、改票（手續費 × 0.75）。':'One PNR per traveller.')+'</p>""",
-    """'<p class="k25g-p">'+(z()?'一位旅客一個 PNR，可在「行程管理」用各自的 PNR 查詢、付費選位（到起飛前 72 小時）、改票（'+E(feeTxt(g))+'）；報到請出發當日到機場櫃檯辦理。':'One PNR per traveller.')+'</p>""")
+    """'<p class="k25g-p">'+(z()?'一位旅客一個 PNR，可在「行程管理」用各自的 PNR 查詢、免費選位（隨時）、改票（'+E(feeTxt(g))+'）；報到請出發當日到機場櫃檯辦理。':'One PNR per traveller.')+'</p>""")
 rep("""'<p class="k25g-p">'+(z()?'團體方案：本艙一般最低價 −5%；PNR ':'Group fare; PNR ')+E(g.pnr)+(z()?'（開票前是整團一筆）。':'.')+'</p>'""",
     """'<p class="k25g-p">'+(z()?planOf(g).zh+'（'+planOf(g).k+'）；PNR ':planOf(g).en+'; PNR ')+E(g.pnr)+(z()?'（開票前是整團一筆）。':'.')+'</p>'""")
 # 前台未綁定頁：方案說明、申請中狀態

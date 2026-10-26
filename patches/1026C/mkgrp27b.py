@@ -21,4 +21,10 @@ rep("""  return '<section class="k25gd"><header>""","""  var tabs='<div class="k
 rep("""。規章 KGM-GRP-021。':'')+'</span></header>'+acform""","""。規章 KGM-GRP-021。':'')+'</span></header>'""")
 rep("""  +'.k27ga{""","""  +'.k27gd-tabs{display:flex;gap:6px;background:#F1F4F2;border-radius:999px;padding:4px;width:max-content;margin:0 0 14px}.k27gd-tabs button{border:0;background:transparent;border-radius:999px;padding:8px 18px;font:700 13px inherit;color:#55605B;cursor:pointer}.k27gd-tabs button.on{background:#0B3D2E;color:#fff}.k27gd-tabs i{font-style:normal;opacity:.75;margin-left:4px}'
   +'.k27ga{""")
+# 1027A 使用者：「大型旅團會給的是案件編號（團為單位的），開票後每個旅客都有自己的定位代號」→ 團體頁主要編號寫「團體案件編號」，開票前的整團 PNR 只當附註
+rep("""<div><small>PNR</small><b class="mono">'+E(g.pnr)+'</b></div>""",
+    """<div><small>'+(z()?'團體案件編號':'Group case no.')+'</small><b class="mono">'+E(g.id)+'</b><span>'+(g.split?(z()?'已開票：每位旅客一個 PNR':'Ticketed: one PNR each'):(z()?'開票前整團 PNR ':'Group PNR ')+E(g.pnr))+'</span></div>""")
+rep("""<small>'+E(g.id)+' · PNR '+E(g.pnr)+' · '+g.pax+(z()?' 位':' pax')+'</small>""",
+    """<small>'+(z()?'案件 ':'Case ')+E(g.id)+' · '+g.pax+(z()?' 位':' pax')+'</small>""")
+rep("""<small>'+E(g.id)+' · PNR '+E(g.pnr)+'</small>""","""<small>'+(z()?'案件 ':'Case ')+E(g.id)+(g.split?'':' · PNR '+E(g.pnr))+'</small>""")
 open('js/grp25_27.js','w',encoding='utf-8').write(s);print('ok')
