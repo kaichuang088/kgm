@@ -22,7 +22,8 @@
   var BIG={TPE:1,NRT:1,HND:1,ICN:1,PEK:1,PKX:1,PVG:1,HKG:1,SIN:1,BKK:1,LHR:1,CDG:1,FRA:1,AMS:1,JFK:1,EWR:1,LAX:1,SFO:1,ORD:1,YYZ:1,SYD:1,DXB:1,DOH:1,IST:1,MNL:1,KUL:1,CGK:1,MUC:1,SEA:1};
   var HUB={TPE:1,TSA:1};
   /* 宵禁（當地時間 [開始, 結束)，分鐘）—— 只用來限制「加上去的彈性」不要把原本在開放時間內的抵達推進宵禁 */
-  var CURFEW={TSA:[1380,360],GMP:[1380,360],NRT:[0,360],SYD:[1380,360],FUK:[1320,420],ITM:[1260,420],FRA:[1380,300],ZRH:[1410,360],ORY:[1410,360],ADL:[1380,360],OOL:[1380,360],BNE:[-1,-1]};
+  var CURFEW={TSA:[1380,360],GMP:[1380,360],NRT:[0,360],SYD:[1320,360],   /* 1026C：使用者「SYD既然有宵禁就要比宵禁提早一小時到」→ 雪梨 23:00 宵禁、加彈性後最晚 21:55 落地 */
+    FUK:[1320,420],ITM:[1260,420],FRA:[1380,300],ZRH:[1410,360],ORY:[1410,360],ADL:[1380,360],OOL:[1380,360],BNE:[-1,-1]};
   function mn(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
   function hm(n){n=((Math.round(n)%1440)+1440)%1440;return ('0'+Math.floor(n/60)).slice(-2)+':'+('0'+n%60).slice(-2)}
   function tz(c){try{var v=TZ[c];return typeof v==='number'?v:8}catch(_){return 8}}
