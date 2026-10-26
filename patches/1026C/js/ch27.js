@@ -18,6 +18,9 @@
   function rules(){S.salesModeR1026C=S.salesModeR1026C||{rules:[]};S.salesModeR1026C.rules=S.salesModeR1026C.rules||[];return S.salesModeR1026C.rules}
   function modeOf(code,date){var R=rules(),m='';for(var i=0;i<R.length;i++){var r=R[i];if(!r||r.code!==code)continue;if(r.from&&date<r.from)continue;if(r.to&&date>r.to)continue;m=r.mode}return m}
   window.kgmSalesModeR1026C=modeOf;
+  /* 1026C（交付 1027A）：包機／自創航班核准後的規則帶 owner（團體帳號的會員編號）→ 只有那個帳號能訂（js/cr27.js） */
+  function ownerOf(code,date){var R=rules(),o='';for(var i=0;i<R.length;i++){var r=R[i];if(!r||r.code!==code||r.mode!=='charter')continue;if(r.from&&date<r.from)continue;if(r.to&&date>r.to)continue;o=r.owner||''}return o}
+  window.kgmSalesOwnerR1026C=ownerOf;
   /* ── ① 夥伴營運配額 ── */
   var ALLOT={Economy:30,Premium:8,Business:8,First:2},PER=9;window.KGM_PARTNER_ALLOT_R1026C={allot:ALLOT,perCode:PER};
   var SOLD=null,SOLDT=0;
@@ -31,6 +34,7 @@
   window.kgmChannelSellR1026C=function(code,date,flight){
     if(!flight||!date)return null;var m=modeOf(flight.code,date),g=grp();
     if(m==='charter'&&!g)return 0;   /* 包機航班：一般旅客不能訂 */
+    if(m==='charter'){var ow=ownerOf(flight.code,date);if(ow&&!(S.user&&S.user.id===ow))return 0}   /* 1026C：已被某個團體包下 */
     if(m==='pax'&&g)return 0;        /* 只開放旅客訂購：團體不能訂 */
     if((flight.partner||flight.codeshare)&&!g){if(window.__grp25raw)return null;return partnerLeft(code,date,flight)}
     return null};

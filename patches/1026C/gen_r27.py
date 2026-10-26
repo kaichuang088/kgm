@@ -28,11 +28,11 @@ RW('utcOf dst',"return Date.UTC(+d[0],+d[1]-1,+d[2],0,0,0)+(((+t[0])*60+(+t[1]))
 # ══ 4：販售通路（js/ch27.js）：夥伴營運一般訂票配額、只開放包機／只開放旅客訂購 —— sell54 最前面問（在團體之前：只開放旅客訂購的班團體也不能訂）══
 RC('sell54 channel','kgm-0823c-r54',"  if(window.kgmGrpSellR1025B){var g25=window.kgmGrpSellR1025B(code,date,flight);if(g25!=null)return g25}",
    "  if(window.kgmChannelSellR1026C){var c27=window.kgmChannelSellR1026C(code,date,flight);if(c27!=null)return c27}   /* 1026C：販售通路 */\n  if(window.kgmGrpSellR1025B){var g25=window.kgmGrpSellR1025B(code,date,flight);if(g25!=null)return g25}")
-RW('sales S init','warZonesR1026B:LS.get("kgm26_zones",null),','warZonesR1026B:LS.get("kgm26_zones",null),salesModeR1026C:LS.get("kgm27_salesmode",null),')
-RW('sales save','LS.set("kgm26_zones",S.warZonesR1026B||null);','LS.set("kgm26_zones",S.warZonesR1026B||null);LS.set("kgm27_salesmode",S.salesModeR1026C||null);')
+RW('sales S init','warZonesR1026B:LS.get("kgm26_zones",null),','warZonesR1026B:LS.get("kgm26_zones",null),salesModeR1026C:LS.get("kgm27_salesmode",null),charterReqsR1026C:LS.get("kgm27_charter",[]),')
+RW('sales save','LS.set("kgm26_zones",S.warZonesR1026B||null);','LS.set("kgm26_zones",S.warZonesR1026B||null);LS.set("kgm27_salesmode",S.salesModeR1026C||null);LS.set("kgm27_charter",S.charterReqsR1026C||[]);')
 
 # ══ 3：團體訂位兩方案（js/grp25_27.js＝mkgrp27.py＋mkgrp27b.py 在現行 grp25 上逐段改；js/grp27x.js 團體不能網路報到）══
-RW('grp27',open('js/grp25_cur.js',encoding='utf-8').read(),JS('grp25_27.js')+JS('grp27x.js'))
+RW('grp27',open('js/grp25_cur.js',encoding='utf-8').read(),JS('grp25_27.js')+JS('grp27x.js')+JS('cr27.js'))
 RW('grp27 seat text','const _seat929=_staffFare?(LANG==="en"?"Assigned at check-in":"報到時指派")',
    'const _seat929=(FARES[c]&&FARES[c].groupPlanR1026C)?(LANG==="en"?"Free seat selection, any time (whole group at once)":"免費選位（隨時；可整團一次劃位）"):_staffFare?(LANG==="en"?"Assigned at check-in":"報到時指派")')
 
@@ -43,7 +43,10 @@ RW('mail list sched',"{ev:'flight.schedule_changed', who:'ext', zh:'季節班表
    "{ev:'flight.schedule_changed', who:'ext', zh:'季節班表調整／時刻異動',    en:'Schedule change',   when:'冬夏季班表切換；或時刻調整（輪擋彈性、夏令時間）後已開票訂位的時刻跟現行班表不同：每筆真實訂位寄一次、分批寄，模擬資料不寄'}")
 RW('mail list grp',"  {ev:'group.reduced',who:'ext',zh:'團體人數減少・尾款更新',en:'Group size reduced',when:'旅行社減少人數（最多 3 位），寫明剩餘人數與新尾款'},",
    "  {ev:'group.reduced',who:'ext',zh:'團體人數減少・尾款更新',en:'Group size reduced',when:'旅行社減少人數（名單期限前優惠 3 位／彈性 6 位免手續費，超過每位收退票手續費），寫明剩餘人數與新尾款'},\n"
-   "  {ev:'group.pax_added',who:'ext',zh:'團體人數增加・尾款更新',en:'Group size increased',when:'旅行社加人（依當天剩餘座位；名單期限前優惠 3 位／彈性 6 位免手續費，超過每位收改票手續費），寫明人數與新尾款'},")
+   "  {ev:'group.pax_added',who:'ext',zh:'團體人數增加・尾款更新',en:'Group size increased',when:'旅行社加人（依當天剩餘座位；名單期限前優惠 3 位／彈性 6 位免手續費，超過每位收改票手續費），寫明人數與新尾款'},\n"
+   "  {ev:'group.charter_received',who:'ext',zh:'包機／自創航班申請已收到',en:'Charter request received',when:'團體帳號在前台送出包機（包下現有航班／加開包機）或自創航班申請'},\n"
+   "  {ev:'group.charter_approved',who:'ext',zh:'包機／自創航班核准・班號與訂金請款',en:'Charter approved',when:'團體業務核准：寫明班號、時刻、機型、報價與訂金期限（核准後 7 天）'},\n"
+   "  {ev:'group.charter_declined',who:'ext',zh:'包機／自創航班無法承接',en:'Charter declined',when:'團體業務不核准（附原因）'},")
 RW('mail list grp bal',"when:'尾款期限（最慢起飛前 14 天）前每 7 天一次，剩 3 天、1 天再寄；團體業務也可手動寄'}",
    "when:'尾款期限（優惠：起飛前 21 天／彈性：起飛前 7 天）前每 7 天一次，剩 3 天、1 天再寄；團體業務也可手動寄'}")
 RW('mail list grp bind',"when:'AI 客服依案件號完成旅行社帳號綁定，可開始團體訂位'}",
@@ -56,6 +59,10 @@ RW('grp policy doc',"window.kgmPolicyDocR914=function(id){",
 RW('grp policy audit',"if(o.docs!==17)o.bad.push('辦法份數 '+o.docs+'（應為 17）');","if(o.docs!==18)o.bad.push('辦法份數 '+o.docs+'（應為 18）');   /* 1026C：加 KGM-GRP-021 */")
 RW('grp policy gate',"  {fn:'doPay',                    ids:['KGM-GC-001','KGM-CON-006'],",
    "  {fn:'doPay',                    get ids(){try{if(S&&S.search&&S.search.grp25)return ['KGM-GC-001','KGM-CON-006','KGM-GRP-021']}catch(_){}return ['KGM-GC-001','KGM-CON-006']},   /* 1026C：團體訂位付款另要同意 KGM-GRP-021 */")
+
+# ══ 3d：包機／自創航班申請（js/cr27.js）：存檔、AI 臨時航班的排機與建立開出來共用、寄信清單 ══
+RW('charter tempplan',"  window.kgmAiTempFlightR1025B=function(a){",
+   "  window.kgmTempPlanR1026C=function(P){return plan(P)};window.kgmTempCreateR1026C=function(P,o){return create(P,o)};   /* 1026C：包機／自創航班核准共用同一套排機與建立（js/cr27.js） */\n  window.kgmAiTempFlightR1025B=function(a){")
 
 open('p_h_r27.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))

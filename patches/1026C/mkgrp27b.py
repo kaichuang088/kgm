@@ -27,4 +27,28 @@ rep("""<div><small>PNR</small><b class="mono">'+E(g.pnr)+'</b></div>""",
 rep("""<small>'+E(g.id)+' · PNR '+E(g.pnr)+' · '+g.pax+(z()?' 位':' pax')+'</small>""",
     """<small>'+(z()?'案件 ':'Case ')+E(g.id)+' · '+g.pax+(z()?' 位':' pax')+'</small>""")
 rep("""<small>'+E(g.id)+' · PNR '+E(g.pnr)+'</small>""","""<small>'+(z()?'案件 ':'Case ')+E(g.id)+(g.split?'':' · PNR '+E(g.pnr))+'</small>""")
+# 1027A 使用者：「訂購團體機票也要選擇包機或是建立航班…後台會給予回覆，若成功，後台會給與班機編號，然後也要加入該飛機的飛行Schedule」
+#   → js/cr27.js；這裡只開口：finish 可以由後台替申請的團體帳號建立（不跳畫面、不寄「訂金已收到」）、狀態「已核准・待付訂金」、前台三個按鈕、後台第三個分頁
+rep("function finish(b,d,pc){\n  var a=acct()||{},u=me()||{},segs=segsOf(b)","function finish(b,d,pc,opt){\n  var a=(opt&&opt.acct)||acct()||{},u=(opt&&opt.user)||me()||{},segs=segsOf(b)")
+rep("  mail('group.booked',g,","  if(opt&&opt.quiet){save1();return g}   /* 1026C：包機／自創航班由後台建立 */\n  mail('group.booked',g,")
+rep("doPayWrap();setTimeout(doPayWrap,0);setTimeout(doPayWrap,3000);","doPayWrap();setTimeout(doPayWrap,0);setTimeout(doPayWrap,3000);\nwindow.kgmGrpFinishR1026C=function(b,d,pc,opt){return finish(b,d,pc,opt)};   /* 1026C：包機／自創航班核准後由後台建立團體訂位（js/cr27.js） */")
+rep("var ST={deposit_paid:","var ST={quoted:['已核准・待付訂金','Approved · deposit due','#7A4B00','#FFF4E0'],deposit_paid:")
+rep("""<button type="button" class="k25g-btn" onclick="nav(\\'home\\');setTimeout(function(){kgmGrpModeR1025B(1)},50)">'+(z()?'＋ 新的團體訂位':'＋ New booking')+'</button></div></div>'+list()+'</div>'};""",
+    """<div class="k27cr-acts"><button type="button" class="k25g-btn" onclick="nav(\\'home\\');setTimeout(function(){kgmGrpModeR1025B(1)},50)">'+(z()?'＋ 一般航班團體訂位':'＋ Scheduled flights')+'</button><button type="button" class="k25g-btn ghost" onclick="kgmCharterOpenR1026C(\\'charter\\')">'+(z()?'包機申請':'Charter')+'</button><button type="button" class="k25g-btn ghost" onclick="kgmCharterOpenR1026C(\\'custom\\')">'+(z()?'自創航班申請':'Custom flight')+'</button></div></div></div>'+(window.kgmCharterFrontR1026C?window.kgmCharterFrontR1026C():'')+list()+'</div>'};""")
+rep("""class="'+(S.k27gdTab==='acct'?'':'on')+'" onclick="S.k27gdTab=\\'\\';render()">""","""class="'+(S.k27gdTab?'':'on')+'" onclick="S.k27gdTab=\\'\\';render()">""")
+rep("""+(z()?'團體帳號綁定':'Group accounts')+' <i>'+accts.length+'</i></button></div>';""",
+    """+(z()?'團體帳號綁定':'Group accounts')+' <i>'+accts.length+'</i></button><button type="button" class="'+(S.k27gdTab==='charter'?'on':'')+'" onclick="S.k27gdTab=\\'charter\\';render()">'+(z()?'包機／自創航班':'Charter / custom')+' <i>'+((window.kgmCharterPendR1026C&&window.kgmCharterPendR1026C())||0)+'</i></button></div>';""")
+rep("""if(S.k27gdTab==='acct')return '<section class="k25gd">'+tabs+""","""if(S.k27gdTab==='charter')return '<section class="k25gd">'+tabs+(window.kgmCharterDeskR1026C?window.kgmCharterDeskR1026C():'')+'</section>';
+  if(S.k27gdTab==='acct')return '<section class="k25gd">'+tabs+""")
+# 1027A 包機（整架已付）：個別旅客改艙等不收差額；自創航班照收（報價是人數 × 經濟艙）
+rep("var chd=i>=g.adults,unit=chd?0.75:1,old=Math.round(g.perSeat*unit),nw=Math.round(diff*unit),d=nw-old;",
+    "var chd=i>=g.adults,unit=chd?0.75:1,old=Math.round(g.perSeat*unit),nw=Math.round(diff*unit),d=nw-old;if(g.charterR1026C&&g.kindR1026C!=='custom'){nw=old;d=0}   /* 1026C：包機整架已付，改艙等不另收 */")
+# 1027A 包機核准後還沒付訂金：下一步是付訂金
+rep("status==='cancelled'?(z()?'已取消':'Cancelled'):!(sc[1]&&sc[0]===sc[1])?","status==='cancelled'?(z()?'已取消':'Cancelled'):g.status==='quoted'?(z()?'下一步：付訂金 ':'Next: deposit ')+E(g.deposit&&g.deposit.due||''):!(sc[1]&&sc[0]===sc[1])?")
+# 1027A 包機核准後訂金未付：明細頁不能寫「已付」
+rep("""stepCard('booked',1,z()?'訂位成立・訂金':'Booked',true,(z()?'訂金 ':'Deposit ')+M(g.deposit.amount,g.curr)+(z()?' 已付・':' paid · ')+E(String(g.createdAt||'').slice(0,10)),""",
+    """stepCard('booked',1,z()?'訂位成立・訂金':'Booked',g.deposit.paid!==false,g.deposit.paid===false?((z()?'訂金 ':'Deposit ')+M(g.deposit.amount,g.curr)+(z()?' 待付・期限 ':' due ')+E(g.deposit.due||'')):((z()?'訂金 ':'Deposit ')+M(g.deposit.amount,g.curr)+(z()?' 已付・':' paid · ')+E(String(g.deposit.paidAt||g.createdAt||'').slice(0,10))),""")
+rep("""Math.round(((g.deposit.amount+(g.balance.paid?g.balance.amount:0))/(g.total||1))*100)""","""Math.round((((g.deposit.paid===false?0:g.deposit.amount)+(g.balance.paid?g.balance.amount:0))/(g.total||1))*100)""")
+rep("""(z()?'已付 ':'Paid ')+M(g.deposit.amount+(g.balance.paid?g.balance.amount:0),g.curr)+'</span>'+(!g.balance.paid&&act?""",
+    """(z()?'已付 ':'Paid ')+M((g.deposit.paid===false?0:g.deposit.amount)+(g.balance.paid?g.balance.amount:0),g.curr)+'</span>'+(g.deposit.paid===false&&g.deposit.token?'<button type="button" class="k25g-btn full" onclick="kgmOpenPayR45(\\''+A(g.deposit.token)+'\\')">'+(z()?'付訂金 ':'Pay deposit ')+M(g.deposit.amount,g.curr)+'</button>':'')+(!g.balance.paid&&act&&g.deposit.paid!==false?""")
 open('js/grp25_27.js','w',encoding='utf-8').write(s);print('ok')
