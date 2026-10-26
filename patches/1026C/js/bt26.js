@@ -119,8 +119,10 @@
      （例：KX51 雪梨→台北夏季 19:25–23:55 只有 6h30）。使用者：「這幾班出發可以提前」→ 只有這幾班（含同一架飛機前面接著的班）出發提前，
      提前到抵達時間不變、飛行時間補到估算值；不早於 06:00。定值（/tmp/j/early27.js 在 EARLY27 清空的版本上算出來；前一班含外站來回那一段。KX52／KX51 大洋洲一圈（台北→雪梨→奧克蘭／基督城→雪梨→台北）手算：每站過站 75 分、雪梨宵禁 06:00 後才落地、台北 23:55 前到；換季那一週基督城／奧克蘭兩段跟另一季重疊（3 月底、10 月底），用另一季同一組值；季節時刻的修正一律寫定值） */
   /* KX8 台北→底特律冬季 00:15 起飛（紅眼班）不能再提前（會變成前一天起飛、營運日跟著變）→ 只有這一段改成可以過午夜抵達（底特律沒有宵禁） */
+  /* 1026C 第二輪：中停整段改讀分段（legFix）後量到雪梨過站不足：夏季基督城那天 35 分（基督城兩段原本抄成冬季值）、冬季奧克蘭那天 70 分（台北→雪梨夏令時間晚 45 分到）
+     → 夏季雪梨→基督城 07:15、基督城→雪梨 14:00（跟奧克蘭那天同一組）；冬季台北→雪梨 18:25。每站過站 ≥75 分；KX60 台北→吉隆坡冬季 06:00 → 06:15：長程櫃檯起飛前 3 小時開、地勤再提早 15 分＝02:45 開始，地勤派工（r1008A tasks8）把 03:00 以前開始的工作算成前一天晚班的尾巴（晚班 04:30 下班）→ 冬季每天這個櫃檯 0／5 人（reg2 R1008A）；06:15 起飛＝03:00 開始，歸當天早班 */
   var NOMID27={'KX8|TPE|DTW|w':1};
-  var EARLY27={"KX52|TPE|SYD|s":"18:45","KX52|SYD|AKL|s":"07:15","KX51|AKL|SYD|s":"14:00","KX51|SYD|TPE|s":"16:50","KX8|TPE|DTW|s":"21:40","KX52|TPE|SYD|w":"18:35","KX52|SYD|CHC|w":"08:00","KX51|CHC|SYD|w":"14:45","KX51|SYD|TPE|w":"17:35","KX66|TPE|AUH|s":"18:40","KX60|TPE|KUL|w":"06:00","KX60|KUL|MEL|w":"11:55","KX53|PER|MEL|w":"16:20","KX290|TPE|SIN|w":"19:00","KX288|TPE|SGN|s":"21:20","KX334|TPE|SZX|w":"18:45","KX208|TPE|KTI|s":"15:20","KX207|KTI|TPE|s":"19:20","KX316|TPE|CKG|s":"17:05","KX315|CKG|TPE|s":"21:10","KX254|TPE|MNL|w":"17:55","KX253|MNL|TPE|w":"21:30","KX310|TPE|PVG|s":"19:15","KX309|PVG|TPE|s":"22:10","KX333|SZX|TPE|w":"22:05","KX282|TPE|SIN|s":"13:10","KX55|AKL|TPE|s":"16:55","KX170|TPE|FUK|w":"18:20","KX398|TPE|PEK|s":"16:40","KX397|PEK|TPE|s":"21:00","KX310|TPE|PVG|w":"19:05","KX309|PVG|TPE|w":"22:10","KX316|TPE|CKG|w":"17:00","KX315|CKG|TPE|w":"21:15","KX281|SIN|TPE|s":"19:15","KX266|TPE|CNX|s":"20:50","KX208|TPE|KTI|w":"15:20","KX207|KTI|TPE|w":"19:25","KX62|TPE|BKK|w":"20:55","KX98|TPE|HEL|s":"18:45","KX52|SYD|CHC|s":"08:00","KX51|CHC|SYD|s":"14:45","KX52|SYD|AKL|w":"07:15","KX51|AKL|SYD|w":"14:00"};
+  var EARLY27={"KX52|TPE|SYD|s":"18:45","KX52|SYD|AKL|s":"07:15","KX51|AKL|SYD|s":"14:00","KX51|SYD|TPE|s":"16:50","KX8|TPE|DTW|s":"21:40","KX52|TPE|SYD|w":"18:25","KX52|SYD|CHC|w":"08:00","KX51|CHC|SYD|w":"14:45","KX51|SYD|TPE|w":"17:35","KX66|TPE|AUH|s":"18:40","KX60|TPE|KUL|w":"06:15","KX60|KUL|MEL|w":"11:55","KX53|PER|MEL|w":"16:20","KX290|TPE|SIN|w":"19:00","KX288|TPE|SGN|s":"21:20","KX334|TPE|SZX|w":"18:45","KX208|TPE|KTI|s":"15:20","KX207|KTI|TPE|s":"19:20","KX316|TPE|CKG|s":"17:05","KX315|CKG|TPE|s":"21:10","KX254|TPE|MNL|w":"17:55","KX253|MNL|TPE|w":"21:30","KX310|TPE|PVG|s":"19:15","KX309|PVG|TPE|s":"22:10","KX333|SZX|TPE|w":"22:05","KX282|TPE|SIN|s":"13:10","KX55|AKL|TPE|s":"16:55","KX170|TPE|FUK|w":"18:20","KX398|TPE|PEK|s":"16:40","KX397|PEK|TPE|s":"21:00","KX310|TPE|PVG|w":"19:05","KX309|PVG|TPE|w":"22:10","KX316|TPE|CKG|w":"17:00","KX315|CKG|TPE|w":"21:15","KX281|SIN|TPE|s":"19:15","KX266|TPE|CNX|s":"20:50","KX208|TPE|KTI|w":"15:20","KX207|KTI|TPE|w":"19:25","KX62|TPE|BKK|w":"20:55","KX98|TPE|HEL|s":"18:45","KX52|SYD|CHC|s":"07:15","KX51|CHC|SYD|s":"14:00","KX52|SYD|AKL|w":"07:15","KX51|AKL|SYD|w":"14:00"};
   function proj(f,x,win,px,sx,date){
     var dep0=mn(x.dep),dd0=+x.dd||0,off=date?offAt(f.fr,f.to,date,dd0):offSea(f.fr,f.to,win),blk0=blkOff(x.dep,x.arr,dd0,off);   /* 1026C：時差依日期（夏令時間） */
     if(!(blk0>0))return null;
@@ -255,10 +257,14 @@
 
   /* ── 訂位行程（segs7：我的行程、報到、登機證、艙單）用 kgmApplySeasonR112／kgmSeasonLegR205 —— 這兩支直接讀季節表的原始值，
      沒有 1023A 起的冬季風向、也沒有這一輪的彈性（第三份來源）→ 一樣換成 kgmSeasonFlightR48 的結果 ── */
-  function legFix(r,code,fr,to,date){try{if(!r||!r.dep||r.partner||r.codeshare||!/^KX\d+$/.test(String(code||'')))return r;var b=rowOf({code:code,fr:fr,to:to,dep:r.dep,days:r.days},date);if(!b||!BUILTIN.has(b))return r;
+  function legFix(r,code,fr,to,date){try{if(!r||!r.dep||r.partner||r.codeshare||!/^KX\d+$/.test(String(code||'')))return r;var b=rowOf({code:code,fr:fr,to:to,dep:r.dep,days:r.days},date);
+      /* 1026C：中停整段（例 KX52 台北→雪梨→基督城）lx() 不收中停列 → 找不到就照原始值，整段還是 EARLY27 前的 22:35、分段已經是 18:45，
+         航班詳情「中停」那行變成 09:25 到雪梨、08:00 離開（R205 稽核抓到）→ 跟搜尋結果（sfInstall）一樣改找同班號同起訖的中停列 */
+      if(!b){var L=all();for(var i=0;i<L.length;i++){var y=L[i];if(y&&y.via&&y.code===code&&y.fr===fr&&y.to===to){b=y;break}}}
+      if(!b||!BUILTIN.has(b))return r;
       var q=wrap(b,date);if(!q||!q.dep||(q.dep===r.dep&&q.arr===r.arr&&(+q.dd||0)===(+r.dd||0)&&(!q.dur||q.dur===r.dur)))return r;
       var c=Object.assign({},r,{dep:q.dep,arr:q.arr,dd:+q.dd||0});try{c.dur=q.dur||blkAt(fr,to,c.dep,c.arr,c.dd,date);c.durStr=durStr(c.dur)}catch(_){}return c}catch(_){return r}}
-  function lgInstall(){var A=window.kgmApplySeasonR112;if(typeof A==='function'&&!A.__bt26){var wa=function(f,date){var r=A.apply(this,arguments);if(!f||f.via||!date||hasOv(f,date))return r;return legFix(r,f.code,f.fr,f.to,date)};
+  function lgInstall(){var A=window.kgmApplySeasonR112;if(typeof A==='function'&&!A.__bt26){var wa=function(f,date){var r=A.apply(this,arguments);if(!f||!date||hasOv(f,date))return r;   /* 1026C：中停整段也套（legFix 找得到中停列了） */return legFix(r,f.code,f.fr,f.to,date)};
       try{Object.keys(A).forEach(function(k){if(!(k in wa))wa[k]=A[k]})}catch(_){}wa.__bt26=1;window.kgmApplySeasonR112=wa}
     var Lg=window.kgmSeasonLegR205;if(typeof Lg==='function'&&!Lg.__bt26){var wl=function(code,fr,to,date){var r=Lg.apply(this,arguments);if(!date||hasOv({code:code,fr:fr,to:to},date))return r;return legFix(r,code,fr,to,date)};
       try{Object.keys(Lg).forEach(function(k){if(!(k in wl))wl[k]=Lg[k]})}catch(_){}wl.__bt26=1;window.kgmSeasonLegR205=wl}}
