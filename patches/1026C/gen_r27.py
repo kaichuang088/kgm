@@ -19,7 +19,7 @@ RW('bt26 dst',_bt26old,JS('bt26.js'))
 
 # ══ 2：時刻異動通知（js/sc27.js，接在 zn26 後面）══
 _zn=open('../1026B/js/zn26.js',encoding='utf-8').read()
-RW('sc27 embed',_zn,_zn+JS('zn27.js')+JS('sc27.js')+JS('ch27.js'))   # 1026C：zn27＝關閉空域・Payload 分頁
+RW('sc27 embed',_zn,_zn+JS('zn27.js')+JS('nt27.js')+JS('sc27.js')+JS('ch27.js'))   # 1026C：zn27＝關閉空域・Payload 分頁
 
 # ══ 1b：航班動態等畫面的 UTC 換算（_utcOf）也用依日期的時差（航班動態卡片寫的飛行時間、抵達日期）══
 RW('utcOf dst',"return Date.UTC(+d[0],+d[1]-1,+d[2],0,0,0)+(((+t[0])*60+(+t[1]))-_tzMin(ap))*60000;",
@@ -277,6 +277,29 @@ RW('as27 perm tabs',"    ['groundops','登機門／櫃檯'],['flightadjust','航
 RW('as27 perm def',"flightdata:'use',groundops:'use',flightadjust:'use',bookings:'use',groups23:'use',","flightdata:'use',groundops:'use',flightadjust:'use',airspace27:'use',bookings:'use',groups23:'use',")
 RW('as27 order',"var ORDER7=['status','flightdata','groundops','bookings','groups23','cases0831B','cases0831C','flightadjust',","var ORDER7=['status','flightdata','groundops','bookings','groups23','cases0831B','cases0831C','flightadjust','airspace27',")
 RW('as27 body',"else if(tab==='groups23')body=","else if(tab==='airspace27')body=(typeof window.kgmAirspacePageR1026C==='function'?window.kgmAirspacePageR1026C():'');   /* 1026C：關閉空域・Payload */else if(tab==='groups23')body=")
+# ══ 12：後台真人客服（AI 對話查詢分頁上方，r229 1006A k6cs）——要先「接手」才能回覆（使用者：「客服要先接手才可以回覆」）══
+#   原本等待中的對話直接打字送出也算接手、別人處理中的對話也能插話、AI 回覆誰都能改 → 兩位客服同時回同一位旅客。
+#   → 回覆框、修改 AI 回覆只給「處理中、而且是自己接手」的人；等待中顯示「請先接手」，別人處理中顯示「由誰處理中」＋「改由我接手」；送出的程式也擋。
+_cs27=open('cs27seg.txt',encoding='utf-8').read()
+RW('cs27 reply gate',_cs27,
+   "+((sel.status!=='closed'&&!(sel.status==='active'&&sel.agent===me().id))?'<div class=\"k6cs-lock\"><span>'+(sel.status==='waiting'?(z()?'請先按「接手」才能回覆（避免兩位客服同時回覆同一位旅客）。':'Take this chat before replying.'):(z()?'這個對話由 '+E(sel.agentName||sel.agent||'')+' 處理中；要回覆請先改由你接手。':'Handled by '+E(sel.agentName||sel.agent||'')+'.'))+'</span><button class=\"p\" onclick=\"kgmCsTakeR1006A(\\''+A(sel.id)+'\\')\">'+(sel.status==='waiting'?(z()?'接手':'Take'):(z()?'改由我接手':'Take over'))+'</button></div>':"+_cs27[1:]+")   /* 1026C：先接手才能回覆 */")
+RW('cs27 take btn',"(sel.status==='waiting'?'<button class=\"p\" onclick=\"kgmCsTakeR1006A(\\''+A(sel.id)+'\\')\">'+(z()?'接手':'Take')+'</button>':'')",
+   "((sel.status==='waiting'||(sel.status==='active'&&sel.agent!==me().id))?'<button class=\"p\" onclick=\"kgmCsTakeR1006A(\\''+A(sel.id)+'\\')\">'+(sel.status==='waiting'?(z()?'接手':'Take'):(z()?'改由我接手':'Take over'))+'</button>':'')")
+RW('cs27 edit gate',"var tool=(m.role==='ai'||m.role==='agent')&&sel.status!=='closed'&&ed!==m.id?",
+   "var tool=(m.role==='ai'||m.role==='agent')&&sel.status==='active'&&sel.agent===me().id&&ed!==m.id?")
+RW('cs27 send gate',"    if(it.status==='waiting'){it.status='active';it.agent=m.id;it.agentName=m.name;it.takenAt=now()}\n    it.msgs.push({id:nid('M'),role:'agent'",
+   "    if(!(it.status==='active'&&it.agent===m.id)){alert(z()?'請先按「接手」才能回覆。':'Take the chat before replying.');return}   /* 1026C */\n    it.msgs.push({id:nid('M'),role:'agent'")
+RW('cs27 css',"'.k6cs{background:#fff;border:1px solid #e9e4d8;",
+   "'.k6cs-lock{display:flex;align-items:center;gap:12px;justify-content:space-between;margin:0;padding:14px 16px;border-top:1px solid #EFE9DC;background:#FBF8F1;font-size:13px;color:#6B5A2E}.k6cs-lock button{flex:none}'   /* 1026C */\n    +'.k6cs{background:#fff;border:1px solid #e9e4d8;")
+# ══ 13：旅客回饋分析重整（使用者：「旅客回饋分析很亂」）—— r49 feedback49 換成 js/fb27.js（同一份資料、Excel、30 天規則；組員表揚與申訴照舊在最上面）══
+_fbi=CUR.index('function feedback49(){');_fbj=CUR.index('\n\n/* 9. Visible seasonal',_fbi)
+RW('fb27 page',CUR[_fbi:_fbj],JS('fb27.js').strip('\n'))
+# ══ 14：後台打字打到一半被洗掉（實測通知管理：輸入公告 1.5 秒後文字不見，1026B 一樣）——開頁第一分鐘內三個背景「補模擬資料」計時器補完會 render() 整頁，
+#   不管現在在哪一頁、有沒有在打字。→ 改成正在輸入（焦點在輸入框）就晚一點再畫（kgmSafeRenderR1026C）。
+RW('safe render fn',"window.kgmCsMountR1006A=mount;","window.kgmCsMountR1006A=mount;\n  window.kgmSafeRenderR1026C=function(){var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.closest&&a.closest('#app')){setTimeout(window.kgmSafeRenderR1026C,1500);return}try{render()}catch(_){}};   /* 1026C：背景補資料不洗掉正在打的字 */")
+RW('safe render refund',"if(window.kgmRefundSimSeedR1010A()){try{render()}catch(_){}}return}","if(window.kgmRefundSimSeedR1010A()){try{(window.kgmSafeRenderR1026C||render)()}catch(_){}}return}")
+RW('safe render card',"if(cardSim()){try{render()}catch(_){}return}","if(cardSim()){try{(window.kgmSafeRenderR1026C||render)()}catch(_){}return}")
+RW('safe render case',"if(caseSim22(0,false)){try{render()}catch(_){}return}","if(caseSim22(0,false)){try{(window.kgmSafeRenderR1026C||render)()}catch(_){}return}")
 #   ⑥ 旅客資料卡（PASSENGER & MEMBER RECORD）沒有分頁標記、哪一頁都看得到 → 換到別的分頁就關掉（使用者圖五）。
 RW('fd27 pax close',"S.fdTabR1025B=b.getAttribute('data-t')||b.getAttribute('data-go');apply();",
    "var nt27=b.getAttribute('data-t')||b.getAttribute('data-go'),rr27=(S.opsPassengerR7&&nt27!==S.fdTabR1025B)||(/^(bm|all)$/.test(nt27)&&!/^(bm|all)$/.test(S.fdTabR1025B||''));if(S.opsPassengerR7&&nt27!==S.fdTabR1025B)S.opsPassengerR7=null;S.fdTabR1025B=nt27;if(rr27){try{render()}catch(_){}}else apply();   /* 1026C：換分頁關掉旅客資料卡；到行李改運才算候選航班 Payload */")
