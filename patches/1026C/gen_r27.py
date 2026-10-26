@@ -19,7 +19,7 @@ RW('bt26 dst',_bt26old,JS('bt26.js'))
 
 # ══ 2：時刻異動通知（js/sc27.js，接在 zn26 後面）══
 _zn=open('../1026B/js/zn26.js',encoding='utf-8').read()
-RW('sc27 embed',_zn,_zn+JS('sc27.js')+JS('ch27.js'))
+RW('sc27 embed',_zn,_zn+JS('zn27.js')+JS('sc27.js')+JS('ch27.js'))   # 1026C：zn27＝關閉空域・Payload 分頁
 
 # ══ 1b：航班動態等畫面的 UTC 換算（_utcOf）也用依日期的時差（航班動態卡片寫的飛行時間、抵達日期）══
 RW('utcOf dst',"return Date.UTC(+d[0],+d[1]-1,+d[2],0,0,0)+(((+t[0])*60+(+t[1]))-_tzMin(ap))*60000;",
@@ -28,8 +28,8 @@ RW('utcOf dst',"return Date.UTC(+d[0],+d[1]-1,+d[2],0,0,0)+(((+t[0])*60+(+t[1]))
 # ══ 4：販售通路（js/ch27.js）：夥伴營運一般訂票配額、只開放包機／只開放旅客訂購 —— sell54 最前面問（在團體之前：只開放旅客訂購的班團體也不能訂）══
 RC('sell54 channel','kgm-0823c-r54',"  if(window.kgmGrpSellR1025B){var g25=window.kgmGrpSellR1025B(code,date,flight);if(g25!=null)return g25}",
    "  if(window.kgmChannelSellR1026C){var c27=window.kgmChannelSellR1026C(code,date,flight);if(c27!=null)return c27}   /* 1026C：販售通路 */\n  if(window.kgmGrpSellR1025B){var g25=window.kgmGrpSellR1025B(code,date,flight);if(g25!=null)return g25}")
-RW('sales S init','warZonesR1026B:LS.get("kgm26_zones",null),','warZonesR1026B:LS.get("kgm26_zones",null),salesModeR1026C:LS.get("kgm27_salesmode",null),charterReqsR1026C:LS.get("kgm27_charter",[]),dhSigR1026C:LS.get("kgm27_dhsig",{}),')
-RW('sales save','LS.set("kgm26_zones",S.warZonesR1026B||null);','LS.set("kgm26_zones",S.warZonesR1026B||null);LS.set("kgm27_salesmode",S.salesModeR1026C||null);LS.set("kgm27_charter",S.charterReqsR1026C||[]);LS.set("kgm27_dhsig",S.dhSigR1026C||{});')
+RW('sales S init','warZonesR1026B:LS.get("kgm26_zones",null),','warZonesR1026B:LS.get("kgm26_zones",null),salesModeR1026C:LS.get("kgm27_salesmode",null),charterReqsR1026C:LS.get("kgm27_charter",[]),dhSigR1026C:LS.get("kgm27_dhsig",{}),paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),')
+RW('sales save','LS.set("kgm26_zones",S.warZonesR1026B||null);','LS.set("kgm26_zones",S.warZonesR1026B||null);LS.set("kgm27_salesmode",S.salesModeR1026C||null);LS.set("kgm27_charter",S.charterReqsR1026C||[]);LS.set("kgm27_dhsig",S.dhSigR1026C||{});LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);')
 
 # ══ 3：團體訂位兩方案（js/grp25_27.js＝mkgrp27.py＋mkgrp27b.py 在現行 grp25 上逐段改；js/grp27x.js 團體不能網路報到）══
 RW('grp27',open('js/grp25_cur.js',encoding='utf-8').read(),JS('grp25_27.js')+JS('grp27x.js')+JS('cr27.js'))
@@ -266,6 +266,17 @@ RW('fd27 map dedupe',"    if(CACHE[key]){put(CACHE[key]);return}\n    var go=fun
 RW('fd27 map dedupe var',"  var CACHE={},CN=0;","  var CACHE={},CN=0,PEND27={};")
 RW('fd27 map soon',"    if(window.requestIdleCallback)window.requestIdleCallback(go,{timeout:600});else setTimeout(go,30)};\n  window.kgmRouteMapLegendR1025B",
    "    setTimeout(go,0)};   /* 1026C：不等空檔（開頁後背景一直在算組員班表，等空檔要好幾秒） */\n  window.kgmRouteMapLegendR1025B")
+# ══ 11：「關閉空域（避戰航路）」改成「航班營運」底下的新分頁＋人工調整 Payload（使用者 1027A；js/zn27.js）══
+#   原本 zn26 面板掛在「航線管理」（flightadjust）最上面 → 整塊搬到新分頁 airspace27（同一份程式；航線管理不再顯示），下面加 Payload 限座人工調整。
+RW('as27 zn26 tab',"  function mount(){try{if(!(S.view==='admin'&&S.adminTab==='flightadjust'))return;var m=document.querySelector('#app main')||document.getElementById('app');if(!m)return;\n      var el=document.getElementById('k26zones');if(!el||!m.contains(el)){el=document.createElement('div');el.id='k26zones';m.insertBefore(el,m.firstChild);paint()}",
+   "  window.kgmZoneHtmlR1026C=function(){try{work()}catch(_){}return html()};   /* 1026C：新分頁直接畫（不等計時器） */\n"
+   "  function mount(){try{if(!(S.view==='admin'&&S.adminTab==='airspace27'))return;var m=document.querySelector('#app main')||document.getElementById('app');if(!m)return;   /* 1026C：搬到「關閉空域・Payload」分頁 */\n"
+   "      var el=document.getElementById('k26zones');if(!el||!m.contains(el)){el=document.createElement('div');el.id='k26zones';m.insertBefore(el,m.firstChild);paint()}else if(!el.firstChild)paint()")
+RW('as27 nav',"['flightadjust','航線管理']]],/* 0913A","['flightadjust','航線管理'],['airspace27','關閉空域・Payload']]],/* 1026C */ /* 0913A")
+RW('as27 perm tabs',"    ['groundops','登機門／櫃檯'],['flightadjust','航線管理']]],\n","    ['groundops','登機門／櫃檯'],['flightadjust','航線管理'],['airspace27','關閉空域・Payload']]],   /* 1026C */\n")
+RW('as27 perm def',"flightdata:'use',groundops:'use',flightadjust:'use',bookings:'use',groups23:'use',","flightdata:'use',groundops:'use',flightadjust:'use',airspace27:'use',bookings:'use',groups23:'use',")
+RW('as27 order',"var ORDER7=['status','flightdata','groundops','bookings','groups23','cases0831B','cases0831C','flightadjust',","var ORDER7=['status','flightdata','groundops','bookings','groups23','cases0831B','cases0831C','flightadjust','airspace27',")
+RW('as27 body',"else if(tab==='groups23')body=","else if(tab==='airspace27')body=(typeof window.kgmAirspacePageR1026C==='function'?window.kgmAirspacePageR1026C():'');   /* 1026C：關閉空域・Payload */else if(tab==='groups23')body=")
 #   ⑥ 旅客資料卡（PASSENGER & MEMBER RECORD）沒有分頁標記、哪一頁都看得到 → 換到別的分頁就關掉（使用者圖五）。
 RW('fd27 pax close',"S.fdTabR1025B=b.getAttribute('data-t')||b.getAttribute('data-go');apply();",
    "var nt27=b.getAttribute('data-t')||b.getAttribute('data-go'),rr27=(S.opsPassengerR7&&nt27!==S.fdTabR1025B)||(/^(bm|all)$/.test(nt27)&&!/^(bm|all)$/.test(S.fdTabR1025B||''));if(S.opsPassengerR7&&nt27!==S.fdTabR1025B)S.opsPassengerR7=null;S.fdTabR1025B=nt27;if(rr27){try{render()}catch(_){}}else apply();   /* 1026C：換分頁關掉旅客資料卡；到行李改運才算候選航班 Payload */")
