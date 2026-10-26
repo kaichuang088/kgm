@@ -28,8 +28,8 @@ RW('utcOf dst',"return Date.UTC(+d[0],+d[1]-1,+d[2],0,0,0)+(((+t[0])*60+(+t[1]))
 # ══ 4：販售通路（js/ch27.js）：夥伴營運一般訂票配額、只開放包機／只開放旅客訂購 —— sell54 最前面問（在團體之前：只開放旅客訂購的班團體也不能訂）══
 RC('sell54 channel','kgm-0823c-r54',"  if(window.kgmGrpSellR1025B){var g25=window.kgmGrpSellR1025B(code,date,flight);if(g25!=null)return g25}",
    "  if(window.kgmChannelSellR1026C){var c27=window.kgmChannelSellR1026C(code,date,flight);if(c27!=null)return c27}   /* 1026C：販售通路 */\n  if(window.kgmGrpSellR1025B){var g25=window.kgmGrpSellR1025B(code,date,flight);if(g25!=null)return g25}")
-RW('sales S init','warZonesR1026B:LS.get("kgm26_zones",null),','warZonesR1026B:LS.get("kgm26_zones",null),salesModeR1026C:LS.get("kgm27_salesmode",null),charterReqsR1026C:LS.get("kgm27_charter",[]),')
-RW('sales save','LS.set("kgm26_zones",S.warZonesR1026B||null);','LS.set("kgm26_zones",S.warZonesR1026B||null);LS.set("kgm27_salesmode",S.salesModeR1026C||null);LS.set("kgm27_charter",S.charterReqsR1026C||[]);')
+RW('sales S init','warZonesR1026B:LS.get("kgm26_zones",null),','warZonesR1026B:LS.get("kgm26_zones",null),salesModeR1026C:LS.get("kgm27_salesmode",null),charterReqsR1026C:LS.get("kgm27_charter",[]),dhSigR1026C:LS.get("kgm27_dhsig",{}),')
+RW('sales save','LS.set("kgm26_zones",S.warZonesR1026B||null);','LS.set("kgm26_zones",S.warZonesR1026B||null);LS.set("kgm27_salesmode",S.salesModeR1026C||null);LS.set("kgm27_charter",S.charterReqsR1026C||[]);LS.set("kgm27_dhsig",S.dhSigR1026C||{});')
 
 # ══ 3：團體訂位兩方案（js/grp25_27.js＝mkgrp27.py＋mkgrp27b.py 在現行 grp25 上逐段改；js/grp27x.js 團體不能網路報到）══
 RW('grp27',open('js/grp25_cur.js',encoding='utf-8').read(),JS('grp25_27.js')+JS('grp27x.js')+JS('cr27.js'))
@@ -63,6 +63,58 @@ RW('grp policy gate',"  {fn:'doPay',                    ids:['KGM-GC-001','KGM-C
 # ══ 3d：包機／自創航班申請（js/cr27.js）：存檔、AI 臨時航班的排機與建立開出來共用、寄信清單 ══
 RW('charter tempplan',"  window.kgmAiTempFlightR1025B=function(a){",
    "  window.kgmTempPlanR1026C=function(P){return plan(P)};window.kgmTempCreateR1026C=function(P,o){return create(P,o)};   /* 1026C：包機／自創航班核准共用同一套排機與建立（js/cr27.js） */\n  window.kgmAiTempFlightR1025B=function(a){")
+
+# ══ 7：卡頓（使用者：「1026A我要測試那些真的非常辛苦 太過於卡頓 每次跳出去再回去都會套圖四這種」）
+#   實測（tests/reent27.js）：後台開頁後 3 分鐘內主執行緒幾乎沒有空檔（195 秒裡 186 秒是長任務）；重新整理一樣 182 秒。
+#   最大一塊是 DH 自動騰位掃描（scan7）：開頁 75 秒後把 3 天內每一班有 DH 組員的航班都重建一次艙單（manifest7），重新整理後全部再做一次（實測 23 秒）。
+#   → 記下每班「DH 組員名單＋艙等」的指紋（S.dhSigR1026C，kgm27_dhsig）；這一班上次已經全部有位子、名單沒變就不再重建艙單。 ══
+RW('dh sig skip',"      var key=opKey(f,date),m=manifest7(f,date),now=new Date().toISOString(),rev=0;",
+   "      var key=opKey(f,date),sg27=dhSig27(f,date);if(!force&&sg27&&(S.dhSigR1026C||{})[key]===sg27)return 0;   /* 1026C：DH 名單沒變、上次都有位子 → 不重建艙單 */\n      var m=manifest7(f,date),now=new Date().toISOString(),rev=0;")
+RW('dh sig none',"      if(!need.length){if(rev){try{save()}catch(_){}setTimeout(rr7,40)}return 0}",
+   "      if(!need.length){dhSigSet27(key,sg27);if(rev){try{save()}catch(_){}setTimeout(rr7,40)}return 0}")
+RW('dh sig done',"        try{save()}catch(_){}setTimeout(rr7,40)}\n      return n;",
+   "        try{save()}catch(_){}setTimeout(rr7,40)}\n      if(need.every(function(x){return x.seat}))dhSigSet27(key,sg27);\n      return n;")
+RW('dh sig fns',"  window.kgmDhBumpR1007A=function(f,date,force){",
+   "  /* 1026C：DH 指紋＝這一班（日期|班號|起|迄）排到的 DH 組員員編＋艙等 */\n"
+   "  function dhSig27(f,date){try{var L=(S.crewPositioningR121||{})[date+'|'+f.code+'|'+f.fr+'|'+f.to]||[];return L.map(function(x){return (x.empId||x.name||'')+':'+(x.cabin||'')}).sort().join(',')}catch(_){return ''}}\n"
+   "  function dhSigSet27(key,sg){if(!sg)return;var o=S.dhSigR1026C=S.dhSigR1026C||{},t=todayISO();o[key]=sg;Object.keys(o).forEach(function(k){if(String(k.split('|')[1]||'')<addDays(t,-2))delete o[k]})}\n"
+   "  window.kgmDhBumpR1007A=function(f,date,force){")
+
+#   ② 後台登入後 4／9／12／13／26 秒，r131 apply131、r179、r184、r92、r135、舊引擎都會在主執行緒上一次做完整年機隊重排（實測 19.9 秒、使用者電腦更久 → 「網頁沒有回應」），
+#     但後台一定還會跑分段的整年最終重排（r913／1006A，每段 0.15 秒）把結果整份換掉 —— 那一次同步重排是白做的。
+#     → 後台（非前台）在最終重排做完之前不做這一次；季節時刻照灑（spreadOnly131 不動）。未登入後台的開頁本來就不做（fpfl.js 量的就是這條）。
+RW('admin boot sync rebuild',"if(!S.adminAuthed||window.KGM_ROT_SUM_R72)return;",
+   "if(!S.adminAuthed||window.KGM_ROT_SUM_R72)return;if(String(window.KGM_SIDE||'')!=='front'&&!window.KGM_ROT_FINAL_R913)return;   /* 1026C：後台登入後的同步整年重排等分段最終重排（實測各卡 20 秒） */",6)
+RW('r72 interval wait final',"    if(window.KGM_ROT_SUM_R72)return;               /* 已經是 r72 這一份就不重算 */",
+   "    if(window.KGM_ROT_SUM_R72)return;               /* 已經是 r72 這一份就不重算 */\n    if(String(window.KGM_SIDE||'')!=='front'&&!window.KGM_ROT_FINAL_R913)return;   /* 1026C：等分段最終重排 */")
+
+#   ③ 組員班表背景（1025B cw25）：原本 60 天全部算完才存進 IndexedDB —— 開頁 3 分鐘內離開，下次進來又從頭算（每天 1～2.6 秒的長任務）；
+#     而且一天算完只隔 30 毫秒就算下一天，整頁幾乎沒有空檔。→ 每多算 5 天就存一次進度（同一組輸入，讀回後接著算，結果跟一口氣算完一樣）；
+#     不在「組員班表」分頁時，一天算完隔 0.9 秒再算下一天（點擊、捲動有空檔回應）。KGM_CREW_SAVE_R1025B 照舊只在算滿 60 天才設。
+RW('cw25 part save',"  function save25(){var sg=sig25();if(sg===SAVED25||!CURSOR121)return;var o=snap(),t0=Date.now();",
+   "  var SAVEDCUR27='';function days27(a,b){return Math.round((Date.parse(b+'T12:00:00Z')-Date.parse(a+'T12:00:00Z'))/864e5)}\n"
+   "  function pace27(){try{return (S.view==='admin'&&S.adminTab==='sched')?30:900}catch(_){return 900}}   /* 1026C：不在組員班表分頁時一天算完讓出 0.9 秒 */\n"
+   "  function save25(){var sg=sig25();if(!CURSOR121||(sg===SAVED25&&CURSOR121===SAVEDCUR27))return;var o=snap(),t0=Date.now(),cur27=CURSOR121;   /* 1026C：算到一半也存（每 5 天） */")
+RW('cw25 part done',"tx.oncomplete=function(){SAVED25=sg;window.KGM_CREW_SAVE_R1025B={sig:sg,cur:CURSOR121,ms:Date.now()-t0}}}catch(_){}})}",
+   "tx.oncomplete=function(){SAVED25=sg;SAVEDCUR27=cur27;if(cur27>=target())window.KGM_CREW_SAVE_R1025B={sig:sg,cur:cur27,ms:Date.now()-t0};else window.KGM_CREW_PART_R1026C={sig:sg,cur:cur27,ms:Date.now()-t0}}}catch(_){}})}")
+RW('cw25 part step',"      if(CURSOR121&&CURSOR121>=target())save25();",
+   "      if(CURSOR121&&(CURSOR121>=target()||!SAVEDCUR27||days27(SAVEDCUR27,CURSOR121)>=5))save25();")
+RW('cw25 pace',"      setTimeout(tick,30)});","      setTimeout(tick,pace27())});")
+
+#   ④ BigDeal 開頁 25 秒後（之後每 5 分鐘）把所有有出價的航班一次排名／結標（實測一次卡 12.9 秒）→ 同一份工作切成每段 0.12 秒、段與段之間讓出主執行緒；結果一樣。
+RW('bigdeal tick slices',"""    Object.keys(g).forEach(function(k){
+      var p=k.split('|'),f=fOf(p[0],p[2],p[3]);if(!f)return;var w=window.kgmBigDealWindowR929(f,p[1]);
+      try{if(w.closed||(isFinite(w.h)&&w.h<=-24))window.kgmBigDealSettleR929(p[0],p[1],p[2],p[3],p[4]);else if(w.open)window.kgmBigDealRankR929(p[0],p[1],p[2],p[3],p[4]);n++}catch(_){}
+    });
+    return n;
+  };""","""    var ks=Object.keys(g),i=0;   /* 1026C：分段做（每段 0.12 秒），不一次卡住 */
+    if(window.__bdTick27)return 0;window.__bdTick27=1;
+    (function slice(){var t0=Date.now();try{while(i<ks.length&&Date.now()-t0<120){var k=ks[i++];
+      var p=k.split('|'),f=fOf(p[0],p[2],p[3]);if(!f)continue;var w=window.kgmBigDealWindowR929(f,p[1]);
+      try{if(w.closed||(isFinite(w.h)&&w.h<=-24))window.kgmBigDealSettleR929(p[0],p[1],p[2],p[3],p[4]);else if(w.open)window.kgmBigDealRankR929(p[0],p[1],p[2],p[3],p[4]);n++}catch(_){}}}catch(_){}
+      if(i<ks.length)setTimeout(slice,30);else window.__bdTick27=0})();
+    return ks.length;
+  };""")
 
 open('p_h_r27.js','w',encoding='utf-8').write('\n'.join(out)+'\n')
 print('ops',len(out))
