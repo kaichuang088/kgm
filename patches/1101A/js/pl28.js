@@ -58,17 +58,33 @@
     /* 前面的空位：先用真正空的，不夠再用模擬旅客坐的（模擬旅客是虛擬的，真實旅客優先）；陣列尾端先用 → 真正空的放在尾端 */
     var nb=ids.filter(function(s){return !bl[s]&&!real[s]}),free=nb.filter(function(s){return sim[s]}).concat(nb.filter(function(s){return !sim[s]}));
     return {f:f,date:date,block:B,blockedSeats:Object.keys(blS),blockedShown:Object.keys(blS).map(function(s){return sh(f,s)}),who:who,free:free,lh:longHaul(f)}}catch(e){return null}};
+  /* 非自願座位調整的紀錄＋補償（Payload 平衡、航班資料手動改座位共用）：系統配位只通知；經濟艙基本自己付費選位＝退選位費＋補償；其他自選座位＝補償。
+     使用者：「座位調整是非自願才有的補償喔，是透過後台航班資料直接調整」 */
+  function rec28(b,seg,fare,code,date,f,from,to,auto,reason,name){var fc=FARES[fare]||{},basic=fc.tierEN==='Basic'||fc.freeSeat===0,grp=auto?'A':(basic?'B':'C'),lh=longHaul(f);
+    var comp=grp==='A'?null:{miles:lh?1200:500,usd:lh?30:20,refund:grp==='B'?share28(b):0,choice:'',ts:new Date().toISOString()};
+    var log=b.plMoveR1101A=b.plMoveR1101A||[];log.push({seg:seg,code:code,date:date,from:from,to:to,fromShow:sh(f,from),toShow:sh(f,to),grp:grp,name:name||'',reason:reason,by:(S.adminUser&&(S.adminUser.empId||S.adminUser.name))||'',comp:comp});
+    try{if(comp&&comp.refund>0){b.refundsR1101A=b.refundsR1101A||[];b.refundsR1101A.push({kind:'seat',amount:comp.refund,ts:comp.ts,reason:(reason==='payload'?'Payload 座位調整':'航班作業座位調整')+'・退選位費'})}}catch(_){}
+    var why=reason==='payload'?(z()?'季節性載重限制':'a seasonal payload limit'):(z()?'航班作業調整':'an operational change');
+    var msg=z()?('您在 '+code+'（'+date+'）的座位因'+why+'由 '+sh(f,from)+' 調整為 '+sh(f,to)+'。'+(comp?('我們'+(comp.refund?'已退還選位費 NT$'+comp.refund.toLocaleString()+'，並':'')+'提供補償，請到「行程管理」二選一：'+comp.miles+' 哩，或 USD '+comp.usd+' 機場抵用券。'):'')):('Your seat on '+code+' ('+date+') was moved from '+sh(f,from)+' to '+sh(f,to)+' due to '+why+'.'+(comp?' Please choose your compensation in Manage Booking: '+comp.miles+' miles or a USD '+comp.usd+' airport voucher.':''));
+    try{b.notifs=b.notifs||[];b.notifs.unshift({ts:new Date().toISOString(),msg:msg})}catch(_){}
+    try{var em=b.contactEmail||b.email||(b.paxList&&b.paxList[0]&&b.paxList[0].email)||'';if(em&&typeof kgmNotify==='function')kgmNotify('booking.changed',{email:em,pnr:b.pnr,flight:code,date:date,subject:z()?'座位調整通知':'Seat change',message:msg})}catch(_){}
+    try{logAct(z()?(reason==='payload'?'Payload 座位調整':'航班資料・非自願座位調整'):'Involuntary seat change',b.pnr+' '+code+' '+date+' '+sh(f,from)+'→'+sh(f,to)+(comp?(z()?'（補償 ':' (comp ')+comp.miles+'／USD'+comp.usd+(comp.refund?'，退 NT$'+comp.refund:'')+(z()?'）':')'):''))}catch(_){}}
+  /* 航班資料旅客名單手動改座位（setOpsSeatR7）＝非自願：改之前記下這一班每筆真實訂位的座位，改完比對 */
+  (function wrapOps(n){var O=window.setOpsSeatR7;if(typeof O!=='function'){if(n<40)setTimeout(function(){wrapOps(n+1)},500);return}if(O.__r28)return;
+    var w=function(key,id,seat){var q=String(key).split('|'),code=q[0],date=q[1],fr=q[2],snap=[];
+      try{(S.bookings||[]).forEach(function(b){if(!b||!b.seats||b.status==='cancelled'||sim28(b))return;Object.keys(b.seats).forEach(function(sg){var info=null;try{info=bookingSegInfo0813(b,sg)}catch(_){}
+        if(info&&info.f&&info.f.code===code&&info.f.date===date&&(!info.f.fr||info.f.fr===fr))snap.push({b:b,sg:sg,c:info.c,before:JSON.parse(JSON.stringify(b.seats[sg]||{}))})})})}catch(_){}
+      var r=O.apply(this,arguments);
+      try{var f=legOf(code,date,fr,q[3]);snap.forEach(function(x){var now=x.b.seats[x.sg]||{},bef=x.before;var gone=Object.keys(bef).filter(function(s){return s!=='_auto'&&bef[s]&&!now[s]}),add=Object.keys(now).filter(function(s){return s!=='_auto'&&now[s]&&!bef[s]});
+        if(!gone.length||!add.length||!f)return;var nm=typeof now[add[0]]==='string'?now[add[0]]:'';rec28(x.b,x.sg,x.c,code,date,f,gone[0],add[0],!!bef._auto,'ops',nm)});try{save()}catch(_){}}catch(_){}
+      return r};
+    w.__r28=1;window.setOpsSeatR7=w;try{setOpsSeatR7=w}catch(_){}})(0);
   /* 執行：依序移到前面空位（從空位清單的最後面開始，盡量靠近原本的位子）；B／C 記補償（B 加退選位費），通知旅客 */
   window.kgmPlBalanceRunR1101A=function(code,date,fr,to){var R=window.kgmPlBalanceR1101A(code,date,fr,to);if(!R||!R.who.length)return {moved:0};
     var free=R.free.slice(),moved=0,left=0;
     R.who.forEach(function(w){var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===w.pnr})[0];if(!b)return;var to2=free.pop();if(!to2){left++;return}
       var st=b.seats[w.seg],ks=Object.keys(st).filter(function(k){return k!=='_auto'}),n={};ks.forEach(function(k){n[k===w.seat?to2:k]=st[k]});if(st._auto)n._auto=true;b.seats[w.seg]=n;moved++;
-      var log=b.plMoveR1101A=b.plMoveR1101A||[];var comp=w.grp==='A'?null:{miles:R.lh?1200:500,usd:R.lh?30:20,refund:w.grp==='B'?(+w.paid||0):0,choice:'',ts:new Date().toISOString()};
-      log.push({seg:w.seg,code:code,date:date,from:w.seat,to:to2,fromShow:w.show,toShow:sh(R.f,to2),grp:w.grp,name:w.name,comp:comp});
-      try{if(comp&&comp.refund>0){b.refundsR1101A=b.refundsR1101A||[];b.refundsR1101A.push({kind:'seat',amount:comp.refund,ts:comp.ts,reason:'Payload 座位調整・退選位費'})}}catch(_){}
-      var msg=z()?('您在 '+code+'（'+date+'）的座位因季節性載重限制由 '+w.show+' 調整為 '+sh(R.f,to2)+'。'+(comp?('我們'+(comp.refund?'已退還選位費 NT$'+comp.refund.toLocaleString()+'，並':'')+'提供補償，請到「行程管理」二選一：'+comp.miles+' 哩，或 USD '+comp.usd+' 機場抵用券。'):'')):('Your seat on '+code+' ('+date+') was moved from '+w.show+' to '+sh(R.f,to2)+' due to a seasonal payload limit.'+(comp?' Please choose your compensation in Manage Booking: '+comp.miles+' miles or a USD '+comp.usd+' airport voucher.':''));
-      try{b.notifs=b.notifs||[];b.notifs.unshift({ts:new Date().toISOString(),msg:msg})}catch(_){}
-      try{if(b.email&&typeof kgmNotify==='function')kgmNotify('booking.changed',{email:b.email,pnr:b.pnr,flight:code,date:date,subject:z()?'座位調整通知':'Seat change',message:msg})}catch(_){}});
+      rec28(b,w.seg,w.fare,code,date,R.f,w.seat,to2,w.grp==='A','payload',w.name)});
     try{logAct(z()?'Payload 座位調整':'Payload seat moves',code+' '+date+'：'+moved+(left?(' / 沒有空位 '+left):''))}catch(_){}try{save()}catch(_){}return {moved:moved,left:left}};
   /* 前台：旅客二選一 */
   window.kgmPlCompChooseR1101A=function(pnr,k,choice){var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===pnr})[0];if(!b||!b.plMoveR1101A)return;var m=b.plMoveR1101A[+k];if(!m||!m.comp||m.comp.choice)return;
@@ -77,7 +93,7 @@
     else{S.vouchersR1101A=S.vouchersR1101A||[];var vno='KGV'+String(Date.now()).slice(-8);S.vouchersR1101A.push({no:vno,pnr:pnr,usd:m.comp.usd,code:m.code,date:m.date,ts:m.comp.chosenAt,used:false});m.comp.voucher=vno}
     try{save()}catch(_){}try{render()}catch(_){}};
   window.kgmPlCompHtmlR1101A=function(b){try{var L=(b&&b.plMoveR1101A)||[];if(!L.length)return '';
-    return '<div class="k28pc">'+L.map(function(m,k){var c=m.comp;return '<div class="k28pc-i"><div><b>'+(z()?'座位已調整':'Seat changed')+'・'+E2(m.code)+' '+E2(m.date)+'</b><span>'+E2(m.fromShow||m.from)+' → '+E2(m.toShow||m.to)+(z()?'（季節性載重限制，後排不開放）':' (seasonal payload limit)')+'</span>'
+    return '<div class="k28pc">'+L.map(function(m,k){var c=m.comp;return '<div class="k28pc-i"><div><b>'+(z()?'座位已調整':'Seat changed')+'・'+E2(m.code)+' '+E2(m.date)+'</b><span>'+E2(m.fromShow||m.from)+' → '+E2(m.toShow||m.to)+(m.reason==='ops'?(z()?'（航班作業調整・非自願）':' (operational change)'):(z()?'（季節性載重限制，後排不開放）':' (seasonal payload limit)'))+'</span>'
       +(c&&c.refund?'<small>'+(z()?'已退還選位費 NT$':'Seat fee refunded NT$')+Number(c.refund).toLocaleString()+'</small>':'')+'</div>'
       +(!c?'':(c.choice?'<em class="ok">'+(c.choice==='miles'?(z()?'已入帳 ':'Credited ')+c.miles+(z()?' 哩':' miles'):(z()?'機場抵用券 USD ':'Airport voucher USD ')+c.usd+' · '+E2(c.voucher||''))+'</em>'
         :'<div class="k28pc-b"><button type="button" onclick="kgmPlCompChooseR1101A(\''+E2(b.pnr)+'\','+k+',\'miles\')">'+c.miles+(z()?' 哩':' miles')+'</button><button type="button" onclick="kgmPlCompChooseR1101A(\''+E2(b.pnr)+'\','+k+',\'voucher\')">USD '+c.usd+(z()?' 機場抵用券':' voucher')+'</button></div>'))+'</div>'}).join('')+'</div>'}catch(_){return ''}};

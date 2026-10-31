@@ -103,15 +103,13 @@ RW('vouch28 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026
 RW('vouch28 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm28_vouch",S.vouchersR1101A||[]);')
 
 # ══ C4：（測 C3 時查到的 1027A 舊問題）航班資料旅客名單用原始排號（seatSections7：B779 經濟艙 18–47），真實訂位存的是改號後的號碼（1006A：26–55）
-#   → 名單核對不到真實旅客的座位，就再配一個並寫回訂位（一人兩個座位）。核對前把改號後的號碼換回原始號碼，寫回訂位時再換成改號後的號碼。
+#   → 名單核對不到真實旅客的座位，就再配一個並寫回訂位（一人兩個座位）。核對前把改號後的號碼換回原始號碼（訂位一律存內部排號，見 C5）。
 RW('seat28 manifest raw',"    rows.slice().sort(function(a,b){return (bz7[b.id]?1:0)-(bz7[a.id]?1:0)}).forEach(function(x){if(x.resShareR928&&x.cabin==='Resident')return;   /* 0928B：Residence 兩位共用同一間套房 */\n      if(x.seat&&",
    "    rows.slice().sort(function(a,b){return (bz7[b.id]?1:0)-(bz7[a.id]?1:0)}).forEach(function(x){if(x.resShareR928&&x.cabin==='Resident')return;   /* 0928B：Residence 兩位共用同一間套房 */\n"
    "      try{if(x.real&&x.seat&&window.kgmRawSeatR1006A&&(byCab[x.cabin]||[]).indexOf(x.seat)<0){var r28=window.kgmRawSeatR1006A(f,x.seat);if(r28!==x.seat&&(byCab[x.cabin]||[]).indexOf(r28)>=0){x.seatShownR1101A=x.seat;x.seat=r28}}}catch(_){}   /* 1101A：真實訂位存改號後的號碼 → 換回原始排號再核對（原本核對不到就重配、寫回訂位變成一人兩個座位） */\n"
    "      if(x.seat&&")
-RW('seat28 manifest write',"else if(x.real&&x.booking&&x.seat){x.booking.seats=x.booking.seats||{};x.booking.seats[x.segmentKey]=x.booking.seats[x.segmentKey]||{};x.booking.seats[x.segmentKey][x.seat]=x.name;x.booking.seats[x.segmentKey]._auto=true;x.autoAssigned=true;wrote=true;}",
-   "else if(x.real&&x.booking&&x.seat){x.booking.seats=x.booking.seats||{};x.booking.seats[x.segmentKey]=x.booking.seats[x.segmentKey]||{};x.booking.seats[x.segmentKey][(window.kgmShownSeatR1006A?window.kgmShownSeatR1006A(f,x.seat):x.seat)]=x.name;x.booking.seats[x.segmentKey]._auto=true;x.autoAssigned=true;wrote=true;}   /* 1101A：寫回訂位用改號後的號碼 */")
 RW('seat28 manual write',"else if(p.real&&p.booking){p.booking.seats=p.booking.seats||{};p.booking.seats[p.segmentKey]={};p.booking.seats[p.segmentKey][seat]=p.name;}",
-   "else if(p.real&&p.booking){p.booking.seats=p.booking.seats||{};p.booking.seats[p.segmentKey]={};var fs28=null;try{var q28=String(p.key||'').split('|');fs28=matches7(q28[0],q28[1]).filter(function(y){return y.fr===q28[2]})[0]||null;if(fs28)fs28=Object.assign({},fs28,{date:q28[1]})}catch(_){}p.booking.seats[p.segmentKey][(fs28&&window.kgmShownSeatR1006A)?window.kgmShownSeatR1006A(fs28,seat):seat]=p.name;}   /* 1101A：寫回訂位用改號後的號碼 */")
+   "else if(p.real&&p.booking){p.booking.seats=p.booking.seats||{};var sg28=p.booking.seats[p.segmentKey]||{},o28={},hit28=false;Object.keys(sg28).forEach(function(k){if(k==='_auto')return;if(k===p.seat||k===p.seatShownR1101A){o28[seat]=p.name;hit28=true}else o28[k]=sg28[k]});if(!hit28)o28[seat]=p.name;p.booking.seats[p.segmentKey]=o28;}   /* 1101A：只換掉這位旅客原本的座位、而且留在原本的位置（名單照座位順序對應第幾位旅客）；原本整段清空，同一筆訂位其他旅客的座位一起不見；訂位存內部排號 */")
 
 # ══ C5：（測 C3 時查到的 1027A 舊問題）座位號兩套約定互相矛盾——訂票選位（toggleSeat 傳內部排號）、行程卡（r65 kgmSeatShowR65 內部→顯示）、航班資料名單（seatSections7）、
 #   模擬旅客都是「訂位存內部排號，畫面才換成改號後」（0823C 註解：座位代號維持原本編號交給 r30 平移，避免移兩次）；只有 1006A 三處反過來用改號後號碼：
@@ -120,6 +118,16 @@ RW('seat28 view sid',"        const _sid6=(cabinName===\"Economy\"&&window.kgmSh
    "        const _sid6=sid;   /* 1101A：訂位存內部排號（訂票選位、行程卡 r65、航班資料名單都這樣）；1006A 這裡用改號後號碼比對 → 別人的真實座位標不出來、自己選的不亮 */")
 RW('seat28 auto sh6',"  var sh6=function(sid){return window.kgmShownSeatR1006A?window.kgmShownSeatR1006A(f,sid):sid};/* 1006A：真實訂位用改號後的號碼 */",
    "  var sh6=function(sid){return sid};/* 1101A：訂位存內部排號（1006A 存改號後號碼 → 行程卡 r65 再換一次號，顯示多 8 排） */")
+
+# ══ H1：後台卡頓（使用者 Round 3「後台全部都很卡頓」）——tests/lt15.js：開頁 85 秒起組員背景一天一天算（buildDay121 每天 0.7～1.4 秒），
+#   中間每次存進度的指紋 sig25 都呼叫 pool121 → demand121（掃整份機隊排班 0.4～0.7 秒，機隊背景重排時快取一直失效）。
+#   ① 指紋：組員名單已經建好就不再重建；② 不在組員班表分頁時，瀏覽器沒空檔最多等 6 秒才算（原本 2.5 秒就硬算）；③ 使用者操作後讓開 4 秒（原本 2 秒）。算的結果不變。
+RW('lag28 sig pool',"    try{if(window.KGM_FULLDONE_1006A)try{pool121()}catch(_){}",
+   "    try{if(window.KGM_FULLDONE_1006A&&!POOL121)try{pool121()}catch(_){}   /* 1101A：名單已建好就不再重建（每次 0.8 秒） */")
+RW('lag28 idle',"  function idle(f){if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:2500});else setTimeout(f,60)}\n  function tick(){",
+   "  function idle(f){var to=(S.view==='admin'&&S.adminTab==='sched')?2500:6000;   /* 1101A：不在組員班表分頁時多等瀏覽器空檔 */\n    if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:to});else setTimeout(f,60)}\n  function tick(){")
+RW('lag28 input',"    if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<2000)return;   /* 使用者正在操作就先讓開",
+   "    if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<4000)return;   /* 1101A：2→4 秒 */   /* 使用者正在操作就先讓開")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
