@@ -307,6 +307,11 @@ RW('cr28 ticket hold',"function maybeTicket(g,force){\n  if(g.kind!=='v25'||g.st
 RW('grp28 mix steps',"[z()?'名單':'Names',namesDone(g)>=g.pax]","[z()?'名單':'Names',namesDone(g)>=g.pax&&!(window.kgmGrpMovedTbaR1101A&&window.kgmGrpMovedTbaR1101A(g))]")
 RW('grp28 mix moved ed',"var mv=(g.moved||[]).length?","var mv=window.kgmGrpMovedEdR1101A?window.kgmGrpMovedEdR1101A(g):(g.moved||[]).length?")
 
+# Z：寄信清單（後台「寄信事件」）：包機／自創航班報價
+RW('mail28 charter quoted',"  {ev:'group.charter_approved',who:'ext',zh:'包機／自創航班核准・班號與訂金請款',en:'Charter approved',when:'團體業務核准：寫明班號、時刻、機型、報價與訂金期限（核准後 7 天）'},",
+   "  {ev:'group.charter_quoted',who:'ext',zh:'包機／自創航班報價（不二價）',en:'Charter quote',when:'團體業務在後台案件給報價：寫明金額、回覆期限（7 天；離申請期限不到 7 天就到期限前 3 天）；旅客在前台案件接受或拒絕'},\n"
+   "  {ev:'group.charter_approved',who:'ext',zh:'包機／自創航班成立・班號與全額請款',en:'Charter confirmed',when:'旅客接受報價：建立航班與團體訂位，寫明班號與時刻；當下付清全額，名單起飛前 14 天前可改、之後自動開票'},")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
