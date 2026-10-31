@@ -12,7 +12,7 @@ const D=await p.evaluate(()=>{var u=S.users.find(x=>x.email==='demo@kgm.com')||S
 await p.waitForTimeout(1200);await p.screenshot({path:'/tmp/j/pet1.png'});
 // 用真的介面操作
 await p.selectOption('.k28pet-form select.inp >> nth=0','PET28A');await p.waitForTimeout(500);
-await p.evaluate(()=>{kgmPetSetR1101A('kg','6');kgmPetSetR1101A('weeks','30');kgmPetSetR1101A('dims','40x30x20');kgmPetSetR1101A('name','Mochi');kgmPetSetR1101A('breed','柴犬 Shiba',1)});await p.waitForTimeout(400);
+await p.evaluate(()=>{kgmPetSetR1101A('kg','6');kgmPetSetR1101A('weeks','30');kgmPetSetR1101A('dims','44x27x23');kgmPetSetR1101A('name','Mochi');kgmPetSetR1101A('breed','柴犬 Shiba',1)});await p.waitForTimeout(400);
 await p.click('.k28pet-form .k60-check input');await p.waitForTimeout(400);
 await p.setInputFiles('.k28-drop input','/tmp/j/hc.pdf');await p.waitForTimeout(300);
 const pre=await p.evaluate(()=>({res:(document.querySelector('.k28pet-res')||{}).innerText,files:document.querySelectorAll('#k28f-pet li').length,dis:document.querySelector('.k28pet-acts .k60-btn').disabled}));

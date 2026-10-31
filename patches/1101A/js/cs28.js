@@ -5,7 +5,7 @@
    「旅客端也要可以創立案件在上排其中一處，選擇類別等等；用戶端要可以 attach files，後台也要可以下載」
    「案件那裡要兩個 tab：一個是退票退費相關（需要到 CEO），一般的其他（團體改名等等）放到其他；需要 Assign to CEO 做最後審核，顯示 CEO 待審核；
     這也要隨時 simulate（包含客服處理案件）」「案件要寫哪個航班 eg CX531 (KX9921) TPE-HKG」
-   · 寵物規則：KGM-PET-022（規章彙編同一份），kgmPetRulesR1101A／kgmPetCheckR1101A 是唯一來源，前台表單、後台審核、AI 回答都讀它。
+   · 寵物規則：《動物運送規定》KGM-PET-009 Rev. B（pet_doc.py，規章彙編同一份），kgmPetRulesR1101A／kgmPetCheckR1101A 是唯一來源，前台表單、後台審核、AI 回答都讀它。
    · 申請與旅客自建案件都存進 S.staffCasesR1007A（跟地勤／客服建立的案件同一份 → 案件處理中心、案件查詢、前後台同步都照舊）；
      附件檔案本體放 IndexedDB（kgm28_files），案件只記檔名／大小／編號（localStorage 放不下檔案）。同一個瀏覽器的前後台分頁都讀得到。
    · 核准的寵物寫在訂位 b.petsR1101A（[{seg,key,mode,species,...}]），航班資料名單讀它標「寵物」。 ══ */
@@ -17,15 +17,16 @@
   function tz(a){try{return (TZ&&TZ[a]!=null)?TZ[a]:8}catch(_){return 8}}
   function hm(s){var m=/(\d{1,2}):(\d{2})/.exec(String(s||''));return m?(+m[1]*60+ +m[2]):0}
   function cityN(a){try{return (typeof CITY==='function'&&CITY(a))||a}catch(_){return a}}
-  /* ── 規則 KGM-PET-022 ─────────────────────────────────────────────── */
+  /* ── 規則：《動物運送規定》KGM-PET-009 Rev. B（patches/1101A/pet_doc.py，網站內嵌與 PDF 同一份；改數字兩邊一起改） ── */
   var R={
-    cabinKg:8,carrier:[45,35,20],holdKg:45,kennel:[122,81,89],minWeeks:16,cabinPerFlight:2,holdPerFlight:3,holdSmallAc:2,
-    cabinOk:['Economy','Premium'],applyCabinH:48,applyHoldH:72,
-    fee:{cabin:[3000,6000],hold:[5000,10000]},
+    cabinKg:8,carrier:[46,28,24],holdKg:45,kennelSum:292,minWeeks:16,cabinPerFlight:2,holdPerFlight:4,
+    cabinOk:['Economy','Premium'],applyCabinH:72,applyHoldH:72,
+    fee:{cabin:120,hold:[[160,180],[245,280],[292,380]]},cur:'USD',
     cargoOnly:{LHR:'英國',SYD:'澳洲',MEL:'澳洲',BNE:'澳洲',PER:'澳洲',AKL:'紐西蘭',CHC:'紐西蘭',HNL:'夏威夷',HKG:'香港',AUH:'阿聯',DXB:'阿聯'},
-    snub:['巴哥 Pug','法國鬥牛犬 French Bulldog','英國鬥牛犬 English Bulldog','波士頓㹴 Boston Terrier','西施 Shih Tzu','北京犬 Pekingese','拳師犬 Boxer','騎士查理王小獵犬 Cavalier King Charles','鬥牛獒 Bullmastiff','沙皮狗 Shar Pei','日本狆 Japanese Chin','波斯貓 Persian','喜馬拉雅貓 Himalayan','異國短毛貓 Exotic Shorthair','英國短毛貓 British Shorthair','蘇格蘭摺耳貓 Scottish Fold']
+    snub:['巴哥 Pug','法國鬥牛犬 French Bulldog','英國鬥牛犬 English Bulldog','波士頓梗犬 Boston Terrier','西施 Shih Tzu','北京犬 Pekingese','拳師犬 Boxer','騎士查理王小獵犬 Cavalier King Charles','鬥牛獒 Bullmastiff','沙皮狗 Shar Pei','日本狆 Japanese Chin','波斯貓 Persian','喜馬拉雅貓 Himalayan','異國短毛貓 Exotic Shorthair','英國短毛貓 British Shorthair','蘇格蘭摺耳貓 Scottish Fold']
   };
   window.kgmPetRulesR1101A=R;
+  function ksum(d){return (String(d||'').match(/\d+/g)||[]).slice(0,3).reduce(function(a,b){return a+ +b},0)}
   function blockMin(f){var d=hm(f.dep)-tz(f.fr)*60,a=hm(f.arr)+(+f.dd||0)*1440-tz(f.to)*60;var m=a-d;while(m<0)m+=1440;return m}
   function segsOf(b){try{if(window.segs7)return (window.segs7(b,true)||[]).map(function(s){return {key:s.key,f:Object.assign({},s.f||s,{date:s.date||(s.f||{}).date})}})}catch(_){}
     var o=[];if(b.outF)o.push({key:'out',f:b.outF});if(b.inbF)o.push({key:'inb',f:b.inbF});return o}
@@ -46,18 +47,19 @@
       if(mode==='cabin'){
         if(R.cabinOk.indexOf(cab)<0)why.push(zh?'客艙寵物只限經濟艙、豪華經濟艙（商務艙、頭等艙平躺座椅前方沒有可放寵物箱的空間）。':'Cabin pets: Economy / Premium Economy only.');
         if(kg>R.cabinKg)why.push(zh?('寵物連同寵物袋超過 '+R.cabinKg+' 公斤，只能改為托運（貨艙）。'):'Over '+R.cabinKg+' kg: hold only.');
-        var dm=String(pet.dims||'').match(/\d+/g)||[];if(dm.length>=3){dm=dm.slice(0,3).map(Number).sort(function(a,b){return b-a});var lim=R.carrier.slice().sort(function(a,b){return b-a});if(dm[0]>lim[0]||dm[1]>lim[1]||dm[2]>lim[2])why.push(zh?'寵物袋超過 45×35×20 公分，放不進前方座位下。':'Carrier exceeds 45×35×20 cm.')}
+        var dm=String(pet.dims||'').match(/\d+/g)||[];if(dm.length>=3){dm=dm.slice(0,3).map(Number).sort(function(a,b){return b-a});var lim=R.carrier.slice().sort(function(a,b){return b-a});if(dm[0]>lim[0]||dm[1]>lim[1]||dm[2]>lim[2])why.push(zh?'運輸袋超過 46×28×24 公分，放不進前方座位下，請改托運（貨艙）。':'Carrier exceeds 46×28×24 cm.')}
         if(petsOn(f,date).cabin>=R.cabinPerFlight)why.push(zh?'這一班客艙寵物名額（2 隻）已滿。':'Cabin pet quota full.');
       }else if(mode==='hold'){
         if(pet.snub)why.push(zh?'短鼻（扁臉）品種不受理托運（貨艙溫度與氣壓變化風險高）；體重符合可改客艙。':'Snub-nosed breeds are not accepted in the hold.');
         if(kg>R.holdKg)why.push(zh?('寵物連同運輸籠超過 '+R.holdKg+' 公斤，請洽 KGM Cargo。'):'Over '+R.holdKg+' kg.');
-        var small=/A21N|A321|A339|A330/.test(String(f.acft||''));if(petsOn(f,date).hold>=(small?R.holdSmallAc:R.holdPerFlight))why.push(zh?'這一班貨艙寵物名額已滿。':'Hold pet quota full.');
+        var ks=ksum(pet.dims);if(ks>R.kennelSum)why.push(zh?'運輸籠三邊合計超過 292 公分，請洽 KGM Cargo 以貨運辦理。':'Kennel too large: cargo only.');
+        if(petsOn(f,date).hold>=R.holdPerFlight)why.push(zh?'這一班貨艙寵物名額（4 隻）已滿。':'Hold pet quota full.');
         warn.push(zh?'起訖或轉機站預報氣溫高於 29°C 或低於 −10°C 時，當天可能無法托運。':'Hold transport may be refused in extreme temperatures.');
       }
       var h=(Date.parse(date+'T'+String(f.dep||'00:00')+':00Z')-tz(f.fr)*3600e3-Date.now())/3600e3,need=mode==='hold'?R.applyHoldH:R.applyCabinH;
       if(h<need)why.push(zh?('需在起飛前 '+need+' 小時提出申請。'):'Apply at least '+need+'h before departure.');
     }
-    var fee=mode==='service'?0:R.fee[mode==='hold'?'hold':'cabin'][lh?1:0];
+    var fee=0;if(mode==='cabin')fee=R.fee.cabin;else if(mode==='hold'){var k2=ksum(pet.dims);fee=R.fee.hold[0][1];R.fee.hold.forEach(function(t,i){if(k2>(i?R.fee.hold[i-1][0]:0)&&k2<=t[0])fee=t[1]})}
     return {ok:!why.length,mode:mode,fee:fee,lh:lh,cab:cab,why:why,warn:warn,f:f}};
   /* ── 附件：IndexedDB ─────────────────────────────────────────────── */
   function db(){return new Promise(function(res,rej){try{var r=indexedDB.open('kgm28_files',1);r.onupgradeneeded=function(){r.result.createObjectStore('f')};r.onsuccess=function(){res(r.result)};r.onerror=function(){rej(r.error)}}catch(e){rej(e)}})}
@@ -106,23 +108,24 @@
         +'<div class="k28pet-grid3"><label>'+(zh?'品種':'Breed')+'<input class="inp" list="k28breeds" value="'+E(F.breed)+'" onchange="kgmPetSetR1101A(\'breed\',this.value,1)"><datalist id="k28breeds">'+R.snub.map(function(x){return '<option value="'+E(x)+'">'}).join('')+'</datalist></label>'
         +'<label>'+(zh?'寵物＋寵物袋／籠 重量（kg）':'Pet + carrier (kg)')+'<input class="inp" type="number" min="0" step="0.1" value="'+E(F.kg)+'" onchange="kgmPetSetR1101A(\'kg\',this.value,1)"></label>'
         +'<label>'+(zh?'年齡（週）':'Age (weeks)')+'<input class="inp" type="number" min="0" value="'+E(F.weeks)+'" onchange="kgmPetSetR1101A(\'weeks\',this.value,1)"></label>'
-        +'<label>'+(zh?'寵物袋／籠尺寸（長×寬×高 cm）':'Carrier size (L×W×H cm)')+'<input class="inp" placeholder="45×35×20" value="'+E(F.dims)+'" onchange="kgmPetSetR1101A(\'dims\',this.value,1)"></label></div>'):'')
+        +'<label>'+(zh?'寵物袋／籠尺寸（長×寬×高 cm）':'Carrier size (L×W×H cm)')+'<input class="inp" placeholder="46×28×24" value="'+E(F.dims)+'" onchange="kgmPetSetR1101A(\'dims\',this.value,1)"></label></div>'):'')
       +'<label class="k60-check"><input type="checkbox"'+(F.docs?' checked':'')+' onchange="kgmPetSetR1101A(\'docs\',this.checked,1)"> '+(zh?'我已備妥：10 天內的健康證明、狂犬病疫苗（施打滿 30 天且在有效期內）、晶片，以及目的地入境／檢疫文件':'I have the health certificate, rabies vaccination, microchip and entry documents')+'</label>'
       +'<div class="k28pet-sub">'+(zh?'上傳文件（健康證明、疫苗紀錄…，最多 3 個、每個 5 MB 內）':'Documents (max 3, 5 MB each)')+'</div><label class="k28-drop"><input type="file" multiple accept=".pdf,image/*" onchange="kgmCaseFilePickR1101A(this,\'pet\')"><span>'+(zh?'＋ 選擇檔案':'+ Choose files')+'</span></label><ul class="k28-files" id="k28f-pet"></ul>'
       +'<label>'+(zh?'其他說明':'Notes')+'<textarea class="inp" rows="2" oninput="kgmPetSetR1101A(\'note\',this.value)">'+E(F.note)+'</textarea></label>'
-      +(chk?('<div class="k28pet-res '+(chk.ok?'ok':'no')+'">'+(chk.ok?('<b>✓ '+(zh?'符合規定':'Eligible')+'</b><span>'+(chk.mode==='service'?(zh?'服務犬免費，於客艙腳邊隨行。':'Service dogs travel free in the cabin.'):((zh?(chk.mode==='hold'?'托運（溫控貨艙）':'客艙')+'・'+(chk.lh?'長程':'短程')+'每段每隻 NT$':'Fee NT$')+chk.fee.toLocaleString()+(zh?'，機場櫃檯報到時支付':' at check-in')))+'</span>')
+      +(chk?('<div class="k28pet-res '+(chk.ok?'ok':'no')+'">'+(chk.ok?('<b>✓ '+(zh?'符合規定':'Eligible')+'</b><span>'+(chk.mode==='service'?(zh?'服務犬免費，於客艙腳邊隨行。':'Service dogs travel free in the cabin.'):((zh?(chk.mode==='hold'?'托運（溫控貨艙）':'客艙')+'・每段每隻 USD ':'Fee USD ')+chk.fee+(zh?'，機場櫃檯報到時支付':' at check-in')))+'</span>')
         :('<b>'+(zh?'目前不符合':'Not eligible yet')+'</b><ul>'+chk.why.map(function(w){return '<li>'+E(w)+'</li>'}).join('')+'</ul>'))
         +(chk.warn.length?'<small>'+chk.warn.map(E).join('　')+'</small>':'')+'</div>'):'')
       +(F.err?'<div class="k60-warn">'+E(F.err)+'</div>':'')
       +'<div class="k28pet-acts"><button class="k60-btn" '+(chk&&chk.ok?'':'disabled')+' onclick="kgmPetSubmitR1101A()">'+(zh?'送出申請':'Submit')+'</button></div>')
       :(F.pnr?'<div class="k60-warn">'+(zh?'查無此訂位，或姓氏不符。':'Booking not found.')+'</div>':'');
     return '<main class="k60 k28pet"><header class="k60-head"><span>TRAVEL WITH PETS</span><h1>'+(zh?'寵物同行申請':'Travel with your pet')+'</h1>'
-      +'<p>'+(zh?'貓、狗可以在客艙（寵物連同寵物袋 8 公斤內、經濟／豪華經濟艙）或托運（溫控貨艙，45 公斤內、短鼻品種不受理）同行；英國、澳洲、紐西蘭、夏威夷、香港、阿聯只受理貨運。完整規定見 KGM-PET-022。':'Cats and dogs can travel in the cabin (up to 8 kg incl. carrier) or in the hold (up to 45 kg).')+'</p></header>'
+      +'<p>'+(zh?'貓、狗可以帶上客艙（動物連同運輸袋 8 公斤內、經濟／豪華經濟艙），超過的托運進溫控貨艙（45 公斤內、短吻品種不受理）；英國、澳洲、紐西蘭、夏威夷、香港、阿聯只受理貨運。所有申請需在起飛前 72 小時提出。完整規定見《動物運送規定》KGM-PET-009。':'Cats and dogs up to 8 kg incl. carrier travel in the cabin; larger pets in the hold (up to 45 kg). Apply 72 hours before departure.')+'</p></header>'
       +rulesCard()+'<section class="k28pet-form">'+pick+form+'</section></main>';
   }
-  function rulesCard(){var zh=z();return '<section class="k28pet-rules"><div><i>🧳</i><b>'+(zh?'客艙':'Cabin')+'</b><span>'+(zh?'貓、狗 · 寵物＋袋 ≤ 8 kg · 袋 ≤ 45×35×20 cm · 經濟／豪經 · 每班 2 隻 · 起飛前 48 小時申請':'≤ 8 kg incl. carrier')+'</span><em>NT$3,000／6,000</em></div>'
-    +'<div><i>❄</i><b>'+(zh?'托運（溫控貨艙）':'Hold')+'</b><span>'+(zh?'寵物＋籠 ≤ 45 kg · IATA 硬殼籠 · 短鼻品種不受理 · 每班 3 隻（窄體／A330 2 隻）· 起飛前 72 小時申請':'≤ 45 kg, IATA kennel')+'</span><em>NT$5,000／10,000</em></div>'
-    +'<div><i>🦮</i><b>'+(zh?'服務犬':'Service dogs')+'</b><span>'+(zh?'受過訓練的導盲／輔助犬 · 客艙腳邊 · 附訓練證明與入境許可；情緒支持動物不受理':'Trained assistance dogs only')+'</span><em>'+(zh?'免費':'Free')+'</em></div></section>'}
+  function rulesCard(){var zh=z();return '<section class="k28pet-rules"><div><i>🧳</i><b>'+(zh?'可以帶上客艙':'In the cabin')+'</b><span>'+(zh?'貓、狗 · 動物＋運輸袋 ≤ 8 kg · 袋 ≤ 46×28×24 cm · 經濟／豪經 · 每班 2 隻':'≤ 8 kg incl. carrier, 46×28×24 cm')+'</span><em>USD 120 '+(zh?'／段':'/ sector')+'</em></div>'
+    +'<div><i>❄</i><b>'+(zh?'托運（溫控貨艙）':'In the hold')+'</b><span>'+(zh?'動物＋籠 ≤ 45 kg · IATA 硬殼籠 · 三邊合計 ≤ 292 cm · 短吻品種不受理 · 每班 4 隻':'≤ 45 kg, IATA kennel, no snub-nosed breeds')+'</span><em>USD 180／280／380</em></div>'
+    +'<div><i>🦮</i><b>'+(zh?'服務犬':'Service dogs')+'</b><span>'+(zh?'受過訓練的導盲／輔助犬 · 客艙腳邊 · 附訓練證明；情緒支持動物依寵物規定':'Trained assistance dogs only')+'</span><em>'+(zh?'免費':'Free')+'</em></div>'
+    +'<div class="no"><i>⛔</i><b>'+(zh?'不受理／只收貨運':'Not accepted / cargo only')+'</b><span>'+(zh?'貓狗以外動物、未滿 16 週、懷孕哺乳、具攻擊性 · 英澳紐、夏威夷、香港、阿聯航點只收貨運（KGM Cargo）':'Other animals; UK, AU, NZ, Hawaii, HK, UAE are cargo only')+'</span><em>KGM Cargo</em></div></section>'}
   window.kgmPetSubmitR1101A=function(){var zh=z(),F=pf(),b=findBk(F.pnr,F.last);if(!b){F.err=zh?'查無訂位。':'Booking not found.';render();return}
     var chk=window.kgmPetCheckR1101A(b,F.key,F);if(!chk.ok){F.err=chk.why.join(' ');render();return}
     var no=caseNo(),at=new Date().toISOString(),f=chk.f,p=(b.paxList||[])[0]||{};
@@ -132,7 +135,7 @@
         pet:{species:F.species,name:F.name,breed:F.breed,snub:!!F.snub,kg:+F.kg||0,dims:F.dims,weeks:+F.weeks||0,mode:chk.mode,fee:chk.fee,docs:!!F.docs},files:files,
         createdAt:at,updatedAt:at,by:{empId:'',name:p.firstName?(p.lastName+' '+p.firstName):'',role:'passenger'},assignee:{empId:'',name:''},userId:b.userId||(S.user&&S.user.id)||null,
         email:b.contactEmail||p.email||(S.user&&S.user.email)||'',typeLabelR1101A:zh?'寵物同行申請':'Pet travel application',paxR1101A:1,
-        progress:[{at:at,status:'received',label:zh?'旅客線上申請（系統依 KGM-PET-022 預審通過）':'Submitted online',by:zh?'旅客':'Passenger'}],notes:[]};
+        progress:[{at:at,status:'received',label:zh?'旅客線上申請（系統依 KGM-PET-009 預審通過）':'Submitted online',by:zh?'旅客':'Passenger'}],notes:[]};
       addCase(rec);F.done=no;render()})};
   /* ── 前台：建立客服案件 ─────────────────────────────────────────── */
   var PCT=['refund_req','bag_delayed','bag_lost','bag_damaged','item_lost','complaint','assistance','miles_claim','group_change','other'];
@@ -175,12 +178,12 @@
   /* ── 前台 AI：寵物問題用同一份規則回答；說要申請（或給了訂位代號）就直接打開申請頁並帶入 ── */
   window.kgmPetAiR1101A=function(t){var zh=z(),U=String(t||'').toUpperCase(),pnr='';(U.match(/\b[A-Z0-9]{6}\b/g)||[]).some(function(x){if((S.bookings||[]).some(function(b){return b&&b.pnr===x})){pnr=x;return true}});
     var kg=+((/(\d+(?:\.\d+)?)\s*(?:公斤|kg|KG)/.exec(t)||[])[1]||0),sp=/貓|cat/i.test(t)?'cat':/服務犬|導盲|service/i.test(t)?'service':'dog';
-    var base=zh?('KGM 寵物同行規定（KGM-PET-022）：\n· 客艙：貓、狗，寵物連同寵物袋 8 公斤內、袋子 45×35×20 公分內，限經濟艙／豪華經濟艙，每班 2 隻，起飛前 48 小時申請；短程 NT$3,000、長程 NT$6,000（每段每隻）。\n'
-      +'· 托運（溫控貨艙）：寵物連同 IATA 硬殼籠 45 公斤內，短鼻（扁臉）品種不受理，每班 3 隻（窄體／A330 2 隻），起飛前 72 小時申請；短程 NT$5,000、長程 NT$10,000。\n'
-      +'· 服務犬免費、客艙腳邊；情緒支持動物不受理。\n· 英國、澳洲、紐西蘭、夏威夷、香港、阿聯只受理貨運。\n· 需要：10 天內健康證明、狂犬病疫苗（滿 30 天）、晶片、目的地入境文件；寵物需滿 16 週。')
-      :'KGM pet policy (KGM-PET-022): cabin up to 8 kg incl. carrier (Economy / Premium Economy), hold up to 45 kg in an IATA kennel, no snub-nosed breeds in the hold, service dogs free.';
+    var base=zh?('KGM《動物運送規定》（KGM-PET-009）：\n· 可以帶上客艙：貓、狗，動物連同運輸袋 8 公斤內、袋子 46×28×24 公分內，限經濟艙／豪華經濟艙，每班 2 隻；每段 USD 120。\n'
+      +'· 托運（溫控貨艙）：超過客艙限制的貓、狗，動物連同 IATA 硬殼籠 45 公斤內、籠子三邊合計 292 公分內，短吻（扁臉）品種不受理，每班 4 隻；每段 USD 180／280／380（依籠子大小）。\n'
+      +'· 服務犬免費、在客艙腳邊；情緒支持動物依寵物規定。\n· 只收貨運（客艙、托運都不行）：英國、澳洲、紐西蘭、夏威夷、香港、阿聯。\n· 不受理：貓狗以外的動物、未滿 16 週、懷孕或哺乳中、具攻擊性。\n· 起飛前 72 小時申請；需 10 天內健康證明、狂犬病疫苗（滿 30 天）、晶片、目的地入境文件；費用於櫃檯報到時支付。')
+      :'KGM Carriage of Animals (KGM-PET-009): cabin up to 8 kg incl. carrier (Economy / Premium Economy, USD 120), hold up to 45 kg in an IATA kennel (USD 180-380), no snub-nosed breeds in the hold, service dogs free; UK, AU, NZ, Hawaii, HK and UAE are cargo only.';
     var extra='';if(pnr){var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===pnr})[0],s0=segsOf(b)[0];if(s0){var c=window.kgmPetCheckR1101A(b,s0.key,{species:sp,mode:kg>R.cabinKg?'hold':'cabin',kg:kg,docs:true});
-      extra='\n\n'+(zh?('您的訂位 '+pnr+'（'+s0.f.code+' '+s0.f.fr+'→'+s0.f.to+' '+s0.f.date+'）'+(c.ok?('可以申請'+(c.mode==='hold'?'托運':c.mode==='service'?'服務犬隨行':'客艙')+'，費用 NT$'+c.fee.toLocaleString()+'（櫃檯報到時支付）。'):('目前不符合：'+c.why.join(' ')))):(c.ok?'Eligible.':'Not eligible: '+c.why.join(' ')))}}
+      extra='\n\n'+(zh?('您的訂位 '+pnr+'（'+s0.f.code+' '+s0.f.fr+'→'+s0.f.to+' '+s0.f.date+'）'+(c.ok?('可以申請'+(c.mode==='hold'?'托運':c.mode==='service'?'服務犬隨行':'客艙')+'，費用 USD '+c.fee+'（櫃檯報到時支付）。'):('目前不符合：'+c.why.join(' ')))):(c.ok?'Eligible.':'Not eligible: '+c.why.join(' ')))}}
     if(pnr||/申請|我要帶|想帶|幫我|apply|bring/i.test(t)){S.pet28=null;var F=pf();F.pnr=pnr;F.species=sp;if(kg){F.kg=String(kg);F.mode=kg>R.cabinKg?'hold':'cabin'}
       setTimeout(function(){try{S.view='pet28';render();window.scrollTo(0,0)}catch(_){}},400);extra+=zh?'\n\n已幫您打開「寵物同行申請」頁'+(pnr?'並帶入訂位 '+pnr:'')+'，填好寵物資料、上傳證明就可以送出。':'\n\nI opened the pet application form for you.'}
     else extra+=zh?'\n\n要申請請說「我要申請寵物同行」（可附訂位代號），或從上方選單「行程管理 › 旅客服務 › 寵物同行申請」。':'';
@@ -211,12 +214,14 @@
     if(!ceo)return '<div class="k7c-closed">⏳ '+(zh?'已送執行長最後審核，等待決定。':'Awaiting the CEO.')+'</div>';
     var c=rec(r.no)||{},pet=c.type==='pet';
     return '<div class="k7c-act"><div class="k7c-sub">'+(zh?'執行長最後審核':'CEO final review')+'</div>'
-      +(pet&&c.pet?'<p class="k7c-text">'+E((zh?'寵物：':'Pet: ')+[c.pet.species,c.pet.breed,c.pet.kg?c.pet.kg+' kg':'',c.pet.mode,'NT$'+(+c.pet.fee||0).toLocaleString()].filter(Boolean).join('・'))+'</p>':'')
+      +(pet&&c.pet?'<p class="k7c-text">'+E((zh?'寵物：':'Pet: ')+[c.pet.species,c.pet.breed,c.pet.kg?c.pet.kg+' kg':'',c.pet.mode,'USD '+(+c.pet.fee||0)].filter(Boolean).join('・'))+'</p>':'')
       +'<label class="k7c-full">'+(zh?'給旅客的審核結果（會寄 Email）':'Decision for the passenger')+'<textarea class="inp" rows="3" id="k28CeoMsg"></textarea></label>'
       +'<div class="k7c-btns"><button class="btn btn-g" onclick="kgmCase28Ceo(\''+A(r.no)+'\',true)">'+(pet?(zh?'核准寵物同行':'Approve pet'):(zh?'CEO 核准並結案':'Approve & close'))+'</button><button class="btn j-reject" onclick="kgmCase28Ceo(\''+A(r.no)+'\',false)">'+(zh?'退回客服':'Return')+'</button></div></div>'};
   /* 航班資料：這位旅客有核准的寵物 → 名字旁標「寵物」 */
-  window.kgmPetTagR1101A=function(pnr,code,date){try{if(String(code).indexOf('|')>=0){var k9=String(code).split('|');code=k9[0];date=k9[1]}var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===pnr})[0];if(!b||!b.petsR1101A)return '';
-    var p=b.petsR1101A.filter(function(x){return x.code===code&&x.date===date})[0];if(!p)return '';
+  window.kgmPetTagR1101A=function(pnr,code,date){try{if(String(code).indexOf('|')>=0){var k9=String(code).split('|');code=k9[0];date=k9[1]}var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===pnr})[0];if(!b)return '';
+    var p=(b.petsR1101A||[]).filter(function(x){return x.code===code&&x.date===date})[0];
+    if(!p){var c=(S.staffCasesR1007A||[]).filter(function(x){return x&&x.type==='pet'&&x.pnr===pnr&&x.status!=='closed'&&x.segment&&x.segment.code===code&&x.segment.date===date})[0];   /* 還在審核的申請也標出來 */
+      return c?'<span class="k28-pettag pend" title="'+E(c.caseNo)+'">🐾 '+(z()?'寵物申請中':'Pet pending')+'</span>':''}
     return '<span class="k28-pettag" title="'+E((p.name||'')+' '+(p.species||'')+' '+(p.kg||'')+'kg')+'">🐾 '+(p.mode==='hold'?(z()?'寵物托運':'Pet-hold'):p.mode==='service'?(z()?'服務犬':'Service dog'):(z()?'寵物客艙':'Pet-cabin'))+'</span>'}catch(_){return ''}};
   /* ── 持續模擬：後台開著時，每隔幾分鐘有新案件進來、客服把進行中的模擬案件往下處理一步（使用者：「這也要隨時 simulate，包含客服處理案件」） ── */
   var CSN=[['investigating','客服專員已聯繫旅客，正在向站點／合作單位查證'],['awaiting_customer','已請旅客補充資料（收據、照片或證明文件）'],['investigating','旅客已補件，進入審核'],['closed','處理完成，已回覆旅客並結案']];
@@ -241,10 +246,10 @@
   setInterval(simTick,120000);
   /* ── 樣式 ── */
   try{var cs=document.createElement('style');cs.id='k28cs-css';cs.textContent=
-    '.k28pet{max-width:960px}.k28pet-rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}'
+    '.k28pet{max-width:960px}.k28pet-rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 18px}'
    +'.k28pet-rules>div{background:#fff;border:1px solid rgba(11,58,46,.12);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:34px 1fr;column-gap:12px;row-gap:4px}'
    +'.k28pet-rules i{grid-row:span 3;width:34px;height:34px;border-radius:10px;background:#EEF4F0;display:flex;align-items:center;justify-content:center;font-style:normal}'
-   +'.k28pet-rules b{color:#0B3D2E;font-size:14.5px}.k28pet-rules span{font-size:12px;color:#6B7570;line-height:1.6}.k28pet-rules em{font-style:normal;font:700 13px ui-monospace,monospace;color:#B08A3E}'
+   +'.k28pet-rules>div.no{background:#FBF7F4;border-color:#EAD9CF}.k28pet-rules>div.no i{background:#F6E6DD}.k28pet-rules b{color:#0B3D2E;font-size:14.5px}.k28pet-rules span{font-size:12px;color:#6B7570;line-height:1.6}.k28pet-rules em{font-style:normal;font:700 13px ui-monospace,monospace;color:#B08A3E}'
    +'.k28pet-form{background:#fff;border:1px solid rgba(11,58,46,.12);border-radius:18px;padding:22px 24px;display:grid;gap:14px;box-shadow:0 12px 30px -24px rgba(11,58,46,.6)}'
    +'.k28pet-form label{display:grid;gap:6px;font:700 11px system-ui,sans-serif;letter-spacing:.1em;color:#7A857F;text-transform:uppercase}.k28pet-form label .inp,.k28pet-form textarea{font:500 14px inherit;font-family:inherit;letter-spacing:0;text-transform:none;color:#14231D}'
    +'.k28pet-form .k60-check{display:flex;gap:10px;align-items:flex-start;font:500 13px inherit;font-family:inherit;letter-spacing:0;text-transform:none;color:#33443C}'
@@ -257,7 +262,7 @@
    +'.k28pet-acts{display:flex;justify-content:flex-end;gap:10px}.k28pet-acts .k60-btn[disabled]{opacity:.45;cursor:not-allowed}'
    +'.k28-drop{position:relative;display:inline-flex!important;width:max-content;border:1px dashed rgba(176,138,62,.7);border-radius:12px;padding:10px 16px!important;background:#FFFCF5;cursor:pointer}.k28-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}.k28-drop span{font:600 13px inherit;font-family:inherit;color:#0B3D2E;letter-spacing:0;text-transform:none}'
    +'.k28-files{list-style:none;margin:0;padding:0;display:grid;gap:6px}.k28-files li{display:flex;align-items:center;gap:10px;background:#F7F8F6;border-radius:10px;padding:8px 12px;font-size:13px}.k28-files b{flex:1;font-weight:600;color:#14231D;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.k28-files small{color:#7A857F}.k28-files li>button:not(.btn){border:0;background:none;font-size:18px;color:#9A3A2F;cursor:pointer}'
-   +'.k28-pettag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#FFF3D9;color:#7A5A12;font:700 10.5px system-ui,sans-serif;white-space:nowrap}'
+   +'.k28-pettag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#FFF3D9;color:#7A5A12;font:700 10.5px system-ui,sans-serif;white-space:nowrap}.k28-pettag.pend{background:#F1F4F2;color:#55605B;border:1px dashed #C6D0CB}'
    +'.k28-cat{display:flex;gap:6px;margin:0 0 14px}.k28-cat button{appearance:none;border:1px solid #D9E1DC;background:#fff;border-radius:12px;padding:10px 18px;font:700 14px inherit;font-family:inherit;color:#33443C;cursor:pointer;display:flex;gap:10px;align-items:center}.k28-cat button small{font-weight:500;font-size:11.5px;color:#7A857F}.k28-cat button b{font:700 12px ui-monospace,monospace;background:#EEF2EF;border-radius:999px;padding:1px 8px}'
    +'.k28-cat button.on{background:#0B3D2E;border-color:#0B3D2E;color:#fff}.k28-cat button.on small{color:#CFE0D7}.k28-cat button.on b{background:#B08A3E;color:#fff}'
    +'@media(max-width:760px){.k28pet-rules,.k28pet-grid,.k28pet-grid3{grid-template-columns:1fr}.k28pet-form{padding:16px}}';

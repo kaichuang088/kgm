@@ -244,6 +244,11 @@ RW('cs28 pet tag',"+(window.kgmSsrBadgeR1010A?window.kgmSsrBadgeR1010A(x):'')+(x
 RW('cs28 ai pet',"    [/寵物|狗|貓|動物|pet/i,function(){return '寵物（犬、貓）可以，需於起飛前申請：'+pol('寵物 受理',300)}],",
    "    [/寵物|狗|貓|動物|服務犬|導盲犬|pet/i,function(){return window.kgmPetAiR1101A?window.kgmPetAiR1101A(String(window.__k23q||'')):('寵物（犬、貓）可以，需於起飛前申請：'+pol('寵物 受理',300))}],   /* 1101A：KGM-PET-022＋直接開申請頁 */")
 
+# F2：《動物運送規定》KGM-PET-009 改版 Rev. B（pet_doc.py；PDF 同一份 pol/pet28_pdf.py）：網站內嵌條文換成新版（份數不變）
+import json, pet_doc
+RW('pet28 policy doc',"window.kgmPolicyDocR914=function(id){",
+   "/* 1101A：《動物運送規定》KGM-PET-009 Rev. B（patches/1101A/pet_doc.py，PDF 同一份） */\nwindow.KGM_POLICY_DOCS_R914[\"KGM-PET-009\"]="+json.dumps(pet_doc.doc(),ensure_ascii=False)+";\nwindow.kgmPolicyDocR914=function(id){")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
