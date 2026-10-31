@@ -81,6 +81,7 @@ EMB28.append('fr28.js')
 EMB28.append('dh28.js')
 EMB28.append('cs28.js')
 EMB28.append('ad28.js')
+EMB28.append('grp28.js')
 RW('pl28 seat row',"      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);",
    "      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);\n"
    "      const _plRow28=(cabinName===\"Economy\"&&window.kgmPlBlockRowsR1101A)?window.kgmPlBlockRowsR1101A(f,f.date).rows:0;   /* 1101A：Payload 鎖經濟艙最後幾排 */\n"
@@ -246,9 +247,9 @@ RW('cs28 ai pet',"    [/寵物|狗|貓|動物|pet/i,function(){return '寵物（
    "    [/寵物|狗|貓|動物|服務犬|導盲犬|pet/i,function(){return window.kgmPetAiR1101A?window.kgmPetAiR1101A(String(window.__k23q||'')):('寵物（犬、貓）可以，需於起飛前申請：'+pol('寵物 受理',300))}],   /* 1101A：KGM-PET-022＋直接開申請頁 */")
 
 # F2：《動物運送規定》KGM-PET-009 改版 Rev. B（pet_doc.py；PDF 同一份 pol/pet28_pdf.py）：網站內嵌條文換成新版（份數不變）
-import json, pet_doc
+import json, pet_doc, grp_doc28
 RW('pet28 policy doc',"window.kgmPolicyDocR914=function(id){",
-   "/* 1101A：《動物運送規定》KGM-PET-009 Rev. B（patches/1101A/pet_doc.py，PDF 同一份） */\nwindow.KGM_POLICY_DOCS_R914[\"KGM-PET-009\"]="+json.dumps(pet_doc.doc(),ensure_ascii=False)+";\nwindow.kgmPolicyDocR914=function(id){")
+   "/* 1101A：《動物運送規定》KGM-PET-009 Rev. B（patches/1101A/pet_doc.py，PDF 同一份）、《團體訂位規章》KGM-GRP-021 Rev. B（grp_doc28.py） */\nwindow.KGM_POLICY_DOCS_R914[\"KGM-PET-009\"]="+json.dumps(pet_doc.doc(),ensure_ascii=False)+";\nwindow.KGM_POLICY_DOCS_R914[\"KGM-GRP-021\"]="+json.dumps(grp_doc28.doc(),ensure_ascii=False)+";\nwindow.kgmPolicyDocR914=function(id){")
 
 # H5：通知管理「航班旅客」分航段（js/ad28.js）
 RW('nt28 code',"value=\"${S.anFltCode||''}\" oninput=\"S.anFltCode=this.value.toUpperCase()\">","value=\"${S.anFltCode||''}\" oninput=\"S.anFltCode=this.value.toUpperCase()\" onchange=\"render()\">")
@@ -288,6 +289,14 @@ RW('lv28 rules','    <div class="adm-card" style="background:#f4f7f5"><div style
    '    ${window.kgmLeaveRulesR1101A?window.kgmLeaveRulesR1101A():\'\'}')
 RW('ch28 head','    body=`<div class="adm-sec">員工聊天 v2（分串對話・已讀・未讀通知）</div>\n    ${_ceoHTML}\n    <div class="adm-card" style="padding:0;overflow:hidden">',
    '    body=`${window.kgmChatHeadR1101A?window.kgmChatHeadR1101A():\'<div class="adm-sec">員工訊息</div>\'}\n    ${_ceoHTML?\'<details class="k28-audit"><summary>\'+(LANG==="en"?"CEO audit · view a full conversation between two staff":"CEO 稽核：查看兩位員工的完整對話")+\'</summary>\'+_ceoHTML+\'</details>\':\'\'}\n    <div class="adm-card k28-chat" style="padding:0;overflow:hidden">')
+
+# D：團體訂位（js/grp28.js）＋原程式三處：會員欄位鎖定不套用到團體表單、尾款重開匯出、名單多一欄 KGM 會員卡號
+RW('grp28 lock',"function lockMember49(){try{if(!(S.view==='booking'&&S.phase==='pax'&&S.user))return;",
+   "function lockMember49(){try{if(!(S.view==='booking'&&S.phase==='pax'&&S.user))return;if(window.kgmGrpOnR1025B&&window.kgmGrpOnR1025B())return;   /* 1101A：團體資料頁（團名、領隊）不是會員本人資料，不能鎖 */")
+RW('grp28 rebal',"function rebal(g,b,why){","window.kgmGrpRebalR1101A=function(g,b,why){return rebal(g,b,why)};   /* 1101A：選位費加進尾款（js/grp28.js） */\nfunction rebal(g,b,why){")
+RW('grp28 names td',"<td><input id=\"k25gNP'+i+'\" class=\"inp\" value=\"'+E(r.passport||'')+'\"></td>'",
+   "<td><input id=\"k25gNP'+i+'\" class=\"inp\" value=\"'+E(r.passport||'')+'\"></td><td><input id=\"k25gNM'+i+'\" class=\"inp\" value=\"'+E(r.member||'')+'\" placeholder=\"'+(z()?'選填':'optional')+'\"></td>'")
+RW('grp28 names th',"<th>'+(z()?'護照號碼':'Passport')+'</th><th>'+(z()?'艙等':'Cabin')+'</th>","<th>'+(z()?'護照號碼':'Passport')+'</th><th>'+(z()?'KGM 會員卡號（里程進該會員；不填進訂購者）':'KGM member no.')+'</th><th>'+(z()?'艙等':'Cabin')+'</th>")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
