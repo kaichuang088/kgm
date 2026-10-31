@@ -281,6 +281,14 @@ RW('fa28 arr',"<input id=\"k57arr_'+sea+'\" class=\"inp\" value=\"'+E7(rec.arr||
 
 RW('fa28 eff',"      +' <span>'+E7(rng.label)+'</span></p>'","      +' <span>'+E7(rng.label)+'</span></p>'+(window.kgmEffNoteR1101A?window.kgmEffNoteR1101A(f,rec,rng):'')   /* 1101A：存的時刻跟實際生效（夜間時段／輪擋規則調整後）不同時寫出來 */")
 
+# H6：請假管理、訊息中心正式化（js/ad28.js：頁首、統計、假別規定表；聊天的 CEO 稽核收進可展開區塊）
+RW('lv28 head','    body=`<div class="adm-sec">${_S("請假管理（依臺灣勞基法）","Leave Management (Taiwan Labor Standards Act)")}</div>',
+   '    body=`${window.kgmLeaveHeadR1101A?window.kgmLeaveHeadR1101A():\'<div class="adm-sec">\'+_S("請假管理（依臺灣勞基法）","Leave Management (Taiwan Labor Standards Act)")+\'</div>\'}')
+RW('lv28 rules','    <div class="adm-card" style="background:#f4f7f5"><div style="font-size:11.5px;color:#556;line-height:1.7"><b>特休：</b>滿半年3天・1年7天・2年10天・3年14天・5年15天・10年起每年+1天（上限30天）。機師滿3月起、最高42天。<b> 病假：</b>每年≤30天半薪。<b> 事假：</b>每年≤14天不支薪。<b> 生理假：</b>每月1天，全年前3天不併病假。</div></div>',
+   '    ${window.kgmLeaveRulesR1101A?window.kgmLeaveRulesR1101A():\'\'}')
+RW('ch28 head','    body=`<div class="adm-sec">員工聊天 v2（分串對話・已讀・未讀通知）</div>\n    ${_ceoHTML}\n    <div class="adm-card" style="padding:0;overflow:hidden">',
+   '    body=`${window.kgmChatHeadR1101A?window.kgmChatHeadR1101A():\'<div class="adm-sec">員工訊息</div>\'}\n    ${_ceoHTML?\'<details class="k28-audit"><summary>\'+(LANG==="en"?"CEO audit · view a full conversation between two staff":"CEO 稽核：查看兩位員工的完整對話")+\'</summary>\'+_ceoHTML+\'</details>\':\'\'}\n    <div class="adm-card k28-chat" style="padding:0;overflow:hidden">')
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))

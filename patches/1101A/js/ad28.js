@@ -93,6 +93,20 @@
   window.kgmEffNoteR1101A=function(f,rec,rng){try{var t=(typeof todayISO==='function'?todayISO():''),d=t>=rng.from&&t<=rng.to?t:rng.from,e=seas(f,d),dep=rec.dep||f.dep,arr=rec.arr||f.arr;
     if(!e||(e.dep===dep&&e.arr===arr))return '';var zh=z();
     return '<p class="k28-eff">'+(zh?'實際生效時刻 ':'In effect ')+'<b>'+E(e.dep)+'–'+E(e.arr)+(+e.dd?'<sup>+'+e.dd+'</sup>':'')+'</b>'+(zh?'（系統依夜間起降時段與輪擋規則自動調整；販售與航班動態用這個時刻）':' (adjusted by night-window and block rules; used for sales and status)')+'</p>'}catch(_){return ''}};
+  /* 5. 請假管理、訊息中心：頁首與統計（使用者 Round 2：「請假管理頁面不夠正式」「訊息中心頁面待加強不好」） */
+  function ceo(){try{return isCEO()}catch(_){return false}}
+  window.kgmLeaveHeadR1101A=function(){var zh=z(),me=(S.adminUser||{}).empId,y=String(typeof todayISO==='function'?todayISO():'').slice(0,4),L=(S.leave||[]).filter(function(l){return l&&(ceo()||l.empId===me)});
+    var pend=L.filter(function(l){return /^(pending|ceo_review)$/.test(String(l.status||''))}).length,ok=L.filter(function(l){return l.status==='approved'&&String(l.start||'').slice(0,4)===y}),days=ok.reduce(function(a,l){return a+(+l.days||0)},0);
+    var mon=String(typeof todayISO==='function'?todayISO():'').slice(0,7),mn=L.filter(function(l){return String(l.start||'').slice(0,7)===mon&&l.status!=='rejected'}).length;
+    return '<div class="k28-ph"><div><small>HUMAN RESOURCES · LEAVE</small><h2>'+(zh?'請假管理':'Leave management')+'</h2><p>'+(zh?'依《勞動基準法》與《勞工請假規則》辦理。送出後產生案件編號，由執行長審核；核准後組員與地勤班表自動重排並通知職務代理人。':'Leave under the Taiwan Labor Standards Act; approved leave re-plans rosters automatically.')+'</p></div></div>'
+      +'<div class="k28-kpi"><div class="'+(pend?'warn':'')+'"><small>'+(ceo()?(zh?'待審核（全公司）':'Pending (all)'):(zh?'我的待審核':'My pending'))+'</small><b>'+pend+'</b></div>'
+      +'<div><small>'+(zh?y+' 年已核准天數':'Approved days '+y)+'</small><b>'+days+'</b></div><div><small>'+(zh?'本月請假人次':'This month')+'</small><b>'+mn+'</b></div><div><small>'+(zh?'申請紀錄':'Records')+'</small><b>'+L.length+'</b></div></div>'};
+  window.kgmLeaveRulesR1101A=function(){var zh=z();var R=[['特休','Annual','滿半年 3 天、1 年 7 天、2 年 10 天、3 年 14 天、5 年 15 天，10 年起每年加 1 天（上限 30 天）；機師滿 3 個月起、最高 42 天','全薪'],
+      ['病假','Sick','未住院每年合計 30 日內；3 天以上須附診斷證明','半薪'],['事假','Personal','每年合計 14 日內','不給薪'],['生理假','Menstrual','每月 1 日；全年未逾 3 日不併入病假','半薪']];
+    return '<div class="adm-card k28-rules"><table><thead><tr><th>'+(zh?'假別':'Type')+'</th><th>'+(zh?'天數與條件':'Entitlement')+'</th><th>'+(zh?'工資':'Pay')+'</th></tr></thead><tbody>'
+      +R.map(function(r){return '<tr><td><b>'+(zh?r[0]:r[1])+'</b></td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'}).join('')+'</tbody></table></div>'};
+  window.kgmChatHeadR1101A=function(){var zh=z(),me=(S.adminUser||{}).empId,n=0;try{(S.staffChat||S.chatMsgs||[]).forEach(function(m){if(m&&m.to===me&&!m.read)n++})}catch(_){}
+    return '<div class="k28-ph"><div><small>INTERNAL MESSAGES</small><h2>'+(zh?'員工訊息中心':'Staff messages')+'</h2><p>'+(zh?'全體頻道、部門群組、主管團隊與一對一對話；未讀訊息會在左側顯示，開啟對話即標為已讀。':'Company channel, department groups, manager teams and direct messages.')+'</p></div></div>'};
   try{var cs=document.createElement('style');cs.id='k28ad-css';cs.textContent=
     '.k28nt-legs{display:grid;gap:6px;margin:4px 0 10px}.k28nt-h{font-size:12px;color:#55605B;margin-bottom:2px}'
    +'.k28nt-leg{width:100%;box-sizing:border-box;display:grid;grid-template-columns:20px 54px 58px minmax(110px,1fr) 110px auto;align-items:center;gap:10px;border:1px solid #E4E9E6;border-radius:12px;padding:10px 14px;background:#fff;cursor:pointer;font-size:13.5px}'
@@ -106,6 +120,12 @@
    +'#app .k28-edit .inp{border-radius:10px;height:38px}#app .k28-edit textarea.inp{height:auto}'
    +'.k28pm{display:flex;align-items:stretch;gap:0}.k28pm .inp{border-radius:0!important;text-align:center;font:600 15px ui-monospace,monospace;min-width:0}.k28pm button{flex:0 0 38px;border:1px solid #D9E1DC;background:#F6F9F7;color:#0B3D2E;font:700 16px system-ui;cursor:pointer}.k28pm button:first-child{border-radius:10px 0 0 10px;border-right:0}.k28pm button:last-child{border-radius:0 10px 10px 0;border-left:0}.k28pm button:hover{background:#0B3D2E;color:#fff}.inp.k28-chg{background:#FFF8EC}'
    +'.k28-eff{margin:-2px 0 10px;font-size:12px;color:#7A5A12;background:#FFF8EC;border-radius:8px;padding:6px 10px}.k28-eff b{font:700 13px ui-monospace,monospace;color:#0B3D2E}.k28-eff sup{color:#B08A3E}'
+   +'.k28-ph{margin:2px 0 14px}.k28-ph small{font:800 10.5px system-ui,sans-serif;letter-spacing:.2em;color:#B08A3E}.k28-ph h2{font:700 26px Georgia,"Noto Serif TC",serif;color:#0B3D2E;margin:4px 0 6px}.k28-ph p{margin:0;font-size:13px;color:#6B7570;max-width:760px;line-height:1.7}'
+   +'.k28-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}.k28-kpi>div{background:#fff;border:1px solid #E4E9E6;border-radius:14px;padding:12px 16px}.k28-kpi small{display:block;font-size:11.5px;color:#7A857F}.k28-kpi b{font:700 26px Georgia,serif;color:#0B3D2E}.k28-kpi .warn b{color:#B4531E}'
+   +'.k28-rules table{width:100%;border-collapse:collapse;font-size:12.5px}.k28-rules th{text-align:left;font:700 10.5px system-ui,sans-serif;letter-spacing:.12em;color:#7A857F;padding:6px 10px;border-bottom:1px solid #E4E9E6}.k28-rules td{padding:9px 10px;border-bottom:1px solid #F0F3F1;color:#33443C;vertical-align:top}.k28-rules td:first-child b{color:#0B3D2E}.k28-rules td:last-child{white-space:nowrap;color:#7A5A12}'
+   +'.k28-audit{margin:0 0 12px;border:1px dashed #D3DCD7;border-radius:12px;padding:8px 14px;background:#FAFBFA}.k28-audit summary{cursor:pointer;font-size:12.5px;font-weight:700;color:#55605B}.k28-audit[open]{background:#fff}'
+   +'.k28-chat{border-radius:16px!important}.k28-chat>div{min-height:520px!important}.k28-chat div[style*="max-height:300px"]{max-height:420px!important}'
+   +'@media(max-width:760px){.k28-kpi{grid-template-columns:1fr 1fr}}'
    +'.k28-dvc{background:#FFF8EC;border:1px dashed rgba(176,138,62,.55);border-radius:12px;padding:8px 10px}.k28-dvc small{display:block;margin-top:4px;font-size:11px;color:#7A5A12}';
     document.head.appendChild(cs)}catch(_){}
 })();
