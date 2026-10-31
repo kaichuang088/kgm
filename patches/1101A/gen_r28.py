@@ -77,6 +77,7 @@ RW('nat28 fewer th',"else nt=(H(p.empId+'|th22')%1000<Math.round((sh[p.fam]||0)*
 
 # ══ C1：季節性 Payload 限座＝鎖經濟艙最後幾排（js/pl28.js）——選位圖、真實訂位自動劃位、模擬旅客座位都不用那幾排 ══
 EMB28.append('pl28.js')
+EMB28.append('fr28.js')
 RW('pl28 seat row',"      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);",
    "      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);\n"
    "      const _plRow28=(cabinName===\"Economy\"&&window.kgmPlBlockRowsR1101A)?window.kgmPlBlockRowsR1101A(f,f.date).rows:0;   /* 1101A：Payload 鎖經濟艙最後幾排 */\n"
@@ -137,6 +138,44 @@ RW('lag28 auc q',"if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500){setTimeo
    "if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<8000){setTimeout(function(){I25(step929)},1500);return}   /* 1101A：1.5→8 秒 */")
 RW('lag28 dh later',"    setTimeout(function go(){n++;try{if(window.kgmCrewHasDayR121(date)){",
    "    setTimeout(function go(){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<8000){setTimeout(go,1500);return}   /* 1101A：使用者停手 8 秒才算（一算一天卡 1 秒） */\n      n++;try{if(window.kgmCrewHasDayR121(date)){")
+
+# H3：每次畫面後的全頁掃描（0812A postRenderQ）：先看整頁文字有沒有要換的字，沒有就不逐節點掃（結果相同）
+RW('lag28 post click',"      document.querySelectorAll('[onclick]').forEach(function(x){var o=x.getAttribute('onclick')||'',t=(x.textContent||'').trim();if(/milesTab",
+   "      var bt28=(document.body&&document.body.textContent)||'';   /* 1101A：先看整頁有沒有要處理的字，沒有就不逐個掃（後台每次點擊省 100～300ms） */\n      if(document.querySelector('[onclick*=\"milesTab\" i],[onclick*=\"flight miles\" i],[onclick*=\"搭機累積里程\"]')||/搭機累積里程|flight miles/i.test(bt28))document.querySelectorAll('[onclick]').forEach(function(x){var o=x.getAttribute('onclick')||'',t=(x.textContent||'').trim();if(/milesTab")
+RW('lag28 post walker',"      var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n,nodes=[];while((n=walker.nextNode()))nodes.push(n);nodes.forEach(function(x){if(/pending_security/.test(x.nodeValue||''))x.nodeValue=String(x.nodeValue).replace(/pending_security/g,statusNameQ('pending_security'));if(/搭機累積里程/.test(x.nodeValue||''))x.nodeValue=String(x.nodeValue).replace(/搭機累積里程/g,'');});",
+   "      if(/pending_security|搭機累積里程/.test(bt28)){var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n,nodes=[];while((n=walker.nextNode()))nodes.push(n);nodes.forEach(function(x){if(/pending_security/.test(x.nodeValue||''))x.nodeValue=String(x.nodeValue).replace(/pending_security/g,statusNameQ('pending_security'));if(/搭機累積里程/.test(x.nodeValue||''))x.nodeValue=String(x.nodeValue).replace(/搭機累積里程/g,'');});}")
+# H4：存檔合併寫入時，機隊輪轉（kgm_tailasg）與組員班表快取（kgm_crewsched）每次都整份重新打包（一次 200～300ms）→ 使用者 3 秒內有操作就延後（最多 20 秒；關頁照樣立即寫）
+RW('lag28 flush var',"    var q=_ls0818q;_ls0818q={};\n    for(var k in q){",
+   "    var q=_ls0818q,rt28=0,now28=Date.now();_ls0818q={};\n    for(var k in q){if((k==='kgm_tailasg'||k==='kgm_crewsched')&&now28-(window.KGM_LAST_INPUT_R1025B||0)<3000&&now28-(window.__lsDf28||now28)<20000){if(!window.__lsDf28)window.__lsDf28=now28;if(!(k in _ls0818q))_ls0818q[k]=q[k];rt28=1;continue}   /* 1101A：大份快取等使用者停手再打包 */")
+RW('lag28 flush retry',"/* 1008A：內容沒變就不重寫 */\n  },500);",
+   "/* 1008A：內容沒變就不重寫 */\n    if(rt28)_ls0818flush();else window.__lsDf28=0;\n  },500);")
+
+# G1：我的行程分「即將出發／已完成」（使用者 Round 3 圖三）
+RW('trip28 list split',"  var rows=mine().slice().sort(function(a,b){return String(firstDate(a)).localeCompare(String(firstDate(b)))});\n  var cards=rows.map(function(b){",
+   "  var all28=mine().slice().sort(function(a,b){return String(firstDate(a)).localeCompare(String(firstDate(b)))});   /* 1101A：分即將出發／已完成 */\n  var td28=(typeof todayISO==='function'?todayISO():new Date().toISOString().slice(0,10));\n  var last28=function(b){var ss=segs(b),l=ss[ss.length-1]||{};return String(l.date||(l.f||{}).date||firstDate(b)||'')};\n  var up28=all28.filter(function(b){return b.status!=='cancelled'&&last28(b)>=td28}),done28=all28.filter(function(b){return up28.indexOf(b)<0}).sort(function(a,b){return last28(b).localeCompare(last28(a))});\n  var tab28=S.tripsTabR1101A==='done'?'done':'up',rows=tab28==='done'?done28:up28;\n  var tabs28='<div class=\"k60-tabs28\" role=\"tablist\"><button type=\"button\" role=\"tab\" class=\"'+(tab28==='up'?'on':'')+'\" onclick=\"S.tripsTabR1101A=\\'up\\';render()\">'+(z()?'即將出發':'Upcoming')+'<i>'+up28.length+'</i></button><button type=\"button\" role=\"tab\" class=\"'+(tab28==='done'?'on':'')+'\" onclick=\"S.tripsTabR1101A=\\'done\\';render()\">'+(z()?'已完成':'Completed')+'<i>'+done28.length+'</i></button></div>';\n  var cards=rows.map(function(b){")
+RW('trip28 list body',"    +(rows.length?('<section class=\"k60-trips\">'+cards+'</section>')\n      :('<div class=\"k60-warn\">'+(z()?'此帳號目前沒有訂位。':'No bookings on this account yet.')+'</div>'))",
+   "    +(all28.length?tabs28:'')+(rows.length?('<section class=\"k60-trips\">'+cards+'</section>')\n      :('<div class=\"k60-warn\">'+(!all28.length?(z()?'此帳號目前沒有訂位。':'No bookings on this account yet.'):tab28==='up'?(z()?'目前沒有即將出發的行程。':'No upcoming trips.'):(z()?'還沒有已完成的行程。':'No completed trips yet.'))+'</div>'))")
+
+# G2：辦理登機——美國航線起飛前 24 小時、其他 48 小時開放（以出發地當地時間算）；行程卡按鈕未開放／已截止時灰色
+RW('ci28 window',"function ciWindow60(s){\n  var t=depMs60(s);if(!isFinite(t))return {open:true,why:''};\n  var h=(t-Date.now())/3600000;\n  if(h>CI_OPEN_H)return {open:false,early:true,hours:Math.ceil(h-CI_OPEN_H),\n    why:(z()?('尚未開放，起飛前 '+CI_OPEN_H+' 小時開放'):('Opens '+CI_OPEN_H+'h before departure'))};",
+   "function ciWindow60(s){\n  var c28=window.kgmCiOpenR1101A?window.kgmCiOpenR1101A(s):null,OH=c28?c28.openH:CI_OPEN_H;   /* 1101A：美國航線 24 小時；起飛時間用出發地當地時間 */\n  var t=c28&&isFinite(c28.ms)?c28.ms:depMs60(s);if(!isFinite(t))return {open:true,why:''};\n  var h=(t-Date.now())/3600000;\n  if(h>OH)return {open:false,early:true,hours:Math.ceil(h-OH),openAt:t-OH*3600000,\n    why:(z()?('尚未開放，起飛前 '+OH+' 小時開放'+(OH===24?'（美國航線）':'')):('Opens '+OH+'h before departure'+(OH===24?' (US routes)':'')))};")
+RW('ci28 hub text',"'每一個實際飛行的航段都要各自辦理報到；開放時間為該航段起飛前 48 小時，截止於起飛前 90 分鐘。'",
+   "'每一個實際飛行的航段都要各自辦理報到；開放時間為該航段起飛前 48 小時（美國航線 24 小時），截止於起飛前 90 分鐘。'")
+RW('ci28 card btn',"           +'<button class=\"k56-ci\" type=\"button\" onclick=\"'+op('checkin')+'\">'\n             +(Z()?'辦理登機':'Check in')+'</button>'",
+   "           +(function(){var w28=window.kgmCiStateR1101A?window.kgmCiStateR1101A(b,s):null;   /* 1101A：還沒開放／已截止＝灰色 */\n             return '<button class=\"k56-ci'+(w28&&!w28.open?' k28-ci-off':'')+'\" type=\"button\"'+(w28&&!w28.open?' aria-disabled=\"true\" title=\"'+E(w28.why)+'\"':'')+' onclick=\"'+op('checkin')+'\">'\n             +(Z()?'辦理登機':'Check in')+'</button>'+(w28&&!w28.open?'<small class=\"k28-ci-why\">'+E(w28.short)+'</small>':'')})()")
+
+# G1b：我的行程清單改成「左邊大勾勾選一筆 → 右下角『進入行程』」（使用者 Round 3 追加，一次選一個）
+RW('trip28 card pick',"    return '<button class=\"k60-trip'+(cancelled?' off':'')+'\" onclick=\"kgmOpenTripR60(\\''+A(b.pnr)+'\\')\">'",
+   "    var pk28=S.tripPickR1101A===b.pnr;   /* 1101A：點卡片＝勾選（一次一筆），右下角按鈕才進入 */\n    return '<button type=\"button\" role=\"radio\" aria-checked=\"'+(pk28?'true':'false')+'\" data-pnr28=\"'+E(b.pnr)+'\" data-route28=\"'+E(route)+'\" class=\"k60-trip k28-pick'+(cancelled?' off':'')+(pk28?' sel':'')+'\" onclick=\"kgmTripPickR1101A(\\''+A(b.pnr)+'\\')\">'\n      +'<span class=\"k28-chk\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg></span>'")
+RW('trip28 card go',"      +'<span class=\"k60-trip-go\">›</span></button>';",
+   "      +'</button>';")
+RW('trip28 list foot',"    +'<button class=\"k60-btn ghost\" style=\"margin-top:18px\" onclick=\"S.tripsListR60=false;S.mgForceForm=true;S.view=\\'manage\\';render()\">'",
+   "    +(rows.length?(function(){var sb=rows.filter(function(b){return b.pnr===S.tripPickR1101A})[0];return '<div class=\"k28-pickbar\"><span class=\"k28-pickinfo\">'+(sb?((z()?'已選 ':'Selected ')+'<b>'+E(sb.pnr)+'</b>'):(z()?'請在左邊勾選一筆行程':'Tick a trip on the left'))+'</span><button type=\"button\" class=\"k28-pickgo\"'+(sb?'':' disabled')+' onclick=\"kgmTripGoR1101A()\">'+(z()?'進入行程':'Open trip')+'<span aria-hidden=\"true\">›</span></button></div>'})():'')\n    +'<button class=\"k60-btn ghost\" style=\"margin-top:18px\" onclick=\"S.tripsListR60=false;S.mgForceForm=true;S.view=\\'manage\\';render()\">'")
+
+RW('trip28 intro',"'這裡列出此帳號名下的所有訂位。點選任何一筆即可進入行程管理，辦理報到、選位、改票與退票。'",
+   "'這裡列出此帳號名下的所有訂位。在左邊勾選一筆，再按右下角「進入行程」，即可辦理報到、選位、改票與退票。'")
+RW('trip28 intro en',"'Every booking on this account. Open one to check in, choose seats, change or refund it.'",
+   "'Every booking on this account. Tick one, then press Open trip to check in, choose seats, change or refund it.'")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()

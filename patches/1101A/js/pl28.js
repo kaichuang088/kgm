@@ -112,7 +112,8 @@
     var d=document.createElement('section');d.className='k28bal';d.setAttribute('data-sig',sig);d.innerHTML=h;if(el)el.replaceWith(d);else host.insertBefore(d,host.firstChild)}catch(e){}}
   setInterval(panel,900);
   /* 前台行程管理：座位調整的補償二選一卡片（插在頁首大標題下面） */
-  function front(){try{if(S.view!=='manage'||!S.mgResult)return;var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===S.mgResult.pnr})[0]||S.mgResult;
+  function front(){try{var pn=S.view==='manage'&&S.mgResult?S.mgResult.pnr:(S.view==='mytrip'&&!S.tripsListR60&&S.mtOnly?S.mtOnly:null);if(!pn)return;   /* 會員從我的行程進來是 mytrip＋mtOnly */
+    var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===pn})[0]||S.mgResult;if(!b)return;
     var app=document.getElementById('app');if(!app)return;var ex=app.querySelector('.k28pc-host'),html=window.kgmPlCompHtmlR1101A(b);
     if(!html){if(ex)ex.remove();return}if(ex){if(ex.getAttribute('data-h')!==String(html.length)+html.slice(-80)){ex.innerHTML=html;ex.setAttribute('data-h',String(html.length)+html.slice(-80))}return}
     var hero=[].slice.call(app.querySelectorAll('div,section')).filter(function(e){return /^\s*MANAGE MY BOOKING/i.test(e.textContent||'')&&e.offsetHeight>80&&e.offsetHeight<600})[0];if(!hero)return;
