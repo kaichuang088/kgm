@@ -217,6 +217,10 @@ RW('res28 submit b',"      backupSeat:seat||defaultSeat89(alt),confirmed:true,",
 RW('res28 list',"<small>'+(z()?'備選座位 ':'Backup seat ')+E(x.backupSeat||'—')+' · '+E(x.alt||'—')+'</small>",
    "<small>'+(x.backupSeat?((z()?'備選座位 ':'Backup seat ')+E(x.backupSeat)+' · '):'')+(z()?'未得標改訂 ':'Fallback ')+E(x.alt||'—')+'</small>")
 
+# G6：多航段搜尋：新增的航段目的地還沒選時，下拉選單顯示「請選擇目的地」（原本畫面顯示第一個城市、資料卻是空的，路線摘要變成「…」）；版面在 fr28（.mc-search）
+RW('mc28 to placeholder','<select id="mc-seg-${i}-to" class="inp" onchange="S.search.segs[${i}].to=this.value">${cityOpts(seg.to)}</select>',
+   '<select id="mc-seg-${i}-to" class="inp" onchange="S.search.segs[${i}].to=this.value">${seg.to?"":`<option value="" selected disabled>${LANG==="en"?"Select destination":"請選擇目的地"}</option>`}${cityOpts(seg.to)}</select>')
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))

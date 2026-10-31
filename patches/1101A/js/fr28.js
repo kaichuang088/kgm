@@ -91,6 +91,18 @@
    +'.r28-addons .r7-addon-copy .btn{border-radius:999px;border-color:#0B3D2E;color:#0B3D2E;padding:9px 20px}.r28-addons .r7-addon-copy .btn:hover{background:#0B3D2E;color:#fff}'
    +'.r28-addons .r7-addon-controls select,.r28-addons .r7-addon-controls input{border-radius:10px;border-color:rgba(11,58,46,.2)}'
    +'.r28-addons .r7-addon-art{background:linear-gradient(160deg,#F4F1E7,#EEF2EF)}.r28-addons .r7-addon-art svg{filter:grayscale(1) sepia(.45) hue-rotate(95deg) saturate(1.3) opacity(.75)}'
+   /* 多航段搜尋（.mc-search）：拿掉卡片裡再一層卡片，改成跟單程／來回同一種「標籤＋底線欄位」的寫法，航段之間用細線串起來 */
+   +'#app .mc-search{border:0;box-shadow:none;background:none;padding:6px 2px 0}'
+   +'#app .mc-search .k134-route{background:#F7F5EF;border:0;border-radius:12px;padding:12px 16px;margin:10px 0 6px}'
+   +'#app .mc-search .mc-seg{position:relative;border:0;border-bottom:1px solid #EEF0EC;border-radius:0;background:none;box-shadow:none;margin:0;padding:18px 4px 16px;transform:none}'
+   +'#app .mc-search .mc-seg:hover{box-shadow:none;transform:none;background:linear-gradient(90deg,rgba(11,58,46,.025),transparent)}'
+   +'#app .mc-search .mc-num{width:30px;height:30px;font:700 13px system-ui,sans-serif;background:#fff;color:#0B3D2E;border:1.5px solid #0B3D2E;box-shadow:none;align-self:center}'
+   +'#app .mc-search .mc-label{font:700 10.5px system-ui,sans-serif;letter-spacing:.14em;color:#8A938E;text-transform:uppercase}'
+   +'#app .mc-search .mc-seg select.inp,#app .mc-search .mc-seg input.inp,#app .mc-search .mc-seg button.inp{border:0;border-bottom:1.5px solid #D9DED9;border-radius:0;background-color:transparent;padding:6px 26px 7px 0;height:40px!important;font:600 15.5px inherit;font-family:inherit;color:#14231D;box-shadow:none}'
+   +'#app .mc-search .mc-seg select.inp:focus,#app .mc-search .mc-seg input.inp:focus,#app .mc-search .mc-seg button.inp:focus{border-bottom-color:#0B3D2E;outline:none}'
+   +'#app .mc-search .k134-add{width:auto;margin:14px 0 4px;padding:10px 18px;border:1px dashed rgba(176,138,62,.6);border-radius:999px;background:#FFFCF5;color:#0B3D2E;font:600 13.5px inherit;font-family:inherit}'
+   +'#app .mc-search .k134-add:hover{background:#0B3D2E;color:#fff;border-color:#0B3D2E}'
+   +'#app .mc-search .mc-remove{border-radius:999px}#app .mc-search .mc-seg button.inp{text-align:left;width:100%;background-image:linear-gradient(transparent,transparent)}#app .mc-search .mc-seg button.inp:before{content:"\\1F4C5";font-size:13px;margin-right:8px;opacity:.55}'
    +'.k28-ci-why{display:block;margin-top:6px;font-size:11.5px;color:#7A857F;text-align:center;letter-spacing:.02em}';
     document.head.appendChild(cs)}catch(_){}
 })();
