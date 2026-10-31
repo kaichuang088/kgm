@@ -127,6 +127,7 @@
   var NIGHT28={'KX9|ORD|TPE|w':1};
   function bkk28(f){return f&&(f.fr==='BKK'||f.to==='BKK')}
   var NOMID27={'KX8|TPE|DTW|w':1};
+  var GAP28={KX53:1,KX54:1,KX60:1,KX59:1};   /* 1101A：墨爾本夏令時間跟北半球季節不一致那幾週改用冬季時刻的輪轉 */
   var EARLY27={"KX52|TPE|SYD|s":"18:45","KX52|SYD|AKL|s":"07:15","KX51|AKL|SYD|s":"14:00","KX51|SYD|TPE|s":"16:50","KX8|TPE|DTW|s":"21:40","KX52|TPE|SYD|w":"18:25","KX52|SYD|CHC|w":"08:00","KX51|CHC|SYD|w":"14:45","KX51|SYD|TPE|w":"17:35","KX66|TPE|AUH|s":"18:40","KX60|TPE|KUL|w":"06:15","KX60|KUL|MEL|w":"11:55","KX53|PER|MEL|w":"16:20","KX290|TPE|SIN|w":"19:00","KX288|TPE|SGN|s":"21:20","KX334|TPE|SZX|w":"18:45","KX208|TPE|KTI|s":"15:20","KX207|KTI|TPE|s":"19:20","KX316|TPE|CKG|s":"17:05","KX315|CKG|TPE|s":"21:10","KX254|TPE|MNL|w":"17:55","KX253|MNL|TPE|w":"21:30","KX310|TPE|PVG|s":"19:15","KX309|PVG|TPE|s":"22:10","KX333|SZX|TPE|w":"22:05","KX282|TPE|SIN|s":"13:10","KX55|AKL|TPE|s":"16:55","KX170|TPE|FUK|w":"18:20","KX398|TPE|PEK|s":"16:40","KX397|PEK|TPE|s":"21:00","KX310|TPE|PVG|w":"19:05","KX309|PVG|TPE|w":"22:10","KX316|TPE|CKG|w":"17:00","KX315|CKG|TPE|w":"21:15","KX281|SIN|TPE|s":"19:15","KX266|TPE|CNX|s":"20:50","KX208|TPE|KTI|w":"15:20","KX207|KTI|TPE|w":"19:25","KX62|TPE|BKK|w":"20:55","KX98|TPE|HEL|s":"18:45","KX52|SYD|CHC|s":"07:15","KX51|CHC|SYD|s":"14:00","KX52|SYD|AKL|w":"07:15","KX51|AKL|SYD|w":"14:00","KX262|TPE|CEB|w":"22:30","KX66|TPE|AUH|w":"19:40","KX9|ORD|TPE|w":"02:50"};
   function proj(f,x,win,px,sx,date){
     var dep0=mn(x.dep),dd0=+x.dd||0,off=date?offAt(f.fr,f.to,date,dd0):offSea(f.fr,f.to,win),blk0=blkOff(x.dep,x.arr,dd0,off);   /* 1026C：時差依日期（夏令時間） */
@@ -201,6 +202,11 @@
       if(a.dep===x.dep&&b.arr===x.arr&&dd===(+x.dd||0))return withDur(f,date,x);
       var y=Object.assign({},x,{dep:a.dep,arr:b.arr,dd:dd});try{y.dur=blkAt(f.fr,f.to,y.dep,y.arr,dd,date);y.durStr=durStr(y.dur)}catch(_){}y.blockR1026B=1;return y}
     var B=builtinOf(f);if(!B)return withDur(f,date,x);f=B;
+    /* 1101A：墨爾本已經進入夏令時間、但北半球夏季時刻還沒換（10 月第一個週日～IATA 冬季開始；IATA 夏季開始～4 月第一個週日）那幾週，
+       夏季時刻是照墨爾本標準時間排的 → 伯斯→墨爾本只剩 2 小時 55 分（使用者回報 KX53 少 65 分）、吉隆坡→墨爾本少 40 分；
+       這兩條的前後班過站都卡 75 分、晚上又不能過午夜，只往前挪出發做不到 → 這幾週整條輪轉（KX54／KX53、KX60／KX59）改用冬季時刻（冬季時刻本來就是照墨爾本夏令時間排的）。 */
+    if(!win&&GAP28[f.code]&&dstOn('MEL',date)){var wdt=Number(date.slice(5,7))>=7?date.slice(0,4)+'-12-02':(Number(date.slice(0,4))-1)+'-12-02';var xw=rawCall(o,f,wdt);
+      if(xw&&xw.dep&&xw.arr){x=Object.assign({},x,{dep:xw.dep,arr:xw.arr,dd:+xw.dd||0,dur:xw.dur,durStr:xw.durStr,gapR1101A:1});win=true}}
     /* 快取：同一班同一天通常只有一組原始時刻 → 用日期查，再比原始時刻（不組字串） */
     var m=SMW.get(f),e=m?m.get(date):undefined,dd0=+x.dd||0,ac=x.acft||'';
     if(e&&e.d===x.dep&&e.a===x.arr&&e.dd===dd0&&e.ac===ac&&e.w===win&&e.xd===x.dur)return e.r?Object.assign({},x,e.r):x;
