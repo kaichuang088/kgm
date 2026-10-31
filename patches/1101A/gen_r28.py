@@ -312,6 +312,10 @@ RW('mail28 charter quoted',"  {ev:'group.charter_approved',who:'ext',zh:'包機�
    "  {ev:'group.charter_quoted',who:'ext',zh:'包機／自創航班報價（不二價）',en:'Charter quote',when:'團體業務在後台案件給報價：寫明金額、回覆期限（7 天；離申請期限不到 7 天就到期限前 3 天）；旅客在前台案件接受或拒絕'},\n"
    "  {ev:'group.charter_approved',who:'ext',zh:'包機／自創航班成立・班號與全額請款',en:'Charter confirmed',when:'旅客接受報價：建立航班與團體訂位，寫明班號與時刻；當下付清全額，名單起飛前 14 天前可改、之後自動開票'},")
 
+# Z：稽核 R182 跟著 1101A 規則（Residence 競標不再保留備選座位 → 送出時不帶 backupSeat 才對）
+RW('res28 audit r182',"  if(!(o.submitPasses&&o.submitPasses.backupSeat&&o.submitPasses.confirmed))\n    bad.push('送出現金出價仍然沒有帶 backupSeat／confirmed');",
+   "  if(!(o.submitPasses&&o.submitPasses.confirmed))\n    bad.push('送出現金出價沒有帶 confirmed');\n  if(o.submitPasses&&o.submitPasses.backupSeat)\n    bad.push('1101A 起競標不保留備選座位，送出仍帶 backupSeat');   /* 1101A：使用者「Residence 備選座位不賣」 */")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
