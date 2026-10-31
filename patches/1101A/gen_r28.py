@@ -79,6 +79,7 @@ RW('nat28 fewer th',"else nt=(H(p.empId+'|th22')%1000<Math.round((sh[p.fam]||0)*
 EMB28.append('pl28.js')
 EMB28.append('fr28.js')
 EMB28.append('dh28.js')
+EMB28.append('cs28.js')
 RW('pl28 seat row',"      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);",
    "      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);\n"
    "      const _plRow28=(cabinName===\"Economy\"&&window.kgmPlBlockRowsR1101A)?window.kgmPlBlockRowsR1101A(f,f.date).rows:0;   /* 1101A：Payload 鎖經濟艙最後幾排 */\n"
@@ -220,6 +221,28 @@ RW('res28 list',"<small>'+(z()?'備選座位 ':'Backup seat ')+E(x.backupSeat||'
 # G6：多航段搜尋：新增的航段目的地還沒選時，下拉選單顯示「請選擇目的地」（原本畫面顯示第一個城市、資料卻是空的，路線摘要變成「…」）；版面在 fr28（.mc-search）
 RW('mc28 to placeholder','<select id="mc-seg-${i}-to" class="inp" onchange="S.search.segs[${i}].to=this.value">${cityOpts(seg.to)}</select>',
    '<select id="mc-seg-${i}-to" class="inp" onchange="S.search.segs[${i}].to=this.value">${seg.to?"":`<option value="" selected disabled>${LANG==="en"?"Select destination":"請選擇目的地"}</option>`}${cityOpts(seg.to)}</select>')
+
+# F：案件與寵物（js/cs28.js）
+RW('cs28 ct7',"group_account:['團體帳號綁定','Group account']};","group_account:['團體帳號綁定','Group account'],pet:['寵物同行申請','Pet travel application']};   /* 1101A */")
+RW('cs28 menu','{zh:"登機證",en:"Boarding Pass",nav:"manage"}]}\n    ]},',
+   '{zh:"登機證",en:"Boarding Pass",nav:"manage"}]},\n      {zh:"旅客服務",en:"Customer Care",items:[{zh:"寵物同行申請",en:"Travel with Pets",nav:"pet28"},{zh:"建立客服案件",en:"Contact Us · New Case",nav:"case28"}]}   /* 1101A */\n    ]},')
+RW('cs28 cat filter',"  var zh=ZJ(),all=caseRowsJ(),F=S.case7F||{},q=String(S.caseFilter0831B||'').toUpperCase();",
+   "  var zh=ZJ(),all0=caseRowsJ(),cat28=S.case28Cat==='refund'?'refund':'other',isR28=function(r){return window.kgmCaseIsRefundR1101A?window.kgmCaseIsRefundR1101A(r):false};   /* 1101A：退票退費（需 CEO）／其他 兩個分頁 */\n  var all=all0.filter(function(r){return isR28(r)===(cat28==='refund')}),F=S.case7F||{},q=String(S.caseFilter0831B||'').toUpperCase();\n  var cnt28=function(rf){return all0.filter(function(r){return isR28(r)===rf&&!closed7(r)}).length},ceo28=function(rf){return all0.filter(function(r){return isR28(r)===rf&&/ceo_review|needs_more_info/.test(r.status)}).length};\n  var catBar28='<div class=\"k28-cat\" role=\"tablist\"><button type=\"button\" class=\"'+(cat28==='refund'?'on':'')+'\" onclick=\"S.case28Cat=\\'refund\\';S.case7Sel=null;render()\">'+(zh?'退票退費':'Refunds')+'<b>'+cnt28(true)+'</b><small>'+(zh?'需執行長核准・待 CEO '+ceo28(true):'CEO approval')+'</small></button><button type=\"button\" class=\"'+(cat28==='other'?'on':'')+'\" onclick=\"S.case28Cat=\\'other\\';S.case7Sel=null;render()\">'+(zh?'其他案件':'Other cases')+'<b>'+cnt28(false)+'</b><small>'+(zh?'行李、客訴、寵物、團體異動…・待 CEO '+ceo28(false):'Bags, complaints, pets…')+'</small></button></div>';")
+RW('cs28 cat bar',"    +'<div class=\"k7c-kpi\">'+kpi.map(","    +catBar28+'<div class=\"k7c-kpi\">'+kpi.map(")
+RW('cs28 ceo acts',"  if(staff&&!cl){\n    acts='<div class=\"k7c-act\">",
+   "  if(staff&&!cl&&raw.status==='ceo_review'&&window.kgmCase28CeoActsR1101A){acts=window.kgmCase28CeoActsR1101A(r)}   /* 1101A：送 CEO 最後審核的案件 */\n  else if(staff&&!cl){\n    acts='<div class=\"k7c-act\">")
+RW('cs28 to ceo btn',"      +'<div class=\"k7c-btns\"><button class=\"btn btn-g\" onclick=\"kgmCase7Update(\\''+AJ(r.no)+'\\')\">'+(zh?'儲存並更新':'Save update')+'</button></div></div>';",
+   "      +'<div class=\"k7c-btns\"><button class=\"btn\" onclick=\"kgmCase28ToCeo(\\''+AJ(r.no)+'\\')\">'+(zh?'送 CEO 最後審核':'Assign to CEO')+'</button><button class=\"btn btn-g\" onclick=\"kgmCase7Update(\\''+AJ(r.no)+'\\')\">'+(zh?'儲存並更新':'Save update')+'</button></div></div>';")
+RW('cs28 files',"    +bag+(r.source==='profile'?profileBlockR913(r):'')","    +bag+(window.kgmCaseFilesHtmlR1101A?window.kgmCaseFilesHtmlR1101A(raw):'')+(r.source==='profile'?profileBlockR913(r):'')")
+RW('cs28 flight',"  if(raw.segment&&raw.segment.code)x.flight=raw.segment.code+' '+(raw.segment.fr||'')+'→'+(raw.segment.to||'')+' '+String(raw.segment.date||'').slice(5);",
+   "  if(raw.segment&&raw.segment.code)x.flight=window.kgmCaseFlightR1101A?window.kgmCaseFlightR1101A(raw.segment.code,raw.segment.fr,raw.segment.to,raw.segment.date):(raw.segment.code+' '+(raw.segment.fr||'')+'→'+(raw.segment.to||'')+' '+String(raw.segment.date||'').slice(5));   /* 1101A：夥伴營運寫 CX531 (KX9921) TPE-HKG */")
+RW('cs28 src label',"  rows.forEach(function(r){try{case7Label(r)}catch(_){}});",
+   "  rows.forEach(function(r){try{case7Label(r)}catch(_){}});\n  rows.forEach(function(r){try{if(r.raw&&r.raw.by&&r.raw.by.role==='passenger')r.sourceLabel=ZJ()?'旅客線上建立':'Passenger (online)'}catch(_){}});   /* 1101A */")
+RW('cs28 pet tag',"+(window.kgmSsrBadgeR1010A?window.kgmSsrBadgeR1010A(x):'')+(x.dhR929?' <span class=\"k929-dh\"",
+   "+(window.kgmSsrBadgeR1010A?window.kgmSsrBadgeR1010A(x):'')+(window.kgmPetTagR1101A&&x.pnr?window.kgmPetTagR1101A(x.pnr,k):'')+(x.dhR929?' <span class=\"k929-dh\"")
+
+RW('cs28 ai pet',"    [/寵物|狗|貓|動物|pet/i,function(){return '寵物（犬、貓）可以，需於起飛前申請：'+pol('寵物 受理',300)}],",
+   "    [/寵物|狗|貓|動物|服務犬|導盲犬|pet/i,function(){return window.kgmPetAiR1101A?window.kgmPetAiR1101A(String(window.__k23q||'')):('寵物（犬、貓）可以，需於起飛前申請：'+pol('寵物 受理',300))}],   /* 1101A：KGM-PET-022＋直接開申請頁 */")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
