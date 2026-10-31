@@ -255,6 +255,13 @@ RW('nt28 code',"value=\"${S.anFltCode||''}\" oninput=\"S.anFltCode=this.value.to
 RW('nt28 date',"value=\"${S.anFltDate||''}\" oninput=\"S.anFltDate=this.value\">","value=\"${S.anFltDate||''}\" oninput=\"S.anFltDate=this.value\" onchange=\"render()\">")
 RW('nt28 legs',"<div style=\"font-size:11px;color:var(--sub);margin-bottom:6px\">${(function(){var n=countPaxOnFlight(","${window.kgmNtLegsR1101A?window.kgmNtLegsR1101A():''}<div style=\"font-size:11px;color:var(--sub);margin-bottom:6px\">${(function(){var n=countPaxOnFlight(")
 
+# H4：換機身清單：飛機在 TPE、航班從外站出發 → 算從 TPE 空機調過去來不來得及（js/ad28.js kgmFerryR1101A），不再一律「不在 BOS」
+RW('ferry28 var',"    return T.map(function(t){var st='ok',why='';","    return T.map(function(t){var st='ok',why='',ferry=null;")
+RW('ferry28 away',"if(at!==f0&&!(at==='TPE'&&f0==='TSA')&&!(at==='TSA'&&f0==='TPE')){st='away';why=(z()?'不在 ':'Not at ')+f0+(z()?'（在 '+at+'）':' (at '+at+')')}",
+   "if(at!==f0&&!(at==='TPE'&&f0==='TSA')&&!(at==='TSA'&&f0==='TPE')){var fy=null;try{fy=window.kgmFerryR1101A?window.kgmFerryR1101A(t,at,f0,legs,win,span,routeOf):null}catch(_){}   /* 1101A：在 TPE 的飛機算空機調派 */\n            if(fy&&fy.ok){st='ok';why=fy.why;ferry=fy}else{st='away';why=(fy&&fy.why)||((z()?'不在 ':'Not at ')+f0+(z()?'（在 '+at+'）':' (at '+at+')'))}}")
+RW('ferry28 ret',"      return {tail:t,st:st,why:why,legs:n,cur:t===mv.tail}});","      return {tail:t,st:st,why:why,legs:n,cur:t===mv.tail,ferry:ferry}});")
+RW('ferry28 label',"(x.st==='ok'?((z()?'當天 ':'')+x.legs+(z()?' 段':' legs')):E(x.why))","(x.st==='ok'?(x.ferry?E(x.why):((z()?'當天 ':'')+x.legs+(z()?' 段':' legs'))):E(x.why))")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
