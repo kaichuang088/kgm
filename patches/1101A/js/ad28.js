@@ -87,6 +87,12 @@
           if(/^\d{1,2}:\d{2}$/.test(d1)||/^\d{1,2}:\d{2}$/.test(a1)){var dep=d1||(L&&L.dep)||'',arr=a1||(L&&L.arr)||'';var dd=(L?L.dd:0);if(dep&&arr&&hm(arr)<hm(dep)&&!dd)dd=1;ov.divertLegR1101A={date:(L&&L.date)||P.date,dep:dep,arr:arr,dd:dd}}
           else if(L)ov.divertLegR1101A={date:L.date,dep:L.dep,arr:L.arr,dd:L.dd,est:true};
           try{save()}catch(_){}}else if(ov.divertLegR1101A){delete ov.divertLegR1101A;try{save()}catch(_){}}}}catch(_){}return r};sv28.__dv28=1;window.doAdminSave=sv28;try{doAdminSave=sv28}catch(_){}}}catch(_){}
+  /* 4. 航班調整 −／＋：只改輸入框（不重畫，頁面不卡） */
+  window.kgmTimeStepR1101A=function(id,d,link){[id,link].forEach(function(x){if(!x)return;var e=document.getElementById(x);if(!e)return;var m=/^(\d{1,2}):(\d{2})$/.exec(String(e.value||'').trim());if(!m)return;
+    var t=((+m[1]*60+ +m[2]+d)%1440+1440)%1440;e.value=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');e.classList.add('k28-chg')})};
+  window.kgmEffNoteR1101A=function(f,rec,rng){try{var t=(typeof todayISO==='function'?todayISO():''),d=t>=rng.from&&t<=rng.to?t:rng.from,e=seas(f,d),dep=rec.dep||f.dep,arr=rec.arr||f.arr;
+    if(!e||(e.dep===dep&&e.arr===arr))return '';var zh=z();
+    return '<p class="k28-eff">'+(zh?'實際生效時刻 ':'In effect ')+'<b>'+E(e.dep)+'–'+E(e.arr)+(+e.dd?'<sup>+'+e.dd+'</sup>':'')+'</b>'+(zh?'（系統依夜間起降時段與輪擋規則自動調整；販售與航班動態用這個時刻）':' (adjusted by night-window and block rules; used for sales and status)')+'</p>'}catch(_){return ''}};
   try{var cs=document.createElement('style');cs.id='k28ad-css';cs.textContent=
     '.k28nt-legs{display:grid;gap:6px;margin:4px 0 10px}.k28nt-h{font-size:12px;color:#55605B;margin-bottom:2px}'
    +'.k28nt-leg{width:100%;box-sizing:border-box;display:grid;grid-template-columns:20px 54px 58px minmax(110px,1fr) 110px auto;align-items:center;gap:10px;border:1px solid #E4E9E6;border-radius:12px;padding:10px 14px;background:#fff;cursor:pointer;font-size:13.5px}'
@@ -98,6 +104,8 @@
    +'#app .k28-edit h4{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;font:700 22px Georgia,serif!important;color:#0B3D2E!important;margin:0 0 16px!important}#app .k28-edit h4 small{flex-basis:100%;font:800 10.5px system-ui,sans-serif;letter-spacing:.2em;color:#B08A3E}#app .k28-edit h4 span{font:500 14px system-ui,sans-serif;color:#55605B}'
    +'#app .k28-edit>div[style*="grid-template-columns"]{gap:12px 14px!important}#app .k28-edit label{font:700 10.5px system-ui,sans-serif!important;letter-spacing:.12em;text-transform:uppercase;color:#7A857F!important;margin-bottom:5px!important}'
    +'#app .k28-edit .inp{border-radius:10px;height:38px}#app .k28-edit textarea.inp{height:auto}'
+   +'.k28pm{display:flex;align-items:stretch;gap:0}.k28pm .inp{border-radius:0!important;text-align:center;font:600 15px ui-monospace,monospace;min-width:0}.k28pm button{flex:0 0 38px;border:1px solid #D9E1DC;background:#F6F9F7;color:#0B3D2E;font:700 16px system-ui;cursor:pointer}.k28pm button:first-child{border-radius:10px 0 0 10px;border-right:0}.k28pm button:last-child{border-radius:0 10px 10px 0;border-left:0}.k28pm button:hover{background:#0B3D2E;color:#fff}.inp.k28-chg{background:#FFF8EC}'
+   +'.k28-eff{margin:-2px 0 10px;font-size:12px;color:#7A5A12;background:#FFF8EC;border-radius:8px;padding:6px 10px}.k28-eff b{font:700 13px ui-monospace,monospace;color:#0B3D2E}.k28-eff sup{color:#B08A3E}'
    +'.k28-dvc{background:#FFF8EC;border:1px dashed rgba(176,138,62,.55);border-radius:12px;padding:8px 10px}.k28-dvc small{display:block;margin-top:4px;font-size:11px;color:#7A5A12}';
     document.head.appendChild(cs)}catch(_){}
 })();
