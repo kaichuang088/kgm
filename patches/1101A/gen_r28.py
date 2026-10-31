@@ -262,6 +262,17 @@ RW('ferry28 away',"if(at!==f0&&!(at==='TPE'&&f0==='TSA')&&!(at==='TSA'&&f0==='TP
 RW('ferry28 ret',"      return {tail:t,st:st,why:why,legs:n,cur:t===mv.tail}});","      return {tail:t,st:st,why:why,legs:n,cur:t===mv.tail,ferry:ferry}});")
 RW('ferry28 label',"(x.st==='ok'?((z()?'當天 ':'')+x.legs+(z()?' 段':' legs')):E(x.why))","(x.st==='ok'?(x.ferry?E(x.why):((z()?'當天 ':'')+x.legs+(z()?' 段':' legs'))):E(x.why))")
 
+# H3：航班狀態「轉降」→ 航班動態該日追加續航段（例：KX37 轉降 KIX → 當日加一段 KX37 KIX→TPE），編輯面板加續航時刻與版面（js/ad28.js）
+RW('dv28 find',"    out.sort(function(a,b){return mn(a.legs[0].f.dep)-mn(b.legs[0].f.dep)||String(a.legs[0].f.code).localeCompare(String(b.legs[0].f.code))});\n    return out;\n  }\n  /* 依航班號：查詢那天經停點起飛的第二段",
+   "    try{if(window.kgmDivertFindR1101A)window.kgmDivertFindR1101A(byNo,kx,D,S.stFr,S.stTo).forEach(push)}catch(_){}   /* 1101A：轉降後的續航段（只在那一天） */\n    out.sort(function(a,b){return mn(a.legs[0].f.dep)-mn(b.legs[0].f.dep)||String(a.legs[0].f.code).localeCompare(String(b.legs[0].f.code))});\n    return out;\n  }\n  /* 依航班號：查詢那天經停點起飛的第二段")
+RW('dv28 info',"    var f=l.f,d=l.d,ov=ovOf(f,d),dep=ov.dep||f.dep,","    var f=l.f,d=l.d,ov=f.divertContR1101A?{}:ovOf(f,d),dep=ov.dep||f.dep,")
+RW('dv28 label',"(mini?'<span class=\"fb19-st '+x.st[2]+'\">'+E(Z?x.st[0]:x.st[1])+'</span>':(Z?'直飛':'Nonstop'))",
+   "(mini?'<span class=\"fb19-st '+x.st[2]+'\">'+E(Z?x.st[0]:x.st[1])+'</span>':(x.f.divertContR1101A?(Z?'轉降續航（原 '+E(x.f.divertFromR1101A)+'→'+E(x.f.to)+'）':'Diversion continuation'):(Z?'直飛':'Nonstop')))")
+RW('dv28 fields','<input id="adDivertTo" class="inp" placeholder="如 KIX" value="${(S.flightOverrides?.[editKey]||{}).divertTo||""}"></div>',
+   '<input id="adDivertTo" class="inp" placeholder="如 KIX" value="${(S.flightOverrides?.[editKey]||{}).divertTo||""}"></div>${window.kgmDivertFieldsR1101A?window.kgmDivertFieldsR1101A(editKey):""}')
+RW('dv28 panel','<div style="border:1px solid var(--border);border-radius:8px;padding:14px;background:#fafaf9;margin-bottom:10px">\n      <h4 style="font-size:13px;color:var(--g);margin-bottom:10px">Edit: ${editKey}</h4>',
+   '<div class="k28-edit" style="border:1px solid var(--border);border-radius:8px;padding:14px;background:#fafaf9;margin-bottom:10px">\n      <h4 style="font-size:13px;color:var(--g);margin-bottom:10px">${window.kgmEditHeadR1101A?window.kgmEditHeadR1101A(editKey):("Edit: "+editKey)}</h4>')
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
