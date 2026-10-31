@@ -1,0 +1,33 @@
+          const _yn=function(good,txt){return `<div style="display:flex;align-items:flex-start;gap:5px;padding:2px 0">`
+            +`<span style="color:${good?"var(--g)":"#dc2626"};font-weight:800;font-size:11px;line-height:1.35">${good?"\u2713":"\u2715"}</span>`
+            +`<span style="flex:1;font-size:10px;color:${good?"#222":"#888"};line-height:1.35">${txt}</span></div>`;};
+          return`<article
+            style="border:1px solid ${xAvail?"#e2e2e2":"#eee"};border-radius:12px;padding:0;background:${xAvail?"#fff":"#f7f7f7"};text-align:left;cursor:${xAvail?"default":"not-allowed"};opacity:${xAvail?1:0.5};overflow:hidden;width:100%;transition:box-shadow .16s,transform .16s,border-color .16s"
+            onmouseover="if(${xAvail}){this.style.borderColor='${color}';this.style.boxShadow='0 6px 18px rgba(0,0,0,.10)';this.style.transform='translateY(-2px)'}"
+            onmouseout="this.style.borderColor='${xAvail?"#e2e2e2":"#eee"}';this.style.boxShadow='';this.style.transform=''">
+            <div style="height:5px;background:${color}"></div>
+            ${_isRec?`<div style="background:${color};color:#fff;font-size:9px;font-weight:800;letter-spacing:.08em;text-align:center;padding:3px">${LANG==="en"?"RECOMMENDED":"\u63a8\u85a6"}</div>`:""}
+            <div style="padding:11px 12px 9px;border-bottom:1px solid #f2f2f2">
+              <div style="font-size:15px;font-weight:800;color:#111;line-height:1.15">${_tierNm}</div>
+              <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:7px"><span style="font-size:17px;font-weight:900;letter-spacing:.08em;color:${color};line-height:1;font-family:ui-monospace,Menlo,monospace">${_staffFare?"STAFF":((FARES[c]||{}).displayCodeR48||String(c).split("-").pop())}</span><span style="font-size:9px;color:#aaa;letter-spacing:.04em">${_staffFare?stxPlanLabel():cabinLabel}</span></div>
+              <div style="font-size:19px;font-weight:900;color:${_isBase?"#111":color};line-height:1">${_priceTxt}</div>
+              <div style="font-size:9px;color:#999;margin-top:2px">${useMi?(LANG==="en"?"per guest":"\u6bcf\u4eba"):(_isBase?(LANG==="en"?"for all guests":"\u5168\u90e8\u65c5\u5ba2"):(LANG==="en"?"vs lowest fare":"\u8f03\u6700\u4f4e\u7968\u50f9"))}</div>
+              ${(!xAvail)?`<div style="margin-top:6px;font-size:9px;font-weight:800;color:var(--red)">${LANG==="en"?"Sold out":"\u552e\u5b8c"}</div>`
+                :`<div style="display:inline-block;margin-top:7px;background:${seatLeft!==null&&seatLeft<=5?'#c90038':'#eef4f1'};color:${seatLeft!==null&&seatLeft<=5?'#fff':'var(--g)'};border-radius:999px;padding:3px 8px;font-size:9px;font-weight:900">${LANG==="en"?((seatLeft==null||seatLeft>5?'Seats available':seatLeft+' seats left')):((seatLeft==null||seatLeft>5?'有剩餘位置':'剩餘 '+seatLeft+' 席'))}</div>`}
+            </div>
+            ${useMi?(function(){
+              var _st=awardStatus(f.code,f.date,(FARES[c]||{}).cabin||"Economy",S.search.pax);
+              return `<div style="padding:5px 12px;font-size:10px;font-weight:800;color:${_st.ok?"var(--g)":"var(--red)"};background:${_st.ok?"var(--gsoft)":"#FDECEA"}">${_st.label}</div>`;
+            })():""}
+            <div style="padding:8px 12px 11px">
+              ${_yn(miEarnVal>0,(LANG==="en"?"Earn ":"\u7d2f\u7a4d ")+(miEarnVal>0?(miEarnVal.toLocaleString()+(LANG==="en"?" miles":" \u54e9")):(LANG==="en"?"no miles":"\u4e0d\u7d2f\u7a4d\u54e9\u7a0b")))}
+              ${_yn(chgLabel==="\u514d\u8cbb"||chgLabel==="Free",(LANG==="en"?"Change: ":"\u8a02\u4f4d\u8b8a\u66f4\uff1a")+(chgLabel||"\u2014"))}
+              ${_yn(!!refLabel&&refLabel.indexOf("\u4e0d\u53ef")<0&&refLabel.indexOf("Non-")<0,(LANG==="en"?"Refund: ":"\u9000\u7968\uff1a")+(refLabel||"\u2014"))}
+              ${_yn(true,(LANG==="en"?"Checked baggage ":"\u8a17\u904b\u884c\u674e ")+adjBag)}
+              ${_yn(_freeSeat,(LANG==="en"?("Seat selection"+(_freeSeat?" included":" paid")):("\u9810\u9078\u5ea7\u4f4d"+(_freeSeat?"\uff08\u90e8\u5206\u514d\u8cbb\uff09":"\u9700\u4ed8\u8cbb"))))}
+              ${_yn(_zn<=2,(LANG==="en"?"Priority boarding":"\u512a\u5148\u767b\u6a5f"))}
+              ${_yn(_staffFare?false:(_wf||!!fareInfo?.msg),_staffFare?(LANG==="en"?"Wi-Fi chargeable (not included)":"Wi-Fi 需付費（不含免費網路）"):_wf?(LANG==="en"?"Free Wi-Fi":"\u514d\u8cbb Wi-Fi"):(fareInfo?.msg?(LANG==="en"?"Free messaging (text only)":"\u514d\u8cbb\u50b3\u9001\u6587\u5b57\u8a0a\u606f"):(LANG==="en"?"Wi-Fi chargeable":"Wi-Fi \u9700\u4ed8\u8cbb")))}
+              ${_staffFare?"":_yn(canUpgrade,upTxt)}
+              <button ${xAvail?'':'disabled '}onclick="pickFare('${dir}',${idx},'${c}',${_staffFare?'true':'false'})" style="width:100%;margin-top:9px;border:1px solid ${color};border-radius:8px;background:${xAvail?'#fff':'#eee'};color:${xAvail?color:'#999'};padding:8px 10px;font-size:11px;font-weight:900;cursor:${xAvail?'pointer':'not-allowed'}">${LANG==="en"?'Select':'選擇'}</button>
+            </div>
+          </article>`;

@@ -1,0 +1,22 @@
+// 1101A：航班資料手動改座位＝非自願（補償）——node opsseat28.js
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1400,height:1000}})).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:240000});
+await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:240000});
+await p.waitForTimeout(20000);
+const D=await p.evaluate(()=>{const f0=FLIGHTS.filter(x=>x.code==='KX180'&&!x.via)[0];for(let i=3;i<20;i++){const d=new Date(Date.parse(todayISO()+'T12:00:00Z')+i*864e5);if(flyOn(f0,d))return d.toISOString().slice(0,10)}});
+const r1=await p.evaluate((D)=>{const u0=S.users[0];const f0=FLIGHTS.filter(x=>x.code==='KX180'&&!x.via)[0];const f=Object.assign({},f0,kgmSeasonFlightR48(f0,D),{date:D});
+ const ids=cabinSeatIds0814(f,'E-C');const sim=simSeatMap(f.code,D)||{};const free=ids.filter(s=>!sim[s]);
+ const bk={pnr:'TST28C',status:'confirmed',userId:u0.id,outF:f,outC:'E-C',inbF:null,paxList:[{firstName:'MEI',lastName:'LIN'},{firstName:'HAO',lastName:'WU'}],contactEmail:'',seats:{out:{}},total:9000,curr:'TWD',bookedAt:new Date().toISOString(),addons:{seatFeePaid:1600}};
+ bk.seats.out[free[0]]=true;bk.seats.out[free[1]]=true;S.bookings.push(bk);window.__m0=u0.miles;window.__free=free.slice(2,6);
+ S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='flightdata';S.opsQueryR7='KX180';S.opsDateR7=D;S.opsSelectedR7='KX180|'+D+'|'+f.fr+'|'+f.to;S.fdTabR1025B='man';render();
+ return {date:D,before:JSON.stringify(bk.seats.out),target:free[5]}},D);
+console.log(JSON.stringify(r1));
+await p.waitForTimeout(2500);
+const r2=await p.evaluate((tg)=>{const inp=[...document.querySelectorAll('input.r7-seat-input')].filter(i=>/TST28C/.test(i.getAttribute('onchange')||''));if(!inp.length)return {err:'no input',n:document.querySelectorAll('input.r7-seat-input').length};
+ const oc=inp[0].getAttribute('onchange');const m=/setOpsSeatR7\('([^']+)','([^']+)'/.exec(oc);setOpsSeatR7(m[1],m[2],tg);const bk=S.bookings.filter(x=>x.pnr==='TST28C')[0];
+ return {inputs:inp.length,key:m[1],id:m[2],after:JSON.stringify(bk.seats.out),moves:bk.plMoveR1101A,refunds:bk.refundsR1101A}},r1.target);
+console.log(JSON.stringify(r2));
+await p.evaluate(()=>{S.adminAuthed=false;S.view='manage';S.mgResult=S.bookings.filter(x=>x.pnr==='TST28C')[0];render()});await p.waitForTimeout(1500);
+const r3=await p.evaluate(()=>{const c=document.querySelector('.k28pc-host');const chip=[...document.querySelectorAll('#app .m')].filter(e=>/座位/.test(e.textContent))[0];return {card:c?c.innerText:null,seatChip:chip?chip.innerText.replace(/\s+/g,' '):null}});
+console.log(JSON.stringify(r3));console.log('ERR',errs.slice(0,3));await b.close()})();

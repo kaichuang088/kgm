@@ -1,0 +1,12 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1360,height:950}})).newPage();
+ const errs=[];p.on('pageerror',e=>errs.push(String(e).slice(0,200)));p.on('dialog',d=>d.accept());
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(8000);
+ await p.evaluate(()=>{const us=S.users;us[1].groupAccountR1025B={status:'active',type:'corp',company:'台積測試企業',taxId:'22099131',contact:{name:'張經理',phone:'0933',email:us[1].email},caseNo:'KG2610260002M',from:'2026-10-01',to:'2027-09-30',approvedAt:new Date().toISOString()};
+   S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='groups23';S.k27gdTab='acct';render()});await p.waitForTimeout(1200);
+ const uid=await p.evaluate(()=>S.users[1].id);
+ await p.fill('[id="k27gpE'+uid+'"]','2026-12-31');await p.click('td.k27ga-per:has([id="k27gpE'+uid+'"]) button');await p.waitForTimeout(800);
+ console.log('after',await p.evaluate(()=>({to:S.users[1].groupAccountR1025B.to,msg:(document.querySelector('.k25g-msg')||{}).innerText,saved:JSON.stringify(JSON.parse(localStorage.getItem('kgm_users')||localStorage.getItem('kgmus4')||'[]')).indexOf('2026-12-31')>=0})));
+ await p.fill('[id="k27gpF'+uid+'"]','2027-02-01');await p.fill('[id="k27gpE'+uid+'"]','2027-01-01');await p.click('td.k27ga-per:has([id="k27gpE'+uid+'"]) button');await p.waitForTimeout(800);
+ console.log('bad range',await p.evaluate(()=>({to:S.users[1].groupAccountR1025B.to,msg:(document.querySelector('.k25g-msg')||{}).innerText})));
+ await p.screenshot({path:'/tmp/j/grpper.png'});console.log('errors',errs);await b.close()})();

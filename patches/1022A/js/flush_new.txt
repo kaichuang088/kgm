@@ -1,0 +1,16 @@
+var _ls8last={};   /* 1008A：每個鍵上一次寫進 localStorage 的內容 */
+function _ls0818flush(){
+  if(_ls0818t)return;
+  _ls0818t=setTimeout(function(){
+    _ls0818t=null;
+    var q=_ls0818q;_ls0818q={};
+    for(var k in q){if(!Object.prototype.hasOwnProperty.call(q,k))continue;
+      try{var s8=JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):q[k]);if(_ls8last[k]!==s8){localStorage.setItem(k,s8);_ls8last[k]=s8}}catch(e){}}   /* 1008A：內容沒變就不重寫 */
+  },500);   /* 1008A：半秒內的連續存檔合併成一次（關閉頁面時 _ls0818now 會立刻寫入） */
+}
+function _ls0818now(){
+  if(_ls0818t){clearTimeout(_ls0818t);_ls0818t=null;}
+  var q=_ls0818q;_ls0818q={};
+  for(var k in q){if(!Object.prototype.hasOwnProperty.call(q,k))continue;
+    try{var s8=JSON.stringify(k==='kgm_tailasg'?_packTA0818(q[k]):q[k]);if(_ls8last[k]!==s8){localStorage.setItem(k,s8);_ls8last[k]=s8}}catch(e){}}
+}

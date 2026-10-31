@@ -1,0 +1,11 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext()).newPage();
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});
+ for(let i=0;i<200;i++){if(await p.evaluate(()=>!!window.KGM_FULLDONE_1006A))break;await p.waitForTimeout(1000)}await p.waitForTimeout(8000);
+ console.log(JSON.stringify(await p.evaluate(()=>{const r=window.kgmChangesR78?window.kgmChangesR78():null;const ch=(r&&r.changes)||[];
+   const tday=todayISO();const L=ch.filter(c=>/KX30[46]|KX30[35]/.test(JSON.stringify(c))).slice(0,8);
+   const types=ch.reduce((o,c)=>{const k=c.kind||c.type||c.reason||'?';o[k]=(o[k]||0)+1;return o},{});
+   const tails={};Object.keys(S.tailAssign).forEach(t=>(S.tailAssign[t]||[]).forEach(x=>{if(/^KX30[3-6]$/.test(x.code)&&x.date>=tday&&x.date<=addDays(tday,3))(tails[x.code+' '+x.date]=tails[x.code+' '+x.date]||[]).push(t+' '+(x.type||x.acft||'')+' '+x.route)}));
+   const act={};['KX304','KX303','KX306','KX305'].forEach(c=>{act[c]=[0,1,2].map(k=>{const d=addDays(tday,k);let a='';try{a=acftOfFlight(c,d)}catch(_){}return d+' '+a})});
+   return {n:ch.length,types,sample:L,tails,act}}),null,1));
+ await b.close()})();
