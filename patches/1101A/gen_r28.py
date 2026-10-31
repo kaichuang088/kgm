@@ -82,6 +82,7 @@ EMB28.append('dh28.js')
 EMB28.append('cs28.js')
 EMB28.append('ad28.js')
 EMB28.append('grp28.js')
+EMB28.append('cr28.js')
 RW('pl28 seat row',"      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);",
    "      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);\n"
    "      const _plRow28=(cabinName===\"Economy\"&&window.kgmPlBlockRowsR1101A)?window.kgmPlBlockRowsR1101A(f,f.date).rows:0;   /* 1101A：Payload 鎖經濟艙最後幾排 */\n"
@@ -297,6 +298,12 @@ RW('grp28 rebal',"function rebal(g,b,why){","window.kgmGrpRebalR1101A=function(g
 RW('grp28 names td',"<td><input id=\"k25gNP'+i+'\" class=\"inp\" value=\"'+E(r.passport||'')+'\"></td>'",
    "<td><input id=\"k25gNP'+i+'\" class=\"inp\" value=\"'+E(r.passport||'')+'\"></td><td><input id=\"k25gNM'+i+'\" class=\"inp\" value=\"'+E(r.member||'')+'\" placeholder=\"'+(z()?'選填':'optional')+'\"></td>'")
 RW('grp28 names th',"<th>'+(z()?'護照號碼':'Passport')+'</th><th>'+(z()?'艙等':'Cabin')+'</th>","<th>'+(z()?'護照號碼':'Passport')+'</th><th>'+(z()?'KGM 會員卡號（里程進該會員；不填進訂購者）':'KGM member no.')+'</th><th>'+(z()?'艙等':'Cabin')+'</th>")
+
+# E：包機／自創航班報價流程（js/cr28.js）＋原程式：狀態名稱、開票等到起飛前 14 天
+RW('cr28 stz',"cancelled:['已撤回／取消','Cancelled','#6B6F6C','#F1F2F1']};",
+   "cancelled:['已撤回／取消','Cancelled','#6B6F6C','#F1F2F1'],quoted:['已報價・待回覆','Quoted','#7A5A12','#FFF4E0'],rejected:['已拒絕報價','Quote declined','#6B6F6C','#F1F2F1'],expired:['報價逾期','Quote expired','#6B6F6C','#F1F2F1']};   /* 1101A */")
+RW('cr28 ticket hold',"function maybeTicket(g,force){\n  if(g.kind!=='v25'||g.status==='ticketed'||g.status==='cancelled')return false;",
+   "function maybeTicket(g,force){\n  if(g.kind!=='v25'||g.status==='ticketed'||g.status==='cancelled')return false;\n  if(!force&&g.ticketFromR1101A&&T()<g.ticketFromR1101A)return false;   /* 1101A：包機／自創航班名單到起飛前 14 天都能改，那天才開票 */")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
