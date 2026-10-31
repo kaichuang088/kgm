@@ -233,7 +233,7 @@
     /* 客服處理：挑一件最久沒動的模擬案件往下一步（退款類送 CEO，不自己結案） */
     var open=L.filter(function(c){return c&&(c.simR1022A||c.simR1101A)&&c.status!=='closed'&&c.status!=='ceo_review'}).sort(function(x,y){return String(x.updatedAt).localeCompare(String(y.updatedAt))});
     var c=open[0];if(c&&Date.now()-Date.parse(c.updatedAt||0)>20*60e3){
-      var refund=/refund/.test(c.type||'');
+      var refund=/refund/.test(c.type||'');c.progress=c.progress||[];
       if(refund&&c.status!=='received'){c.status='ceo_review';c.progress.push({at:at,status:'ceo_review',label:'客服初審完成（附件齊全），送執行長最後審核',by:'客服中心（模擬）'})}
       else{var i=['received','investigating','awaiting_customer'].indexOf(c.status),nx=CSN[Math.min(CSN.length-1,i<0?0:i+(c.status==='awaiting_customer'?1:0))];
         if(c.type==='pet'&&nx[0]==='closed')nx=['ceo_review','客服確認文件齊全，送執行長核准'];c.status=nx[0];c.progress.push({at:at,status:nx[0],label:nx[1],by:'客服中心（模擬）'})}
@@ -243,7 +243,7 @@
       if((S.staffCasesR1007A||[]).length>n0){var nc=S.staffCasesR1007A[0];if(nc){nc.simR1101A=1;nc.createdAt=at;nc.updatedAt=at;nc.status='received';nc.progress=[{at:at,status:'received',label:(nc.progress&&nc.progress[0]&&nc.progress[0].label)||'案件成立',by:nc.progress&&nc.progress[0]&&nc.progress[0].by||'客服中心'}]}ch++}S.adminTab=keep}
     if(ch){try{save()}catch(_){}if(S.adminTab==='cases0831B')try{(window.kgmSafeRenderR1026C||render)()}catch(_){}}
   }catch(e){try{console.warn('cs28 sim',e)}catch(_){}}}
-  setInterval(simTick,120000);
+  setInterval(simTick,120000);window.kgmCaseSimTickR1101A=simTick;
   /* ── 樣式 ── */
   try{var cs=document.createElement('style');cs.id='k28cs-css';cs.textContent=
     '.k28pet{max-width:960px}.k28pet-rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 18px}'
