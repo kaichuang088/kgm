@@ -97,6 +97,30 @@ RW('pl28 sim seat',"      if(ids18.length){ids18.forEach(function(x){x.k=rnd()+x
 # ══ C2：Payload 限座表依目的地分組（js/zn27.js 1101A 版）══
 RW('zn28 group',open('../1026C/js/zn27.js',encoding='utf-8').read(),JS('zn27.js'))
 
+# ══ C3：航班資料載重平衡（js/pl28.js 後半）——鎖住的排還有旅客 → 建議名單（A 系統配位 → B 經濟基本退選位費＋補償 → C 自選座位補償），旅客在行程管理二選一（里程或機場抵用券）
+#   新存檔：機場抵用券 S.vouchersR1101A（kgm28_vouch）——save() 與 S 初始值都加（前後台同步只認這種寫法）。
+RW('vouch28 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),vouchersR1101A:LS.get("kgm28_vouch",[]),')
+RW('vouch28 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm28_vouch",S.vouchersR1101A||[]);')
+
+# ══ C4：（測 C3 時查到的 1027A 舊問題）航班資料旅客名單用原始排號（seatSections7：B779 經濟艙 18–47），真實訂位存的是改號後的號碼（1006A：26–55）
+#   → 名單核對不到真實旅客的座位，就再配一個並寫回訂位（一人兩個座位）。核對前把改號後的號碼換回原始號碼，寫回訂位時再換成改號後的號碼。
+RW('seat28 manifest raw',"    rows.slice().sort(function(a,b){return (bz7[b.id]?1:0)-(bz7[a.id]?1:0)}).forEach(function(x){if(x.resShareR928&&x.cabin==='Resident')return;   /* 0928B：Residence 兩位共用同一間套房 */\n      if(x.seat&&",
+   "    rows.slice().sort(function(a,b){return (bz7[b.id]?1:0)-(bz7[a.id]?1:0)}).forEach(function(x){if(x.resShareR928&&x.cabin==='Resident')return;   /* 0928B：Residence 兩位共用同一間套房 */\n"
+   "      try{if(x.real&&x.seat&&window.kgmRawSeatR1006A&&(byCab[x.cabin]||[]).indexOf(x.seat)<0){var r28=window.kgmRawSeatR1006A(f,x.seat);if(r28!==x.seat&&(byCab[x.cabin]||[]).indexOf(r28)>=0){x.seatShownR1101A=x.seat;x.seat=r28}}}catch(_){}   /* 1101A：真實訂位存改號後的號碼 → 換回原始排號再核對（原本核對不到就重配、寫回訂位變成一人兩個座位） */\n"
+   "      if(x.seat&&")
+RW('seat28 manifest write',"else if(x.real&&x.booking&&x.seat){x.booking.seats=x.booking.seats||{};x.booking.seats[x.segmentKey]=x.booking.seats[x.segmentKey]||{};x.booking.seats[x.segmentKey][x.seat]=x.name;x.booking.seats[x.segmentKey]._auto=true;x.autoAssigned=true;wrote=true;}",
+   "else if(x.real&&x.booking&&x.seat){x.booking.seats=x.booking.seats||{};x.booking.seats[x.segmentKey]=x.booking.seats[x.segmentKey]||{};x.booking.seats[x.segmentKey][(window.kgmShownSeatR1006A?window.kgmShownSeatR1006A(f,x.seat):x.seat)]=x.name;x.booking.seats[x.segmentKey]._auto=true;x.autoAssigned=true;wrote=true;}   /* 1101A：寫回訂位用改號後的號碼 */")
+RW('seat28 manual write',"else if(p.real&&p.booking){p.booking.seats=p.booking.seats||{};p.booking.seats[p.segmentKey]={};p.booking.seats[p.segmentKey][seat]=p.name;}",
+   "else if(p.real&&p.booking){p.booking.seats=p.booking.seats||{};p.booking.seats[p.segmentKey]={};var fs28=null;try{var q28=String(p.key||'').split('|');fs28=matches7(q28[0],q28[1]).filter(function(y){return y.fr===q28[2]})[0]||null;if(fs28)fs28=Object.assign({},fs28,{date:q28[1]})}catch(_){}p.booking.seats[p.segmentKey][(fs28&&window.kgmShownSeatR1006A)?window.kgmShownSeatR1006A(fs28,seat):seat]=p.name;}   /* 1101A：寫回訂位用改號後的號碼 */")
+
+# ══ C5：（測 C3 時查到的 1027A 舊問題）座位號兩套約定互相矛盾——訂票選位（toggleSeat 傳內部排號）、行程卡（r65 kgmSeatShowR65 內部→顯示）、航班資料名單（seatSections7）、
+#   模擬旅客都是「訂位存內部排號，畫面才換成改號後」（0823C 註解：座位代號維持原本編號交給 r30 平移，避免移兩次）；只有 1006A 三處反過來用改號後號碼：
+#   自動劃位存改號後號碼（行程卡再加 8 排：存 33K 顯示 41K）、選位圖「被其他訂位選走」與「已選」用改號後號碼比對（別人的真實座位標不出來、自己選的位子不亮）。統一回內部排號。
+RW('seat28 view sid',"        const _sid6=(cabinName===\"Economy\"&&window.kgmShownSeatR1006A)?window.kgmShownSeatR1006A(f,sid):sid;",
+   "        const _sid6=sid;   /* 1101A：訂位存內部排號（訂票選位、行程卡 r65、航班資料名單都這樣）；1006A 這裡用改號後號碼比對 → 別人的真實座位標不出來、自己選的不亮 */")
+RW('seat28 auto sh6',"  var sh6=function(sid){return window.kgmShownSeatR1006A?window.kgmShownSeatR1006A(f,sid):sid};/* 1006A：真實訂位用改號後的號碼 */",
+   "  var sh6=function(sid){return sid};/* 1101A：訂位存內部排號（1006A 存改號後號碼 → 行程卡 r65 再換一次號，顯示多 8 排） */")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
