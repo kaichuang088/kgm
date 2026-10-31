@@ -78,6 +78,7 @@ RW('nat28 fewer th',"else nt=(H(p.empId+'|th22')%1000<Math.round((sh[p.fam]||0)*
 # ══ C1：季節性 Payload 限座＝鎖經濟艙最後幾排（js/pl28.js）——選位圖、真實訂位自動劃位、模擬旅客座位都不用那幾排 ══
 EMB28.append('pl28.js')
 EMB28.append('fr28.js')
+EMB28.append('dh28.js')
 RW('pl28 seat row',"      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);",
    "      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);\n"
    "      const _plRow28=(cabinName===\"Economy\"&&window.kgmPlBlockRowsR1101A)?window.kgmPlBlockRowsR1101A(f,f.date).rows:0;   /* 1101A：Payload 鎖經濟艙最後幾排 */\n"
@@ -100,8 +101,8 @@ RW('zn28 group',open('../1026C/js/zn27.js',encoding='utf-8').read(),JS('zn27.js'
 
 # ══ C3：航班資料載重平衡（js/pl28.js 後半）——鎖住的排還有旅客 → 建議名單（A 系統配位 → B 經濟基本退選位費＋補償 → C 自選座位補償），旅客在行程管理二選一（里程或機場抵用券）
 #   新存檔：機場抵用券 S.vouchersR1101A（kgm28_vouch）——save() 與 S 初始值都加（前後台同步只認這種寫法）。
-RW('vouch28 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),vouchersR1101A:LS.get("kgm28_vouch",[]),')
-RW('vouch28 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm28_vouch",S.vouchersR1101A||[]);')
+RW('vouch28 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),vouchersR1101A:LS.get("kgm28_vouch",[]),dhMoveR1101A:LS.get("kgm28_dhmove",[]),')
+RW('vouch28 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm28_vouch",S.vouchersR1101A||[]);LS.set("kgm28_dhmove",S.dhMoveR1101A||[]);')
 
 # ══ C4：（測 C3 時查到的 1027A 舊問題）航班資料旅客名單用原始排號（seatSections7：B779 經濟艙 18–47），真實訂位存的是改號後的號碼（1006A：26–55）
 #   → 名單核對不到真實旅客的座位，就再配一個並寫回訂位（一人兩個座位）。核對前把改號後的號碼換回原始號碼（訂位一律存內部排號，見 C5）。
@@ -176,6 +177,32 @@ RW('trip28 intro',"'這裡列出此帳號名下的所有訂位。點選任何一
    "'這裡列出此帳號名下的所有訂位。在左邊勾選一筆，再按右下角「進入行程」，即可辦理報到、選位、改票與退票。'")
 RW('trip28 intro en',"'Every booking on this account. Open one to check in, choose seats, change or refund it.'",
    "'Every booking on this account. Tick one, then press Open trip to check in, choose seats, change or refund it.'")
+
+# G3：附加服務頁（訂票第 4 步 r7 bookingReview7）：抵達隔天要寫 +1（使用者 Round 3 圖二 KX47 01:05→05:00）；版面改成網站的綠／金（樣式只套這一頁 .r28-addons）
+RW('addon28 dd',"<div class=\"time\">'+e7(f.arr||'—')+'</div>",
+   "<div class=\"time\">'+e7(f.arr||'—')+(+f.dd?'<sup class=\"r28-dd\">'+(f.dd>0?'+':'')+(+f.dd)+'</sup>':'')+'</div>")
+RW('addon28 shell',"return '<main class=\"r7-shell\"><h1 class=\"r7-page-title\">'+(z7()?'附加服務'",
+   "return '<main class=\"r7-shell r28-addons\"><h1 class=\"r7-page-title\">'+(z7()?'附加服務'")
+RW('addon28 pax line',"'+e7(p.kgmId||S.user&&S.user.id||'')+' · '+e7(p.email||'')+' · '+e7((p.countryCode||'')+(p.phone||''))+'",
+   "'+e7([p.kgmId||S.user&&S.user.id||'',p.email||'',(p.countryCode||'')+(p.phone||'')].filter(Boolean).join(' · '))+'")
+
+# G4：DH 調位行程：座位現場劃位（行程卡不顯示預排座位）、線上報到關閉（灰色＋機場櫃檯）；改日期只能後台 AI（dh_change，pl28 下面 dh28）
+RW('dh28 seat',"  var seat=seatOf(b,key),meal=mealOf(b,key);",
+   "  var seat=b.dhR929?(Z()?'機場櫃檯劃位':'Assigned at the airport'):seatOf(b,key),meal=mealOf(b,key);   /* 1101A：DH 座位現場指派 */")
+RW('dh28 rule',"'座位由公司指派（機長、副機長、教官商務艙；巡航機師、座艙長、副座艙長豪華經濟艙；其他組員經濟艙。商務艙客滿時副機長改坐豪華經濟艙，豪華經濟艙客滿時副座艙長改坐經濟艙），<b>無法自行選位</b>。'",
+   "'艙等由公司指派（機長、副機長、教官商務艙；巡航機師、座艙長、副座艙長豪華經濟艙；其他組員經濟艙。商務艙客滿時副機長改坐豪華經濟艙，豪華經濟艙客滿時副座艙長改坐經濟艙）；<b>座位於機場櫃檯報到時劃位</b>，不開放線上報到與自行選位。'")
+RW('dh28 rule2',"'調位屬於執勤安排，不能改票、退票或里程升等；班表異動時系統會自動更新。'",
+   "'調位屬於執勤安排，不能改票、退票或里程升等；要改日期或班次請洽組員派遣（由後台處理），訂位會自動更新。'")
+
+# G4b：DH 改日期／改班只能後台 AI（dh_change）：紀錄 S.dhMoveR1101A（kgm28_dhmove），航班資料 DH 名單與 DH 訂位都照它搬；PNR 不變
+RW('dh28 list move',"    return (o[key]||[]).filter(function(p){return p&&p.empId&&!p.surfaceR928})\n  }\n  function dhBooking929(p,f,date){",
+   "    var l28=(o[key]||[]).filter(function(p){return p&&p.empId&&!p.surfaceR928});return window.kgmDhMoveListR1101A?window.kgmDhMoveListR1101A(l28,f,date):l28   /* 1101A：後台 AI 改過日期／班次的 DH */\n  }\n  function dhBooking929(p,f,date){")
+RW('dh28 keep pnr',"    if(!b){b=(S.bookings||[]).filter(function(x){return dhOwn7(x,p.empId,date,f.code)})[0]||null;if(b)b.pnr=pnr}",
+   "    if(!b){b=(S.bookings||[]).filter(function(x){return dhOwn7(x,p.empId,date,f.code)})[0]||null;if(b&&!b.dhMovedR1101A)b.pnr=pnr}   /* 1101A：改過日期的 DH 訂位 PNR 不變 */")
+RW('dh28 tool',"    crew_swap_approve:{tab:'sched',zh:'核准換班',run:function(){",
+   "    dh_change:{tab:'sched',zh:'改組員 DH 調位的日期或班次（text 放原話，例如「8K3X 改晚一天回來」「K12345 11/3 KX65 的 DH 改到 11/4」「8K3X 改搭 KX67」）：同一段航線找新的一天／班次，訂位（PNR 不變）、航班資料 DH 名單、組員通知一起更新；座位一律機場櫃檯劃位',run:function(a){return window.kgmDhChangeR1101A(a)}},   /* 1101A */\n    crew_swap_approve:{tab:'sched',zh:'核准換班',run:function(){")
+RW('dh28 router',"  function plan(text){\n    var t=norm(text),acts=[];",
+   "  function plan(text){\n    var t=norm(text),acts=[];\n    if(/\\bDH\\b|調位/i.test(t)&&/改|換|延|提前|晚一天|早一天|隔天|前一天|move|change/i.test(t)&&!/列出|查詢|哪些|規則/.test(t))return [{tool:'dh_change',args:{text:t}}];   /* 1101A：DH 改日期／改班 */")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()

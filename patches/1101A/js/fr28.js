@@ -12,6 +12,7 @@
     var ms=Date.parse(d+'T'+dep+':00Z')-tz(fr)*3600000;return {ms:ms,openH:window.kgmUsRouteR1101A(fr,to)?24:48,tz:tz(fr)}}catch(_){return null}};
   window.kgmCiStateR1101A=function(b,s){try{
     if(!b||b.status==='cancelled')return null;var key=s.key||'out';
+    if(b.dhR929)return {open:false,dh:true,why:z()?'DH 調位：請至機場櫃檯報到，座位現場劃位':'Crew positioning: check in at the airport counter',short:z()?'DH・機場櫃檯報到＋現場劃位':'DH · airport check-in'};
     var st=(b.checkinSegmentsR7||{})[key];if(st&&st.checkedIn)return {open:true};if(key==='out'&&b.checkedIn)return {open:true};
     var c=window.kgmCiOpenR1101A(s);if(!c||!isFinite(c.ms))return null;var h=(c.ms-Date.now())/3600000;
     if(h>c.openH){var at=new Date(c.ms-c.openH*3600000+c.tz*3600000).toISOString(),t=at.slice(5,10).replace('-','/')+' '+at.slice(11,16);
@@ -55,6 +56,24 @@
    +'@media(max-width:640px){.k28-pickbar{bottom:84px;padding:10px 10px 10px 14px}.k28-pickgo{padding:11px 18px}}'
    +'.k28-back{margin:0 auto 12px}.k28-back button{appearance:none;border:1px solid rgba(11,58,46,.16);background:#fff;border-radius:999px;padding:8px 16px 8px 12px;font:600 13.5px inherit;font-family:inherit;color:#0B3D2E;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s}'
    +'.k28-back button span{font-size:18px;line-height:1}.k28-back button i{font-style:normal;font-size:11.5px;padding:1px 7px;border-radius:999px;background:#EEF2EF;color:#55605B}.k28-back button:hover{border-color:#0B3D2E;background:#F6F9F7}'
+   /* 附加服務頁（只套 .r28-addons） */
+   +'.r28-addons .r7-page-title{font:700 30px Georgia,"Noto Serif TC",serif;color:#0B3D2E;margin:6px 0 24px;letter-spacing:.02em}.r28-addons .r7-page-title:before{content:"ADD-ONS";display:block;font:800 11px system-ui,sans-serif;letter-spacing:.24em;color:#B08A3E;margin-bottom:8px}'
+   +'.r28-addons .r7-flight{border:1px solid rgba(11,58,46,.12);border-radius:16px;padding:18px 24px 20px;box-shadow:0 10px 26px -22px rgba(11,58,46,.55);margin-bottom:14px}'
+   +'.r28-addons .r7-flight-head{font:700 13.5px inherit;font-family:inherit;color:#0B3D2E;border-bottom:1px dashed rgba(11,58,46,.16);padding-bottom:12px;margin-bottom:16px;letter-spacing:.02em}'
+   +'.r28-addons .r7-flight .time{font:700 30px Georgia,"Noto Serif TC",serif;color:#0B3D2E;font-variant-numeric:tabular-nums;letter-spacing:.01em}'
+   +'.r28-addons .r7-flight .airport{font:800 12px system-ui,sans-serif;letter-spacing:.16em;color:#55605B}'
+   +'.r28-addons .r7-flight .rule{height:0;background:none;border-top:1.5px dashed #C9B48A}.r28-addons .r7-flight .rule:after{color:#B08A3E;top:-11px}'
+   +'.r28-addons .r7-flight .meta{font-size:12.5px;color:#55605B;line-height:1.75}'
+   +'.r28-addons .r7-flight .fare{color:#0B3D2E;font-size:13px;line-height:1.7}.r28-addons .r7-flight .fare span{color:#7A857F!important;font-weight:600!important}'
+   +'sup.r28-dd{font:800 12px system-ui,sans-serif;color:#B08A3E;margin-left:3px;vertical-align:14px}'
+   +'.r28-addons .r7-price{display:flex;justify-content:flex-end;align-items:baseline;gap:10px;margin:6px 4px 26px;font-size:13px;color:#55605B}.r28-addons .r7-price b{font:700 22px Georgia,serif;color:#0B3D2E}'
+   +'.r28-addons .r7-passenger-title,.r28-addons .r7-addon-title{text-align:left;color:#B08A3E;font:800 11.5px system-ui,sans-serif;letter-spacing:.2em;margin:26px 2px 10px}'
+   +'.r28-addons .r7-passenger{border:1px solid rgba(11,58,46,.12);border-radius:16px;padding:16px 22px}.r28-addons .r7-passenger .check{background:#0B3D2E;width:24px;height:24px;font-size:12px}.r28-addons .r7-passenger h2{font:700 20px Georgia,serif;color:#0B3D2E;letter-spacing:.04em}.r28-addons .r7-passenger>span:last-child{color:#7A857F!important}'
+   +'.r28-addons .r7-addon-box{border:1px solid rgba(11,58,46,.12);border-radius:16px;box-shadow:0 10px 26px -22px rgba(11,58,46,.55)}.r28-addons .r7-addon-row{border-bottom-color:rgba(11,58,46,.1)}'
+   +'.r28-addons .r7-addon-copy{padding:22px 24px}.r28-addons .r7-addon-copy h3{color:#0B3D2E;font:700 16px inherit;font-family:inherit;margin-bottom:6px}.r28-addons .r7-addon-copy p{font-size:12px;color:#6B7570;line-height:1.6}'
+   +'.r28-addons .r7-addon-copy .btn{border-radius:999px;border-color:#0B3D2E;color:#0B3D2E;padding:9px 20px}.r28-addons .r7-addon-copy .btn:hover{background:#0B3D2E;color:#fff}'
+   +'.r28-addons .r7-addon-controls select,.r28-addons .r7-addon-controls input{border-radius:10px;border-color:rgba(11,58,46,.2)}'
+   +'.r28-addons .r7-addon-art{background:linear-gradient(160deg,#F4F1E7,#EEF2EF)}.r28-addons .r7-addon-art svg{filter:grayscale(1) sepia(.45) hue-rotate(95deg) saturate(1.3) opacity(.75)}'
    +'.k28-ci-why{display:block;margin-top:6px;font-size:11.5px;color:#7A857F;text-align:center;letter-spacing:.02em}';
     document.head.appendChild(cs)}catch(_){}
 })();
