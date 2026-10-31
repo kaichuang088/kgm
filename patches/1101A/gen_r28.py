@@ -80,6 +80,7 @@ EMB28.append('pl28.js')
 EMB28.append('fr28.js')
 EMB28.append('dh28.js')
 EMB28.append('cs28.js')
+EMB28.append('ad28.js')
 RW('pl28 seat row',"      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);",
    "      const _xb929=(f.acft===\"A388\"&&cabinName===\"Business\"&&r===0);\n"
    "      const _plRow28=(cabinName===\"Economy\"&&window.kgmPlBlockRowsR1101A)?window.kgmPlBlockRowsR1101A(f,f.date).rows:0;   /* 1101A：Payload 鎖經濟艙最後幾排 */\n"
@@ -248,6 +249,11 @@ RW('cs28 ai pet',"    [/寵物|狗|貓|動物|pet/i,function(){return '寵物（
 import json, pet_doc
 RW('pet28 policy doc',"window.kgmPolicyDocR914=function(id){",
    "/* 1101A：《動物運送規定》KGM-PET-009 Rev. B（patches/1101A/pet_doc.py，PDF 同一份） */\nwindow.KGM_POLICY_DOCS_R914[\"KGM-PET-009\"]="+json.dumps(pet_doc.doc(),ensure_ascii=False)+";\nwindow.kgmPolicyDocR914=function(id){")
+
+# H5：通知管理「航班旅客」分航段（js/ad28.js）
+RW('nt28 code',"value=\"${S.anFltCode||''}\" oninput=\"S.anFltCode=this.value.toUpperCase()\">","value=\"${S.anFltCode||''}\" oninput=\"S.anFltCode=this.value.toUpperCase()\" onchange=\"render()\">")
+RW('nt28 date',"value=\"${S.anFltDate||''}\" oninput=\"S.anFltDate=this.value\">","value=\"${S.anFltDate||''}\" oninput=\"S.anFltDate=this.value\" onchange=\"render()\">")
+RW('nt28 legs',"<div style=\"font-size:11px;color:var(--sub);margin-bottom:6px\">${(function(){var n=countPaxOnFlight(","${window.kgmNtLegsR1101A?window.kgmNtLegsR1101A():''}<div style=\"font-size:11px;color:var(--sub);margin-bottom:6px\">${(function(){var n=countPaxOnFlight(")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
