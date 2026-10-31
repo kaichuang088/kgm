@@ -303,7 +303,9 @@ RW('grp28 names th',"<th>'+(z()?'護照號碼':'Passport')+'</th><th>'+(z()?'艙
 RW('cr28 stz',"cancelled:['已撤回／取消','Cancelled','#6B6F6C','#F1F2F1']};",
    "cancelled:['已撤回／取消','Cancelled','#6B6F6C','#F1F2F1'],quoted:['已報價・待回覆','Quoted','#7A5A12','#FFF4E0'],rejected:['已拒絕報價','Quote declined','#6B6F6C','#F1F2F1'],expired:['報價逾期','Quote expired','#6B6F6C','#F1F2F1']};   /* 1101A */")
 RW('cr28 ticket hold',"function maybeTicket(g,force){\n  if(g.kind!=='v25'||g.status==='ticketed'||g.status==='cancelled')return false;",
-   "function maybeTicket(g,force){\n  if(g.kind!=='v25'||g.status==='ticketed'||g.status==='cancelled')return false;\n  if(!force&&g.ticketFromR1101A&&T()<g.ticketFromR1101A)return false;   /* 1101A：包機／自創航班名單到起飛前 14 天都能改，那天才開票 */")
+   "function maybeTicket(g,force){\n  if(g.kind!=='v25'||g.status==='ticketed'||g.status==='cancelled')return false;\n  if(!force&&g.ticketFromR1101A&&T()<g.ticketFromR1101A)return false;   /* 1101A：包機／自創航班名單到起飛前 14 天都能改，那天才開票 */\n  if(window.kgmGrpMovedTbaR1101A&&window.kgmGrpMovedTbaR1101A(g))return false;   /* 1101A：分艙拆出的旅客姓名還沒填 */")
+RW('grp28 mix steps',"[z()?'名單':'Names',namesDone(g)>=g.pax]","[z()?'名單':'Names',namesDone(g)>=g.pax&&!(window.kgmGrpMovedTbaR1101A&&window.kgmGrpMovedTbaR1101A(g))]")
+RW('grp28 mix moved ed',"var mv=(g.moved||[]).length?","var mv=window.kgmGrpMovedEdR1101A?window.kgmGrpMovedEdR1101A(g):(g.moved||[]).length?")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()

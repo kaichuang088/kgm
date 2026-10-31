@@ -10,7 +10,9 @@ await p.screenshot({path:'/tmp/j/g3.png'});
 await p.click('#k28g-host button:has-text("選團體優惠")');await p.waitForTimeout(500);
 const r1=await p.evaluate(async()=>{var D=addDays(todayISO(),14),R=addDays(D,5);Object.assign(S.search,{type:'RT',fr:'TPE',to:'NRT',dep:D,ret:R,adults:12,children:2,infants:0});passengerCounts();nav('booking');await new Promise(r=>setTimeout(r,2500));
   var f=Object.assign({},FLIGHTS.find(x=>x.code==='KX180'),{date:D});var vc=validCodes(f);
-  return {plan:S.search.grpPlanR1101A,modal:!!document.querySelector('#k28g-host .k28g-dlg'),vc:vc,cab:CAB_CODES('Economy').slice(0,3),kx180:[...document.querySelectorAll('tr.fl-row')].map(r=>r.innerText.replace(/\s+/g,' ')).filter(t=>/KX180/.test(t)).map(t=>t.slice(0,140)),sellEQ:kgmGrpSellR1025B('E-Q',D,f),inv:kgmCabinInventory54(f,D,'Economy').left}});
+  return {plan:S.search.grpPlanR1101A,modal:!!document.querySelector('#k28g-host .k28g-dlg'),vc:vc,cab:CAB_CODES('Economy').slice(0,3),kx180:[...document.querySelectorAll('.award-shop-row,tr.fl-row')].map(r=>r.innerText.replace(/\s+/g,' ')).filter(t=>/KX180/.test(t)).map(t=>t.slice(0,140)),sellEQ:kgmGrpSellR1025B('E-Q',D,f),inv:kgmCabinInventory54(f,D,'Economy').left}});
+// 1101A ⑩：沒分艙時點矩陣格子就選那一艙
+const r1b=await p.evaluate(async()=>{var btn=document.querySelector('.k28m-shop .award-plan-btn:not([disabled])');if(!btn)return {none:true};var t=btn.innerText.replace(/\s+/g,' ');btn.click();await new Promise(r=>setTimeout(r,2000));var out={cell:t,phase:S.phase,outF:S.outF&&S.outF.code,outC:S.outC};S.phase='sel_out';S.outF=null;S.outC=null;S.grp28RetWarn=null;render();await new Promise(r=>setTimeout(r,1200));return out});
 // 去程選一班坐得下的 → 回程
 const r2=await p.evaluate(async()=>{var D=S.search.dep,cands=FLIGHTS.filter(x=>x.fr==='TPE'&&x.to==='NRT'&&!x.via&&flyOn(x,new Date(D+'T12:00:00')));var pick=null;for(var x of cands){var f=Object.assign({},x,kgmSeasonFlightR48(x,D)||{},{date:D});if(kgmGrpSellR1025B('E-Q',D,f)>0){pick=f;break}}
   if(!pick)return {none:true};S.outF=pick;S.outC='E-Q';S.phase='sel_inb';render();await new Promise(r=>setTimeout(r,1800));
@@ -21,4 +23,4 @@ const ins=await p.$$('.k25g-grid input.inp');const before=await p.evaluate(()=>(
 await ins[1].click();await p.keyboard.type('王領隊',{delay:60});await p.waitForTimeout(800);
 const after=await p.evaluate(()=>({leader:(S.grpDraftR1025B||{}).leader}));
 await p.screenshot({path:'/tmp/j/g5.png',fullPage:true});
-console.log(JSON.stringify({m1,r1,r2,before,after,errs:errs.slice(0,3)},null,1));await b.close()})();
+console.log(JSON.stringify({m1,r1,r1b,r2,before,after,errs:errs.slice(0,3)},null,1));await b.close()})();
