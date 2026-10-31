@@ -121,13 +121,22 @@ RW('seat28 auto sh6',"  var sh6=function(sid){return window.kgmShownSeatR1006A?w
 
 # ══ H1：後台卡頓（使用者 Round 3「後台全部都很卡頓」）——tests/lt15.js：開頁 85 秒起組員背景一天一天算（buildDay121 每天 0.7～1.4 秒），
 #   中間每次存進度的指紋 sig25 都呼叫 pool121 → demand121（掃整份機隊排班 0.4～0.7 秒，機隊背景重排時快取一直失效）。
-#   ① 指紋：組員名單已經建好就不再重建；② 不在組員班表分頁時，瀏覽器沒空檔最多等 6 秒才算（原本 2.5 秒就硬算）；③ 使用者操作後讓開 4 秒（原本 2 秒）。算的結果不變。
+#   ① 指紋：組員名單已經建好就不再重建；② 不在組員班表分頁時，瀏覽器沒空檔最多等 10 秒才算（原本 2.5 秒就硬算）；③ 使用者停手才算：組員班表分頁 4 秒、其他頁 10 秒（原本 2 秒）。算的結果不變。
 RW('lag28 sig pool',"    try{if(window.KGM_FULLDONE_1006A)try{pool121()}catch(_){}",
    "    try{if(window.KGM_FULLDONE_1006A&&!POOL121)try{pool121()}catch(_){}   /* 1101A：名單已建好就不再重建（每次 0.8 秒） */")
 RW('lag28 idle',"  function idle(f){if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:2500});else setTimeout(f,60)}\n  function tick(){",
-   "  function idle(f){var to=(S.view==='admin'&&S.adminTab==='sched')?2500:6000;   /* 1101A：不在組員班表分頁時多等瀏覽器空檔 */\n    if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:to});else setTimeout(f,60)}\n  function tick(){")
+   "  function idle(f){var to=(S.view==='admin'&&S.adminTab==='sched')?2500:10000;   /* 1101A：不在組員班表分頁時多等瀏覽器空檔 */\n    if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:to});else setTimeout(f,60)}\n  function tick(){")
 RW('lag28 input',"    if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<2000)return;   /* 使用者正在操作就先讓開",
-   "    if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<4000)return;   /* 1101A：2→4 秒 */   /* 使用者正在操作就先讓開")
+   "    if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<((S.view==='admin'&&S.adminTab==='sched')?4000:10000))return;   /* 1101A：使用者停手 4 秒（組員班表分頁）／10 秒（其他頁）才算，一算就卡 1 秒 */   /* 使用者正在操作就先讓開")
+
+# ══ H2：後台卡頓（續）——真人點擊剖析（tests/prof28c.js）：除了組員背景，還有競標模擬資料預補（1025B：使用者 1.5 秒沒操作就補一班，一班 0.1 秒以上、還會牽動 Payload 艙單與組員計畫）、
+#   航班資料 DH 背景補算（1026C dhLater929，沒有看使用者是否正在操作）→ 都改成使用者停手 8 秒才做（讀一頁的時間通常超過 1.5 秒，下一次點擊剛好撞上就卡）。
+RW('lag28 auc pre',"(function step(dl){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500){setTimeout(function(){idle25(step)},700);return}",
+   "(function step(dl){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<8000){setTimeout(function(){idle25(step)},1500);return}   /* 1101A：1.5→8 秒 */")
+RW('lag28 auc q',"if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500){setTimeout(function(){I25(step929)},700);return}",
+   "if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<8000){setTimeout(function(){I25(step929)},1500);return}   /* 1101A：1.5→8 秒 */")
+RW('lag28 dh later',"    setTimeout(function go(){n++;try{if(window.kgmCrewHasDayR121(date)){",
+   "    setTimeout(function go(){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<8000){setTimeout(go,1500);return}   /* 1101A：使用者停手 8 秒才算（一算一天卡 1 秒） */\n      n++;try{if(window.kgmCrewHasDayR121(date)){")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
