@@ -36,6 +36,23 @@
     hero.parentNode.insertBefore(d,hero)}catch(_){}}
   try{var _r28=window.render;if(typeof _r28==='function'){var w28=function(){var r=_r28.apply(this,arguments);setTimeout(back28,0);return r};window.render=w28;try{render=w28}catch(_){}}}catch(_){}
   setInterval(back28,800);   /* 行程頁有些是後面的層另外畫的（不經過 window.render），補一個輕量檢查（不在行程頁就直接返回） */
+  /* 地勤實體報到（航班資料點旅客 →「進入實體報到」）：原本只跳到地勤現場作業頁、沒有真的報到。
+     改成：跑櫃檯報到檢查（kgmCounterAlertsR40）→ 沒座位先劃位（DH 也是這時候劃）→ 標記已報到 → 直接打開登機證（同一個新版登機證 kgmBpCardsOfR1012A）。
+     有「停止」項目不放行；只有提醒項目先列出來讓地勤確認。 */
+  try{var sc0=window.kgmSeatCheckinR914;if(typeof sc0==='function'&&!sc0.__r28){var sc28=function(pnr,code,date){
+    try{if(window.kgmCanCheckinR914&&!window.kgmCanCheckinR914())return sc0.apply(this,arguments);
+      var r=window.kgmCounterAlertsR40(pnr,code,date);if(!r||!r.found||!r.seg)return sc0.apply(this,arguments);
+      var b=r.booking,key=r.seg.key,al=(r.alerts||[]).map(function(a){return (a.block?(z()?'停止：':'STOP: '):(z()?'注意：':'NOTE: '))+a.t});
+      if(r.blocked){alert((z()?'不能報到（請先處理）：\n':'Cannot check in:\n')+al.join('\n'));return}
+      if(!r.ok&&al.length&&!confirm((z()?'報到前請確認以下事項：\n':'Please confirm:\n')+al.join('\n')+(z()?'\n\n已確認，完成報到並列印登機證？':'\n\nConfirmed — check in and issue the boarding pass?')))return;
+      try{var so=(b.seats||{})[key]||{},has=Object.keys(so).some(function(k){return k!=='_auto'&&so[k]});if(!has&&typeof autoAssignSeat==='function')autoAssignSeat(b,key)}catch(_){}
+      window.kgmDoCounterCheckinR40(pnr,code,date,!r.ok);
+      var bk=(S.bookings||[]).filter(function(x){return x&&x.pnr===b.pnr})[0];var st=bk&&window.ciState7?window.ciState7(bk,key):null;
+      if(!(st&&st.checkedIn)&&!(bk&&bk.checkedIn))return;
+      S.physCheckinR914={pnr:b.pnr,code:code,date:date,at:new Date().toISOString(),bpR1101A:true};try{save()}catch(_){}
+      try{closeModal()}catch(_){}
+      openModal('boardingPass',{pnr:b.pnr,seg:key});
+    }catch(e){return sc0.apply(this,arguments)}};sc28.__r28=1;window.kgmSeatCheckinR914=sc28}}catch(_){}
   try{var cs=document.createElement('style');cs.id='k28fr-css';cs.textContent=
     '.k60-tabs28{display:flex;gap:6px;margin:0 0 16px;border-bottom:1px solid rgba(11,58,46,.12)}'
    +'.k60-tabs28 button{appearance:none;border:0;background:none;padding:10px 4px 12px;margin-right:22px;font:600 15px inherit;font-family:inherit;color:#6B7570;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}'

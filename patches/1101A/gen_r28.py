@@ -204,6 +204,19 @@ RW('dh28 tool',"    crew_swap_approve:{tab:'sched',zh:'核准換班',run:functio
 RW('dh28 router',"  function plan(text){\n    var t=norm(text),acts=[];",
    "  function plan(text){\n    var t=norm(text),acts=[];\n    if(/\\bDH\\b|調位/i.test(t)&&/改|換|延|提前|晚一天|早一天|隔天|前一天|move|change/i.test(t)&&!/列出|查詢|哪些|規則/.test(t))return [{tool:'dh_change',args:{text:t}}];   /* 1101A：DH 改日期／改班 */")
 
+# G5：Residence 現金競標不再保留「未得標備選座位」（使用者 Round 2：備選 Seats 可以不用賣、有 workload 的問題）：
+#     出價不必帶座位、表單拿掉座位欄、模擬出價不再逐筆配備選座位；未得標改訂替代艙等時再照一般方式選位。舊出價已有的座位照舊顯示。
+RW('res28 no seat req',"  if(!o.backupSeat)return {ok:false,why:z()?'請先選擇未得標時使用的備選座位。':'Choose a backup seat first.'};\n",
+   "  /* 1101A：不再要求備選座位 */\n")
+RW('res28 fix noop',"window.kgmResSeatFixR1006A=function(){\n  var n=0,g={},ver=(S.bookings||[]).length;",
+   "window.kgmResSeatFixR1006A=function(){\n  if(!window.KGM_RES_BACKUP_R1101A)return 0;   /* 1101A：不再配備選座位（省掉每次開競標頁的座位計算） */\n  var n=0,g={},ver=(S.bookings||[]).length;")
+RW('res28 form seat',"      +'<label>'+(z()?'未得標時的備選座位':'Backup seat')\n        +'<input id=\"r89seat\" class=\"inp\" placeholder=\"'+(z()?'留空系統自動指派':'Leave blank to auto-assign')+'\"></label>'\n",
+   "")
+RW('res28 submit a',"      backupSeat:window.kgmResAltSeatR182(alt),\n","      backupSeat:'',   /* 1101A：不保留備選座位 */\n")
+RW('res28 submit b',"      backupSeat:seat||defaultSeat89(alt),confirmed:true,","      backupSeat:seat||'',confirmed:true,   /* 1101A：不再自動配備選座位 */")
+RW('res28 list',"<small>'+(z()?'備選座位 ':'Backup seat ')+E(x.backupSeat||'—')+' · '+E(x.alt||'—')+'</small>",
+   "<small>'+(x.backupSeat?((z()?'備選座位 ':'Backup seat ')+E(x.backupSeat)+' · '):'')+(z()?'未得標改訂 ':'Fallback ')+E(x.alt||'—')+'</small>")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
