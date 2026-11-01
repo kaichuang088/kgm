@@ -96,6 +96,28 @@
       return o.length?'<div class="k29st">'+o.join('')+'</div>':''}catch(_){return ''}};
   window.kgmAdStExtraR1101B=function(fr,to,date){try{var zh=z(),L=window.kgmDivertFindR1101A(false,'',date,fr,to)||[];return L.map(function(x){var g=x.legs[0].f;
       return '<tr class="k29st-cont"><td style="padding:7px 10px"><div style="font-weight:700;color:var(--g);font-size:13px">'+E(g.code)+'</div><div style="font-size:10px;color:#888">'+(zh?'轉降續航段':'Diversion continuation')+'</div></td><td style="padding:7px 10px;font-size:12px">'+E(g.fr)+' → '+E(g.to)+'</td><td style="padding:7px 10px;font-size:13px;font-weight:600">'+E(g.dep)+'</td><td style="padding:7px 10px;font-size:13px;font-weight:600">'+E(g.arr||'—')+(g.dd?'<sup>+'+g.dd+'</sup>':'')+'</td><td style="padding:7px 10px"><span style="font-weight:700;color:#b45309">&bull; '+(zh?'續航（原 '+E(g.divertFromR1101A)+' 出發，轉降 '+E(g.fr)+'）':'Continuation (diverted from '+E(g.divertFromR1101A)+')')+'</span></td><td style="padding:7px 10px;font-size:11px;color:#889">'+(zh?'在原航班編輯':'Edit on the original flight')+'</td></tr>'}).join('')}catch(_){return ''}};
+  /* 1102A：航班狀態編輯——填新的出發時間，抵達依當天飛行狀況（kgmOpsPredR1026C：高空風、繞道、目的地天候）自動帶入；手動改過抵達就不再自動覆蓋 */
+  /* 1102A：航班狀態編輯面板的欄位只存在畫面上，背景排班／模擬一重畫就被洗掉（實測填好出發、抵達 10 秒內變空白）
+     → 每次重畫前把面板裡的欄位值記進 S.adDraftR1102A（同一個 editKey），重畫後填回；換一班、存檔或關閉就丟掉。 */
+  function edBox(){return document.querySelector('.k28-edit')}
+  var ED30=null;   /* 畫面上這個面板是哪一班（換一班時舊面板的值不能帶過去） */
+  function grab30(){try{if(!(S.view==='admin'&&S.adminTab==='status'&&S.adEditKey)||ED30!==S.adEditKey){S.adDraftR1102A=null;return}var b=edBox();if(!b)return;var v={};
+      [].forEach.call(b.querySelectorAll('input[id],select[id],textarea[id]'),function(e){v[e.id]=e.type==='checkbox'?(e.checked?'1':''):e.value});
+      var a=document.getElementById('adNewArr');S.adDraftR1102A={key:S.adEditKey,v:v,man:!!(a&&a.dataset.man30==='1'),focus:(document.activeElement&&document.activeElement.id)||''}}catch(_){}}
+  function put30(){try{ED30=edBox()?S.adEditKey:null;var D=S.adDraftR1102A;if(!D)return;if(D.key!==S.adEditKey||S.adminTab!=='status'){S.adDraftR1102A=null;return}var b=edBox();if(!b)return;
+      Object.keys(D.v).forEach(function(id){var e=document.getElementById(id);if(!e||!b.contains(e))return;if(e.type==='checkbox')e.checked=D.v[id]==='1';else if(e.value!==D.v[id])e.value=D.v[id]});
+      var a=document.getElementById('adNewArr');if(a&&D.man){a.dataset.man30='1'}if(a&&!a.__k30){a.__k30=1;a.addEventListener('input',function(){a.dataset.man30='1'})}
+      if(D.focus){var f=document.getElementById(D.focus);if(f&&b.contains(f)&&document.activeElement!==f)try{f.focus({preventScroll:true})}catch(_){}}}catch(_){}}
+  try{var r30=window.render;if(typeof r30==='function'&&!r30.__ed30){var w30=function(){grab30();var x=r30.apply(this,arguments);put30();return x};w30.__ed30=1;window.render=w30;try{render=w30}catch(_){}}}catch(_){}
+  window.kgmEstFillR1102A=function(){try{var k=S.adEditKey,P=keyParts(k);if(!P)return;var dEl=document.getElementById('adNewDep'),aEl=document.getElementById('adNewArr');if(!dEl||!aEl)return;
+      if(!aEl.__k30){aEl.__k30=1;aEl.addEventListener('input',function(){aEl.dataset.man30='1'})}
+      if(aEl.dataset.man30==='1')return;
+      var m=/^(\d{1,2}):(\d{2})$/.exec(String(dEl.value||'').trim());if(!m)return;
+      var s=seas(P.f,P.date),pr=null;try{pr=window.kgmOpsPredR1026C?window.kgmOpsPredR1026C(P.f,P.date):null}catch(_){}
+      var inflt=pr?((pr.arrDelta||0)-(pr.depDelta||0)):0,ddEl=document.getElementById('adDepDD'),depDD=ddEl?(+ddEl.value||0):0;
+      var shift=(+m[1])*60+(+m[2])+depDD*1440-hm(s.dep),abs=hm(s.arr)+(+s.dd||0)*1440+shift+inflt,day=Math.floor(abs/1440),mm=((abs%1440)+1440)%1440;
+      aEl.value=String(Math.floor(mm/60)).padStart(2,'0')+':'+String(mm%60).padStart(2,'0');aEl.title=(z()?'依當天飛行狀況自動帶入（飛行時間差 ':'Auto-filled (in-flight ')+(inflt>=0?'+':'')+inflt+(z()?' 分）':' min)');
+      var aDD=document.getElementById('adArrDD');if(aDD&&[].some.call(aDD.options,function(o){return +o.value===day}))aDD.value=String(day)}catch(_){}};
   window.kgmEditHeadR1101A=function(k){var P=keyParts(k),zh=z();if(!P)return 'Edit: '+E(k);return '<small>'+(zh?'編輯航班狀態':'EDIT FLIGHT STATUS')+'</small>'+E(P.code)+'<span>'+E(P.f.fr)+' → '+E(P.f.to)+' · '+E(P.date)+'</span>'};
   try{var sv0=window.doAdminSave;if(typeof sv0==='function'&&!sv0.__dv28){var sv28=function(){var k=S.adEditKey||'',d1=String((document.getElementById('adDvDep')||{}).value||'').trim(),a1=String((document.getElementById('adDvArr')||{}).value||'').trim();
       var r=sv0.apply(this,arguments);try{var ov=(S.flightOverrides||{})[k];var P=keyParts(k);if(ov&&P){if(ov.status==='Diverted'&&ov.divertTo){delete ov.divertLegR1101A;var L=window.kgmDivertLegR1101A(P.code,P.date,P.f,ov);

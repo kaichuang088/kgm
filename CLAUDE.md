@@ -1,7 +1,7 @@
 # KGM Airways — 專案規則（給 Claude Code）
 
 KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一個自包含的 HTML 檔**（約 8.4 MB）。
-版號由使用者指定（目前是 1101B（使用者未命名、暫定；建置仍在 `patches/1101A`），下一版由使用者命名；1027A 開工時叫 1026C，程式內部標記、`patches/1026C/`、`notes/1026C-*` 都用 1026C／R1026C、不改名；1026B 程式內部標記、`patches/1026B/`、`notes/1026B-*` 都用 1026B／R1026B；1026A 開工時叫 1025B，程式內部標記、`patches/1025B/`、`notes/1025B-*` 都用 1025B／R1025B、不改名；1025A 開工時叫 1023A，程式內部標記用 1023A／R1023A、不改名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
+版號由使用者指定（目前是 1102A（建置仍在 `patches/1101A`，前一版 1101B 也在這裡），下一版由使用者命名；1027A 開工時叫 1026C，程式內部標記、`patches/1026C/`、`notes/1026C-*` 都用 1026C／R1026C、不改名；1026B 程式內部標記、`patches/1026B/`、`notes/1026B-*` 都用 1026B／R1026B；1026A 開工時叫 1025B，程式內部標記、`patches/1025B/`、`notes/1025B-*` 都用 1025B／R1025B、不改名；1025A 開工時叫 1023A，程式內部標記用 1023A／R1023A、不改名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
 
 ## 使用者的固定要求（逐字，一律遵守）
 
@@ -47,6 +47,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1027A（內部標記 1026C）：`cd patches/1026C && python3 mkgrp27.py && python3 mkgrp27b.py && python3 gen_r27.py && bash build.sh <1004B.html> <out.html>`（1026C＝1026B 全部＋`p_h_r27.js`；比對基準 1026B 最終版 `/tmp/j/kgm1026B_w23.html`；`js/grp25_27.js` 是 mkgrp27／mkgrp27b 從 `grp25_cur.js` 產生的，不要直接改；長程式 `bt26.js`（夏令時間依日期、EARLY27、雪梨宵禁 21:55）、`sc27.js`（時刻異動信）、`ch27.js`（販售通路、夥伴直飛配額）、`cr27.js`（包機／自創航班）、`gq27.js`（團體帳號卡片）、`zn27.js`（航班營運→關閉空域・Payload 分頁＋`S.paxCapAdjR1026C`）、`nt27.js`（通知管理版面）、`rt27.js`（公告排版 `kgmRichR1026C`＋Manager 團隊 `kgmTeamOfR1026C`）、`fb27.js`（旅客回饋分析））。空域 `geo/mkzones27.py`（加巴基斯坦）→`geo/geo27.json`＋`geo/baked27.json`（`tests/bake27.js`）。PDF：`timetable/tt27.py`＋`tt27days.py`、`payload/pl27pdf.py`、`pol/grp27_pdf.py`＋`pol/pack27.py`（KGM-GRP-021）。見 `notes/1026C-pass129-notes.md`。
 - 1101A：`cd patches/1101A && python3 gen_r28.py && bash build.sh <1004B.html> <out.html>`（1101A＝1027A 全部＋`p_h_r28.js`；比對基準 1027A 最終版 `/tmp/j/kgm1026C_w77.html`；長程式 `js/` 依 `EMB28` 接在 r229 `ch27.js` 後：`gr28`、`pl28`（Payload 鎖後排／載重平衡／非自願換座位補償）、`fr28`（我的行程勾選、辦理登機 24h、附加服務、地勤報到→登機證）、`dh28`（AI `dh_change`）、`cs28`（寵物 PET-009 Rev. B 規則引擎、旅客建立案件＋附件 IndexedDB、案件兩分頁、CEO 審核、持續模擬）、`ad28`（通知分航段、空機調派、轉降續航、航班調整 −／＋）、`grp28`（團體前置視窗、混艙、類酬賓矩陣）、`cr28`（包機報價））。規章 PDF 用 venv python（`pol/pet28_pdf.py`、`pol/grp28_pdf.py`、`pol/pack28.py`）。時刻表 `timetable/tt28.py`（底稿 1027A PDF、字型名 k28）、Payload `payload/pl28pdf.py`（`tests/pl28dump.js`）。見 `notes/1101A-pass130-notes.md`。
 - 1101B：同一套建置（`patches/1101A`，`gen_r28.py` 新 RW 標 `*29`），版號 `p_h_ver*.js`＝1101B。時刻表標題箭頭對齊 `timetable/align29.py`（底稿有頁包在 Form XObject，redaction 清不到，要先蓋底色；不做 subset_fonts）。規章 `pol/irr29_pdf.py`（IRR-013 Rev. B）、`pol/grp28_pdf.py`（GRP-021 Rev. C）、`pol/pack29.py`。見 `notes/1101B-pass131-notes.md`。
+- 1102A：同一套建置（`patches/1101A`，`gen_r28.py` 新 RW 標 `*30`、程式標 R1102A），版號 `p_h_ver*.js`＝1102A。見 `notes/1102A-pass132-notes.md`。
 - 1101A 坑：時刻規則 WIN28（非曼谷航線不在 03:00–05:59 出發、不在 01:30–03:59 抵達）；**GAP28**：墨爾本夏令跟北半球季節錯開的週，KX54／53、KX60／59 用冬季時刻（bt26 `seaProj`）。團體混艙＝主訂位＋付款後用 `kgmGrpCabinR1026C` 拆艙（`g.mixDoneR1101A`），拆出旅客 TBA 不開票。包機接受報價要先把狀態改回 pending 才能呼叫原本的核准。案件的鍵是 `caseNo`。
 - 1026C 坑：航班資料頁 `matches7`／`predict7` 讀季節時刻（predict7 快取 `sigR1026C`）；**天氣預測寫進 `S.flightDateOverride`（帶 `predictionUpdatedAt`）不算人工改時刻**（bt26／sc27 `hasOv`）。**開航班不能同步算組員班表**（`dhLater929` 背景分段）；路線圖 `PEND27` 去重。時刻表 PDF 底稿已 subset → 寫字要用新字型名（k27）。r77「回程同日」會改 KX30 營運日。前台 AI 舊卡片 r63 看到 `.kgm-i-menu` 就不畫。背景補模擬資料的重畫走 `kgmSafeRenderR1026C`（正在輸入就延後）。rt27 文字節點掃描在大表格後台頁不跑（效能）。**地勤派工 `tasks8` 把 03:00 以前開始的工作算成前一天晚班尾巴 → 台北出發長程不能早於 06:15、短程不能早於 05:15，不然櫃檯 0 人（R1008A）**。中停整段的時刻要從分段組（bt26 `legFix` 找中停列；R205 量過站 ≥75 分，`tests/via27.js`）。
 - 1025B 坑：**FAM54 在 r54 閉包裡**（r54 匯出 `KGM_FAM54_R1025B`）；團體模式所有包裝都只在 `S.search.grp25`＋已綁定才生效，`sell54` 最前面問 `kgmGrpSellR1025B`（null＝照舊）。航班資料頁要 sticky：body／#app 的 overflow-x:hidden 會讓 sticky 失效，這頁用 `html.k25fd-on` 改 clip。Payload 係數：亞洲—歐洲 0.684（華航校正）、其他長程 1.0。避戰空域清單是假設（`geo/route.py` ZONES）。vfy2d P3 偶爾因取樣時間失敗（重跑會過）。
@@ -112,7 +113,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/1101B/.test(t)` 改成新版號
+3. 版號更新（見下），並把 `vfy1.js` 的 `/1102A/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00（冬季另加 UTC 22:00–24:00）跑會因 KX180 當天已起飛或已截止報到而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
 5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1101B.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）

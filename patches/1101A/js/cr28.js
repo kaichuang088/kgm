@@ -43,8 +43,12 @@
   window.kgmCharterAcceptR1101A=function(id){var r=req(id),zh=z();if(!r||r.status!=='quoted'||!r.quoteR1101A)return;var Q=r.quoteR1101A;
     if(T()>Q.until){r.status='expired';save1();try{render()}catch(_){}return}
     var nm=parseNames((document.getElementById('k28q-names-'+id)||{}).value,r.pax);
-    if(!nm.ok){S.k27crMsg=zh?('接受報價要一起提供全體 '+r.pax+' 位旅客名單（每行一位：姓/名，可加 /KGM 會員卡號）；目前 '+nm.list.length+' 行'+(nm.bad.length?'，第 '+nm.bad.slice(0,6).join('、')+' 行格式不對':'')+'。'):'Provide all names.';try{render()}catch(_){}return}
-    if(!confirm(zh?('接受報價 '+M(Q.amount)+'？確認後立即付清全額，系統建立航班與團體訂位；名單到起飛前 14 天都還可以改，之後自動開票。'):'Accept and pay '+M(Q.amount)+'?'))return;
+    /* 1102A（使用者：「按下接受並付款沒反應」）：原本要一次填滿全體名單，不足就只在頁面最上方寫提示（看起來沒反應）。
+       改成名單可以先不填／填一部分，接受後立即付款，起飛前 14 天前在團體名單補齊（沒補齊的不開票）；格式錯或超過人數才擋，錯誤寫在按鈕旁邊。 */
+    var er30=document.getElementById('k28q-msg-'+id),say30=function(m){if(er30){er30.textContent=m;er30.style.display='block';try{er30.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}}else alert(m)};
+    if(nm.bad.length){say30(zh?('名單第 '+nm.bad.slice(0,6).join('、')+' 行格式不對（每行一位：姓/名，可加 /KGM 會員卡號）。'):'Some lines are not LAST/FIRST.');return}
+    if(nm.list.length>r.pax){say30(zh?('名單有 '+nm.list.length+' 位，超過申請的 '+r.pax+' 位。'):'Too many names.');return}
+    if(!confirm(zh?('接受報價 '+M(Q.amount)+'？確認後立即付清全額，系統建立航班與團體訂位。'+(nm.list.length<r.pax?'\n名單目前 '+nm.list.length+'／'+r.pax+' 位，其餘請在起飛前 14 天前於團體名單補齊（補齊後才開票）。':'名單到起飛前 14 天都還可以改，之後自動開票。')):'Accept and pay '+M(Q.amount)+'?'))return;
     S.k27crPick=S.k27crPick||{};S.k27crPick[id]=Q.picks||{};var c0=window.confirm;window.confirm=function(){return true};window.__k28accept=1;
     /* 1101A：原本的核准只接受 pending → 暫時改回 pending 再呼叫，失敗就還原成 quoted */
     var m0=S.k27crMsg,d0m=S.k27cdMsg;S.k27crMsg='';S.k27cdMsg='';r.status='pending';
@@ -103,15 +107,18 @@
       card.appendChild(d)})}
   function frontDecor(){if(S.view==='admin')return;var zh=z();
     R().forEach(function(r){if(!r)return;var art=[].filter.call(document.querySelectorAll('.k27cr-list article'),function(a){return (a.textContent||'').indexOf(r.id)>=0})[0];if(!art||art.querySelector('.k28q-f'))return;var d=document.createElement('div');d.className='k28q-f';var Q=r.quoteR1101A||{},h='';
-      if(r.status==='quoted'){h='<div class="k28q-offer"><small>'+(zh?'KGM 報價（不二價）':'KGM offer')+'</small><b>'+M(Q.amount)+'</b><span>'+(zh?'請於 '+E(Q.until)+' 前回覆（剩 '+Math.max(0,days(T(),Q.until))+' 天）。接受後立即付清全額；名單到起飛前 14 天都還可以改，之後自動開票。':'Respond by '+E(Q.until))+'</span></div>'
-        +'<label>'+(zh?'全體 '+r.pax+' 位旅客名單（每行一位：姓/名，可加 /KGM 會員卡號）':'Names, one per line: LAST/FIRST[/member no.]')+'<textarea id="k28q-names-'+E(r.id)+'" class="inp" rows="4" placeholder="WANG/DAMING\nLIN/MEI/KGM100123"></textarea></label>'
-        +'<div class="k28q-acts"><button type="button" class="k25g-btn ghost" onclick="kgmCharterRejectR1101A(\''+E(r.id)+'\')">'+(zh?'拒絕報價':'Decline')+'</button><button type="button" class="k25g-btn" onclick="kgmCharterAcceptR1101A(\''+E(r.id)+'\')">'+(zh?'接受並付款':'Accept & pay')+'</button></div>'}
+      if(r.status==='quoted'){var t14=AD(r.date,-14),left=Math.max(0,days(T(),Q.until));   /* 1102A：報價改兩欄（金額＋三個步驟），名單即時計數（使用者：「團體定位頁面不好看」） */
+        h='<div class="k28q-offer k30q"><div class="k30q-amt"><small>'+(zh?'KGM 報價（不二價）':'KGM offer')+'</small><b>'+M(Q.amount)+'</b><span>'+(zh?'全團 '+r.pax+' 位・每位約 ':r.pax+' pax · about ')+M(Q.amount/Math.max(1,+r.pax||1))+'</span><em class="'+(left<=3?'hot':'')+'">'+(zh?'請於 '+E(Q.until)+' 前回覆・剩 '+left+' 天':'Respond by '+E(Q.until)+' · '+left+' days left')+'</em></div>'
+          +'<ol class="k30q-steps"><li><b>'+(zh?'接受並付款':'Accept & pay')+'</b><span>'+(zh?'一次付清全額':'Pay the full amount')+'</span></li><li><b>'+(zh?'補齊名單':'Add names')+'</b><span>'+(zh?E(AD(t14,-1))+' 前都可以修改':'Editable until '+E(AD(t14,-1)))+'</span></li><li><b>'+(zh?'自動開票':'Ticketing')+'</b><span>'+(zh?E(t14)+' 起依名單開票（一人一個 PNR）':'From '+E(t14)+', one PNR each')+'</span></li></ol></div>'
+          +'<label class="k30q-names"><span>'+(zh?'旅客名單（選填，可以之後再補）':'Passenger names (optional for now)')+'<em id="k30q-cnt-'+E(r.id)+'">'+(zh?'已填 0／':'0 / ')+r.pax+(zh?' 位':'')+'</em></span><small>'+(zh?'每行一位：姓/名，可加 /KGM 會員卡號':'One per line: LAST/FIRST[/member no.]')+'</small><textarea id="k28q-names-'+E(r.id)+'" class="inp" rows="4" placeholder="WANG/DAMING\nLIN/MEI/KGM100123" oninput="kgmQCountR1102A(this,\''+E(r.id)+'\','+(+r.pax||0)+')"></textarea></label>'
+          +'<div class="k28q-msg" id="k28q-msg-'+E(r.id)+'" role="alert" style="display:none"></div><div class="k28q-acts"><button type="button" class="k25g-btn ghost" onclick="kgmCharterRejectR1101A(\''+E(r.id)+'\')">'+(zh?'拒絕報價':'Decline')+'</button><button type="button" class="k25g-btn" onclick="kgmCharterAcceptR1101A(\''+E(r.id)+'\')">'+(zh?'接受並付款 ':'Accept & pay ')+M(Q.amount)+'</button></div>'}
       else if(r.status==='rejected'||r.status==='expired')h='<div class="k27cr-no">'+(r.status==='rejected'?(zh?'已拒絕報價 ':'Quote declined ')+M(Q.amount):(zh?'報價已逾期（'+E(Q.until)+'）':'Quote expired'))+'</div>';
       else if(r.status==='approved'&&r.kind==='custom'){var cur=(r.flights&&r.flights[0]&&r.flights[0].type)||'',cn=seatsOf(cur),big=TYPES.filter(function(t){return t!==cur&&seatsOf(t)>cn});var U=r.upsizeR1101A;
         h=U?('<div class="k28q-up">'+(zh?'換大機型申請：':'Upsize: ')+E(U.from)+' → '+E(U.type)+'・'+({requested:zh?'待 KGM 確認（起飛前 21 天前）':'pending',approved:zh?'已核准':'approved',declined:zh?'未核准':'declined'}[U.status]||U.status)+'</div>')
           :(big.length?'<div class="k28q-up"><label>'+(zh?'申請換大機型（只能換大；起飛前 21 天前由 KGM 確認）':'Request a larger aircraft')+'<select id="k28q-up-'+E(r.id)+'" class="inp">'+big.map(function(t){return '<option value="'+t+'">'+t+'（'+seatsOf(t)+(zh?' 席':' seats')+'）</option>'}).join('')+'</select></label><button type="button" class="k25g-btn sm" onclick="kgmCharterUpsizeR1101A(\''+E(r.id)+'\')">'+(zh?'送出申請':'Request')+'</button></div>':'')}
       if(r.status==='approved'&&r.acceptedAt){var g=(S.groupsR1023A||[]).filter(function(x){return x&&x.id===r.groupId})[0];if(g&&g.ticketFromR1101A)h+='<div class="k28q-up">'+(zh?'名單可修改到 '+E(AD(g.ticketFromR1101A,-1))+'；'+E(g.ticketFromR1101A)+' 起依確認的名單自動開票。':'Names editable until '+E(g.ticketFromR1101A))+'</div>'}
       if(!h)return;d.innerHTML=h;art.appendChild(d)})}
+  window.kgmQCountR1102A=function(t,id,n){var c=String(t.value||'').split(/\n/).filter(function(x){return x.trim()}).length,e=document.getElementById('k30q-cnt-'+id);if(e){e.textContent=z()?('已填 '+c+'／'+n+' 位'):(c+' / '+n);e.style.color=c>n?'#9A2B1F':''}};
   function decor(){try{deskDecor()}catch(_){}try{frontDecor()}catch(_){}}
   try{var r0=window.render;if(typeof r0==='function'&&!r0.__cr28){var w=function(){var x=r0.apply(this,arguments);setTimeout(decor,0);return x};w.__cr28=1;window.render=w;try{render=w}catch(_){}}}catch(_){}
   setInterval(decor,1500);
@@ -119,6 +126,38 @@
     '.k28q-desk{display:grid;gap:6px;margin:0 10px 0 0;min-width:280px}.k28q-desk label{display:grid;gap:4px;font-size:11.5px;font-weight:700;color:#55605B}.k28q-desk small{font-size:11px;color:#7A5A12}.k28q-desk .ck{display:flex!important;gap:8px;align-items:flex-start;font-weight:500}.k28q-desk .ck input{width:16px!important;height:16px!important;min-height:0!important;flex:0 0 auto;margin:1px 0 0;padding:0}'
    +'.k28q-st{margin-top:10px;padding:10px 12px;border-radius:12px;background:#FFF8EC;border:1px solid #F0D9B0;font-size:13px;color:#5B4A2C}.k28q-st b{color:#0B3D2E}'
    +'.k28q-f{margin-top:10px;display:grid;gap:10px}.k28q-offer{display:grid;gap:2px;padding:12px 14px;border-radius:14px;background:#EEF7F1;border:1px solid #BFDCCB}.k28q-offer small{font:800 10.5px system-ui,sans-serif;letter-spacing:.16em;color:#0B6B48}.k28q-offer b{font:700 24px Georgia,serif;color:#0B3D2E}.k28q-offer span{font-size:12.5px;color:#33443C}'
-   +'.k28q-f label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#55605B}.k28q-acts{display:flex;gap:8px;justify-content:flex-end}.k28q-up{font-size:12.5px;color:#55605B;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}';
+   +'.k30q{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px!important;padding:16px 18px!important;align-items:center}.k30q-amt{display:grid;gap:2px}.k30q-amt b{font:700 28px Georgia,serif!important}.k30q-amt span{font-size:12.5px;color:#55605B}.k30q-amt em{font-style:normal;justify-self:start;margin-top:6px;font-size:12px;font-weight:700;color:#0B6B48;background:#fff;border:1px solid #BFDCCB;border-radius:999px;padding:3px 10px}.k30q-amt em.hot{color:#9A2B1F;border-color:#F0C4BB}'
+   +'.k30q-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;counter-reset:k30}.k30q-steps li{counter-increment:k30;background:#fff;border:1px solid #D5E7DC;border-radius:12px;padding:10px 12px;display:grid;gap:2px}.k30q-steps li:before{content:counter(k30);width:20px;height:20px;border-radius:50%;background:#0B3D2E;color:#fff;font:700 11px ui-monospace,monospace;display:inline-flex;align-items:center;justify-content:center;margin-bottom:4px}.k30q-steps b{font-size:13px;color:#0B3D2E}.k30q-steps span{font-size:11.5px;color:#55605B;line-height:1.5}'
+   +'.k30q-names>span{display:flex;justify-content:space-between;align-items:baseline}.k30q-names em{font-style:normal;font:700 12px ui-monospace,monospace;color:#0B3D2E;background:#EEF2EF;border-radius:999px;padding:2px 9px}.k30q-names small{font-weight:500;color:#7A857F;font-size:11.5px}'
+   +'.k30cr-facts{display:grid;grid-template-columns:150px 110px minmax(0,1.4fr) minmax(0,1fr) 90px;gap:0;margin:10px 0 2px;border:1px solid rgba(11,58,46,.1);border-radius:12px;overflow:hidden}.k30cr-facts>div{padding:9px 12px;border-left:1px solid rgba(11,58,46,.08);display:grid;gap:1px;min-width:0}.k30cr-facts>div:first-child{border-left:0}.k30cr-facts small{font-size:10.5px;color:#7A857F;letter-spacing:.04em}.k30cr-facts b{font-size:14px;color:#0B3D2E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.k30cr-facts b.mono{font-family:ui-monospace,monospace;font-size:13px}.k30cr-facts i{font-style:normal;font-size:11px;color:#7A857F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+   +'.k27cr-list article{padding:18px 20px!important;border-radius:18px!important}.k27cr-list .k27cr-h b{font-size:17px}.k27cr-list>h3{display:flex;align-items:baseline;gap:8px}'
+   +'@media(max-width:760px){.k30q{grid-template-columns:1fr}.k30q-steps{grid-template-columns:1fr}.k30cr-facts{grid-template-columns:1fr 1fr}.k30cr-facts>div{border-left:0;border-top:1px solid rgba(11,58,46,.08)}}'
+   +'.k28q-msg{margin:8px 0 0;padding:9px 12px;border-radius:10px;background:#FDECEA;color:#9A2B1F;font-size:13px;font-weight:600}.k28q-f label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#55605B}.k28q-acts{display:flex;gap:8px;justify-content:flex-end}.k28q-up{font-size:12.5px;color:#55605B;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}';
     document.head.appendChild(cs)}catch(_){}
+})();
+
+/* 1102A：包機／自創航班長程自動排除 A21N（使用者：「如果是包機並且是長程航班要自動移除A21N」）——
+   長程＝航段距離 4,000 公里以上（跟 KGM-RSB-016 的長程定義同一個門檻）。
+   ① 後台排機（kgmTempPlanR1026C，包機／自創航班核准共用）：長程指定 A21N 就改成由系統建議機型，選項裡不出現 A21N；
+   ② 前台申請表：出發地／目的地是長程時，機型選單的 A21N 停用，已選的改回「由 KGM 建議」並寫一行說明。 */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function km(a,b){try{return +distOf(String(a||'').toUpperCase(),String(b||'').toUpperCase())||0}catch(_){return 0}}
+  function lh(a,b){return km(a,b)>=4000}
+  window.kgmCharterLongHaulR1102A=lh;
+  function wrapPlan(){var O=window.kgmTempPlanR1026C;if(typeof O!=='function'||O.__a21)return;
+    var w=function(P){if(P&&P.kind==='temp'&&lh(P.fr,P.to)){if(/^A21/.test(P.type||''))P=Object.assign({},P,{type:'',typeDroppedR1102A:P.type});
+        var o=O.call(this,P);if(o&&o.opts)o.opts=o.opts.filter(function(x){return !/^A21/.test(x&&x.type||'')});return o}
+      return O.apply(this,arguments)};w.__a21=1;window.kgmTempPlanR1026C=w}
+  function form(){var sel=document.getElementById('k27c-type'),fr=document.getElementById('k27c-fr'),to=document.getElementById('k27c-to');if(!sel||!fr||!to)return;
+    var L=lh(fr.value,to.value),op=[].filter.call(sel.options,function(o){return /^A21/.test(o.value)});
+    op.forEach(function(o){o.disabled=L;o.hidden=L});
+    var note=sel.parentElement&&sel.parentElement.querySelector('.k30-a21');
+    if(L&&/^A21/.test(sel.value)){sel.value=''}
+    if(L&&!note){note=document.createElement('small');note.className='k30-a21';note.style.cssText='display:block;margin-top:4px;color:#8A5A00;font-size:11.5px';note.textContent=z()?'長程航段（4,000 公里以上）不使用 A21N。':'A21N is not used on long-haul (4,000 km+).';sel.parentElement.appendChild(note)}
+    else if(!L&&note)note.remove();
+    if(!fr.__a21){fr.__a21=1;fr.addEventListener('input',form)}if(!to.__a21){to.__a21=1;to.addEventListener('input',form)}}
+  function wrapSubmit(){var O=window.kgmCharterSubmitR1026C;if(typeof O!=='function'||O.__a21)return;var w=function(){try{form()}catch(_){}return O.apply(this,arguments)};w.__a21=1;window.kgmCharterSubmitR1026C=w}
+  wrapPlan();wrapSubmit();setTimeout(function(){wrapPlan();wrapSubmit()},0);setTimeout(function(){wrapPlan();wrapSubmit()},3000);
+  setInterval(function(){try{if(document.getElementById('k27c-type'))form()}catch(_){}},800);
 })();

@@ -87,55 +87,139 @@
   function findBk(pnr,last){pnr=String(pnr||'').trim().toUpperCase();last=String(last||'').trim().toUpperCase();var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===pnr})[0];
     if(!b)return null;if(S.user&&b.userId===S.user.id)return b;if(!last)return null;return (b.paxList||[]).some(function(p){return String(p.lastName||'').toUpperCase()===last})?b:null}
   /* ── 前台：寵物同行申請 ─────────────────────────────────────────── */
-  function pf(){S.pet28=S.pet28||{pnr:'',last:'',key:'',species:'dog',mode:'cabin',kg:'',dims:'',weeks:'',breed:'',snub:false,name:'',docs:false,note:'',err:'',done:null};return S.pet28}
-  window.kgmPetSetR1101A=function(k,v,re){var F=pf();F[k]=v;if(k==='breed')F.snub=R.snub.some(function(x){return String(v||'').toLowerCase().indexOf(x.split(' ')[0].toLowerCase())>=0||String(v||'').toLowerCase().indexOf((x.split(' ').slice(1).join(' ')||'@@').toLowerCase())>=0});if(re)render()};
+  /* 1102A：使用者「圖三用戶端寵物介面不好看，寵物的航班也要有回程，只顯示日期還沒到的航班，要規定要提早多久申請，也要開放權限去選位置（寵物選位一定要加錢）」
+     · 訂位用卡片選，只列還有「還沒起飛」航段的訂位；航段可複選（去程＋回程一次申請，一件案件）；每段寫申請截止（起飛前 72 小時，出發地當地時間），過了截止的段不能勾。
+     · 帶上客艙的寵物可以選座位（不能坐第一排、緊急出口排、Payload 鎖住的排）；選位費 R.seatFee（經濟 USD 30／豪經 USD 40，每段），送出時座位直接劃給攜帶寵物的旅客。 */
+  R.seatFee={Economy:30,Premium:40};
+  function depMs(f){return Date.parse(f.date+'T'+String(f.dep||'00:00')+':00Z')-tz(f.fr)*3600e3}
+  function dlTxt(f,h){var d=new Date(Date.parse(f.date+'T'+String(f.dep||'00:00')+':00Z')-h*3600e3);return String(d.getUTCMonth()+1).padStart(2,'0')+'/'+String(d.getUTCDate()).padStart(2,'0')+' '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')}
+  function futSegs(b){var now=Date.now();return segsOf(b).filter(function(s){return s.f&&s.f.date&&depMs(s.f)>now})}
+  function segOpen(s,mode){var need=mode==='hold'?R.applyHoldH:R.applyCabinH;return depMs(s.f)-Date.now()>=need*3600e3}
+  function legName(k,i){var zh=z();k=String(k||'');return /^out/.test(k)?(zh?'去程':'Outbound'):/^inb/.test(k)?(zh?'回程':'Return'):(zh?'第 '+(i+1)+' 段':'Flight '+(i+1))}
+  var CABZ={Economy:'經濟艙',Premium:'豪華經濟艙',Business:'商務艙',First:'頭等艙',Resident:'Residence'};
+  function cabTxt(c){return z()?(CABZ[c]||c):c}
+  function wk(d){try{return '日一二三四五六'.charAt(new Date(d+'T00:00:00Z').getUTCDay())}catch(_){return ''}}
+  function md(d){return String(d||'').slice(5).replace('-','/')}
+  function shS(f,id){try{return (id&&window.kgmShownSeatR1006A&&window.kgmShownSeatR1006A(f,id))||id}catch(_){return id}}   /* 訂位存內部排號，旅客看到的是顯示排號（1006A） */
+  function paxOf(b){return (b.paxList||[]).filter(function(p){return p.passengerType!=='INF'})}
+  function pnm(p){return [p.lastName,p.firstName].filter(Boolean).join(' ')||'Passenger'}
+  /* 寵物座位：這一段這位旅客可以坐的位子（空位＋自己目前的位子；排除第一排、緊急出口排、Payload 鎖住的排） */
+  function seatInfo(b,s,pi){var f=s.f,cab=cabOf(b,s.key),out={cab:cab,type:'',rows:[],ok:{},cur:'',curBad:'',block:''};
+    try{var inv=window.kgmCabinInventory54(f,f.date,cab,b.pnr),type=inv.type;out.type=type;
+      var mine=Object.keys((b.seats||{})[s.key]||{}).filter(function(k){return k!=='_auto'}),cur=mine[pi]||'';out.cur=cur;
+      for(var j=0;j<pi;j++)if(!mine[j]){out.block=z()?'同訂位前面的旅客還沒有座位，請由第一位旅客攜帶寵物，或報到時於櫃檯劃位。':'Seat the earlier passengers first.';break}
+      var free={};(inv.seats||[]).forEach(function(x){free[x]=1});mine.forEach(function(x,j){if(j!==pi)delete free[x]});if(cur)free[cur]=1;
+      var secs=(window.seatSections7(type)||[]).filter(function(x){return x.name===cab}),ex=[];try{ex=(AC[type]||{}).exitRows||[]}catch(_){}
+      var ids=[];secs.forEach(function(x){x.rows.forEach(function(r){r.cells.forEach(function(c){if(c.id)ids.push(c.id)})})});
+      var bl={};try{bl=window.kgmPlBlockedIdsR1101A?window.kgmPlBlockedIdsR1101A(f,f.date,ids)||{}:{}}catch(_){}
+      secs.forEach(function(x){x.rows.forEach(function(r,ri){var c0=r.cells.filter(function(c){return c.id})[0],rn=c0?parseInt(shS(f,c0.id),10)||r.n:r.n,bulk=ri===0,exit=ex.indexOf(rn)>=0;   /* AC.exitRows 是顯示排號 */out.rows.push({n:r.n,bulk:bulk,exit:exit,cells:r.cells});
+        r.cells.forEach(function(c){if(!c.id)return;var why=bulk?'bulk':exit?'exit':bl[c.id]?'pl':'';if(c.id===cur&&why)out.curBad=why;if(free[c.id]&&!why)out.ok[c.id]=1})})})}catch(e){out.err=String(e&&e.message||e)}
+    return out}
+  function pf(){S.pet28=S.pet28||{pnr:'',last:'',keys:null,pax:0,seats:{},seatOpen:'',species:'dog',mode:'cabin',kg:'',dims:'',weeks:'',breed:'',snub:false,name:'',docs:false,note:'',err:'',done:null};var F=S.pet28;if(!F.seats)F.seats={};return F}
+  window.kgmPetSetR1101A=function(k,v,re){var F=pf();F[k]=v;if(k==='breed')F.snub=R.snub.some(function(x){return String(v||'').toLowerCase().indexOf(x.split(' ')[0].toLowerCase())>=0||String(v||'').toLowerCase().indexOf((x.split(' ').slice(1).join(' ')||'@@').toLowerCase())>=0});
+    if(k==='pnr'){F.keys=null;F.seats={};F.seatOpen='';F.pax=0;F.err=''}if(k==='pax'||k==='mode'||k==='species'){F.seats={};F.seatOpen=''}if(re)render()};
+  window.kgmPetKeyR1102A=function(k,on){var F=pf();F.keys=F.keys||{};F.keys[k]=!!on;if(!on){delete F.seats[k];if(F.seatOpen===k)F.seatOpen=''}F.err='';render()};
+  window.kgmPetSeatR1102A=function(k,seat){var F=pf();if(seat===null){delete F.seats[k]}else if(seat)F.seats[k]=seat;else F.seatOpen=F.seatOpen===k?'':k;if(seat)F.seatOpen='';render()};
+  function bkOf(F){return F.pnr?findBk(F.pnr,F.last):null}
+  function selKeys(b,F){var fs=futSegs(b);if(!F.keys){F.keys={};fs.forEach(function(s){if(segOpen(s,F.mode))F.keys[s.key]=true})}return fs.filter(function(s){return F.keys[s.key]&&segOpen(s,F.mode)}).map(function(s){return s.key})}
+  function seatMap(b,s,F){var zh=z(),si=seatInfo(b,s,+F.pax||0),pick=F.seats[s.key]||'';if(si.err)return '<div class="k60-warn">'+E(si.err)+'</div>';if(si.block)return '<div class="k30-seatnote">'+E(si.block)+'</div>';
+    var nOk=Object.keys(si.ok).length;if(!nOk)return '<div class="k30-seatnote">'+(zh?'這一班 '+cabTxt(si.cab)+' 目前沒有可攜帶寵物的空位（第一排、緊急出口排不能攜帶寵物）；送出申請後報到時由櫃檯安排。':'No seats available for pets on this flight.')+'</div>';
+    var h='<div class="k30-map"><div class="k30-legend"><b>'+(zh?si.type+' '+cabTxt(si.cab)+'・可選 '+nOk+' 個座位':nOk+' seats available')+'</b><span><i class="ok"></i>'+(zh?'可選':'Available')+'</span><span><i class="cur"></i>'+(zh?'目前座位':'Current')+'</span><span><i class="sel"></i>'+(zh?'已選':'Selected')+'</span><span><i class="no"></i>'+(zh?'已售／不可攜帶寵物（第一排、緊急出口排）':'Taken / not allowed')+'</span></div><div class="k30-grid">';
+    si.rows.forEach(function(r){var c0=r.cells.filter(function(c){return c.id})[0],rn=c0?parseInt(shS(s.f,c0.id),10)||r.n:r.n;h+='<div class="k30-row'+(r.exit?' exit':'')+'"><em>'+rn+(r.exit?'<small>EXIT</small>':'')+'</em>'+r.cells.map(function(c){if(c.aisle)return '<span class="ai"></span>';var cls=c.id===pick?'sel':(si.ok[c.id]?(c.id===si.cur?'cur':'ok'):'no');
+      return '<button type="button" class="'+cls+'" title="'+E(shS(s.f,c.id))+'"'+(cls==='no'?' disabled':'')+' onclick="kgmPetSeatR1102A(\''+A(s.key)+'\',\''+A(c.id)+'\')">'+E(c.col)+'</button>'}).join('')+'</div>'});
+    return h+'</div></div>'}
   function petPage(){
-    var zh=z(),F=pf(),b=F.pnr?findBk(F.pnr,F.last):null,mine=myBookings();
-    if(F.done)return '<main class="k60 k28pet"><header class="k60-head"><span>TRAVEL WITH PETS</span><h1>'+(zh?'申請已送出':'Application submitted')+'</h1><p>'+(zh?'案件編號 ':'Case ')+'<b>'+E(F.done)+'</b>'+(zh?'。我們會在 1 個工作天內審核，核准後行程管理會顯示寵物同行，費用於機場櫃檯報到時支付。':'. We will review it within one business day.')+'</p></header>'
+    var zh=z(),F=pf(),b=bkOf(F),mine=myBookings().filter(function(x){return futSegs(x).length}).sort(function(a,c){return depMs(futSegs(a)[0].f)-depMs(futSegs(c)[0].f)});
+    if(F.done)return '<main class="k60 k28pet"><header class="k60-head"><span>TRAVEL WITH PETS</span><h1>'+(zh?'申請已送出':'Application submitted')+'</h1><p>'+(zh?'案件編號 ':'Case ')+'<b>'+E(F.done)+'</b>'+(zh?'。我們會在 1 個工作天內審核，核准後行程管理會顯示寵物同行；寵物運送費與選位費於機場櫃檯報到時支付。':'. We will review it within one business day.')+'</p></header>'
       +'<div class="k28pet-acts"><button class="k60-btn" onclick="S.pet28=null;render()">'+(zh?'再申請一筆':'New application')+'</button><button class="k60-btn ghost" onclick="S.view=\'case_lookup_0831B\';render()">'+(zh?'查詢案件進度':'Track case')+'</button></div></main>';
-    var segs=b?segsOf(b):[];if(b&&!F.key&&segs[0])F.key=segs[0].key;
-    var chk=b&&F.key?window.kgmPetCheckR1101A(b,F.key,F):null;
-    var pick=mine.length?('<label>'+(zh?'選擇訂位':'Booking')+'<select class="inp" onchange="kgmPetSetR1101A(\'pnr\',this.value);kgmPetSetR1101A(\'key\',\'\',1)"><option value="">'+(zh?'— 請選擇 —':'— choose —')+'</option>'
-      +mine.map(function(x){var f=x.outF||{};return '<option value="'+E(x.pnr)+'"'+(x.pnr===F.pnr?' selected':'')+'>'+E(x.pnr+'　'+(f.code||'')+' '+(f.fr||'')+'→'+(f.to||'')+'　'+(f.date||''))+'</option>'}).join('')+'</select></label>')
-      :('<label>'+(zh?'訂位代號':'Booking reference')+'<input class="inp" value="'+E(F.pnr)+'" onchange="kgmPetSetR1101A(\'pnr\',this.value.trim().toUpperCase(),1)" style="text-transform:uppercase"></label>'
-        +'<label>'+(zh?'旅客姓氏（英文）':'Last name')+'<input class="inp" value="'+E(F.last)+'" onchange="kgmPetSetR1101A(\'last\',this.value,1)" style="text-transform:uppercase"></label>');
-    var opt=function(k,v,l){return '<button type="button" class="'+(F[k]===v?'on':'')+'" onclick="kgmPetSetR1101A(\''+k+'\',\''+v+'\',1)">'+l+'</button>'};
-    var form=b?('<div class="k28pet-grid">'
-        +'<label>'+(zh?'航段':'Segment')+'<select class="inp" onchange="kgmPetSetR1101A(\'key\',this.value,1)">'+segs.map(function(s){var f=s.f;return '<option value="'+E(s.key)+'"'+(s.key===F.key?' selected':'')+'>'+E((f.code||'')+'　'+f.fr+' → '+f.to+'　'+f.date+' '+(f.dep||''))+'</option>'}).join('')+'</select></label>'
-        +'<label>'+(zh?'寵物名字':'Pet name')+'<input class="inp" value="'+E(F.name)+'" oninput="kgmPetSetR1101A(\'name\',this.value)"></label></div>'
-      +'<div class="k28pet-sub">'+(zh?'寵物種類':'Animal')+'</div><div class="k28seg">'+opt('species','dog',zh?'🐕 狗':'🐕 Dog')+opt('species','cat',zh?'🐈 貓':'🐈 Cat')+opt('species','service',zh?'🦮 服務犬（免費）':'🦮 Service dog')+'</div>'
-      +(F.species!=='service'?('<div class="k28pet-sub">'+(zh?'運送方式':'How the pet travels')+'</div><div class="k28seg">'+opt('mode','cabin',zh?'客艙（放前方座位下）':'In cabin (under seat)')+opt('mode','hold',zh?'托運（溫控貨艙）':'Checked (hold)')+'</div>'
-        +'<div class="k28pet-grid3"><label>'+(zh?'品種':'Breed')+'<input class="inp" list="k28breeds" value="'+E(F.breed)+'" onchange="kgmPetSetR1101A(\'breed\',this.value,1)"><datalist id="k28breeds">'+R.snub.map(function(x){return '<option value="'+E(x)+'">'}).join('')+'</datalist></label>'
-        +'<label>'+(zh?'寵物＋寵物袋／籠 重量（kg）':'Pet + carrier (kg)')+'<input class="inp" type="number" min="0" step="0.1" value="'+E(F.kg)+'" onchange="kgmPetSetR1101A(\'kg\',this.value,1)"></label>'
-        +'<label>'+(zh?'年齡（週）':'Age (weeks)')+'<input class="inp" type="number" min="0" value="'+E(F.weeks)+'" onchange="kgmPetSetR1101A(\'weeks\',this.value,1)"></label>'
-        +'<label>'+(zh?'寵物袋／籠尺寸（長×寬×高 cm）':'Carrier size (L×W×H cm)')+'<input class="inp" placeholder="46×28×24" value="'+E(F.dims)+'" onchange="kgmPetSetR1101A(\'dims\',this.value,1)"></label></div>'):'')
-      +'<label class="k60-check"><input type="checkbox"'+(F.docs?' checked':'')+' onchange="kgmPetSetR1101A(\'docs\',this.checked,1)"> '+(zh?'我已備妥：10 天內的健康證明、狂犬病疫苗（施打滿 30 天且在有效期內）、晶片，以及目的地入境／檢疫文件':'I have the health certificate, rabies vaccination, microchip and entry documents')+'</label>'
-      +'<div class="k28pet-sub">'+(zh?'上傳文件（健康證明、疫苗紀錄…，最多 3 個、每個 5 MB 內）':'Documents (max 3, 5 MB each)')+'</div><label class="k28-drop"><input type="file" multiple accept=".pdf,image/*" onchange="kgmCaseFilePickR1101A(this,\'pet\')"><span>'+(zh?'＋ 選擇檔案':'+ Choose files')+'</span></label><ul class="k28-files" id="k28f-pet"></ul>'
-      +'<label>'+(zh?'其他說明':'Notes')+'<textarea class="inp" rows="2" oninput="kgmPetSetR1101A(\'note\',this.value)">'+E(F.note)+'</textarea></label>'
-      +(chk?('<div class="k28pet-res '+(chk.ok?'ok':'no')+'">'+(chk.ok?('<b>✓ '+(zh?'符合規定':'Eligible')+'</b><span>'+(chk.mode==='service'?(zh?'服務犬免費，於客艙腳邊隨行。':'Service dogs travel free in the cabin.'):((zh?(chk.mode==='hold'?'托運（溫控貨艙）':'客艙')+'・每段每隻 USD ':'Fee USD ')+chk.fee+(zh?'，機場櫃檯報到時支付':' at check-in')))+'</span>')
-        :('<b>'+(zh?'目前不符合':'Not eligible yet')+'</b><ul>'+chk.why.map(function(w){return '<li>'+E(w)+'</li>'}).join('')+'</ul>'))
-        +(chk.warn.length?'<small>'+chk.warn.map(E).join('　')+'</small>':'')+'</div>'):'')
-      +(F.err?'<div class="k60-warn">'+E(F.err)+'</div>':'')
-      +'<div class="k28pet-acts"><button class="k60-btn" '+(chk&&chk.ok?'':'disabled')+' onclick="kgmPetSubmitR1101A()">'+(zh?'送出申請':'Submit')+'</button></div>')
-      :(F.pnr?'<div class="k60-warn">'+(zh?'查無此訂位，或姓氏不符。':'Booking not found.')+'</div>':'');
+    var step=function(n,t,s){return '<div class="k30-step"><i>'+n+'</i><b>'+t+'</b>'+(s?'<span>'+s+'</span>':'')+'</div>'};
+    /* ① 訂位 */
+    var look='<div class="k28pet-grid"><label>'+(zh?'訂位代號':'Booking reference')+'<input class="inp" value="'+E(mine.some(function(x){return x.pnr===F.pnr})?'':F.pnr)+'" onchange="kgmPetSetR1101A(\'pnr\',this.value.trim().toUpperCase(),1)" style="text-transform:uppercase"></label>'
+      +'<label>'+(zh?'旅客姓氏（英文）':'Last name')+'<input class="inp" value="'+E(F.last)+'" onchange="kgmPetSetR1101A(\'last\',this.value,1)" style="text-transform:uppercase"></label></div>';
+    var cards=mine.map(function(x){var fs=futSegs(x),a=fs[0].f,l=fs[fs.length-1].f,np=paxOf(x).length,has=(x.petsR1101A||[]).length||(S.staffCasesR1007A||[]).some(function(c){return c&&c.type==='pet'&&c.pnr===x.pnr&&c.status!=='closed'});
+      var rt=fs.length>1&&l.to===a.fr;
+      return '<button type="button" class="k30-bk'+(x.pnr===F.pnr?' on':'')+'" onclick="kgmPetSetR1101A(\'pnr\',\''+A(x.pnr)+'\',1)"><span class="pn">'+E(x.pnr)+'</span><span class="rt"><b>'+E(a.fr)+'</b><i>'+(rt?'⇄':'→')+'</i><b>'+E(rt?a.to:l.to)+'</b></span>'
+        +'<span class="dt">'+E(md(a.date))+(fs.length>1&&l.date!==a.date?' – '+E(md(l.date)):'')+'</span><span class="mt">'+fs.length+(zh?' 段未出發 · ':' upcoming · ')+np+(zh?' 位旅客':' pax')+(has?' · 🐾':'')+'</span></button>'}).join('');
+    var pick=step(1,zh?'選擇訂位':'Choose a booking',zh?'只列還有航段尚未出發的訂位':'Bookings with upcoming flights')
+      +(mine.length?'<div class="k30-bks">'+cards+'</div><details class="k30-look"'+(F.pnr&&!mine.some(function(x){return x.pnr===F.pnr})?' open':'')+'><summary>'+(zh?'申請其他訂位（輸入訂位代號）':'Another booking')+'</summary>'+look+'</details>':look);
+    var form='';
+    if(F.pnr&&!b)form='<div class="k60-warn">'+(zh?'查無此訂位，或姓氏不符。':'Booking not found.')+'</div>';
+    else if(b&&!futSegs(b).length)form='<div class="k60-warn">'+(zh?'這筆訂位沒有尚未起飛的航段。':'No upcoming flights in this booking.')+'</div>';
+    else if(b){
+      var fs=futSegs(b),keys=selKeys(b,F),pax=paxOf(b);if(+F.pax>=pax.length)F.pax=0;
+      var segHtml=fs.map(function(s,i){var f=s.f,op=segOpen(s,F.mode),on=op&&F.keys[s.key],need=F.mode==='hold'?R.applyHoldH:R.applyCabinH;
+        return '<label class="k30-seg'+(on?' on':'')+(op?'':' off')+'"><input type="checkbox"'+(on?' checked':'')+(op?'':' disabled')+' onchange="kgmPetKeyR1102A(\''+A(s.key)+'\',this.checked)">'
+          +'<span class="lg">'+legName(s.key,i)+'</span><span class="fl"><b>'+E(f.code||'')+'</b><small>'+E(cabTxt(cabOf(b,s.key)))+'</small></span>'
+          +'<span class="od"><b>'+E(f.fr)+'</b><small>'+E(cityN(f.fr))+'</small></span><span class="ar">→</span><span class="od"><b>'+E(f.to)+'</b><small>'+E(cityN(f.to))+'</small></span>'
+          +'<span class="tm"><b>'+E(md(f.date))+(zh?'（'+wk(f.date)+'）':'')+' '+E(f.dep||'')+'</b><small>'+(op?((zh?'申請截止 ':'Apply by ')+dlTxt(f,need)+(zh?'（當地時間）':' local')):(zh?'已過申請期限（起飛前 '+need+' 小時）':'Closed ('+need+'h before departure)'))+'</small></span></label>'}).join('');
+      var opt=function(k,v,l){return '<button type="button" class="'+(F[k]===v?'on':'')+'" onclick="kgmPetSetR1101A(\''+k+'\',\''+v+'\',1)">'+l+'</button>'};
+      form+=step(2,zh?'選擇航段':'Flights',zh?'去程、回程可一起申請；每段需在起飛前 72 小時前申請（以出發地當地時間計）':'Apply for several flights at once; 72 hours before each departure')
+        +'<div class="k30-segs">'+segHtml+'</div>'
+        +(pax.length>1?'<div class="k28pet-sub">'+(zh?'攜帶寵物的旅客':'Passenger travelling with the pet')+'</div><div class="k28seg">'+pax.map(function(p,i){return '<button type="button" class="'+((+F.pax||0)===i?'on':'')+'" onclick="kgmPetSetR1101A(\'pax\','+i+',1)">'+E(pnm(p))+'</button>'}).join('')+'</div>':'')
+        +step(3,zh?'寵物資料':'About your pet','')
+        +'<div class="k28pet-grid"><label>'+(zh?'寵物名字':'Pet name')+'<input class="inp" value="'+E(F.name)+'" oninput="kgmPetSetR1101A(\'name\',this.value)"></label><div></div></div>'
+        +'<div class="k28pet-sub">'+(zh?'寵物種類':'Animal')+'</div><div class="k28seg">'+opt('species','dog',zh?'🐕 狗':'🐕 Dog')+opt('species','cat',zh?'🐈 貓':'🐈 Cat')+opt('species','service',zh?'🦮 服務犬（免費）':'🦮 Service dog')+'</div>'
+        +(F.species!=='service'?('<div class="k28pet-sub">'+(zh?'運送方式':'How the pet travels')+'</div><div class="k28seg">'+opt('mode','cabin',zh?'客艙（放前方座位下）':'In cabin (under seat)')+opt('mode','hold',zh?'托運（溫控貨艙）':'Checked (hold)')+'</div>'
+          +'<div class="k28pet-grid3"><label>'+(zh?'品種':'Breed')+'<input class="inp" list="k28breeds" value="'+E(F.breed)+'" onchange="kgmPetSetR1101A(\'breed\',this.value,1)"><datalist id="k28breeds">'+R.snub.map(function(x){return '<option value="'+E(x)+'">'}).join('')+'</datalist></label>'
+          +'<label>'+(zh?'寵物＋袋／籠重量（kg）':'Pet + carrier (kg)')+'<input class="inp" type="number" min="0" step="0.1" value="'+E(F.kg)+'" onchange="kgmPetSetR1101A(\'kg\',this.value,1)"></label>'
+          +'<label>'+(zh?'年齡（週）':'Age (weeks)')+'<input class="inp" type="number" min="0" value="'+E(F.weeks)+'" onchange="kgmPetSetR1101A(\'weeks\',this.value,1)"></label>'
+          +'<label>'+(zh?'袋／籠尺寸（長×寬×高 cm）':'Carrier size (L×W×H cm)')+'<input class="inp" placeholder="46×28×24" value="'+E(F.dims)+'" onchange="kgmPetSetR1101A(\'dims\',this.value,1)"></label></div>'):'');
+      /* 每段判斷 */
+      var chks=keys.map(function(k){return {k:k,s:fs.filter(function(x){return x.key===k})[0],c:window.kgmPetCheckR1101A(b,k,F)}});
+      var cabinPet=F.species!=='service'&&F.mode==='cabin';
+      if(cabinPet&&chks.length){
+        form+=step(4,zh?'座位（選填）':'Seat (optional)',zh?'攜帶客艙寵物可指定座位，選位費每段 經濟艙 USD '+R.seatFee.Economy+'／豪華經濟艙 USD '+R.seatFee.Premium+'；第一排與緊急出口排不能攜帶寵物':'Seat fee per flight: Economy USD '+R.seatFee.Economy+' / Premium USD '+R.seatFee.Premium)
+          +'<div class="k30-seats">'+chks.map(function(x,i){var s=x.s,cab=cabOf(b,s.key),fee=R.seatFee[cab],sel=F.seats[s.key]||'',si=null,curTxt='';
+            if(fee==null)return '<div class="k30-st"><span class="lg">'+legName(s.key,fs.indexOf(s))+'</span><b>'+E(s.f.code)+'</b><span class="k30-stx">'+(zh?'此艙等不受理客艙寵物':'Cabin pets not accepted in this cabin')+'</span></div>';
+            if(!sel){si=seatInfo(b,s,+F.pax||0);curTxt=si.cur?((zh?'目前座位 ':'Current seat ')+shS(s.f,si.cur)+(si.curBad?(zh?'（'+({bulk:'第一排',exit:'緊急出口排',pl:'該排暫停販售'}[si.curBad])+'，不能攜帶寵物，請選位或報到時改位）':' (not allowed with a pet)'):'')):(zh?'尚未選位（報到時櫃檯安排可攜帶寵物的座位）':'No seat yet')}
+            return '<div class="k30-st'+(F.seatOpen===s.key?' open':'')+'"><span class="lg">'+legName(s.key,fs.indexOf(s))+'</span><b>'+E(s.f.code)+'</b><span class="k30-stx">'+(sel?((zh?'已選 ':'Selected ')+'<em>'+E(shS(s.f,sel))+'</em> · USD '+fee):E(curTxt))+'</span>'
+              +'<span class="k30-sb">'+(sel?'<button type="button" class="k60-btn ghost" onclick="kgmPetSeatR1102A(\''+A(s.key)+'\',null)">'+(zh?'取消選位':'Remove')+'</button>':'')+'<button type="button" class="k60-btn ghost" onclick="kgmPetSeatR1102A(\''+A(s.key)+'\',\'\')">'+(F.seatOpen===s.key?(zh?'收起':'Close'):(sel?(zh?'改座位':'Change'):(zh?'選座位 +USD '+fee:'Choose seat +USD '+fee)))+'</button></span>'
+              +(F.seatOpen===s.key?seatMap(b,s,F):'')+'</div>'}).join('')+'</div>'}
+      form+='<label class="k60-check"><input type="checkbox"'+(F.docs?' checked':'')+' onchange="kgmPetSetR1101A(\'docs\',this.checked,1)"> '+(zh?'我已備妥：10 天內的健康證明、狂犬病疫苗（施打滿 30 天且在有效期內）、晶片，以及目的地入境／檢疫文件':'I have the health certificate, rabies vaccination, microchip and entry documents')+'</label>'
+        +'<div class="k28pet-sub">'+(zh?'上傳文件（健康證明、疫苗紀錄…，最多 3 個、每個 5 MB 內）':'Documents (max 3, 5 MB each)')+'</div><label class="k28-drop"><input type="file" multiple accept=".pdf,image/*" onchange="kgmCaseFilePickR1101A(this,\'pet\')"><span>'+(zh?'＋ 選擇檔案':'+ Choose files')+'</span></label><ul class="k28-files" id="k28f-pet"></ul>'
+        +'<label>'+(zh?'其他說明':'Notes')+'<textarea class="inp" rows="2" oninput="kgmPetSetR1101A(\'note\',this.value)">'+E(F.note)+'</textarea></label>';
+      /* 結果＋費用 */
+      if(!chks.length)form+='<div class="k28pet-res no"><b>'+(zh?'請至少勾選一段航班':'Choose at least one flight')+'</b></div>';
+      else{var allOk=chks.every(function(x){return x.c.ok}),tot=0,warn={};
+        var rowsH=chks.map(function(x){var c=x.c,s=x.s,sf=F.seats[s.key]&&R.seatFee[cabOf(b,s.key)]||0,pfee=c.mode==='service'?0:c.fee;(c.warn||[]).forEach(function(w){warn[w]=1});if(c.ok)tot+=pfee+sf;
+          return '<tr class="'+(c.ok?'':'bad')+'"><td>'+legName(s.key,fs.indexOf(s))+' <b>'+E(s.f.code)+'</b> '+E(s.f.fr)+'→'+E(s.f.to)+' '+E(md(s.f.date))+'</td><td>'+(c.ok?'✓ '+(c.mode==='hold'?(zh?'托運':'Hold'):c.mode==='service'?(zh?'服務犬':'Service'):(zh?'客艙':'Cabin')):'<span>'+c.why.map(E).join('<br>')+'</span>')+'</td>'
+            +'<td class="n">'+(c.ok?(pfee?'USD '+pfee:(zh?'免費':'Free')):'—')+'</td><td class="n">'+(c.ok&&sf?'USD '+sf+' <small>'+E(shS(s.f,F.seats[s.key]))+'</small>':'—')+'</td></tr>'}).join('');
+        form+='<div class="k28pet-res '+(allOk?'ok':'no')+'"><b>'+(allOk?(zh?'✓ 符合規定':'✓ Eligible'):(zh?'有航段目前不符合，請調整或取消勾選該段':'Some flights are not eligible'))+'</b>'
+          +'<table class="k30-fee"><thead><tr><th>'+(zh?'航段':'Flight')+'</th><th>'+(zh?'判斷':'Result')+'</th><th class="n">'+(zh?'運送費':'Pet fee')+'</th><th class="n">'+(zh?'選位費':'Seat fee')+'</th></tr></thead><tbody>'+rowsH+'</tbody>'
+          +(allOk?'<tfoot><tr><td colspan="2">'+(zh?'合計（機場櫃檯報到時支付）':'Total (pay at check-in)')+'</td><td class="n" colspan="2"><b>USD '+tot+'</b></td></tr></tfoot>':'')+'</table>'
+          +(Object.keys(warn).length?'<small>'+Object.keys(warn).map(E).join('　')+'</small>':'')+'</div>'}
+      form+=(F.err?'<div class="k60-warn">'+E(F.err)+'</div>':'')
+        +'<div class="k28pet-acts"><button class="k60-btn" '+(chks.length&&chks.every(function(x){return x.c.ok})?'':'disabled')+' onclick="kgmPetSubmitR1101A()">'+(zh?'送出申請':'Submit')+'</button></div>';
+    }
     return '<main class="k60 k28pet"><header class="k60-head"><span>TRAVEL WITH PETS</span><h1>'+(zh?'寵物同行申請':'Travel with your pet')+'</h1>'
-      +'<p>'+(zh?'貓、狗可以帶上客艙（動物連同運輸袋 8 公斤內、經濟／豪華經濟艙），超過的托運進溫控貨艙（45 公斤內、短吻品種不受理）；英國、澳洲、紐西蘭、夏威夷、香港、阿聯只受理貨運。所有申請需在起飛前 72 小時提出。完整規定見《動物運送規定》KGM-PET-009。':'Cats and dogs up to 8 kg incl. carrier travel in the cabin; larger pets in the hold (up to 45 kg). Apply 72 hours before departure.')+'</p></header>'
+      +'<p>'+(zh?'貓、狗可以帶上客艙（動物連同運輸袋 8 公斤內、經濟／豪華經濟艙），超過的托運進溫控貨艙（45 公斤內、短吻品種不受理）；英國、澳洲、紐西蘭、夏威夷、香港、阿聯只受理貨運。每一段航班都要在起飛前 72 小時前提出申請；去程、回程可以一次申請。完整規定見《動物運送規定》KGM-PET-009。':'Cats and dogs up to 8 kg incl. carrier travel in the cabin; larger pets in the hold (up to 45 kg). Apply 72 hours before each departure.')+'</p></header>'
       +rulesCard()+'<section class="k28pet-form">'+pick+form+'</section></main>';
   }
-  function rulesCard(){var zh=z();return '<section class="k28pet-rules"><div><i>🧳</i><b>'+(zh?'可以帶上客艙':'In the cabin')+'</b><span>'+(zh?'貓、狗 · 動物＋運輸袋 ≤ 8 kg · 袋 ≤ 46×28×24 cm · 經濟／豪經 · 每班 2 隻':'≤ 8 kg incl. carrier, 46×28×24 cm')+'</span><em>USD 120 '+(zh?'／段':'/ sector')+'</em></div>'
+  function rulesCard(){var zh=z();return '<section class="k28pet-rules"><div><i>🧳</i><b>'+(zh?'可以帶上客艙':'In the cabin')+'</b><span>'+(zh?'貓、狗 · 動物＋運輸袋 ≤ 8 kg · 袋 ≤ 46×28×24 cm · 經濟／豪經 · 每班 2 隻 · 可選位（USD 30／40）':'≤ 8 kg incl. carrier, 46×28×24 cm')+'</span><em>USD 120 '+(zh?'／段':'/ sector')+'</em></div>'
     +'<div><i>❄</i><b>'+(zh?'托運（溫控貨艙）':'In the hold')+'</b><span>'+(zh?'動物＋籠 ≤ 45 kg · IATA 硬殼籠 · 三邊合計 ≤ 292 cm · 短吻品種不受理 · 每班 4 隻':'≤ 45 kg, IATA kennel, no snub-nosed breeds')+'</span><em>USD 180／280／380</em></div>'
     +'<div><i>🦮</i><b>'+(zh?'服務犬':'Service dogs')+'</b><span>'+(zh?'受過訓練的導盲／輔助犬 · 客艙腳邊 · 附訓練證明；情緒支持動物依寵物規定':'Trained assistance dogs only')+'</span><em>'+(zh?'免費':'Free')+'</em></div>'
     +'<div class="no"><i>⛔</i><b>'+(zh?'不受理／只收貨運':'Not accepted / cargo only')+'</b><span>'+(zh?'貓狗以外動物、未滿 16 週、懷孕哺乳、具攻擊性 · 英澳紐、夏威夷、香港、阿聯航點只收貨運（KGM Cargo）':'Other animals; UK, AU, NZ, Hawaii, HK, UAE are cargo only')+'</span><em>KGM Cargo</em></div></section>'}
+  /* 座位劃給攜帶寵物的旅客（b.seats[段] 的順序＝旅客順序） */
+  function setSeat(b,key,pi,seat){b.seats=b.seats||{};var cur=b.seats[key]||{},ks=Object.keys(cur).filter(function(k){return k!=='_auto'}),pax=paxOf(b),arr=pax.map(function(p,i){return ks[i]||''}),o={};arr[pi]=seat;
+    arr.forEach(function(sd,i){if(sd)o[sd]=(i===pi)?pnm(pax[i]):(cur[sd]!=null?cur[sd]:pnm(pax[i]))});if(cur._auto)o._auto=cur._auto;b.seats[key]=o}
   window.kgmPetSubmitR1101A=function(){var zh=z(),F=pf(),b=findBk(F.pnr,F.last);if(!b){F.err=zh?'查無訂位。':'Booking not found.';render();return}
-    var chk=window.kgmPetCheckR1101A(b,F.key,F);if(!chk.ok){F.err=chk.why.join(' ');render();return}
-    var no=caseNo(),at=new Date().toISOString(),f=chk.f,p=(b.paxList||[])[0]||{};
+    var fs=futSegs(b),keys=selKeys(b,F);if(!keys.length){F.err=zh?'請至少勾選一段航班。':'Choose a flight.';render();return}
+    var bad=[],segs=[];keys.forEach(function(k){var c=window.kgmPetCheckR1101A(b,k,F);if(!c.ok)bad.push(c.why.join(' '));else segs.push({k:k,c:c})});if(bad.length){F.err=bad.join(' ');render();return}
+    var pi=+F.pax||0,pax=paxOf(b),p=pax[pi]||pax[0]||{},seats={};
+    var cabinPet=F.species!=='service'&&F.mode==='cabin';
+    if(cabinPet)for(var i=0;i<segs.length;i++){var k=segs[i].k,sd=F.seats[k];if(!sd)continue;var s=fs.filter(function(x){return x.key===k})[0],si=seatInfo(b,s,pi);
+      if(!si.ok[sd]){F.err=(zh?'座位 '+sd+' 已被選走或不能攜帶寵物，請重新選位。':'Seat '+sd+' is no longer available.');delete F.seats[k];render();return}seats[k]={seat:sd,shown:shS(s.f,sd),fee:R.seatFee[cabOf(b,k)]||0,was:si.cur||''}}
+    Object.keys(seats).forEach(function(k){setSeat(b,k,pi,seats[k].seat)});
+    var no=caseNo(),at=new Date().toISOString(),f0=segs[0].c.f,mode=segs[0].c.mode,fee=mode==='service'?0:segs[0].c.fee,tot=0;segs.forEach(function(x){tot+=(x.c.mode==='service'?0:x.c.fee)+((seats[x.k]||{}).fee||0)});
+    var segTxt=segs.map(function(x){var f=x.c.f;return f.code+' '+f.fr+'→'+f.to+' '+md(f.date)+(seats[x.k]?(zh?' 座位 ':' seat ')+seats[x.k].shown:'')}).join('、');
     saveFiles('pet',no).then(function(files){
-      var rec={caseNo:no,pnr:b.pnr,type:'pet',status:'received',priority:'normal',paxIndex:0,paxName:((p.lastName||'')+' / '+(p.firstName||'')).trim(),
-        segment:{code:f.code,fr:f.fr,to:f.to,date:f.date,key:F.key},detail:(zh?'寵物同行申請：':'Pet travel: ')+({dog:zh?'狗':'dog',cat:zh?'貓':'cat',service:zh?'服務犬':'service dog'}[F.species])+(F.name?'「'+F.name+'」':'')+(F.breed?'・'+F.breed:'')+(F.kg?'・'+F.kg+' kg':'')+'・'+(chk.mode==='hold'?(zh?'托運':'hold'):chk.mode==='service'?(zh?'客艙（服務犬）':'cabin (service)'):(zh?'客艙':'cabin'))+(F.note?'。'+F.note:''),
-        pet:{species:F.species,name:F.name,breed:F.breed,snub:!!F.snub,kg:+F.kg||0,dims:F.dims,weeks:+F.weeks||0,mode:chk.mode,fee:chk.fee,docs:!!F.docs},files:files,
+      var rec={caseNo:no,pnr:b.pnr,type:'pet',status:'received',priority:'normal',paxIndex:pi,paxName:((p.lastName||'')+' / '+(p.firstName||'')).trim(),
+        segment:{code:f0.code,fr:f0.fr,to:f0.to,date:f0.date,key:segs[0].k},segments:segs.map(function(x){var f=x.c.f;return {code:f.code,fr:f.fr,to:f.to,date:f.date,dep:f.dep,key:x.k,fee:x.c.mode==='service'?0:x.c.fee,seat:(seats[x.k]||{}).seat||'',seatShown:(seats[x.k]||{}).shown||'',seatFee:(seats[x.k]||{}).fee||0}}),
+        detail:(zh?'寵物同行申請：':'Pet travel: ')+({dog:zh?'狗':'dog',cat:zh?'貓':'cat',service:zh?'服務犬':'service dog'}[F.species])+(F.name?'「'+F.name+'」':'')+(F.breed?'・'+F.breed:'')+(F.kg?'・'+F.kg+' kg':'')+'・'+(mode==='hold'?(zh?'托運':'hold'):mode==='service'?(zh?'客艙（服務犬）':'cabin (service)'):(zh?'客艙':'cabin'))+(zh?'。航段：':'. Flights: ')+segTxt+(zh?'。合計 USD ':'. Total USD ')+tot+(F.note?'。'+F.note:''),
+        pet:{species:F.species,name:F.name,breed:F.breed,snub:!!F.snub,kg:+F.kg||0,dims:F.dims,weeks:+F.weeks||0,mode:mode,fee:fee,total:tot,docs:!!F.docs,seats:seats},files:files,
         createdAt:at,updatedAt:at,by:{empId:'',name:p.firstName?(p.lastName+' '+p.firstName):'',role:'passenger'},assignee:{empId:'',name:''},userId:b.userId||(S.user&&S.user.id)||null,
         email:b.contactEmail||p.email||(S.user&&S.user.email)||'',typeLabelR1101A:zh?'寵物同行申請':'Pet travel application',paxR1101A:1,
-        progress:[{at:at,status:'received',label:zh?'旅客線上申請（系統依 KGM-PET-009 預審通過）':'Submitted online',by:zh?'旅客':'Passenger'}],notes:[]};
+        progress:[{at:at,status:'received',label:(zh?'旅客線上申請（系統依 KGM-PET-009 預審通過）':'Submitted online')+(Object.keys(seats).length?(zh?'；已劃寵物座位 ':'; seats ')+Object.keys(seats).map(function(k){return seats[k].shown}).join('、'):''),by:zh?'旅客':'Passenger'}],notes:[]};
       addCase(rec);F.done=no;render()})};
   /* ── 前台：建立客服案件 ─────────────────────────────────────────── */
   var PCT=['refund_req','bag_delayed','bag_lost','bag_damaged','item_lost','complaint','assistance','miles_claim','group_change','other'];
@@ -173,7 +257,8 @@
   /* 前台頁面掛在內容區（路由表是 const，跟 0831B 案件查詢同一個做法） */
   function host(){var app=document.getElementById('app');if(!app)return null;var h=null;[].slice.call(app.children).forEach(function(n){if(!h&&n.tagName==='DIV'&&n.id!=='aiChat')h=n});return h}
   function paint(){try{if(S.view!=='pet28'&&S.view!=='case28')return;var h=host();if(!h)return;var html=S.view==='pet28'?petPage():casePage();h.innerHTML=html;
-    drawFiles(S.view==='pet28'?'pet':'case')}catch(e){try{console.warn('cs28',e)}catch(_){}}}
+    drawFiles(S.view==='pet28'?'pet':'case');
+    var g30=h.querySelector('.k30-grid'),o30=g30&&g30.querySelector('button.sel,button.cur,button.ok');if(o30)g30.scrollTop=Math.max(0,o30.offsetTop-g30.offsetTop-90)}catch(e){try{console.warn('cs28',e)}catch(_){}}}
   try{var r0=window.render;if(typeof r0==='function'&&!r0.__cs28){var w=function(){var r=r0.apply(this,arguments);paint();return r};w.__cs28=1;window.render=w;try{render=w}catch(_){}}}catch(_){}
   /* ── 前台 AI：寵物問題用同一份規則回答；說要申請（或給了訂位代號）就直接打開申請頁並帶入 ── */
   window.kgmPetAiR1101A=function(t){var zh=z(),U=String(t||'').toUpperCase(),pnr='';(U.match(/\b[A-Z0-9]{6}\b/g)||[]).some(function(x){if((S.bookings||[]).some(function(b){return b&&b.pnr===x})){pnr=x;return true}});
@@ -204,7 +289,8 @@
     if(!msg){alert(zh?'請寫給旅客的審核結果。':'Write the decision for the passenger.');return}
     var at=new Date().toISOString(),pet=c.type==='pet';
     if(ok&&pet){var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===c.pnr})[0];if(b){b.petsR1101A=(b.petsR1101A||[]).filter(function(p){return p.caseNo!==c.caseNo});
-      b.petsR1101A.push({caseNo:c.caseNo,key:(c.segment||{}).key||'out',code:(c.segment||{}).code,date:(c.segment||{}).date,fr:(c.segment||{}).fr,to:(c.segment||{}).to,mode:(c.pet||{}).mode,species:(c.pet||{}).species,name:(c.pet||{}).name,kg:(c.pet||{}).kg,fee:(c.pet||{}).fee,at:at})}}
+      (c.segments&&c.segments.length?c.segments:[c.segment||{}]).forEach(function(sg){   /* 1102A：一件申請可含多段（去程＋回程），每段一筆；座位、選位費跟著寫 */
+        b.petsR1101A.push({caseNo:c.caseNo,key:sg.key||'out',code:sg.code,date:sg.date,fr:sg.fr,to:sg.to,mode:(c.pet||{}).mode,species:(c.pet||{}).species,name:(c.pet||{}).name,kg:(c.pet||{}).kg,fee:sg.fee!=null?sg.fee:(c.pet||{}).fee,seat:sg.seat||'',seatShown:sg.seatShown||sg.seat||'',seatFee:+sg.seatFee||0,paxIndex:+c.paxIndex||0,at:at})})}}
     c.status=ok?'closed':'investigating';c.updatedAt=at;if(ok)c.closedAt=at;c.decisionR1101A={ok:!!ok,by:who(),at:at};
     c.progress.push({at:at,status:c.status,label:ok?(pet?(zh?'核准寵物同行':'Pet approved'):(zh?'執行長核准，結案':'Approved by CEO — closed')):(zh?'執行長退回，請客服補充':'Returned by CEO'),note:msg,by:who()});
     S.notifs=S.notifs||[];S.notifs.unshift({title:(zh?'案件審核結果 ':'Case decision ')+c.caseNo,message:msg,date:T(),read:false,userId:c.userId||null});
@@ -214,13 +300,14 @@
     if(!ceo)return '<div class="k7c-closed">⏳ '+(zh?'已送執行長最後審核，等待決定。':'Awaiting the CEO.')+'</div>';
     var c=rec(r.no)||{},pet=c.type==='pet';
     return '<div class="k7c-act"><div class="k7c-sub">'+(zh?'執行長最後審核':'CEO final review')+'</div>'
-      +(pet&&c.pet?'<p class="k7c-text">'+E((zh?'寵物：':'Pet: ')+[c.pet.species,c.pet.breed,c.pet.kg?c.pet.kg+' kg':'',c.pet.mode,'USD '+(+c.pet.fee||0)].filter(Boolean).join('・'))+'</p>':'')
+      +(pet&&c.pet?'<p class="k7c-text">'+E((zh?'寵物：':'Pet: ')+[c.pet.species,c.pet.breed,c.pet.kg?c.pet.kg+' kg':'',c.pet.mode,'USD '+(c.pet.total!=null?+c.pet.total:(+c.pet.fee||0))].filter(Boolean).join('・'))+'</p>'
+        +(c.segments&&c.segments.length?'<p class="k7c-text">'+E((zh?'航段：':'Flights: ')+c.segments.map(function(sg){return sg.code+' '+sg.fr+'→'+sg.to+' '+String(sg.date||'').slice(5)+(sg.seat?(zh?' 座位 ':' seat ')+(sg.seatShown||sg.seat)+'（USD '+(+sg.seatFee||0)+'）':'')}).join('、'))+'</p>':''):'')
       +'<label class="k7c-full">'+(zh?'給旅客的審核結果（會寄 Email）':'Decision for the passenger')+'<textarea class="inp" rows="3" id="k28CeoMsg"></textarea></label>'
       +'<div class="k7c-btns"><button class="btn btn-g" onclick="kgmCase28Ceo(\''+A(r.no)+'\',true)">'+(pet?(zh?'核准寵物同行':'Approve pet'):(zh?'CEO 核准並結案':'Approve & close'))+'</button><button class="btn j-reject" onclick="kgmCase28Ceo(\''+A(r.no)+'\',false)">'+(zh?'退回客服':'Return')+'</button></div></div>'};
   /* 航班資料：這位旅客有核准的寵物 → 名字旁標「寵物」 */
   window.kgmPetTagR1101A=function(pnr,code,date){try{if(String(code).indexOf('|')>=0){var k9=String(code).split('|');code=k9[0];date=k9[1]}var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===pnr})[0];if(!b)return '';
     var p=(b.petsR1101A||[]).filter(function(x){return x.code===code&&x.date===date})[0];
-    if(!p){var c=(S.staffCasesR1007A||[]).filter(function(x){return x&&x.type==='pet'&&x.pnr===pnr&&x.status!=='closed'&&x.segment&&x.segment.code===code&&x.segment.date===date})[0];   /* 還在審核的申請也標出來 */
+    if(!p){var c=(S.staffCasesR1007A||[]).filter(function(x){return x&&x.type==='pet'&&x.pnr===pnr&&x.status!=='closed'&&(x.segments&&x.segments.length?x.segments:[x.segment||{}]).some(function(sg){return sg.code===code&&sg.date===date})})[0];   /* 還在審核的申請也標出來（1102A：多段） */
       return c?'<span class="k28-pettag pend" title="'+E(c.caseNo)+'">🐾 '+(z()?'寵物申請中':'Pet pending')+'</span>':''}
     return '<span class="k28-pettag" title="'+E((p.name||'')+' '+(p.species||'')+' '+(p.kg||'')+'kg')+'">🐾 '+(p.mode==='hold'?(z()?'寵物托運':'Pet-hold'):p.mode==='service'?(z()?'服務犬':'Service dog'):(z()?'寵物客艙':'Pet-cabin'))+'</span>'}catch(_){return ''}};
   /* ── 持續模擬：後台開著時，每隔幾分鐘有新案件進來、客服把進行中的模擬案件往下處理一步（使用者：「這也要隨時 simulate，包含客服處理案件」） ── */
@@ -265,7 +352,21 @@
    +'.k28-pettag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#FFF3D9;color:#7A5A12;font:700 10.5px system-ui,sans-serif;white-space:nowrap}.k28-pettag.pend{background:#F1F4F2;color:#55605B;border:1px dashed #C6D0CB}'
    +'.k28-cat{display:flex;gap:6px;margin:0 0 14px}.k28-cat button{appearance:none;border:1px solid #D9E1DC;background:#fff;border-radius:12px;padding:10px 18px;font:700 14px inherit;font-family:inherit;color:#33443C;cursor:pointer;display:flex;gap:10px;align-items:center}.k28-cat button small{font-weight:500;font-size:11.5px;color:#7A857F}.k28-cat button b{font:700 12px ui-monospace,monospace;background:#EEF2EF;border-radius:999px;padding:1px 8px}'
    +'.k28-cat button.on{background:#0B3D2E;border-color:#0B3D2E;color:#fff}.k28-cat button.on small{color:#CFE0D7}.k28-cat button.on b{background:#B08A3E;color:#fff}'
-   +'@media(max-width:760px){.k28pet-rules,.k28pet-grid,.k28pet-grid3{grid-template-columns:1fr}.k28pet-form{padding:16px}}';
+   /* 1102A：寵物頁重做（步驟、訂位卡、航段列、選位圖、費用表） */
+   +'.k30-step{display:flex;align-items:baseline;gap:10px;margin-top:6px;padding-top:14px;border-top:1px solid #EEF1EF}.k30-step:first-child{border-top:0;padding-top:0;margin-top:0}.k30-step i{font-style:normal;flex:0 0 24px;height:24px;border-radius:50%;background:#0B3D2E;color:#fff;font:700 12px ui-monospace,monospace;display:inline-flex;align-items:center;justify-content:center;transform:translateY(-1px)}.k30-step b{font-size:15.5px;color:#0B3D2E}.k30-step span{font-size:12px;color:#7A857F}'
+   +'.k30-bks{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}.k30-bk{appearance:none;text-align:left;border:1px solid #D9E1DC;background:#fff;border-radius:14px;padding:12px 14px;display:grid;gap:4px;cursor:pointer;font-family:inherit;transition:border-color .15s,box-shadow .15s}.k30-bk:hover{border-color:#9DB8AA}.k30-bk.on{border-color:#0B3D2E;box-shadow:0 0 0 2px rgba(11,61,46,.18);background:#F6FAF8}'
+   +'.k30-bk .pn{font:700 11px ui-monospace,monospace;letter-spacing:.12em;color:#B08A3E}.k30-bk .rt{display:flex;gap:8px;align-items:center}.k30-bk .rt b{font:700 20px ui-monospace,monospace;color:#0B3D2E}.k30-bk .rt i{font-style:normal;color:#9AA59F}.k30-bk .dt{font:600 13px inherit;font-family:inherit;color:#33443C}.k30-bk .mt{font-size:11.5px;color:#7A857F}'
+   +'.k30-look summary{cursor:pointer;font-size:12.5px;color:#0B3D2E;font-weight:600;margin:2px 0 8px}.k30-segs{display:grid;gap:8px}'
+   +'.k30-seg{display:grid!important;grid-template-columns:20px 48px 96px 140px 22px 140px minmax(0,1fr);align-items:center;column-gap:12px!important;border:1px solid #D9E1DC;border-radius:12px;padding:10px 14px;cursor:pointer;font:500 13px inherit!important;font-family:inherit!important;letter-spacing:0!important;text-transform:none!important;color:#14231D!important;background:#fff}'
+   +'.k30-seg.on{border-color:#0B3D2E;background:#F6FAF8}.k30-seg.off{opacity:.55;cursor:not-allowed;background:#FAFAF9}.k30-seg input{width:16px;height:16px;accent-color:#0B3D2E;margin:0}.k30-seg .lg{font:700 11px system-ui,sans-serif;color:#B08A3E;letter-spacing:.06em}'
+   +'.k30-seg .fl b,.k30-seg .od b{display:block;font:700 14px ui-monospace,monospace;color:#0B3D2E}.k30-seg small{display:block;font-size:11px;color:#7A857F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.k30-seg .ar{color:#9AA59F;text-align:center}.k30-seg .tm{text-align:right}.k30-seg .tm b{display:block;font:600 13px ui-monospace,monospace;color:#14231D}.k30-seg.off .tm small{color:#A4482A}'
+   +'.k30-seats{display:grid;gap:8px}.k30-st{display:grid;grid-template-columns:56px 70px minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid #E3E8E5;border-radius:12px;padding:10px 14px;background:#fff}.k30-st.open{border-color:#B08A3E}.k30-st .lg{font:700 11px system-ui,sans-serif;color:#B08A3E}.k30-st>b{font:700 14px ui-monospace,monospace;color:#0B3D2E}.k30-stx{font-size:12.5px;color:#55605B}.k30-stx em{font-style:normal;font:700 13px ui-monospace,monospace;color:#0B3D2E;background:#FFF3D9;border-radius:6px;padding:1px 7px}.k30-sb{display:flex;gap:6px}.k30-sb .k60-btn{padding:6px 12px;font-size:12.5px}'
+   +'.k30-map{grid-column:1/-1;margin-top:6px}.k30-legend b{color:#0B3D2E;font-size:12px;margin-right:4px}.k30-legend{display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-size:11.5px;color:#6B7570;margin-bottom:8px}.k30-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid #C9D3CE}.k30-legend i.ok{background:#fff;border-color:#2F7D5B}.k30-legend i.cur{background:#E6F4EC;border-color:#2F7D5B}.k30-legend i.sel{background:#B08A3E;border-color:#B08A3E}.k30-legend i.no{background:#E9ECEA}'
+   +'.k30-grid{max-height:300px;overflow:auto;border:1px solid #EEF1EF;border-radius:10px;padding:8px 10px;background:#FBFCFB;display:grid;gap:4px;justify-content:center}.k30-row{display:flex;align-items:center;gap:4px}.k30-row em{font-style:normal;width:34px;font:600 11px ui-monospace,monospace;color:#7A857F;text-align:right;padding-right:6px}.k30-row em small{display:block;font-size:8.5px;color:#C0562F;letter-spacing:.06em}.k30-row .ai{width:14px}'
+   +'.k30-row button{width:28px;height:26px;border-radius:6px;border:1px solid #2F7D5B;background:#fff;font:600 11px ui-monospace,monospace;color:#0B3D2E;cursor:pointer;padding:0}.k30-row button:hover:not([disabled]){background:#E6F4EC}.k30-row button.cur{background:#E6F4EC}.k30-row button.sel{background:#B08A3E;border-color:#B08A3E;color:#fff}.k30-row button.no{background:#E9ECEA;border-color:#E1E5E3;color:#B5BDB9;cursor:not-allowed}'
+   +'.k30-seatnote{grid-column:1/-1;font-size:12px;color:#7A5A12;background:#FFF8E8;border-radius:8px;padding:8px 10px}'
+   +'.k30-fee{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px;color:#14231D}.k30-fee th{text-align:left;font:700 10.5px system-ui,sans-serif;letter-spacing:.08em;color:#7A857F;padding:6px 8px;border-bottom:1px solid rgba(11,58,46,.15)}.k30-fee td{padding:7px 8px;border-bottom:1px solid rgba(11,58,46,.08);vertical-align:top}.k30-fee .n{text-align:right;white-space:nowrap}.k30-fee td small{display:inline!important;margin:0 0 0 5px!important;color:#7A857F;font-family:ui-monospace,monospace}.k30-fee tr.bad td{color:#8A3B18}.k30-fee td b{display:inline}.k30-fee td:first-child{white-space:nowrap}.k30-fee tfoot td{border-bottom:0;font-weight:700;padding-top:9px}'
+   +'@media(max-width:760px){.k28pet-rules,.k28pet-grid,.k28pet-grid3{grid-template-columns:1fr}.k28pet-form{padding:16px}.k30-step{flex-wrap:wrap;row-gap:4px}.k30-step span{flex-basis:100%;padding-left:34px}.k30-seg{grid-template-columns:20px minmax(0,1fr) minmax(0,1fr);grid-template-areas:"c lg fl" "c fr to" "c tm tm";row-gap:6px;align-items:start}.k30-seg>input{grid-area:c;margin-top:2px}.k30-seg>.lg{grid-area:lg}.k30-seg>.fl{grid-area:fl;text-align:right}.k30-seg>.fl b,.k30-seg>.fl small{display:inline;margin-left:6px}.k30-seg>span:nth-child(4){grid-area:fr}.k30-seg>.ar{display:none}.k30-seg>span:nth-child(6){grid-area:to;text-align:right}.k30-seg>.tm{grid-area:tm;text-align:left;border-top:1px dashed #E3E8E5;padding-top:6px}.k30-st{grid-template-columns:auto 1fr}.k30-stx{grid-column:1/-1}.k30-sb{grid-column:1/-1}.k30-fee td{padding:6px 4px}.k30-fee td:first-child{white-space:normal}.k30-fee th{white-space:nowrap}.k30-row button{width:26px}}';
     document.head.appendChild(cs)}catch(_){}
 })();
 
@@ -275,14 +376,71 @@
   function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   var MODE={cabin:['客艙','Cabin'],hold:['托運貨艙','Hold'],service:['服務犬','Service dog'],cargo:['貨運','Cargo']};
   function md(m){var x=MODE[m]||[m||'—',m||'—'];return z()?x[0]:x[1]}
-  function rows(b){var out=[];(b.petsR1101A||[]).forEach(function(p){out.push({st:'ok',caseNo:p.caseNo,seg:(p.code||'')+' '+(p.fr||'')+'→'+(p.to||'')+' '+(p.date||''),mode:p.mode,who:(p.name||'')+(p.species?'（'+p.species+'）':''),kg:p.kg,fee:p.fee})});
-    (S.staffCasesR1007A||[]).forEach(function(c){if(!c||c.type!=='pet'||c.pnr!==b.pnr||/closed|rejected|declined/.test(c.status||''))return;if((b.petsR1101A||[]).some(function(p){return p.caseNo===c.caseNo}))return;var s=c.segment||{},p=c.pet||{};
-      out.push({st:'pend',caseNo:c.caseNo,seg:(s.code||'')+' '+(s.fr||'')+'→'+(s.to||'')+' '+(s.date||''),mode:p.mode,who:(p.name||'')+(p.species?'（'+p.species+'）':''),kg:p.kg,fee:p.fee})});
+  function rows(b){var out=[];(b.petsR1101A||[]).forEach(function(p){out.push({st:'ok',caseNo:p.caseNo,seg:(p.code||'')+' '+(p.fr||'')+'→'+(p.to||'')+' '+(p.date||''),mode:p.mode,who:(p.name||'')+(p.species?'（'+p.species+'）':''),kg:p.kg,fee:p.fee,seat:p.seatShown||p.seat||'',seatFee:+p.seatFee||0})});
+    (S.staffCasesR1007A||[]).forEach(function(c){if(!c||c.type!=='pet'||c.pnr!==b.pnr||/closed|rejected|declined/.test(c.status||''))return;if((b.petsR1101A||[]).some(function(p){return p.caseNo===c.caseNo}))return;var p=c.pet||{};
+      (c.segments&&c.segments.length?c.segments:[c.segment||{}]).forEach(function(s){out.push({st:'pend',caseNo:c.caseNo,seg:(s.code||'')+' '+(s.fr||'')+'→'+(s.to||'')+' '+(s.date||''),mode:p.mode,who:(p.name||'')+(p.species?'（'+p.species+'）':''),kg:p.kg,fee:s.fee!=null?s.fee:p.fee,seat:s.seatShown||s.seat||'',seatFee:+s.seatFee||0})})});
     return out}
   window.kgmPetBookingCellR1101B=function(b){try{var r=rows(b);if(!r.length)return '<div><small>'+(z()?'寵物同行':'Pets')+'</small><b>—</b></div>';
       return '<div><small>'+(z()?'寵物同行':'Pets')+'</small><b class="k29-petcell">🐾 '+r.map(function(x){return md(x.mode)+(x.st==='pend'?(z()?'（審核中）':' (pending)'):'')}).join('、')+'</b></div>'}catch(_){return ''}};
   window.kgmPetBookingDetailR1101B=function(b){try{var r=rows(b);if(!r.length)return '';
-      return '<h3 class="k29-peth">'+(z()?'寵物同行':'Travelling pets')+'</h3><div class="j-table"><table><thead><tr><th>'+(z()?'航段':'Segment')+'</th><th>'+(z()?'方式':'Mode')+'</th><th>'+(z()?'寵物':'Pet')+'</th><th>'+(z()?'重量':'Weight')+'</th><th>'+(z()?'費用':'Fee')+'</th><th>'+(z()?'狀態／案件':'Status / case')+'</th></tr></thead><tbody>'
-        +r.map(function(x){return '<tr><td>'+E(x.seg)+'</td><td>'+E(md(x.mode))+'</td><td>'+E(x.who||'—')+'</td><td>'+(x.kg?E(x.kg)+' kg':'—')+'</td><td>'+(x.fee?'USD '+E(x.fee):'—')+'</td><td>'+(x.st==='ok'?(z()?'已核准':'Approved'):(z()?'審核中':'Pending'))+' · '+E(x.caseNo||'')+'</td></tr>'}).join('')+'</tbody></table></div>'}catch(_){return ''}};
+      return '<h3 class="k29-peth">'+(z()?'寵物同行':'Travelling pets')+'</h3><div class="j-table"><table><thead><tr><th>'+(z()?'航段':'Segment')+'</th><th>'+(z()?'方式':'Mode')+'</th><th>'+(z()?'寵物':'Pet')+'</th><th>'+(z()?'重量':'Weight')+'</th><th>'+(z()?'座位':'Seat')+'</th><th>'+(z()?'費用':'Fee')+'</th><th>'+(z()?'狀態／案件':'Status / case')+'</th></tr></thead><tbody>'
+        +r.map(function(x){return '<tr><td>'+E(x.seg)+'</td><td>'+E(md(x.mode))+'</td><td>'+E(x.who||'—')+'</td><td>'+(x.kg?E(x.kg)+' kg':'—')+'</td><td>'+(x.seat?E(x.seat):'—')+'</td><td>'+((+x.fee||0)+(+x.seatFee||0)?'USD '+((+x.fee||0)+(+x.seatFee||0))+(x.seatFee?'<small style="display:block;color:#7A857F">'+(z()?'含選位 ':'incl. seat ')+x.seatFee+'</small>':''):'—')+'</td><td>'+(x.st==='ok'?(z()?'已核准':'Approved'):(z()?'審核中':'Pending'))+' · '+E(x.caseNo||'')+'</td></tr>'}).join('')+'</tbody></table></div>'}catch(_){return ''}};
   try{var cs=document.createElement('style');cs.textContent='.k29-petcell{color:#7A4B00}.k29-peth{margin:16px 0 6px;font:700 15px inherit;color:#0B3D2E}';document.head.appendChild(cs)}catch(_){}
+})();
+
+/* 1102A：使用者「圖二那裡要多寵物喔」——後台側欄「訂位與客服」加「寵物同行」分頁（pets30）：寵物申請（審核中／已核准／全部）一覽，每件列航段、座位、費用，按「開啟案件」到案件處理中心審核（審核流程照舊：客服→CEO 核准）；下方列未來 14 天各班寵物名額（客艙 2／貨艙 4）。 */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function A(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+  function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
+  function addD(d,n){var x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}
+  var MODE={cabin:['客艙','Cabin'],hold:['托運貨艙','Hold'],service:['服務犬','Service dog']},SP={dog:['狗','Dog'],cat:['貓','Cat'],service:['服務犬','Service dog']};
+  function L(m,k){var x=m[k];return x?(z()?x[0]:x[1]):(k||'—')}
+  function st(){S.petDeskR1102A=S.petDeskR1102A||{f:'pend',q:''};return S.petDeskR1102A}
+  function items(){var out=[],seen={};
+    (S.staffCasesR1007A||[]).forEach(function(c){if(!c||c.type!=='pet')return;seen[c.caseNo]=1;var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===c.pnr})[0];
+      var ok=c.status==='closed'&&(!c.decisionR1101A||c.decisionR1101A.ok)&&b&&(b.petsR1101A||[]).some(function(p){return p.caseNo===c.caseNo});
+      out.push({no:c.caseNo,pnr:c.pnr,pax:c.paxName||'',pet:c.pet||{},segs:(c.segments&&c.segments.length?c.segments:[c.segment||{}]),st:ok?'ok':c.status==='closed'?'done':'pend',raw:c.status,ceo:c.status==='ceo_review',at:c.createdAt||''})});
+    (S.bookings||[]).forEach(function(b){if(!b||!(b.petsR1101A||[]).length)return;var g={};b.petsR1101A.forEach(function(p){if(seen[p.caseNo])return;var k=p.caseNo||('—'+b.pnr);(g[k]=g[k]||[]).push(p)});
+      Object.keys(g).forEach(function(k){var p=g[k][0],x=(b.paxList||[])[+p.paxIndex||0]||{};out.push({no:p.caseNo||'',pnr:b.pnr,pax:((x.lastName||'')+' / '+(x.firstName||'')).trim(),pet:{species:p.species,name:p.name,kg:p.kg,mode:p.mode,fee:p.fee},segs:g[k],st:'ok',raw:'closed',at:p.at||''})})});
+    return out}
+  function future(it){var t=T();return it.segs.some(function(s){return String(s.date||'')>=t})}
+  window.kgmPetDeskOpenR1102A=function(no,done){S.adminTab='cases0831B';S.case28Cat='other';S.caseTabR913=done?'done':'open';S.case7F={};S.caseFilter0831B='';S.case7Sel=no;try{render()}catch(_){}try{window.scrollTo({top:0,behavior:'smooth'})}catch(_){}};
+  window.kgmPetDeskSetR1102A=function(k,v){st()[k]=v;try{render()}catch(_){}};
+  window.kgmPetDeskPageR1102A=function(){var zh=z(),F=st(),all=items(),q=String(F.q||'').trim().toUpperCase();
+    var pend=all.filter(function(x){return x.st==='pend'&&future(x)}),ok=all.filter(function(x){return x.st==='ok'&&future(x)});
+    var rows=(F.f==='pend'?pend:F.f==='ok'?ok:all).filter(function(x){if(!q)return true;return (x.no+' '+x.pnr+' '+x.pax+' '+x.segs.map(function(s){return s.code}).join(' ')).toUpperCase().indexOf(q)>=0})
+      .sort(function(a,b){var da=(a.segs[0]||{}).date||'',db=(b.segs[0]||{}).date||'';return F.f==='all'?String(b.at).localeCompare(String(a.at)):da.localeCompare(db)});
+    /* 未來 14 天各班名額 */
+    var t=T(),end=addD(t,14),Q={};all.forEach(function(x){if(x.st==='done')return;x.segs.forEach(function(s){if(!s.date||s.date<t||s.date>end)return;var k=s.date+'|'+s.code+'|'+s.fr+'|'+s.to,o=Q[k]=Q[k]||{d:s.date,code:s.code,fr:s.fr,to:s.to,cabin:0,hold:0,service:0,pend:0};var m=x.pet.mode||'cabin';o[m]=(o[m]||0)+1;if(x.st==='pend')o.pend++})});
+    var ql=Object.keys(Q).sort().map(function(k){return Q[k]});var R=window.kgmPetRulesR1101A||{cabinPerFlight:2,holdPerFlight:4};
+    var chip=function(k,lab,n){return '<button type="button" class="'+(F.f===k?'on':'')+'" onclick="kgmPetDeskSetR1102A(\'f\',\''+k+'\')">'+lab+'<b>'+n+'</b></button>'};
+    var stTxt=function(x){return x.st==='ok'?'<span class="k30pd-st ok">'+(zh?'已核准':'Approved')+'</span>':x.st==='done'?'<span class="k30pd-st done">'+(zh?'已結案':'Closed')+'</span>':'<span class="k30pd-st pend">'+(x.ceo?(zh?'待 CEO 核准':'Awaiting CEO'):(zh?'客服審核中':'In review'))+'</span>'};
+    var tb=rows.length?('<table class="k30pd-t"><thead><tr><th>'+(zh?'案件／訂位':'Case / PNR')+'</th><th>'+(zh?'旅客':'Passenger')+'</th><th>'+(zh?'寵物':'Pet')+'</th><th>'+(zh?'方式':'Mode')+'</th><th>'+(zh?'航段（座位）':'Flights (seat)')+'</th><th class="n">'+(zh?'費用':'Fee')+'</th><th>'+(zh?'狀態':'Status')+'</th><th></th></tr></thead><tbody>'
+      +rows.map(function(x){var p=x.pet,tot=p.total!=null?+p.total:x.segs.reduce(function(n,s){return n+(s.fee!=null?+s.fee:(+p.fee||0))+(+s.seatFee||0)},0);
+        return '<tr><td><b class="mono">'+E(x.no||'—')+'</b><small class="mono">'+E(x.pnr)+'</small></td><td>'+E(x.pax||'—')+'</td><td>'+E(L(SP,p.species))+(p.name?'「'+E(p.name)+'」':'')+'<small>'+E([p.breed,p.kg?p.kg+' kg':''].filter(Boolean).join(' · '))+'</small></td><td>'+E(L(MODE,p.mode))+'</td>'
+          +'<td class="segs">'+x.segs.map(function(s){return '<div><b>'+E(s.code||'')+'</b> '+E(s.fr||'')+'→'+E(s.to||'')+' <span>'+E(String(s.date||'').slice(5))+(s.dep?' '+E(s.dep):'')+'</span>'+(s.seat?' <em>'+E(s.seatShown||s.seat)+'</em>':'')+'</div>'}).join('')+'</td>'
+          +'<td class="n">'+(tot?'USD '+tot:(zh?'免費':'Free'))+'</td><td>'+stTxt(x)+'</td><td>'+(x.no&&x.no.charAt(0)!=='—'?'<button class="btn btn-sm" onclick="kgmPetDeskOpenR1102A(\''+A(x.no)+'\','+(x.raw==='closed'?'true':'false')+')">'+(zh?'開啟案件':'Open')+'</button>':'')+'</td></tr>'}).join('')+'</tbody></table>')
+      :'<div class="k30pd-empty">'+(F.f==='pend'?(zh?'目前沒有待審核的寵物申請。':'No pending applications.'):(zh?'沒有符合的資料。':'Nothing found.'))+'</div>';
+    var qt=ql.length?('<table class="k30pd-t k30pd-q"><thead><tr><th>'+(zh?'日期':'Date')+'</th><th>'+(zh?'航班':'Flight')+'</th><th>'+(zh?'客艙寵物':'Cabin')+'</th><th>'+(zh?'貨艙寵物':'Hold')+'</th><th>'+(zh?'服務犬':'Service')+'</th><th>'+(zh?'其中審核中':'Pending')+'</th></tr></thead><tbody>'
+      +ql.map(function(o){var bar=function(n,m){return '<span class="k30pd-bar'+(n>=m?' full':'')+'"><i style="width:'+Math.min(100,Math.round(n/m*100))+'%"></i></span><b>'+n+'／'+m+'</b>'};
+        return '<tr><td class="mono">'+E(o.d.slice(5))+'</td><td><b>'+E(o.code)+'</b> '+E(o.fr)+'→'+E(o.to)+'</td><td>'+bar(o.cabin,R.cabinPerFlight)+'</td><td>'+bar(o.hold,R.holdPerFlight)+'</td><td>'+(o.service||'—')+'</td><td>'+(o.pend||'—')+'</td></tr>'}).join('')+'</tbody></table>')
+      :'<div class="k30pd-empty">'+(zh?'未來 14 天沒有寵物同行的航班。':'No pets booked in the next 14 days.')+'</div>';
+    return '<section class="k30pd"><header><div><small>PETS</small><h2>'+(zh?'寵物同行':'Travelling pets')+'</h2><p>'+(zh?'旅客在前台「旅客服務 › 寵物同行申請」送出的申請；審核在案件處理中心（客服初審 → CEO 核准），核准後寫進訂位、航班資料名單標示 🐾。規則依《動物運送規定》KGM-PET-009。':'Applications from the website; review happens in the case centre.')+'</p></div>'
+      +'<div class="k30pd-kpi"><div><small>'+(zh?'審核中':'Pending')+'</small><b>'+pend.length+'</b></div><div><small>'+(zh?'已核准（未出發）':'Approved')+'</small><b>'+ok.length+'</b></div><div><small>'+(zh?'14 天內有寵物的班次':'Flights, 14 days')+'</small><b>'+ql.length+'</b></div></div></header>'
+      +'<div class="k30pd-bar0"><div class="k30pd-chips">'+chip('pend',zh?'審核中':'Pending',pend.length)+chip('ok',zh?'已核准':'Approved',ok.length)+chip('all',zh?'全部':'All',all.length)+'</div>'
+      +'<input class="inp" placeholder="'+(zh?'搜尋案件編號、訂位代號、班號、旅客':'Search case, PNR, flight, name')+'" value="'+E(F.q||'')+'" onchange="kgmPetDeskSetR1102A(\'q\',this.value)"></div>'
+      +'<div class="k30pd-card">'+tb+'</div>'
+      +'<h3>'+(zh?'未來 14 天各班寵物名額':'Pet quota by flight, next 14 days')+'<small>'+(zh?'客艙每班 '+R.cabinPerFlight+' 隻、貨艙 '+R.holdPerFlight+' 隻（含審核中）':'')+'</small></h3><div class="k30pd-card">'+qt+'</div></section>'};
+  try{var cs=document.createElement('style');cs.textContent=
+    '.k30pd{display:grid;gap:14px}.k30pd>header{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;flex-wrap:wrap}.k30pd>header small{font:800 10.5px system-ui,sans-serif;letter-spacing:.2em;color:#B08A3E}.k30pd h2{margin:2px 0 4px;font-size:22px;color:#0B3D2E}.k30pd>header p{margin:0;max-width:640px;font-size:12.5px;color:#6B7570;line-height:1.6}'
+   +'.k30pd-kpi{display:flex;gap:10px}.k30pd-kpi>div{background:#fff;border:1px solid rgba(11,58,46,.12);border-radius:12px;padding:10px 16px;min-width:118px}.k30pd-kpi small{display:block;font-size:11px;color:#7A857F}.k30pd-kpi b{font:700 22px ui-monospace,monospace;color:#0B3D2E}'
+   +'.k30pd-bar0{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.k30pd-bar0 .inp{max-width:320px}.k30pd-chips{display:flex;gap:6px}.k30pd-chips button{appearance:none;border:1px solid #D9E1DC;background:#fff;border-radius:999px;padding:7px 14px;font:600 13px inherit;font-family:inherit;color:#33443C;cursor:pointer;display:flex;gap:8px;align-items:center}.k30pd-chips button b{font:700 11.5px ui-monospace,monospace;background:#EEF2EF;border-radius:999px;padding:1px 7px}.k30pd-chips button.on{background:#0B3D2E;border-color:#0B3D2E;color:#fff}.k30pd-chips button.on b{background:#B08A3E;color:#fff}'
+   +'.k30pd-card{background:#fff;border:1px solid rgba(11,58,46,.12);border-radius:14px;overflow:auto}.k30pd h3{margin:8px 0 0;font-size:15px;color:#0B3D2E;display:flex;gap:10px;align-items:baseline}.k30pd h3 small{font-size:11.5px;color:#7A857F;font-weight:500}'
+   +'.k30pd-t{width:100%;border-collapse:collapse;font-size:12.5px}.k30pd-t th{text-align:left;font:700 10.5px system-ui,sans-serif;letter-spacing:.08em;color:#7A857F;background:#F7F8F6;padding:9px 12px;border-bottom:1px solid #E6EBE8;white-space:nowrap}.k30pd-t td{padding:10px 12px;border-bottom:1px solid #EEF1EF;vertical-align:top;color:#14231D}.k30pd-t tr:last-child td{border-bottom:0}'
+   +'.k30pd-t td small{display:block;color:#7A857F;font-size:11px;margin-top:2px}.k30pd-t .n{text-align:right;white-space:nowrap}.k30pd-t .mono{font-family:ui-monospace,monospace}.k30pd-t td.segs div{white-space:nowrap;line-height:1.7}.k30pd-t td.segs span{color:#6B7570}.k30pd-t td.segs em{font-style:normal;font:700 11px ui-monospace,monospace;background:#FFF3D9;color:#7A5A12;border-radius:6px;padding:0 6px}'
+   +'.k30pd-st{display:inline-block;border-radius:999px;padding:2px 9px;font:700 11px system-ui,sans-serif;white-space:nowrap}.k30pd-st.ok{background:#E6F4EC;color:#11663F}.k30pd-st.pend{background:#FFF3D9;color:#7A5A12}.k30pd-st.done{background:#EEF1EF;color:#55605B}'
+   +'.k30pd-q td{vertical-align:middle}.k30pd-bar{display:inline-block;width:64px;height:6px;border-radius:9px;background:#EEF1EF;margin-right:8px;vertical-align:middle;overflow:hidden}.k30pd-bar i{display:block;height:100%;background:#2F7D5B}.k30pd-bar.full i{background:#C0562F}.k30pd-q b{font:700 12px ui-monospace,monospace}'
+   +'.k30pd-empty{padding:26px;text-align:center;color:#7A857F;font-size:13px}';document.head.appendChild(cs)}catch(_){}
 })();

@@ -30,11 +30,15 @@
   function back28(){try{var app=document.getElementById('app');if(!app)return;var ex=app.querySelector('.k28-back');
     if(!(S.user&&S.view==='mytrip'&&!S.tripsListR60&&S.mtOnly&&!S.checkinHubR60&&!S.pnrModeR7)){if(ex)ex.remove();return}if(ex)return;
     var hero=[].slice.call(app.querySelectorAll('div,section,header')).filter(function(e){return /^\s*MANAGE MY BOOKING/i.test(e.textContent||'')&&e.offsetHeight>80&&e.offsetHeight<600})[0];if(!hero)return;
-    var n=(S.bookings||[]).filter(function(b){return b&&b.pnr&&(!b.userId||b.userId===S.user.id)}).length;
+    var lk=((S.tripLookR1102A||{})[S.user.id])||[],n=(S.bookings||[]).filter(function(b){return b&&b.pnr&&(b.userId===S.user.id||lk.indexOf(b.pnr)>=0)}).length;   /* 1102A：跟我的行程清單同一個條件 */
     var d=document.createElement('div');d.className='k28-back';d.style.maxWidth=(hero.offsetWidth||1080)+'px';
     d.innerHTML='<button type="button" onclick="S.tripPickR1101A=S.mtOnly;kgmAllTripsR60()"><span aria-hidden="true">‹</span>'+(z()?'我的行程':'My trips')+'<i>'+n+'</i></button>';
     hero.parentNode.insertBefore(d,hero)}catch(_){}}
-  try{var _r28=window.render;if(typeof _r28==='function'){var w28=function(){var r=_r28.apply(this,arguments);setTimeout(back28,0);return r};window.render=w28;try{render=w28}catch(_){}}}catch(_){}
+  /* 1102A：登入狀態下用訂位代號查到別人的訂位（行程管理 S.mgResult）→ 記進「查詢過的行程」，我的行程清單會列出（每位會員最多 30 筆） */
+  function look30(){try{var u=S.user,b=S.mgResult;if(!u||!u.id||!b||!b.pnr||b.userId===u.id)return;var M=S.tripLookR1102A=S.tripLookR1102A||{},L=M[u.id]=M[u.id]||[];if(L.indexOf(b.pnr)>=0)return;
+    L.unshift(b.pnr);if(L.length>30)L.length=30;try{save()}catch(_){}}catch(_){}}
+  window.kgmTripLookR1102A=look30;
+  try{var _r28=window.render;if(typeof _r28==='function'){var w28=function(){var r=_r28.apply(this,arguments);setTimeout(back28,0);look30();return r};window.render=w28;try{render=w28}catch(_){}}}catch(_){}
   setInterval(back28,800);   /* 行程頁有些是後面的層另外畫的（不經過 window.render），補一個輕量檢查（不在行程頁就直接返回） */
   /* 地勤實體報到（航班資料點旅客 →「進入實體報到」）：原本只跳到地勤現場作業頁、沒有真的報到。
      改成：跑櫃檯報到檢查（kgmCounterAlertsR40）→ 沒座位先劃位（DH 也是這時候劃）→ 標記已報到 → 直接打開登機證（同一個新版登機證 kgmBpCardsOfR1012A）。
@@ -70,6 +74,13 @@
    +'.k28-pickinfo{font-size:13.5px;color:#55605B;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.k28-pickinfo b{font:700 15px ui-monospace,monospace;letter-spacing:.12em;color:#0B3D2E}.k28-pickinfo small{font-size:12.5px;color:#7A857F}'
    +'.k28-pickgo{appearance:none;border:0;border-radius:999px;background:#0B3D2E;color:#fff;font:700 14.5px inherit;font-family:inherit;padding:12px 26px;cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:.15s}'
    +'.k28-pickgo span{font-size:18px;line-height:1}.k28-pickgo:hover:not(:disabled){background:#0e5a48;transform:translateY(-1px)}.k28-pickgo:disabled{background:#D5DBD8;cursor:not-allowed}'
+   /* 1102A：卡片固定欄寬（勾勾／訂位代號／航線／出發／旅客／狀態），每一列的分隔線對齊 */
+   +'.k60-trip.k28-pick{display:grid!important;grid-template-columns:30px 112px minmax(0,1fr) 128px 132px 96px;align-items:center;column-gap:18px}'
+   +'.k60-trip.k28-pick .k60-trip-pnr{text-align:left;padding-right:0;border-right:0;align-self:stretch;display:flex;flex-direction:column;justify-content:center;border-right:1px solid rgba(11,58,46,.12)}'
+   +'.k60-trip.k28-pick .k60-trip-pnr b{font-size:16px}.k60-trip.k28-pick .k60-trip-main b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+   +'.k30-tc{display:flex;flex-direction:column;gap:1px;padding-left:16px;border-left:1px solid rgba(11,58,46,.08);align-self:stretch;justify-content:center}.k30-tc small{font-size:10.5px;color:var(--sub,#7A857F)}.k30-tc b{font:700 14px ui-monospace,monospace;color:#0B3D2E;white-space:nowrap}.k30-tc i{font-style:normal;font-size:11px;color:var(--sub,#7A857F);white-space:nowrap}'
+   +'.k30-tst{text-align:right}.k30-tst em{display:inline-block;font-style:normal;font-size:11px;font-weight:800;padding:3px 10px;border-radius:99px;background:#F1F6F3;color:#14503f;white-space:nowrap}.k60-trip.off .k30-tst em{background:#f6ecea;color:#8c3a2f}'
+   +'@media(max-width:760px){.k60-trip.k28-pick{grid-template-columns:30px minmax(0,1fr) minmax(0,1fr);grid-template-areas:"c p st" "c m m" "c d x";row-gap:10px;column-gap:12px}.k60-trip.k28-pick>.k28-chk{grid-area:c;align-self:start}.k60-trip.k28-pick>.k60-trip-pnr{grid-area:p;border-right:0}.k60-trip.k28-pick>.k60-trip-main{grid-area:m}.k60-trip.k28-pick>.k30-tc:nth-child(4){grid-area:d}.k60-trip.k28-pick>.k30-tc:nth-child(5){grid-area:x}.k30-tc{padding-left:0;border-left:0}.k60-trip.k28-pick>.k30-tst{grid-area:st}}'
    +'@media(max-width:640px){.k28-pickbar{bottom:84px;padding:10px 10px 10px 14px}.k28-pickgo{padding:11px 18px}}'
    +'.k28-back{margin:0 auto 12px}.k28-back button{appearance:none;border:1px solid rgba(11,58,46,.16);background:#fff;border-radius:999px;padding:8px 16px 8px 12px;font:600 13.5px inherit;font-family:inherit;color:#0B3D2E;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s}'
    +'.k28-back button span{font-size:18px;line-height:1}.k28-back button i{font-style:normal;font-size:11.5px;padding:1px 7px;border-radius:999px;background:#EEF2EF;color:#55605B}.k28-back button:hover{border-color:#0B3D2E;background:#F6F9F7}'

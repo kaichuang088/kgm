@@ -92,55 +92,17 @@
   setInterval(function(){window.KGM_SEASON_GEN_R1101B=(window.KGM_SEASON_GEN_R1101B||0)+1},60000);
 })();
 
-/* 1101B：機隊整年重排結果讀回（使用者：「非常嚴重的卡頓，確保都有解決」）——
-   開頁 20 秒後的整年重排要 40～45 秒主執行緒（最長一次卡 3.5 秒），但同一天、輸入沒變時每次算出來都一樣（tests/rotreload.js 量過連續重新整理輪轉不變）。
-   做完那一次把結果（S.tailAssign＋輪轉摘要）跟「輸入指紋」存在 IndexedDB（kgm29_fleet；localStorage 放不下）；
-   下次開頁同一天、指紋相同就直接讀回，不重算（組員排班的讀回 kgm25_crew 看機隊指紋，也會跟著命中）。指紋不同（換日、改時刻／機型／維修／自創航班／人工排班…）照原本重算。 */
-(function(){
-  if(window.KGM_SIDE==='front')return;
-  var DBN='kgm29_fleet',STN='plan',KEY='v1';
-  function hs(str){var h=2166136261,h2=5381;for(var i=0;i<str.length;i++){var c=str.charCodeAt(i);h^=c;h=Math.imul(h,16777619);h2=(Math.imul(h2,33)+c)|0}return (h>>>0).toString(36)+(h2>>>0).toString(36)+'.'+str.length}
-  function idb(cb){try{if(!window.indexedDB)return cb(null);var r=indexedDB.open(DBN,1);r.onupgradeneeded=function(){try{r.result.createObjectStore(STN)}catch(_){}};r.onsuccess=function(){cb(r.result)};r.onerror=function(){cb(null)}}catch(_){cb(null)}}
-  function rep(k,v){return (k==='mixedTypesR136'||k==='acLabelR136'||/^__/.test(k))?undefined:v}
-  function key(){try{
-      var ps10={};Object.keys(S.acftSub||{}).forEach(function(k){var x=S.acftSub[k];if(!x)return;if((x.auto||x.auto0810J||x.coverageR830)&&!x.manual&&!x.maint&&!x.mx)return;ps10[k]=x});   /* 跟 planSub10 同一個規則：只看人工換機與維修改派 */
-      var man=[];Object.keys(S.tailAssign||{}).forEach(function(tl){(S.tailAssign[tl]||[]).forEach(function(x){if(x&&x.manualR69)man.push(tl+'|'+x.date+'|'+x.code+'|'+x.route)})});
-      var parts=[todayISO(),String(window.KGM_BUILD_R229||document.title||''),ps10,S.tailStatus||{},S.fleetAddedR928||null,S.fleetRetiredR928||null,S.fleetMaintenanceR830||null,S.customFlights||[],FLIGHTS,man,
-        S.flightBaseOverride||null,S.flightDisabled||null,S.acftManualR1007A||null,S.tailPickR1023A||null,S.schedGen||null];   /* 季節班表開頁後 20～60 秒還在被各層定案（例 KX30 YVR→YYZ），整年重排自己的指紋（kgmSig72R1006A）也不含 → 不放；讀回後等定案再用 kgmSig72 核對一次 */
-      var o={};parts.forEach(function(p,i){o[i]=hs(JSON.stringify(p,rep)||'')});return o}catch(_){return null}}
-  function same(a,b){if(!a||!b)return false;for(var k in a)if(a[k]!==b[k])return false;for(var k2 in b)if(a[k2]!==b[k2])return false;return true}
-  function diff(a,b){var d=[];if(!a||!b)return ['none'];for(var k in a)if(a[k]!==b[k])d.push(k);return d}
-  function D29(d,k){return new Date(Date.parse(d+'T12:00:00Z')+k*864e5).toISOString().slice(0,10)}
-  function idleOk(ms){return Date.now()-(window.KGM_LAST_INPUT_R1025B||0)>=ms}
-  window.kgmFleetCacheR1101B=function(run){
-    var k0=key();if(!k0){window.KGM_FLEET_CACHE_R1101B={hit:false,why:'nokey'};run();return}
-    var t0=Date.now();
-    idb(function(db){if(!db){window.KGM_FLEET_CACHE_R1101B={hit:false,why:'noidb'};run();watch(k0);return}
-      try{var g=db.transaction(STN,'readonly').objectStore(STN).get(KEY);
-        g.onsuccess=function(){var r=g.result;
-          if(!r||!same(r.key,k0)||!r.ta){window.KGM_FLEET_CACHE_R1101B={hit:false,why:r?('diff:'+diff(r.key,k0).join(',')):'none'};run();watch(k0);return}
-          var k1=key();if(!same(k1,k0)){window.KGM_FLEET_CACHE_R1101B={hit:false,why:'changed'};run();watch(k1);return}   /* 讀的期間輸入變了 */
-          S.tailAssign=r.ta;window.KGM_ROT_SUM_R72=r.sum||window.KGM_ROT_SUM_R72;window.KGM_ROT_FINAL_R913=true;window.KGM_FINALRUN_1006A=false;window.KGM_FULLDONE_1006A=Date.now();
-          window.KGM_FLEET_CACHE_R1101B={hit:true,at:r.at,ms:Date.now()-t0};
-          try{window.kgmClearRotationCacheR72()}catch(_){}try{if(window.kgmCrewResetR121)window.kgmCrewResetR121()}catch(_){}try{if(window.kgmPlanCacheClearR196)window.kgmPlanCacheClearR196()}catch(_){}
-          try{save()}catch(_){}try{(window.kgmSafeRenderR1026C||render)()}catch(_){}
-          /* 不再事後用 kgmSig72 核對：KX30 YVR→YYZ 起飛時間開頁後會在 22:25／21:00 之間被兩層來回改（1027A 以前就有），核對時間點不同就誤判；
-             20 秒時的指紋（含整份航班表）跨開頁一致，三次全新重算的輪轉指紋也完全相同（tests/fc29.js）。 */
-          };
-        g.onerror=function(){window.KGM_FLEET_CACHE_R1101B={hit:false,why:'err'};run();watch(k0)}}catch(_){window.KGM_FLEET_CACHE_R1101B={hit:false,why:'ex'};run();watch(k0)}})};
-  /* 重排（含拆機收尾、對號回程）做完、使用者停手 3 秒時存一份 */
-  function watch(k0){var t=Date.now();(function w(){
-      if(!(window.KGM_ROT_FINAL_R913&&window.KGM_FINALRUN_1006A===false&&window.KGM_FULLDONE_1006A)){if(Date.now()-t<600000)setTimeout(w,2000);return}
-      if(!idleOk(3000)||Date.now()-window.KGM_FULLDONE_1006A<6000){setTimeout(w,1500);return}
-      idb(function(db){if(!db)return;try{var tx=db.transaction(STN,'readwrite');var s72=null;try{s72=window.kgmSig72R1006A(D29(todayISO(),-3),369)}catch(_){}tx.objectStore(STN).put({key:k0,s72:s72,at:new Date().toISOString(),ta:S.tailAssign,sum:window.KGM_ROT_SUM_R72||null},KEY);
-        tx.oncomplete=function(){window.KGM_FLEET_SAVED_R1101B={at:new Date().toISOString()}}}catch(_){}})})()}
-})();
+/* 1102A：1101B 的機隊整年重排結果讀回（kgmFleetCacheR1101B）拿掉——完成旗標 KGM_ROT_FINAL_R913 整年重排做完後仍是 false，從來沒存成功過（死碼）。 */
 
-/* 1101B：Residence 競標（使用者：「備選方案無法先選座位，這樣後續操作比較簡單，然後系統就是每個艙等都各留一個位置就好 for the losing 申請者」）——
-   這班這一天有還在進行中（open）的現金出價，每個艙等（頭等／商務／豪經／經濟）各保留 1 個座位不賣（最後面那一個空位），
-   公布結果後出價不再是 open，保留自動解除，給未得標者的備選艙等用。出價本身不選座位（1101A 起）。 */
+/* 1102A：Residence 競標（使用者：「我錯了不應該這樣，該留幾個位置就留幾個位置，但是不能預先選位」）——
+   1101B「每艙固定留 1 位」拿掉。改成：這班這一天還在進行中（open）的每一筆現金出價，在它的第二志願艙（頭等／商務／豪經／經濟）
+   依出價人數各保留座位（不指定座位號，從那一艙最後面的空位扣），第二志願是「全額退還」的不保留；公布結果後出價不再是 open，保留自動解除。
+   原本 r89 已經有每筆出價的留位紀錄（S.resHoldR89），但只在有人工庫存值時才扣，等於沒留。 */
+var RESCAB30={first:'First',business:'Business',premium:'Premium',economy:'Economy'};
+window.kgmResHoldNR1102A=function(f,date,cabin){var n=0;try{if(!f||!date||!cabin||cabin==='Resident')return 0;
+    (S.residentBids||[]).forEach(function(b){if(!b||b.status!=='open'||b.code!==f.code||b.date!==date||(b.fr&&b.fr!==f.fr))return;
+      var a=String(b.alt||'').toLowerCase(),c=RESCAB30[a]||(/^[FBPE]-/.test(b.alt||'')?({F:'First',B:'Business',P:'Premium',E:'Economy'})[String(b.alt)[0]]:'');
+      if(c===cabin)n+=Math.max(1,+b.pax||1)})}catch(_){}return n};
 window.kgmResHold1R1101B=function(f,date,cabin,slots,used){
-  try{if(!f||!date||cabin==='Resident')return;
-    var on=(S.residentBids||[]).some(function(b){return b&&b.status==='open'&&b.code===f.code&&b.date===date&&(!b.fr||b.fr===f.fr)});
-    if(!on)return;
-    for(var i=slots.length-1;i>=0;i--){if(!used[slots[i]]){used[slots[i]]='res-hold';return}}}catch(_){}};
+  try{var n=window.kgmResHoldNR1102A(f,date,cabin);if(!n)return;
+    for(var i=slots.length-1;i>=0&&n>0;i--){if(!used[slots[i]]){used[slots[i]]='res-hold';n--}}}catch(_){}};
