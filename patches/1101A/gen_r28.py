@@ -334,16 +334,16 @@ RW('lag29 inv segs',"(window.segs7(b,true)||[]).forEach(function(s){var sf=s.f||
 # R2-A：背景計算讓出主執行緒（使用者：「非常嚴重的卡頓，確保都有解決」；clk28 1101A p50 0.74 秒、p90 2.9 秒、最長 7.5 秒；1027A p50 2.7 秒、最長 12.5 秒）
 #   開頁後機隊整年重排：每一段（準備每段 0.4～2 秒、最後組合 3.2 秒、拆機收尾 3.2 秒）原本不管使用者有沒有在操作 → 每段開始前先確認使用者停手 1.5 秒（最後組合與拆機收尾 3 秒）
 RW('lag29 fleet gate',"function next6(f){setTimeout(function(){try{f()}catch(e){try{console.warn('r72 final prep',e)}catch(_){}finish6()}},0)}",
-   "function gate6(ms,fn){var go=function(){var w=Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<ms||Date.now()-(gate6.end||0)<1.5*(gate6.dur||0);if(w){setTimeout(go,400);return}var t=Date.now();try{fn()}finally{gate6.dur=Date.now()-t;gate6.end=Date.now()}};setTimeout(go,0)}   /* 1101B：使用者停手才做下一段；做完一段讓出 1.5 倍時間（佔主執行緒 ≤ 40%） */\n"
+   "function gate6(ms,fn){var go=function(){var w=Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<ms||(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<10000&&Date.now()-(gate6.end||0)<1.5*(gate6.dur||0));if(w){setTimeout(go,400);return}var t=Date.now();try{fn()}finally{gate6.dur=Date.now()-t;gate6.end=Date.now()}};setTimeout(go,0)}   /* 1101B：使用者停手才做下一段；使用者 10 秒內有操作時做完一段讓出 1.5 倍時間（沒人操作照原本速度，整年重排不會變晚） */\n"
    "    function next6(f){gate6(f===finish6?3000:1500,function(){try{f()}catch(e){try{console.warn('r72 final prep',e)}catch(_){}finish6()}})}")
 RW('lag29 split gate',"      setTimeout(function(){\n        var t15=Date.now();","      gate6(3000,function(){\n        var t15=Date.now();")
 #   組員排班背景：算一天 1～2.6 秒 → 開始算之前再確認使用者停手 1.5 秒（瀏覽器空檔回呼可能逾時觸發）；不在組員班表分頁時，兩天之間至少讓出「上一天花的時間 × 3」（佔主執行緒 ≤ 25%）；進度存檔 5 天一次 → 20 天一次（一次 2～3 秒）
 RW('lag29 crew gate',"    idle(function(){try{window.kgmCrewStepR121(1,target())}catch(_){}BUSY25=false;",
    "    idle(function(){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500){BUSY25=false;setTimeout(tick,1500);return}var t29=Date.now();try{window.kgmCrewStepR121(1,target())}catch(_){}window.__crewMs29=Date.now()-t29;BUSY25=false;")
-RW('lag29 crew pace',"      setTimeout(tick,pace27())});","      setTimeout(tick,Math.max(pace27(),pace27()<100?0:8*(window.__crewMs29||0)))});   /* 1101B：不在組員班表分頁時佔主執行緒 ≤ 11%（一天 1～4 秒不能中斷，算一天休息 8 倍時間，撞到點擊的機率降到約 1/9） */")
+RW('lag29 crew pace',"      setTimeout(tick,pace27())});","      setTimeout(tick,Math.max(pace27(),pace27()<100||Date.now()-(window.KGM_LAST_INPUT_R1025B||0)>60000?0:8*(window.__crewMs29||0)))});   /* 1101B：不在組員班表分頁、使用者 60 秒內有操作時佔主執行緒 ≤ 11%（一天 1～4 秒不能中斷，算一天休息 8 倍時間，撞到點擊的機率約 1/9）；沒人操作照原本 0.9 秒 */")
 #   競標預補：一班最多 1.5 秒（結算要 Payload 艙單），補完一班花超過 0.3 秒就休息 5 倍時間
 RW('lag29 auc pace',"      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);if(Q.length)idle25(step)})();",
-   "      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);var dt29=Date.now()-t;if(Q.length){if(dt29>300)setTimeout(function(){idle25(step)},5*dt29);else idle25(step)}})();   /* 1101B：一班超過 0.3 秒就休息 5 倍時間 */")
+   "      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);var dt29=Date.now()-t;if(Q.length){if(dt29>300&&Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000)setTimeout(function(){idle25(step)},5*dt29);else idle25(step)}})();   /* 1101B：一班超過 0.3 秒就休息 5 倍時間 */")
 RW('lag29 crew save',"days27(SAVEDCUR27,CURSOR121)>=5))save25();","days27(SAVEDCUR27,CURSOR121)>=20))save25();   /* 1101B：5→20 天存一次（一次 2～3 秒） */")
 #   DH 騰位掃描：一班 0.1～0.6 秒，原本不看使用者 → 停手 5 秒才掃下一班
 RW('lag29 dh gate',"      var i=0,w15=0;(function step(){if(i>=list.length)return;if(busy7()){setTimeout(step,15000);return}",
