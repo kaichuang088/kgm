@@ -50,3 +50,25 @@
    +'@media(max-width:760px){.k28gr-row{grid-template-columns:minmax(120px,1fr) repeat(7,34px);padding:8px 10px}.k28gr-row .role{display:none}.k28gr-row .d em{width:28px}}';
     document.head.appendChild(cs)}catch(_){}
 })();
+
+/* 1101A：地勤派工預先算（使用者「後台全面卡頓」；同一台機器量 1027A 第一次開「登機門／櫃檯」641 ms → 1101A 1,186～1,444 ms：
+   這輪地勤休息 11 小時要先拿前一天的派工，第一次開要連算前兩天）——整年機隊重排做完（或已經進後台）、3 秒沒操作時，
+   一次只算一天（TPE 前兩天～明天、TSA 前一天～今天），存進原本的派工快取（同一份結果，鍵＝機場｜日期｜資料指紋），第一次開頁直接用。 */
+(function(){
+  if(window.KGM_SIDE==='front')return;
+  var Q=null,day='';
+  function ad(d,k){return new Date(Date.parse(d+'T12:00:00Z')+k*864e5).toISOString().slice(0,10)}
+  function step(){try{
+    var t=(typeof todayISO==='function')?todayISO():new Date().toISOString().slice(0,10);
+    if(t!==day){day=t;Q=[-2,-1,0,1].map(function(k){return ['TPE',ad(t,k)]}).concat([-1,0].map(function(k){return ['TSA',ad(t,k)]}))}
+    if(!Q.length){setTimeout(step,600000);return}
+    var adm=false;try{adm=S.view==='admin'&&!!S.adminAuthed}catch(_){}
+    var busy=!(window.KGM_FULLDONE_1006A||adm)||Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<3000||window.KGM_GPLAN_BUSY_R1008A||typeof window.kgmGroundPlanR1008A!=='function';
+    var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))busy=true;
+    if(busy){setTimeout(step,adm?1000:3000);return}
+    var x=Q[0],r=null;try{r=window.kgmGroundPlanR1008A(x[0],x[1])}catch(_){r=null}
+    if(r)Q.shift();
+    var go=function(){setTimeout(step,1500)};if(window.requestIdleCallback)requestIdleCallback(go,{timeout:4000});else go();
+  }catch(_){setTimeout(step,5000)}}
+  setTimeout(step,8000);
+})();

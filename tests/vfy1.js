@@ -5,6 +5,8 @@ const {chromium}=require('playwright');
  await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});
  await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:300000});
  await p.waitForTimeout(50000);
+ /* 1101A：H1 讀組員班表，要等整年機隊重排做完、今天的組員班表算好（跟 1014A 起 vfy6／t_crewrule 同一個做法；固定 50 秒在機器慢的時候會落在重排中途，1027A 也一樣 fly=0） */
+ await p.waitForFunction(()=>!!window.KGM_FULLDONE_1006A&&(!window.kgmCrewHasDayR121||window.kgmCrewHasDayR121(todayISO())),null,{timeout:150000}).catch(()=>{});
  const R=await p.evaluate(()=>{
   const out=[];
   const T=(id,name,fn)=>{try{const r=fn();out.push({id,name,ok:!!(r&&r.ok),info:r&&r.info})}catch(e){out.push({id,name,ok:false,info:'THREW '+e.message})}};
