@@ -24,10 +24,11 @@ for x in D:
 def blk(fr, to, dep, arr, dd, day):
     # 帶狀標題的飛行時間跟原 PDF 同一個算法（網站 blockMin、固定時差）；網站時區表固定值是已知未修的問題，等使用者決定，這裡不改算法
     return mins(arr) + 1440 * dd - mins(dep) - OFF[(fr, to)]
-EN2 = {'KAGOSHIMA': 'KOJ', 'OKAYAMA': 'OKJ', 'TAIPEI SONGSHAN': 'TSA', 'SHANGHAI HONGQIAO': 'SHA', 'CHRISTCHURCH': 'CHC', 'SYDNEY': 'SYD', 'AUCKLAND': 'AKL', 'TAIPEI TAOYUAN': 'TPE', 'BRISBANE': 'BNE', 'MELBOURNE': 'MEL', 'BANGKOK SUVARNABHUMI': 'BKK', 'KUALA LUMPUR': 'KUL'}
+EN2 = {'KAGOSHIMA': 'KOJ', 'OKAYAMA': 'OKJ', 'TAIPEI SONGSHAN': 'TSA', 'SHANGHAI HONGQIAO': 'SHA', 'CHRISTCHURCH': 'CHC', 'SYDNEY': 'SYD', 'AUCKLAND': 'AKL', 'TAIPEI TAOYUAN': 'TPE', 'BRISBANE': 'BNE', 'MELBOURNE': 'MEL', 'BANGKOK SUVARNABHUMI': 'BKK', 'KUALA LUMPUR': 'KUL', 'PERTH': 'PER'}
 DAY = {'s': '2026-09-15', 'w': '2027-01-15'}
 MON = {m: i + 1 for i, m in enumerate(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])}
 DATES = ['2026-09-15', '2026-10-10', '2026-10-20', '2026-11-15', '2027-01-15', '2027-02-01']
+GAP = {'KX53', 'KX54', 'KX59', 'KX60'}   # 1101A：這四班在墨爾本夏令錯開週（10-04～10-24）改用冬季時刻 → 夏季列寫 09-15（錯開週以前）的時刻，錯開週的時刻寫在說明
 def pdate(per):
     # 適用期間 → 期間內一個代表日（網站資料匯出了這幾天的時刻）；夏季期間的列只核對，冬季（10-25 起）的列依網站改
     def d(x): return '20%s-%02d-%s' % (x[5:7], MON[x[2:5]], x[:2])
@@ -115,10 +116,11 @@ for pno in range(doc.page_count):
             miss.append((pno + 1, r['code'], r['per'], r['tc']["text"].strip()))
             if b is not None: frozen.add(id(b))   # 對不到網站的列：這個帶狀標題不動
             continue
-        v = NEWOF[id(x)]['v'][sea]   # 1026B：寫新時刻
+        wsea = '2026-09-15' if (r['code'] in GAP and sea < '2026-10-25') else sea   # 1101A
+        v = NEWOF[id(x)]['v'][wsea]   # 1026B：寫新時刻
         if b is not None:
             if os.environ.get('TT23_SELFCHECK'): od = int(r['sup']["text"].strip()) if r['sup'] else 0; bandrows.setdefault(id(b), (b, []))[1].append(blk(x['fr'], x['to'], dep, arr, od, sea))   # 自我檢查：用 PDF 原本的時刻算，應該跟原本的帶狀標題一樣
-            else: bandrows.setdefault(id(b), (b, []))[1].append(blk(x['fr'], x['to'], v['dep'], v['arr'], v['dd'], sea))
+            else: bandrows.setdefault(id(b), (b, []))[1].append(blk(x['fr'], x['to'], v['dep'], v['arr'], v['dd'], wsea))
         newt = v['dep'] + '-' + v['arr']; news = ('%+d' % v['dd']) if v['dd'] else ''; olds = r['sup']["text"].strip() if r['sup'] else ''
         if newt != r['tc']["text"].strip() or news != olds:
             if sea < '2026-10-25': sm.append((pno + 1, r['code'], r['tc']["text"].strip() + olds, '→ site', newt + news))   # 夏季列跟網站不同：也改成網站的（列出來）
@@ -127,7 +129,7 @@ for pno in range(doc.page_count):
     for k, (b, ds) in bandrows.items():
         if k in frozen: continue
         nt = durtxt(ds)
-        if nt != b['text']: btodo.append((b, nt)); log.append((pno + 1, 'band', b['text'], nt))
+        if nt != b['text'] and os.environ.get('TT28_BANDS') == '1': btodo.append((b, nt)); log.append((pno + 1, 'band', b['text'], nt))   # 1101A：帶狀標題的飛行時間用網站固定時差算（已知未修：夏令時間會差 1 小時；1027A 有幾個帶狀標題沒重算過）→ 這版不改帶狀標題、只改各列時刻
     if DRY or not (todo or btodo): chg += len(todo); continue
     for r, newt, news in todo:
         rc = fitz.Rect(r['tc']["bbox"]); pg.add_redact_annot(fitz.Rect(rc.x0 - 0.3, rc.y0 + 0.2, rc.x1 + 0.3, rc.y1 - 0.2), fill=(1, 1, 1))

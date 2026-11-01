@@ -107,7 +107,7 @@ for r in R:
     if g != last:
         last = g; i = len(data) - 2
         data.append([P('<b>%s</b>　<font color="#66726C">%s · %s</font>' % (r.get('city') or r.get('dest'), r.get('dest'), r.get('regName') or ''), 8.6, GREEN)] + [P('', 7)] * 12)
-        styles += [('SPAN', (0, i + 2), (-1, i + 2)), ('BACKGROUND', (0, i + 2), (-1, i + 2), PALE), ('LINEABOVE', (0, i + 2), (-1, i + 2), 0.8, GREEN)]
+        styles += [('SPAN', (0, i + 2), (-1, i + 2)), ('BACKGROUND', (0, i + 2), (-1, i + 2), PALE), ('LINEABOVE', (0, i + 2), (-1, i + 2), 0.8, GREEN), ('NOSPLIT', (0, i + 2), (-1, i + 3))]   # 組標題不要單獨留在頁尾
     i = len(data) - 2
     s, w = r.get('s'), r.get('w')
     for v in (s, w):
