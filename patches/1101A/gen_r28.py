@@ -568,6 +568,10 @@ RW('fy30 pk2',"var pk2={code:k.code,date:k.date,tail:tail,legs:specsFor(k.code,k
 RW('fy30 apply',"  function applyPick(pk){\n    var got=pk.legs.map(findLeg).filter(Boolean);if(!got.length)return 0;",
    "  function applyPick(pk){\n    try{if(pk&&pk.ferryR1102A&&window.kgmFerryRowR1102A)window.kgmFerryRowR1102A(pk.tail,pk)}catch(_){}   /* 1102A：空機調派段放進那架的輪轉 */\n    var got=pk.legs.map(findLeg).filter(Boolean);if(!got.length)return 0;")
 
+# H4：前台第一次搜尋——sortedFlights 的快取上限 180 筆，但一次搜尋（含轉機）會查 ~1,860 個「航線＋日期」→ 查到一半就被清掉、一直重算。
+#   上限改 8,000 筆（每筆是那條航線那天的幾個班次，約幾 MB；換季／改時刻照原本的鍵（customFlights、flightDateOverride、flightOverrides 數量）失效）。
+RW('srch30 cache',"if(cacheJ.size>180)cacheJ.clear();","if(cacheJ.size>8000)cacheJ.clear();   /* 1102A：原本 180，一次搜尋就超過、一直清掉重算 */")
+
 # R2-G：IRR-013 Rev. B 增訂第 8 條之一（irr_doc29.py；網站內嵌的條文是 JSON 字串，引號要跳脫）
 import irr_doc29
 RW('irr29 art',irr_doc29.ANCHOR,irr_doc29.ANCHOR+irr_doc29.ART.replace('"','\\"'))
