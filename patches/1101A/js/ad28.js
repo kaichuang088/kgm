@@ -58,7 +58,87 @@
       var hi=start-(tzOf(dest)-8)*60+(win[1]-win[0]);return q0<hi&&lo<q1})[0];
     var h=Math.floor(b/60)+'h'+String(b%60).padStart(2,'0')+'m';
     if(c)return {ok:false,why:zh?('空機要 '+fmt(fTpe)+' 從 TPE 起飛（飛 '+h+'），但這架那時有 '+c.code+' '+routeOf(c)+' '+c.dep+'，來不及'):'Ferry too late: '+c.code};
-    return {ok:true,fromTPE:fmt(fTpe),block:b,why:zh?('可從 TPE 空機調派：'+fmt(fTpe)+' 起飛 TPE→'+dest+'（飛 '+h+'，落地過站 2 小時）'):('Ferry from TPE '+fmt(fTpe)+' ('+h+')')}};
+    return {ok:true,fromTPE:fmt(fTpe),block:b,to:dest,depAbs:fTpe,arrAbs:fUtc+b+tzOf(dest)*60,why:zh?('可從 TPE 空機調派：'+fmt(fTpe)+' 起飛 TPE→'+dest+'（飛 '+h+'，落地過站 2 小時）'):('Ferry from TPE '+fmt(fTpe)+' ('+h+')')}};
+  /* 1102A：空機調派寫進排班（使用者：「空機調派寫進排班」；1101B 只在換機身清單算給你看）
+     · 機隊：存檔換機身時，選的那架要從 TPE 空機過去 → 那段空機（KX8900，不載客、positioningR830）寫進那架飛機的輪轉（S.tailAssign），
+       跟換機身紀錄（S.tailPickR1023A）存在一起，整年重排後重新套用換機身時一起放回去。
+     · 組員：挑 2 位 TPE 基地、有這個機型資格（同機型族）、空機前後一天都沒有勤務的機師（機長＋副機長），
+       班表寫「空機調派 KX8900 TPE→外站」＋落地休息 ≥ 12 小時後搭第一班 KGM 回 TPE（DH）。要等組員班表算到那幾天才挑（不同步算還沒算的日子）。 */
+  function rt30(t){t=String(t||'');return /^A3[12]|^A21/.test(t)?'A320':/^A33/.test(t)?'A330':/^B78/.test(t)?'B787':/^B77/.test(t)?'B777':/^A35/.test(t)?'A350':/^A38/.test(t)?'A380':''}
+  function loc30(abs){var d=new Date(abs*60000).toISOString();return {date:d.slice(0,10),time:d.slice(11,16)}}
+  window.kgmFerryRowR1102A=function(tail,pk){try{var F=pk&&pk.ferryR1102A;if(!F||!tail)return false;var TA=S.tailAssign=S.tailAssign||{},a=loc30(F.depAbs),b=loc30(F.arrAbs),id=F.id||(pk.code+'|'+pk.date);
+      Object.keys(TA).forEach(function(t){if(t!==tail&&TA[t])TA[t]=TA[t].filter(function(x){return !(x&&x.ferryR1102A===id)})});
+      var L=TA[tail]=TA[tail]||[];if(L.some(function(x){return x&&x.ferryR1102A===id}))return false;
+      L.push({date:a.date,code:'KX8900',route:'TPE→'+F.to,fr:'TPE',to:F.to,dep:a.time,arr:b.time,dd:Math.round((Date.parse(b.date)-Date.parse(a.date))/86400000),positioningR830:true,noPax:true,manualR69:1,ferryR1102A:id,remark:(z()?'空機調派（接 ':'Ferry (for ')+pk.code+' '+pk.date+')'});
+      L.sort(function(x,y){return (String(x.date)+String(x.dep)).localeCompare(String(y.date)+String(y.dep))});return true}catch(_){return false}};
+  /* 組員：只在組員班表已經算好那幾天時挑人；挑好就記在換機身紀錄上（之後不再變） */
+  function busy30(d){var o={};try{if(!(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(d)))return null;(window.kgmCrewPlanR121(d).flights||[]).forEach(function(f){(f.pilots||[]).concat(f.cabin||[]).forEach(function(c){if(c&&c.empId)o[c.empId]=1})})}catch(_){return null}return o}
+  window.kgmFerryCrewR1102A=function(pk){try{var F=pk&&pk.ferryR1102A;if(!F)return null;if(F.crew&&F.crew.length)return F.crew;var a=loc30(F.depAbs),busy={},ds=[addDays(a.date,-1),a.date,addDays(a.date,1),addDays(a.date,2)];
+      for(var i=0;i<ds.length;i++){var b=busy30(ds[i]);if(!b)return null;Object.assign(busy,b)}
+      (S.tailPickR1023A||[]).forEach(function(q){((q&&q.ferryR1102A&&q.ferryR1102A.crew)||[]).forEach(function(c){busy[c.empId]=1})});
+      var ty='';try{ty=(window.kgmTypeOfTailR1023A?window.kgmTypeOfTailR1023A(pk.tail):'')||''}catch(_){}if(!ty){try{ty=acftOfFlight(pk.code,pk.date)}catch(_){}}var rt=rt30(ty),P=(window.kgmCrewPoolR121()||{}).pilots||[];
+      var pick=function(rank){return P.filter(function(c){return c&&c.base==='TPE'&&c.rank===rank&&(!rt||c.rating===rt)&&!busy[c.empId]&&!c.standbyOnly}).sort(function(x,y){return (x.virtualR121?1:0)-(y.virtualR121?1:0)||String(x.empId).localeCompare(String(y.empId))})[0]};
+      var cp=pick('CP'),fo=pick('FO');if(!cp||!fo)return null;
+      var arrUTC=F.arrAbs-((TZ&&TZ[F.to]!=null?TZ[F.to]:8)*60),back=null;try{for(var k3=0;k3<16&&!back;k3++){var nd=arrUTC+720+180*(k3+1)+60,x3=window.kgmRealDhR1004B?window.kgmRealDhR1004B(F.to,'TPE',new Date((nd+480)*60000).toISOString().slice(0,10),nd):null;if(x3&&x3.depUTC>=arrUTC+720&&!x3.viaR1004B)back=x3}}catch(_){}   /* 落地休息 12 小時後的第一班 KGM 直飛回 TPE */
+      F.crew=[{empId:cp.empId,name:cp.name||'',rank:'CP',pos:'PIC'},{empId:fo.empId,name:fo.name||'',rank:'FO',pos:'SIC'}];F.rating=rt;F.dhBack=back&&back.depUTC>=arrUTC+12*60?{code:back.code,date:back.date,dep:back.dep,arr:back.arr,dd:back.dd||0,depUTC:back.depUTC,arrUTC:back.arrUTC}:null;
+      try{save()}catch(_){}return F.crew}catch(e){return null}};
+  /* 組員班表（kgmCrewChainR210）：空機調派的兩位機師在那一天多一段勤務、之後一段 DH 回 TPE */
+  function chainWrap30(){var O=window.kgmCrewChainR210;if(typeof O!=='function'||O.__fy30)return;var w=function(empId,start,days){var out=O.apply(this,arguments);try{
+      applyDh30(empId,out);
+      (S.tailPickR1023A||[]).forEach(function(pk){var F=pk&&pk.ferryR1102A;if(!F||!F.crew)return;if(!F.crew.some(function(c){return c.empId===empId}))return;var a=loc30(F.depAbs),b=loc30(F.arrAbs),me=F.crew.filter(function(c){return c.empId===empId})[0];
+        (out||[]).forEach(function(day){if(day.date===a.date&&!day.legs.some(function(l){return l&&l.ferryR1102A})){day.legs.push({code:'KX8900',fr:'TPE',to:F.to,date:a.date,arrDate:b.date,dep:a.time,arr:b.time,dd:Math.round((Date.parse(b.date)-Date.parse(a.date))/86400000),depUTC:F.depAbs-480,arrUTC:F.arrAbs-((TZ&&TZ[F.to]!=null?TZ[F.to]:8)*60),block:F.block,blockStr:Math.floor(F.block/60)+':'+String(F.block%60).padStart(2,'0'),acft:pk.tail,type:F.rating||'',operating:true,ferryR1102A:true,posCode:me.pos,posR1009A:me.pos,remark:(z()?'空機調派（不載客）・接 ':'Ferry (no passengers) for ')+pk.code+' '+pk.date});day.rest=false;day.reason='ferry';day.awayAt=F.to}
+          if(F.dhBack&&day.date===F.dhBack.date&&!day.legs.some(function(l){return l&&l.ferryDhR1102A})){day.legs.push({code:'DH',fr:F.to,to:'TPE',date:F.dhBack.date,dep:F.dhBack.dep,arr:F.dhBack.arr,dd:F.dhBack.dd,depUTC:F.dhBack.depUTC,arrUTC:F.dhBack.arrUTC,block:0,blockStr:'DH',acft:'—',type:'—',deadhead:true,operating:false,dhFlightR1004B:F.dhBack.code,dhDateR1004B:F.dhBack.date,ferryDhR1102A:true,remark:(z()?'DH · 空機調派後返回 TPE':'DH · return after ferry')});day.rest=false;day.reason='ferry';day.awayAt=null}})})}catch(_){}return out};
+    try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__fy30=1;window.kgmCrewChainR210=w}
+  /* 1102A：DH 改期後自動重排組員班表（使用者：「DH 改期後自動重排組員班表」；1101B 只搬 DH 訂位與名單）
+     · 班表：原本那段 DH 拿掉，新的那班 DH 放在新的日期（S.dhMoveR1101A 最後一筆有效）。
+     · 衝突：新 DH 落地＋60 分鐘之後才趕得上的勤務（原 DH 起飛到新 DH 落地＋60 分之間起飛的執勤段）→ 自動找代班：
+       同基地、同職級（機師另看同機型族）、那幾天組員班表沒有勤務的人；代班的人不在起飛站就先 DH 過去（最晚落地的 KGM 班）。
+       紀錄寫在那筆改期上（subR1102A），原組員班表那段拿掉、代班的人加上，雙方都收到員工通知。
+     · 要等組員班表算到那幾天才檢查（不同步算還沒算的日子）；沒算到的先記著，背景每分鐘再試。 */
+  function tz30(a){try{return (TZ&&TZ[a]!=null)?+TZ[a]:8}catch(_){return 8}}
+  function utc30(d,t,ap){return Date.parse(d+'T'+t+':00Z')/60000-tz30(ap)*60}
+  function lastMoves30(){var last={};(S.dhMoveR1101A||[]).forEach(function(m){if(m&&m.active!==false&&m.empId)last[m.pnr]=m});return Object.keys(last).map(function(k){return last[k]})}
+  function applyDh30(empId,out){lastMoves30().forEach(function(m){var o=m.orig||{},t=m.to||{};
+      if(m.empId===empId){
+        out.forEach(function(day){var n0=day.legs.length;day.legs=day.legs.filter(function(l){return !(l&&l.deadhead&&!l.ferryDhR1102A&&!l.dhMovedR1102A&&(l.dhFlightR1004B===o.code||l.code===o.code)&&l.fr===o.fr&&l.to===o.to&&String(l.dhDateR1004B||l.date||day.date)===o.date)});if(n0&&!day.legs.length){day.rest=true;day.reason='dh_moved'}});
+        var dd=out.filter(function(day){return day.date===t.date})[0];
+        if(dd&&!dd.legs.some(function(l){return l&&l.dhMovedR1102A===m.pnr})&&t.dep&&t.arr){var dU=utc30(t.date,t.dep,t.fr),aU=utc30(addDays(t.date,+t.dd||0),t.arr,t.to);
+          dd.legs.push({code:'DH',fr:t.fr,to:t.to,date:t.date,dep:t.dep,arr:t.arr,dd:+t.dd||0,depUTC:dU,arrUTC:aU,block:0,blockStr:'DH',acft:'—',type:'—',deadhead:true,operating:false,dhFlightR1004B:t.code,dhDateR1004B:t.date,dhMovedR1102A:m.pnr,
+            remark:(z()?'DH · 已改到 '+t.code+' '+t.date+'（原 '+o.code+' '+o.date+'）':'DH · moved to '+t.code+' '+t.date)});
+          dd.legs.sort(function(a,b){return (+a.depUTC||0)-(+b.depUTC||0)});dd.rest=false;dd.reason='assigned'}
+        (m.subR1102A||[]).forEach(function(sb){out.forEach(function(day){var n0=day.legs.length,cut=false;day.legs=day.legs.filter(function(l){var x=l&&!l.deadhead&&l.code===sb.leg.code&&l.fr===sb.leg.fr&&l.to===sb.leg.to&&+l.depUTC===+sb.leg.depUTC;if(x)cut=true;return !x});
+          if((cut||day.date===sb.day)&&!day.legs.some(function(l){return l&&!l.deadhead}))day.legs=day.legs.filter(function(l){return l&&l.dhMovedR1102A});   /* 那天沒有勤務了 → 為那段勤務排的地面轉場／DH 一起拿掉（改期後的 DH 留著） */
+          if(n0&&!day.legs.length){day.rest=true;day.reason='dh_moved'}})})}
+      (m.subR1102A||[]).forEach(function(sb){if(sb.in!==empId)return;var day=out.filter(function(x){return x.date===sb.day})[0];if(!day||day.legs.some(function(l){return l&&l.subForR1102A===m.pnr&&+l.depUTC===+sb.leg.depUTC}))return;
+        var ex=day.legs.filter(function(l){return l&&!l.deadhead&&l.code===sb.leg.code&&l.fr===sb.leg.fr&&+l.depUTC===+sb.leg.depUTC})[0];if(ex){ex.subForR1102A=m.pnr;ex.remark=(z()?'代班（'+(sb.outName||sb.out)+' 的 DH 改期，趕不上這班）':'Covering for '+sb.out);return}   /* 引擎那天的計畫已經換人（見 planWrap30）→ 班表本來就有這段 */
+        if(sb.dh)day.legs.push(Object.assign({},sb.dh,{subForR1102A:m.pnr}));
+        day.legs.push(Object.assign({},sb.leg,{subForR1102A:m.pnr,remark:(z()?'代班（'+(sb.outName||sb.out)+' 的 DH 改期，趕不上這班）':'Covering for '+sb.out)}));day.legs.sort(function(a,b){return (+a.depUTC||0)-(+b.depUTC||0)});day.rest=false;day.reason='assigned'})})}
+  /* 引擎每天的計畫（kgmCrewPlanR121）也換人：航班資料、組員名單、DH 名單、薪資都讀這一份，跟班表一致 */
+  function subPlan30(d,r){try{if(!r||!r.flights)return r;lastMoves30().forEach(function(m){(m.subR1102A||[]).forEach(function(sb){if(sb.day!==d)return;r.flights.forEach(function(f){if(!f||f.code!==sb.leg.code||f.fr!==sb.leg.fr||f.to!==sb.leg.to)return;
+        ['pilots','cabin'].forEach(function(k){(f[k]||[]).forEach(function(c,i){if(c&&c.empId===sb.out){f[k][i]=Object.assign({},c,{empId:sb.in,name:sb.inName||c.name,subForR1102A:m.pnr,subOutR1102A:sb.out})}})})})})})}catch(_){}return r}
+  function planWrap30(){var O=window.kgmCrewPlanR121;if(typeof O!=='function'||O.__sub30)return;var w=function(d){return subPlan30(d,O.apply(this,arguments))};try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__sub30=1;window.kgmCrewPlanR121=w}
+  planWrap30();setTimeout(planWrap30,0);setTimeout(planWrap30,5000);
+  function touch30(){try{lastMoves30().forEach(function(m){(m.subR1102A||[]).forEach(function(sb){if(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(sb.day))window.kgmCrewPlanR121(sb.day)})})}catch(_){}}
+  window.kgmDhReplanR1102A=function(m){try{if(!m||m.replanR1102A)return m&&m.replanR1102A;var t=m.to,fr=m.from||{};if(!t||!t.dep)return null;
+      var d0=fr.date||m.orig.date,days=[addDays(d0,-1),d0,addDays(d0,1),t.date,addDays(t.date,1),addDays(t.date,2)];for(var i=0;i<days.length;i++)if(!(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(days[i])))return null;
+      var lo=utc30(d0,fr.dep||'00:00',m.orig.fr),aU=utc30(addDays(t.date,+t.dd||0),t.arr,t.to),hi=aU+60,start=d0<t.date?d0:t.date;
+      var ch=window.kgmCrewChainR210(m.empId,addDays(start,-1),4+Math.max(0,Math.round((Date.parse(t.date)-Date.parse(start))/864e5)));
+      var bad=[];ch.forEach(function(day){day.legs.forEach(function(l){if(l&&!l.deadhead&&l.operating!==false&&!l.subForR1102A&&+l.depUTC>=lo-60&&+l.depUTC<hi)bad.push({day:day.date,leg:l})})});
+      var P=window.kgmCrewPoolR121()||{},all=(P.pilots||[]).concat(P.cabin||[]),me=all.filter(function(c){return c.empId===m.empId})[0]||{},busy={};
+      days.forEach(function(d){Object.assign(busy,busy30(d)||{})});lastMoves30().forEach(function(x){(x.subR1102A||[]).forEach(function(s2){busy[s2.in]=1})});(S.tailPickR1023A||[]).forEach(function(q){((q&&q.ferryR1102A&&q.ferryR1102A.crew)||[]).forEach(function(c){busy[c.empId]=1})});
+      var subs=[],prev=null;bad.forEach(function(b){var rep=null;if(prev&&prev.loc===b.leg.fr&&+b.leg.depUTC>=prev.free)rep=prev.c;   /* 同一趟的下一段：同一位代班接著飛 */
+        if(!rep){var cs=all.filter(function(c){return c&&c.empId!==m.empId&&c.role===me.role&&c.rank===me.rank&&(me.role!=='pilot'||c.rating===me.rating)&&c.base===(me.base||'TPE')&&!busy[c.empId]&&!c.standbyOnly}).sort(function(x,y){return (x.virtualR121?1:0)-(y.virtualR121?1:0)||String(x.empId).localeCompare(String(y.empId))});
+          for(var ci=0;ci<cs.length&&ci<40&&!rep;ci++){var cc=null;try{cc=window.kgmCrewChainR210(cs[ci].empId,addDays(b.day,-1),1)}catch(_){}if(cc&&cc[0]&&!cc[0].awayAt&&!(cc[0].legs||[]).length)rep=cs[ci];else busy[cs[ci].empId]=1}}   /* 前一天要在基地、沒有勤務（不在外站過夜） */
+        if(!rep){subs.push({day:b.day,leg:b.leg,none:true});return}busy[rep.empId]=1;var dh=null,home=rep.base||'TPE',same=prev&&prev.c===rep;
+        if(!same&&b.leg.fr!==home&&!((home==='TPE'||home==='TSA')&&(b.leg.fr==='TPE'||b.leg.fr==='TSA'))){var x=null;try{x=window.kgmRealDhR1004B(home,b.leg.fr,b.day,+b.leg.depUTC)}catch(_){}if(x)dh={code:'DH',fr:home,to:b.leg.fr,date:x.date,dep:x.dep,arr:x.arr,dd:x.dd||0,depUTC:x.depUTC,arrUTC:x.arrUTC,block:0,blockStr:'DH',acft:'—',type:'—',deadhead:true,operating:false,dhFlightR1004B:x.code,dhDateR1004B:x.date,remark:(z()?'DH · 代班前往 ':'DH · positioning to ')+b.leg.fr}}
+        var L=Object.assign({},b.leg);delete L.subForR1102A;subs.push({day:b.day,leg:L,in:rep.empId,inName:rep.name||'',out:m.empId,outName:m.name||'',dh:dh});prev={c:rep,loc:b.leg.to,free:(+b.leg.arrUTC||+b.leg.depUTC)+600}});
+      m.subR1102A=subs.filter(function(x){return !x.none});m.replanR1102A={at:new Date().toISOString(),conflicts:bad.length,covered:m.subR1102A.length,missing:subs.filter(function(x){return x.none}).map(function(x){return x.leg.code+' '+x.day})};
+      m.subR1102A.forEach(function(sb){try{notifyStaff(sb.in,(z()?'【代班】':'[Cover] ')+sb.leg.code+' '+sb.leg.fr+'→'+sb.leg.to+' '+sb.day+' '+(sb.leg.dep||'')+(z()?'（'+sb.outName+' 的 DH 改期趕不上，由您代班'+(sb.dh?'；先 DH '+sb.dh.dhFlightR1004B+' '+sb.dh.date+' 前往 '+sb.leg.fr:'')+'）':''));notifyStaff(sb.out,(z()?'【班表異動】':'[Roster] ')+sb.leg.code+' '+sb.day+(z()?' 已改由 '+sb.inName+'（'+sb.in+'）代班（您的 DH 改期）。':' reassigned.'))}catch(_){}});
+      touch30();try{save()}catch(_){}return m.replanR1102A}catch(e){try{console.warn('dh30',e)}catch(_){}return null}};
+  setInterval(function(){try{lastMoves30().forEach(function(m){if(!m.replanR1102A)window.kgmDhReplanR1102A(m)});touch30()}catch(_){}},60000);
+  chainWrap30();setTimeout(chainWrap30,0);setTimeout(chainWrap30,5000);
+  /* 組員班表算到那幾天時再挑人（背景，每分鐘看一次，不同步算） */
+  setInterval(function(){try{(S.tailPickR1023A||[]).forEach(function(pk){if(pk&&pk.ferryR1102A&&!(pk.ferryR1102A.crew&&pk.ferryR1102A.crew.length))window.kgmFerryCrewR1102A(pk)})}catch(_){}},60000);
   /* 3. 轉降續航段（使用者 Round 3：「也要可以 add status to flight，eg divert to KIX 要追加 KX37 KIX-TPE，僅限該日在航班動態」）
         航班狀態設成 Diverted＋轉降地 → 航班動態（依航班號、依航線）在續航起飛那一天多一段「KX37 KIX→TPE」，只在那天出現。
         續航時刻來源：①編輯面板手填 ②後台 AI 轉降紀錄（S.divertsR1018A 的 contDep／contArr）③估算：原班飛行時間扣掉轉降地→目的地的時刻表飛行時間＝落地轉降地，

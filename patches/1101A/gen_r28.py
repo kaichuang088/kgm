@@ -535,6 +535,39 @@ RW('stx30 mail payroll',"var diff=+e.payrollDiff||+e.diff||0;payroll+=diff;","va
 RW('res30 fbname',"function fbName(k){var a=FALLBACK_R161.filter(function(x){return x.k===k})[0];return a?(z()?a.zh:a.en):k}",
    "function fbName(k){var a=FALLBACK_R161.filter(function(x){return x.k===k})[0];return a?(z()?a.zh:a.en):(k&&k!=='none'?k:(z()?'沒有選擇備選方案':'no fallback chosen'))}   /* 1102A：原本寫 undefined */")
 
+# H1：曼谷組員 DH 可搭聯盟航空（使用者：「曼谷組員 DH 聯盟航空」）——曼谷基地組員找不到 KGM 直飛（只剩經台北轉、或完全沒有）時，
+#   改找寰宇一家夥伴營運的班次（直飛，或夥伴＋夥伴／KGM 一次轉機、轉機 ≥ 90 分），一樣是落地後 60 分鐘以上才報到、36 小時內最晚落地的那一班。
+#   班表寫 KGM 共掛班號＋（營運航空 班號），例：KX9843（Cathay Pacific CX750）。實測 64 天曼谷組員 365 段 DH 全部有 KGM 直飛，這條規則只在 KGM 那班沒飛時才用到。
+RW('dh30 alliance',"  var rf1004B=(typeof nextDepUTC==='number'&&isFinite(nextDepUTC))?realDhR1004B(fr,to,date,nextDepUTC):null;",
+   "  var rf1004B=(typeof nextDepUTC==='number'&&isFinite(nextDepUTC))?realDhR1004B(fr,to,date,nextDepUTC):null;\n"
+   "  try{if(typeof nextDepUTC==='number'&&isFinite(nextDepUTC)&&(!rf1004B||rf1004B.viaR1004B==='TPE')&&window.kgmBkkCrewR1102A&&window.kgmBkkCrewR1102A(empId)){var al30=window.kgmAllianceDhR1102A(fr,to,date,nextDepUTC);if(al30){rf1004B=al30;window.KGM_DH_ALLIANCE_N_R1102A=(window.KGM_DH_ALLIANCE_N_R1102A||0)+1}}}catch(_){}   /* 1102A：曼谷組員可搭聯盟航空 */")
+RW('dh30 alliance fn',"window.kgmRealDhR1004B=realDhR1004B;",
+   "window.kgmRealDhR1004B=realDhR1004B;\n"
+   "/* 1102A：曼谷基地組員（kgmCrewPoolR121 的 base）＋聯盟航空（夥伴營運、oneworld）調位班次 */\n"
+   "var BKK30=null;window.kgmBkkCrewR1102A=function(id){try{if(!BKK30){BKK30={};var P=window.kgmCrewPoolR121?window.kgmCrewPoolR121():null;(function w(x,dp){if(dp>3||!x)return;if(Array.isArray(x)){x.forEach(function(c){if(c&&c.empId){if(c.base==='BKK')BKK30[c.empId]=1}else w(c,dp+1)})}else if(typeof x==='object')Object.keys(x).forEach(function(k){w(x[k],dp+1)})})(P,0);setTimeout(function(){BKK30=null},600000)}return !!BKK30[id]}catch(_){return false}};\n"
+   "window.kgmAllianceDhR1102A=function(fr,to,date,nextDepUTC){var best=null,WIN=36*60;function tz(ap){try{if(typeof TZ!=='undefined'&&TZ[ap]!=null)return +TZ[ap]}catch(_){}return 8}\n"
+   "  var pool=[];[D(date,-1),date].forEach(function(fd){(FLIGHTS||[]).forEach(function(f){if(!f||!(f.partner||f.operator)||f.oneworld===false||!/^\\d\\d:\\d\\d$/.test(String(f.dep||''))||!/^\\d\\d:\\d\\d$/.test(String(f.arr||'')))return;var ok=false;try{ok=flyOn(f,new Date(fd+'T12:00:00'))}catch(_){}if(!ok)return;\n"
+   "    var dep=Date.parse(fd+'T'+f.dep+':00Z')/60000-tz(f.fr)*60,arr=Date.parse(D(fd,+f.dd||0)+'T'+f.arr+':00Z')/60000-tz(f.to)*60;pool.push({f:f,fd:fd,dep:dep,arr:arr,p:1})})});\n"
+   "  var kgm=[];[D(date,-1),date].forEach(function(fd){var fs=[];try{fs=(window.kgmFlightsOnR121?window.kgmFlightsOnR121(fd):[])||[]}catch(_){}fs.forEach(function(f){if(f&&!f.partner&&/^\\d\\d:\\d\\d$/.test(String(f.dep||''))&&/^\\d\\d:\\d\\d$/.test(String(f.arr||''))){var dep=Date.parse(fd+'T'+f.dep+':00Z')/60000-tz(f.fr)*60,arr=Date.parse(D(fd,+f.dd||0)+'T'+f.arr+':00Z')/60000-tz(f.to)*60;kgm.push({f:f,fd:fd,dep:dep,arr:arr,p:0})}})});\n"
+   "  function nm(x){return x.p?((x.f.operator||'')+' '+(x.f.operatorFlight||'')).trim():''}\n"
+   "  function take(c){if(c.arrUTC>nextDepUTC-60||c.arrUTC<nextDepUTC-WIN)return;if(!best||c.arrUTC>best.arrUTC)best=c}\n"
+   "  pool.forEach(function(a){if(a.f.fr!==fr)return;if(a.f.to===to){take({code:a.f.code,date:a.fd,dep:a.f.dep,arr:a.f.arr,dd:+a.f.dd||0,depUTC:a.dep,arrUTC:a.arr,op:nm(a),allianceR1102A:true,legs:[{d:a.fd,fr:fr,to:to,code:a.f.code,op:nm(a)}]});return}\n"
+   "    pool.concat(kgm).forEach(function(b){if(b.f.fr!==a.f.to||b.f.to!==to||b.dep<a.arr+90||b.dep>a.arr+12*60)return;var dd=Math.round((Date.parse(new Date((b.arr+tz(to)*60)*60000).toISOString().slice(0,10))-Date.parse(a.fd))/86400000);\n"
+   "      take({code:a.f.code+'/'+b.f.code,date:a.fd,dep:a.f.dep,arr:b.f.arr,dd:dd,depUTC:a.dep,arrUTC:b.arr,op:[nm(a),nm(b)].filter(Boolean).join('／'),viaR1004B:a.f.to,allianceR1102A:true,legs:[{d:a.fd,fr:fr,to:a.f.to,code:a.f.code,op:nm(a)},{d:b.fd,fr:b.f.fr,to:to,code:b.f.code,op:nm(b)}]})})});\n"
+   "  kgm.forEach(function(a){if(a.f.fr!==fr)return;pool.forEach(function(b){if(b.f.fr!==a.f.to||b.f.to!==to||b.dep<a.arr+90||b.dep>a.arr+12*60)return;var dd=Math.round((Date.parse(new Date((b.arr+tz(to)*60)*60000).toISOString().slice(0,10))-Date.parse(a.fd))/86400000);\n"
+   "      take({code:a.f.code+'/'+b.f.code,date:a.fd,dep:a.f.dep,arr:b.f.arr,dd:dd,depUTC:a.dep,arrUTC:b.arr,op:nm(b),viaR1004B:a.f.to,allianceR1102A:true,legs:[{d:a.fd,fr:fr,to:a.f.to,code:a.f.code},{d:b.fd,fr:b.f.fr,to:to,code:b.f.code,op:nm(b)}]})})});\n"
+   "  return best};")
+
+# H2：空機調派寫進排班——換機身存檔時，選的那架要從 TPE 空機過去 → 空機段寫進換機身紀錄（ferryR1102A），applyPick 每次套用都放進那架的輪轉；組員在 ad28.js
+RW('fy30 calc',"      if(el&&type&&fam(type)===fam(before))el.value='';\n      var r=o.apply(this,arguments),msg='';",
+   "      if(el&&type&&fam(type)===fam(before))el.value='';\n      var fy30=null;try{if(k&&f&&tail){fy30=(availTails(type||fam(before),k.code,k.date,f.fr,f.to).filter(function(x){return x.tail===tail})[0]||{}).ferry||null;if(fy30&&!fy30.ok)fy30=null}}catch(_){}   /* 1102A：要空機調派 */\n      var FY30=fy30?{id:k.code+'|'+k.date,to:fy30.to,depAbs:fy30.depAbs,arrAbs:fy30.arrAbs,block:fy30.block,at:new Date().toISOString()}:null;\n      var r=o.apply(this,arguments),msg='';")
+RW('fy30 pk',"var pk={code:k.code,date:k.date,tail:tail,legs:specsFor(k.code,k.date,f.fr,f.to,res),at:new Date().toISOString(),by:(S.adminUser||{}).empId||''};",
+   "var pk={code:k.code,date:k.date,tail:tail,legs:specsFor(k.code,k.date,f.fr,f.to,res),at:new Date().toISOString(),by:(S.adminUser||{}).empId||'',ferryR1102A:FY30};")
+RW('fy30 pk2',"var pk2={code:k.code,date:k.date,tail:tail,legs:specsFor(k.code,k.date,f.fr,f.to,null),at:new Date().toISOString(),by:(S.adminUser||{}).empId||''};",
+   "var pk2={code:k.code,date:k.date,tail:tail,legs:specsFor(k.code,k.date,f.fr,f.to,null),at:new Date().toISOString(),by:(S.adminUser||{}).empId||'',ferryR1102A:FY30};")
+RW('fy30 apply',"  function applyPick(pk){\n    var got=pk.legs.map(findLeg).filter(Boolean);if(!got.length)return 0;",
+   "  function applyPick(pk){\n    try{if(pk&&pk.ferryR1102A&&window.kgmFerryRowR1102A)window.kgmFerryRowR1102A(pk.tail,pk)}catch(_){}   /* 1102A：空機調派段放進那架的輪轉 */\n    var got=pk.legs.map(findLeg).filter(Boolean);if(!got.length)return 0;")
+
 # R2-G：IRR-013 Rev. B 增訂第 8 條之一（irr_doc29.py；網站內嵌的條文是 JSON 字串，引號要跳脫）
 import irr_doc29
 RW('irr29 art',irr_doc29.ANCHOR,irr_doc29.ANCHOR+irr_doc29.ART.replace('"','\\"'))

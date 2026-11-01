@@ -4,7 +4,8 @@
    · 後台 AI 工具 dh_change：找出 DH 訂位（PNR 或員工編號＋班號／日期），在同一段航線上找新的一天（改晚一天／早一天／指定日期）或指定班次；
    · 紀錄寫在 S.dhMoveR1101A（kgm28_dhmove，save() 有寫 → 前後台同步）；r7 航班資料的 DH 名單（dhList929）讀這份：舊班拿掉、新班加上；
    · 訂位：PNR 不變，outF／dhR929 換成新班與新日期，座位清空（機場櫃檯劃位），組員收到通知；DH 訂位一律不寄 Email（寄信程式本來就排除 dhR929）。
-   · 限制（老實寫）：組員班表引擎本身的調位紀錄不重排——班表頁那天仍顯示原本的 DH 腿；改到的那班不檢查組員休息規則（後台人員自己判斷）。 ══ */
+   · 限制（老實寫）：組員班表引擎本身的調位紀錄不重排——班表頁那天仍顯示原本的 DH 腿；改到的那班不檢查組員休息規則（後台人員自己判斷）。
+   · 1102A：組員班表跟著改（舊 DH 拿掉、新 DH 放上），新 DH 趕不上的勤務自動找代班（ad28.js kgmDhReplanR1102A）。 ══ */
 (function(){
   function z(){try{return LANG!=='en'}catch(_){return true}}
   function ad(d,k){return new Date(Date.parse(d+'T12:00:00Z')+k*864e5).toISOString().slice(0,10)}
@@ -63,8 +64,9 @@
     var txt=(z()?'【DH 調位異動】':'[DH change] ')+b.pnr+'：'+rec.from.code+' '+cur+' '+fr+'→'+to+(z()?' 改為 ':' → ')+pick.code+' '+nd+' '+pick.dep+(z()?' 起飛（座位於機場櫃檯報到時劃位）。':' (seat at the airport).');
     try{notifyStaff(h.empId,txt)}catch(_){}
     try{logAct('DH change',b.pnr+' '+rec.from.code+' '+cur+' → '+pick.code+' '+nd)}catch(_){}
+    var rp30=null;try{rp30=window.kgmDhReplanR1102A?window.kgmDhReplanR1102A(rec):null}catch(_){}   /* 1102A：組員班表重排、趕不上的勤務找代班 */
     try{save()}catch(_){}try{render()}catch(_){}
-    return {ok:true,msg:(z()?'已更新 DH 訂位 ':'DH booking updated ')+b.pnr+'（'+nm+'・'+h.empId+'）：'+rec.from.code+' '+cur+' '+fr+'→'+to+(z()?' 改為 ':' → ')+pick.code+' '+nd+' '+pick.dep+'–'+pick.arr+((+pick.dd)?'⁺'+pick.dd:'')
-      +(z()?'。PNR 不變、座位機場劃位、已通知組員；航班資料兩班的 DH 名單會跟著換。組員班表頁那天的 DH 腿不會自動重排，請一併確認休息時間。':'.')}
+    return {ok:true,replan:rp30,msg:(z()?'已更新 DH 訂位 ':'DH booking updated ')+b.pnr+'（'+nm+'・'+h.empId+'）：'+rec.from.code+' '+cur+' '+fr+'→'+to+(z()?' 改為 ':' → ')+pick.code+' '+nd+' '+pick.dep+'–'+pick.arr+((+pick.dd)?'⁺'+pick.dd:'')
+      +(z()?'。PNR 不變、座位機場劃位、已通知組員；航班資料兩班的 DH 名單會跟著換；組員班表已改成新的 DH。':'.')+(rp30?(rp30.conflicts?(z()?'新 DH 趕不上 '+rp30.conflicts+' 段勤務，已安排 '+rp30.covered+' 段代班'+(rp30.missing.length?'；找不到代班：'+rp30.missing.join('、')+'（請人工處理）':'')+'，雙方都已通知。':''):(z()?'新 DH 不影響後面的勤務。':'')):(z()?'組員班表還沒算到那幾天，算到時會自動檢查是否需要代班。':''))}
   }catch(e){return {ok:false,msg:String(e&&e.message||e)}}};
 })();
