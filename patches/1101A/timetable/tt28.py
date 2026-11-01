@@ -22,7 +22,14 @@ OFF = {}   # 網站的固定時差（blockMin 用的那一份）：由網站自�
 for x in D:
     v = x['s']; OFF[(x['fr'], x['to'])] = mins(v['arr']) + 1440 * v['dd'] - mins(v['dep']) - v['dur']
 def blk(fr, to, dep, arr, dd, day):
-    # 帶狀標題的飛行時間跟原 PDF 同一個算法（網站 blockMin、固定時差）；網站時區表固定值是已知未修的問題，等使用者決定，這裡不改算法
+    # 1101B：有代表日期就用真的時區（IANA，含夏令時間）算；沒有日期（不在核對期間的列）照原本網站固定時差
+    #   （原本一律固定時差：夏令期間的航線會差 1 小時，例 TPE→MEL 9h10m～10h05m，實際 9h05～9h10）
+    if day and fr in TZI and to in TZI:
+        y, m, d = map(int, day.split('-'))
+        a = DT.datetime(y, m, d, int(dep[:2]), int(dep[3:]), tzinfo=ZoneInfo(TZI[fr]))
+        bd = DT.date(y, m, d) + DT.timedelta(days=dd)
+        b = DT.datetime(bd.year, bd.month, bd.day, int(arr[:2]), int(arr[3:]), tzinfo=ZoneInfo(TZI[to]))
+        return int((b - a).total_seconds() // 60)
     return mins(arr) + 1440 * dd - mins(dep) - OFF[(fr, to)]
 EN2 = {'KAGOSHIMA': 'KOJ', 'OKAYAMA': 'OKJ', 'TAIPEI SONGSHAN': 'TSA', 'SHANGHAI HONGQIAO': 'SHA', 'CHRISTCHURCH': 'CHC', 'SYDNEY': 'SYD', 'AUCKLAND': 'AKL', 'TAIPEI TAOYUAN': 'TPE', 'BRISBANE': 'BNE', 'MELBOURNE': 'MEL', 'BANGKOK SUVARNABHUMI': 'BKK', 'KUALA LUMPUR': 'KUL', 'PERTH': 'PER'}
 DAY = {'s': '2026-09-15', 'w': '2027-01-15'}
@@ -55,7 +62,7 @@ def pick(code, route, sea, dep, arr=None):
     return min(L, key=lambda x: abs(m(x['v'][sea]['dep']) - m(dep)))
 def hm(m): return '%dh%02dm' % (m // 60, m % 60)
 def durtxt(ms): a, b = min(ms), max(ms); return hm(a) if a == b else hm(a) + ' ~ ' + hm(b)
-doc = fitz.open(SRC); log = []; miss = []; sm = []; chg = 0
+doc = fitz.open(SRC); log = []; miss = []; sm = []; chg = 0; BANDTXT = {}
 for pno in range(doc.page_count):
     pg = doc[pno]; sp = spans(pg)
     bands = []
@@ -63,7 +70,7 @@ for pno in range(doc.page_count):
         tx = t["text"].strip()
         if t["size"] >= 6.5: continue
         if re.fullmatch(r"\d+h\d\dm ~", tx):
-            nx = [u for u in sp if re.fullmatch(r"\d+h\d\dm", u["text"].strip()) and (abs(u["bbox"][2] - t["bbox"][2]) < 3 or abs(u["bbox"][0] - t["bbox"][0]) < 3) and 4 < u["bbox"][1] - t["bbox"][1] < 10]
+            nx = [u for u in sp if re.fullmatch(r"\d+h\d\dm", u["text"].strip()) and (abs(u["bbox"][2] - t["bbox"][2]) < 3 or abs(u["bbox"][0] - t["bbox"][0]) < 3 or abs((u["bbox"][0] + u["bbox"][2]) - (t["bbox"][0] + t["bbox"][2])) < 6) and 4 < u["bbox"][1] - t["bbox"][1] < 10]
             if nx: bands.append(dict(bbox=t["bbox"], spans=[t, nx[0]], text=tx + ' ' + nx[0]["text"].strip(), size=t["size"])); continue
         if re.fullmatch(r"\d+h\d\dm( ~ \d+h\d\dm)?", tx):
             if any(u is t for bb in bands for u in bb['spans']): continue
@@ -129,7 +136,7 @@ for pno in range(doc.page_count):
     for k, (b, ds) in bandrows.items():
         if k in frozen: continue
         nt = durtxt(ds)
-        if nt != b['text'] and os.environ.get('TT28_BANDS') == '1': btodo.append((b, nt)); log.append((pno + 1, 'band', b['text'], nt))   # 1101A：帶狀標題的飛行時間用網站固定時差算（已知未修：夏令時間會差 1 小時；1027A 有幾個帶狀標題沒重算過）→ 這版不改帶狀標題、只改各列時刻
+        if nt != b['text'] and os.environ.get('TT28_BANDS', '1') == '1': BANDTXT[(pno, round(b['bbox'][0]), round(b['bbox'][1]))] = nt; log.append((pno + 1, 'band', b['text'], nt))   # 1101B：寫字交給 align29（整條標題重排）   # 1101A：帶狀標題的飛行時間用網站固定時差算（已知未修：夏令時間會差 1 小時；1027A 有幾個帶狀標題沒重算過）→ 這版不改帶狀標題、只改各列時刻
     if DRY or not (todo or btodo): chg += len(todo); continue
     for r, newt, news in todo:
         rc = fitz.Rect(r['tc']["bbox"]); pg.add_redact_annot(fitz.Rect(rc.x0 - 0.3, rc.y0 + 0.2, rc.x1 + 0.3, rc.y1 - 0.2), fill=(1, 1, 1))
@@ -159,6 +166,7 @@ for pno in range(doc.page_count):
 print('rows changed', chg, '| bands changed', len([l for l in log if l[1] == 'band']), '| unmatched', len(miss), '| summer differs', len(sm))
 for l in miss[:40]: print('MISS', l)
 for l in sm[:40]: print('SUMMER', l)
-if not DRY:
-    doc.subset_fonts(); doc.set_metadata(dict(doc.metadata, modDate=fitz.get_pdf_now())); doc.save(OUT, garbage=4, deflate=True, clean=True)
+if not DRY:   # 1101B：標題重排後子集化要十幾分鐘（搬移的表單物件），預設不做（多約 1 MB，只多 LiberationSans 兩個字型）
+    import align29; print('align29', align29.run(doc, BANDTXT, put, tw, WHITE))
+    os.environ.get('TT29_SUBSET') == '1' and doc.subset_fonts(); doc.set_metadata(dict(doc.metadata, modDate=fitz.get_pdf_now())); doc.save(OUT, garbage=4, deflate=True, clean=True)
     json.dump(log, open(OUT + '.log.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=0); print('saved', OUT, doc.page_count)

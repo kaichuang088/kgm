@@ -19,16 +19,18 @@
   var SEATFEE={Q:{Economy:750,Premium:2000},U:{Economy:0,Premium:1500}};window.KGM_GRP_SEATFEE_R1101A=SEATFEE;
   /* ① 前置視窗 */
   var m0=window.kgmGrpModeR1025B;
-  if(typeof m0==='function'&&!m0.__r28){var m28=function(v){var r=m0.apply(this,arguments);try{if(v&&on()){S.search.grpPlanR1101A=S.search.grpPlanR1101A||'';if(!S.search.grpPlanR1101A){S.grp28Pre=true;render()}}else if(!v){S.grp28Pre=false;if(S.search)S.search.grpPlanR1101A=''}}catch(_){}return r};m28.__r28=1;window.kgmGrpModeR1025B=m28}
+  if(typeof m0==='function'&&!m0.__r28){var m28=function(v){var r=m0.apply(this,arguments);try{if(v&&on()){S.search.grpPlanR1101A='';S.grp28Pre=false}else if(!v){S.grp28Pre=false;if(S.search)S.search.grpPlanR1101A=''}   /* 1101B：切到團體不再先跳視窗，改成每次按「搜尋航班」才跳（下面 nav 包裝） */}catch(_){}return r};m28.__r28=1;window.kgmGrpModeR1025B=m28}
   window.kgmGrpPickR1101A=function(k,how){var zh=z();if(how==='charter'||how==='custom'){S.grp28Pre=false;S.search.grpPlanR1101A=k||'U';
       S.view='group23';if(window.kgmCharterOpenR1026C){try{window.kgmCharterOpenR1026C(how)}catch(_){}}try{render()}catch(_){}return}
-    S.search.grpPlanR1101A=k;S.grp28Pre=false;S.openFare=null;try{render()}catch(_){}};
+    S.search.grpPlanR1101A=k;S.grp28Pre=false;S.openFare=null;
+    if(S.grp28PendingNav){S.grp28PendingNav=0;window.__grp28go=1;try{nav('booking')}finally{window.__grp28go=0}return}
+    try{render()}catch(_){}};
   function preModal(){var zh=z(),p=P(),Q=p.Q||{},U=p.U||{};
     var row=function(l,a,b){return '<tr><th>'+l+'</th><td>'+a+'</td><td>'+b+'</td></tr>'};
-    return '<div class="k28g-mask"><div class="k28g-dlg" role="dialog" aria-modal="true"><header><div><small>GROUP BOOKING</small><h3>'+(zh?'選擇團體方案':'Choose a group plan')+'</h3><p>'+(zh?'去程、回程用同一個方案；確認後才進入訂位。':'Outbound and return use the same plan.')+'</p></div><button type="button" class="x" onclick="kgmGrpModeR1025B(0)" aria-label="close">×</button></header>'
+    return '<div class="k28g-mask"><div class="k28g-dlg" role="dialog" aria-modal="true"><header><div><small>GROUP BOOKING</small><h3>'+(zh?'選擇團體方案':'Choose a group plan')+'</h3><p>'+(zh?'去程、回程用同一個方案；確認後才進入訂位。':'Outbound and return use the same plan.')+'</p></div><button type="button" class="x" onclick="S.grp28Pre=false;S.grp28PendingNav=0;render()" aria-label="close">×</button></header>'
       +'<table class="k28g-cmp"><thead><tr><th></th><th>'+(zh?'團體優惠 Group Saver（Q）':'Group Saver (Q)')+'</th><th>'+(zh?'團體彈性 Group Flex（U）':'Group Flex (U)')+'</th></tr></thead><tbody>'
-      +row(zh?'票價':'Fare',(zh?'一般最低價 × ':'Lowest fare × ')+Math.round((Q.mul||0.93)*100)+'%',(zh?'一般最低價 × ':'Lowest fare × ')+Math.round((U.mul||1.08)*100)+'%')
-      +row(zh?'改票／退票（每人）':'Change / refund',M(Q.chg)+' ／ '+M(Q.ref),M(U.chg)+' ／ '+M(U.ref))
+      +row(zh?'票價':'Fare',zh?'團體最低價：比一般訂票便宜很多（訂位頁顯示每位價格）':'Lowest group fare — well below individual fares',zh?'團體彈性價：比優惠方案貴一些，仍比一般訂票便宜':'Flexible group fare — still below individual fares')   /* 1101B：不顯示係數（使用者） */
+      +row(zh?'改票（每筆訂位一次）':'Change (per booking)',M(Q.chg),M(U.chg))+row(zh?'退票（每人）':'Refund (per person)',M(Q.ref),M(U.ref))   /* 1101B：改票以整筆訂位計 */
       +row(zh?'名單期限':'Names due',(zh?'出發前 ':'')+Q.names+(zh?' 天':' days before'),(zh?'出發前 ':'')+U.names+(zh?' 天':' days before'))
       +row(zh?'尾款期限':'Balance due',(zh?'出發前 ':'')+Q.bal+(zh?' 天（之內訂位當下付清＋填名單）':' days'),(zh?'出發前 ':'')+U.bal+(zh?' 天（之內訂位當下付清＋填名單）':' days'))
       +row(zh?'免手續費增減':'Free changes in size','±'+Q.free,'±'+U.free)
@@ -41,6 +43,11 @@
       +'<div><b>'+(zh?'包機':'Charter')+'</b><span>'+(zh?'整架包下現有航班；起飛前 6 個月申請，機型不能更換':'Whole aircraft on a scheduled flight')+'</span><div class="b"><button type="button" onclick="kgmGrpPickR1101A(\'U\',\'charter\')">'+(zh?'申請包機':'Request charter')+'</button></div></div>'
       +'<div><b>'+(zh?'自創航班':'Custom flight')+'</b><span>'+(zh?'自訂航線與日期（包機進階版）；填需要人數，起飛前 3 個月申請，可申請換大機型':'Your own route and date')+'</span><div class="b"><button type="button" onclick="kgmGrpPickR1101A(\'U\',\'custom\')">'+(zh?'申請自創航班':'Request custom flight')+'</button></div></div></div>'
       +'</div></div>'}
+
+  /* 1101B：使用者「是每次按下搜尋之後才會顯示，每次團體都要」——團體模式在首頁按「搜尋航班」（nav('booking')）先跳方案視窗，選好才往下搜尋 */
+  function nw28(){var O=window.nav;if(typeof O!=='function'||O.__r28b)return;var w=function(v){try{if(v==='booking'&&on()&&S.view==='home'&&!window.__grp28go&&S.view!=='admin'){S.search.grpPlanR1101A='';S.grp28Pre=true;S.grp28PendingNav=1;try{render()}catch(_){}return}}catch(_){}return O.apply(this,arguments)};
+    try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__r28b=1;window.nav=w;try{nav=w}catch(_){}}
+  nw28();setTimeout(nw28,0);setTimeout(nw28,3500);setTimeout(nw28,13000);
   /* 方案限制：團體模式只留選好的方案代號 */
   function vc(){var O=window.validCodes;if(typeof O!=='function'||O.__r28)return;var w=function(){var r=O.apply(this,arguments)||[];try{var k=on()&&S.search&&S.search.grpPlanR1101A;if(k){var f=r.filter(function(c){var x=(FARES[c]||{}).groupPlanR1026C;return !x||x===k});return f}}catch(_){}return r};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__r28=1;window.validCodes=w;try{validCodes=w}catch(_){}}
@@ -109,7 +116,13 @@
     if(on()&&S.view==='booking'&&S.phase==='pax'&&late()){var pg=document.querySelector('.k25g-pax');if(pg&&!pg.querySelector('.k28g-names')){var act=pg.querySelector('.k25g-act');var d=document.createElement('div');d.innerHTML=namesForm();if(act)pg.insertBefore(d.firstChild,act);else pg.appendChild(d.firstChild)}}
     if(on()){[].forEach.call(document.querySelectorAll('#app select option[value="First"]'),function(o){o.disabled=true;o.hidden=true});if(S.search&&S.search.cabin==='First')S.search.cabin='Business'}
     /* ⑨ 搜尋卡客艙級別底下寫艙等分配 */
-    try{var mx=mixOf();[].forEach.call(document.querySelectorAll('#app select'),function(sl){if(!sl.querySelector('option[value="Business"]')||!sl.parentElement)return;var cap=sl.parentElement.querySelector('.k28m-cab');var t=mx&&S.view==='home'?(z()?'分艙：':'Split: ')+mixTxt(mx):'';if(!t){if(cap)cap.remove();return}if(!cap){cap=document.createElement('small');cap.className='k28m-cab';sl.parentElement.appendChild(cap)}if(cap.textContent!==t)cap.textContent=t})}catch(_){}}
+    /* 1101B：人數跟艙等已合併在乘客面板（三艙各幾位都能改）→ 團體模式首頁的「客艙級別」下拉藏起來，原位置寫各艙人數，點了打開同一個面板（不會有兩個地方互相蓋） */
+    try{var mx=mixOf(),m29=on()&&S.view==='home'?cur28():null;[].forEach.call(document.querySelectorAll('#app select'),function(sl){if(!sl.querySelector('option[value="Business"]')||!sl.parentElement)return;var cap=sl.parentElement.querySelector('.k28m-cab');
+      var t=m29?CABS.filter(function(c){return m29[c]>0}).map(function(c){return cabZ(c)+' '+m29[c]}).join('・'):'';
+      if(!t){if(cap)cap.remove();if(sl.style.display==='none'&&sl.__k29)sl.style.display='';return}
+      if(!cap||cap.tagName!=='BUTTON'){if(cap)cap.remove();cap=document.createElement('button');cap.type='button';cap.className='k28m-cab k29-cab';cap.setAttribute('onclick','S.paxPickerOpen=true;render()');sl.parentElement.appendChild(cap)}
+      sl.__k29=1;if(sl.style.display!=='none')sl.style.display='none';
+      var h='<b>'+t+'</b><small>'+(mx?(z()?'分艙訂位・在乘客人數修改':'Split cabins · edit in Travellers'):(z()?'在乘客人數修改':'Edit in Travellers'))+'</small>';if(cap.__h!==h){cap.innerHTML=h;cap.__h=h}})}catch(_){}}
   setInterval(function(){try{if(on()&&(S.grp28Pre||S.grp28RetWarn||S.phase==='pax'))decorate()}catch(_){}},1200);
   /* ⑨ 混艙（使用者：「定位時要可以選擇幾位旅客哪個倉等幾位旅客哪個倉等 所以搜尋介面要調一下」）
      搜尋人數選單多一段「艙等分配」：豪經、商務填人數，其餘自動算經濟艙；S.search.grpMixR1101A={Premium,Business}。
@@ -117,19 +130,36 @@
      （kgmGrpCabinR1026C）各自拆成那一艙的團體代號訂位，差額加進尾款；拆出的旅客姓名在名單頁下方另外填。 */
   var CABS=['Economy','Premium','Business'],CZ={Economy:'經濟艙',Premium:'豪華經濟艙',Business:'商務艙'};
   function cabZ(c){return z()?CZ[c]:({Economy:'Economy',Premium:'Premium Economy',Business:'Business'}[c])}
-  function mixFrom(src,seats){var m=src||{},p=Math.max(0,Math.round(+m.Premium||0)),b=Math.max(0,Math.round(+m.Business||0));if(b>seats)b=seats;if(p+b>seats)p=seats-b;
-    var o={Economy:seats-p-b,Premium:p,Business:b},n=CABS.filter(function(c){return o[c]>0}).length;return n>1?o:null}
+  /* 1101B：使用者「那兩個合併也要可以改」——人數跟艙等合併成一張：經濟艙／豪華經濟艙／商務艙各幾位（成人＋兒童，三格都能改），其中兒童幾位、嬰兒幾位。
+     S.search.grpMixR1101A={Economy,Premium,Business}；成人＝三艙合計－兒童。只有一艙有人＝不分艙（S.search.cabin＝那一艙）。 */
+  function mixFrom(src,seats){var m=src||{},e=Math.max(0,Math.round(+m.Economy||0)),p=Math.max(0,Math.round(+m.Premium||0)),b=Math.max(0,Math.round(+m.Business||0));
+    if(m.Economy==null){e=Math.max(0,seats-p-b)}   /* 舊資料（只有豪經／商務） */
+    var o={Economy:e,Premium:p,Business:b},n=CABS.filter(function(c){return o[c]>0}).length;return n>1?o:null}
   function mixOf(){try{if(!on())return null;var s=S.search||{};if(!s.grpMixR1101A)return null;return mixFrom(s.grpMixR1101A,(passengerCounts()||{}).seats||0)}catch(_){return null}}
   function mainOf(m){var best='Economy';CABS.forEach(function(c){if((m[c]||0)>(m[best]||0))best=c});return best}
-  window.kgmGrpMixR1101A=function(cab,v){try{var s=S.search,seats=(passengerCounts()||{}).seats||0,m=s.grpMixR1101A=Object.assign({Premium:0,Business:0},s.grpMixR1101A||{});
-    m[cab]=Math.max(0,Math.min(seats,Math.round(+v||0)));var o=mixFrom(m,seats);m.Premium=o?o.Premium:(m.Premium>seats?seats:m.Premium);m.Business=o?o.Business:m.Business;
-    if(o)s.cabin=mainOf(o);else{var one=CABS.filter(function(c){return (c==='Economy'?seats-m.Premium-m.Business:m[c])>0})[0];if(one)s.cabin=one}
-    S.openFare=null;S.outF=null;S.outC=null;S.inbF=null;S.inbC=null}catch(_){}try{render()}catch(_){}};
+  function cur28(){var s=S.search,pc=passengerCounts()||{},seats=pc.seats||0,m=s.grpMixR1101A;
+    if(!m||m.Economy==null){var c0=s.cabin&&CZ[s.cabin]?s.cabin:'Economy',p=+((m||{}).Premium||0),b=+((m||{}).Business||0);m={Economy:0,Premium:p,Business:b};m[c0]+=Math.max(0,seats-p-b)}
+    return {Economy:+m.Economy||0,Premium:+m.Premium||0,Business:+m.Business||0}}
+  function apply28(m){var s=S.search,kids=Math.max(0,+s.children||0),tot=m.Economy+m.Premium+m.Business;
+    if(kids>tot)kids=tot;s.children=kids;s.adults=Math.max(1,tot-kids);s.grpMixR1101A=m;
+    var o=mixFrom(m,tot);if(o)s.cabin=mainOf(o);else{var one=CABS.filter(function(c){return m[c]>0})[0];if(one)s.cabin=one}
+    if(+s.infants>s.adults)s.infants=s.adults;try{passengerCounts()}catch(_){}S.openFare=null;S.outF=null;S.outC=null;S.inbF=null;S.inbC=null}
+  window.kgmGrpMixR1101A=function(cab,v){try{var m=cur28();m[cab]=Math.max(0,Math.min(99,Math.round(+v||0)));apply28(m)}catch(_){}try{render()}catch(_){}};
+  window.kgmGrpKidsR1101B=function(k,v){try{var m=cur28(),tot=m.Economy+m.Premium+m.Business,n=Math.max(0,Math.round(+v||0));if(k==='children'){S.search.children=Math.min(n,Math.max(0,tot-1))}else{S.search.infants=n}apply28(m)}catch(_){}try{render()}catch(_){}};
   window.kgmGrpMixOfR1101A=mixOf;
-  function pp(){var O=window.paxPickerHTML;if(typeof O!=='function'||O.__r28)return;var w=function(){var h=String(O.apply(this,arguments)||'');try{if(!on()||!h)return h;var zh=z(),seats=(passengerCounts()||{}).seats||0,m=Object.assign({Premium:0,Business:0},S.search.grpMixR1101A||{}),eco=Math.max(0,seats-(+m.Premium||0)-(+m.Business||0));
-        var row=function(c,val,ro){return '<div class="pax-pick-row k28m-row"><div><b>'+cabZ(c)+'</b><small>'+(ro?(zh?'其餘旅客（自動）':'the rest (auto)'):(zh?'團體同方案':'same plan'))+'</small></div><div><input type="number" class="inp k25g-num" min="0" max="'+seats+'" value="'+val+'"'+(ro?' disabled':' onchange="kgmGrpMixR1101A(\''+c+'\',this.value)"')+'></div></div>'};
-        var blk='<div class="k28m-mix"><b>'+(zh?'艙等分配':'Cabins')+'</b><small>'+(zh?'填豪華經濟艙、商務艙各幾位，其餘自動坐經濟艙。不提供頭等艙。':'Enter Premium / Business counts; the rest fly Economy. No First.')+'</small>'+row('Economy',eco,1)+row('Premium',+m.Premium||0)+row('Business',+m.Business||0)+'</div>';
-        var i=h.lastIndexOf('</div>');if(i>0)h=h.slice(0,i)+blk+h.slice(i)}catch(_){}return h};
+  function pp(){var O=window.paxPickerHTML;if(typeof O!=='function'||O.__r28)return;var w=function(){try{if(!on()||!S.paxPickerOpen)return O.apply(this,arguments);
+        var zh=z(),m=cur28(),pc=passengerCounts()||{},tot=m.Economy+m.Premium+m.Business;
+        var row=function(lab,sub,val,fn){return '<div class="pax-pick-row k28m-row"><div><b>'+lab+'</b><small>'+sub+'</small></div><div><input type="number" class="inp k25g-num" min="0" max="99" value="'+val+'" onchange="'+fn+'"></div></div>'};
+        return '<div class="pax-pick-pop k28m-pop"><div class="pax-pick-head"><b>'+(zh?'團體人數與艙等':'Group size & cabins')+'</b><button onclick="S.paxPickerOpen=false;render()">×</button></div>'
+          +'<div class="k28m-sec">'+(zh?'各艙人數（成人＋兒童）':'Travellers per cabin (adults + children)')+'</div>'
+          +row(cabZ('Economy'),zh?'團體同方案':'same plan',m.Economy,"kgmGrpMixR1101A('Economy',this.value)")
+          +row(cabZ('Premium'),zh?'團體同方案':'same plan',m.Premium,"kgmGrpMixR1101A('Premium',this.value)")
+          +row(cabZ('Business'),zh?'團體同方案':'same plan',m.Business,"kgmGrpMixR1101A('Business',this.value)")
+          +'<div class="k28m-sec">'+(zh?'其中':'Of whom')+'</div>'
+          +row(zh?'兒童':'Children',zh?'2–11 歲・成人票價 75%':'2–11 · 75%',pc.children||0,"kgmGrpKidsR1101B('children',this.value)")
+          +row(zh?'嬰兒':'Infants',zh?'未滿 2 歲・不佔位・每位成人 1 位':'under 2 · lap',pc.infants||0,"kgmGrpKidsR1101B('infants',this.value)")
+          +'<p class="k28m-sum">'+(zh?'共 <b>'+tot+'</b> 位（成人 '+(pc.adults||0)+'・兒童 '+(pc.children||0)+(pc.infants?'・嬰兒 '+pc.infants:'')+'）':'<b>'+tot+'</b> travellers')+'</p>'
+          +'<p>'+(zh?'團體 10–99 位（成人＋兒童）；不到 10 位請切回一般訂票。不提供頭等艙。':'10–99 travellers. No First.')+'</p></div>'}catch(_){return O.apply(this,arguments)}};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__r28=1;window.paxPickerHTML=w;try{paxPickerHTML=w}catch(_){}}
   pp();setTimeout(pp,0);setTimeout(pp,3500);setTimeout(pp,13000);
   /* 搜尋卡上的人數文字加艙等分配 */
@@ -205,7 +235,7 @@
    +'.k28g-how .b{display:flex;gap:8px;flex-wrap:wrap}.k28g-how button,.k28g-acts button{border:1px solid #0B3D2E;background:#fff;color:#0B3D2E;border-radius:999px;padding:9px 16px;font:700 13px inherit;font-family:inherit;cursor:pointer}.k28g-how button.g,.k28g-acts button.g{background:#0B3D2E;color:#fff}'
    +'.k28g-acts{display:flex;justify-content:flex-end;gap:10px}'
    +'.k28g-names{margin:14px 0;border:1px solid #F0D9B0;background:#FFFBF2;border-radius:14px;padding:12px 14px}.k28g-names>b{display:block;color:#7A5A12;margin-bottom:8px;font-size:13.5px}.k28g-names table{width:100%;border-collapse:collapse;font-size:12.5px}.k28g-names th{text-align:left;color:#7A857F;font-weight:700;padding:4px 6px}.k28g-names td{padding:3px 6px}.k28g-names td small{margin-left:4px;color:#9AA49F}.k28g-names .inp{height:32px}'
-   +'.k28m-mix{margin-top:10px;padding-top:10px;border-top:1px dashed #DCE3DF;display:flex;flex-direction:column;gap:6px}.k28m-mix>b{color:#0B3D2E;font-size:13px}.k28m-mix>small{color:#7A857F;font-size:11.5px;line-height:1.5}.k28m-row input[disabled]{background:#F2F6F4;color:#0B3D2E;font-weight:700;opacity:1}.k28m-cab{display:block;margin-top:3px;font-size:11.5px;color:#0B6B48;font-weight:700}'
+   +'.k28m-mix{margin-top:10px;padding-top:10px;border-top:1px dashed #DCE3DF;display:flex;flex-direction:column;gap:6px}.k28m-mix>b{color:#0B3D2E;font-size:13px}.k28m-mix>small{color:#7A857F;font-size:11.5px;line-height:1.5}.k28m-sec{margin:10px 0 2px;font-size:12px;font-weight:800;color:#0B3D2E;letter-spacing:.04em}.k28m-sum{margin:10px 0 4px;font-size:13px;color:#0B3D2E}.k28m-cab{display:block;margin-top:3px;font-size:11.5px;color:#0B6B48;font-weight:700}.k29-cab{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:0;padding:4px 0;border:0;background:none;cursor:pointer;text-align:left;font-family:inherit}.k29-cab b{font-size:15px;font-weight:700;color:#14231D}.k29-cab small{font-size:11px;font-weight:500;color:#7A857F}.k29-cab:hover b{color:#0B3D2E;text-decoration:underline;text-underline-offset:3px}'
    +'.k28m-shop .award-plan-cell.k28m-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:14px 10px;text-align:center}.k28m-cell.need{background:#F2F8F5;box-shadow:inset 0 0 0 1.5px #0B6B48}.k28m-cell.lack{background:#FFF4F2;box-shadow:inset 0 0 0 1.5px #C2412D}'
    +'.k28m-need{display:inline-block;margin-top:4px;border-radius:999px;padding:3px 10px;font-size:11.5px;background:#0B3D2E;color:#fff}.k28m-cell.lack .k28m-need{background:#C2412D}'
    +'.k28m-conf .btn[disabled]{opacity:.45;cursor:not-allowed}.k28m-foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.k28m-back{max-width:1180px;margin:14px auto 0;padding:0 18px}'

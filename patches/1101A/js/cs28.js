@@ -268,3 +268,21 @@
    +'@media(max-width:760px){.k28pet-rules,.k28pet-grid,.k28pet-grid3{grid-template-columns:1fr}.k28pet-form{padding:16px}}';
     document.head.appendChild(cs)}catch(_){}
 })();
+
+/* 1101B：使用者「後台我也沒在定位那裡多看到寵物搭機的資料」——定位管理（0819J 票務中心）查到的訂位：表頭加「寵物同行」、完整行程下面加一段寵物表（已核准＝訂位上的 petsR1101A；審核中＝寵物案件）。 */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  var MODE={cabin:['客艙','Cabin'],hold:['托運貨艙','Hold'],service:['服務犬','Service dog'],cargo:['貨運','Cargo']};
+  function md(m){var x=MODE[m]||[m||'—',m||'—'];return z()?x[0]:x[1]}
+  function rows(b){var out=[];(b.petsR1101A||[]).forEach(function(p){out.push({st:'ok',caseNo:p.caseNo,seg:(p.code||'')+' '+(p.fr||'')+'→'+(p.to||'')+' '+(p.date||''),mode:p.mode,who:(p.name||'')+(p.species?'（'+p.species+'）':''),kg:p.kg,fee:p.fee})});
+    (S.staffCasesR1007A||[]).forEach(function(c){if(!c||c.type!=='pet'||c.pnr!==b.pnr||/closed|rejected|declined/.test(c.status||''))return;if((b.petsR1101A||[]).some(function(p){return p.caseNo===c.caseNo}))return;var s=c.segment||{},p=c.pet||{};
+      out.push({st:'pend',caseNo:c.caseNo,seg:(s.code||'')+' '+(s.fr||'')+'→'+(s.to||'')+' '+(s.date||''),mode:p.mode,who:(p.name||'')+(p.species?'（'+p.species+'）':''),kg:p.kg,fee:p.fee})});
+    return out}
+  window.kgmPetBookingCellR1101B=function(b){try{var r=rows(b);if(!r.length)return '<div><small>'+(z()?'寵物同行':'Pets')+'</small><b>—</b></div>';
+      return '<div><small>'+(z()?'寵物同行':'Pets')+'</small><b class="k29-petcell">🐾 '+r.map(function(x){return md(x.mode)+(x.st==='pend'?(z()?'（審核中）':' (pending)'):'')}).join('、')+'</b></div>'}catch(_){return ''}};
+  window.kgmPetBookingDetailR1101B=function(b){try{var r=rows(b);if(!r.length)return '';
+      return '<h3 class="k29-peth">'+(z()?'寵物同行':'Travelling pets')+'</h3><div class="j-table"><table><thead><tr><th>'+(z()?'航段':'Segment')+'</th><th>'+(z()?'方式':'Mode')+'</th><th>'+(z()?'寵物':'Pet')+'</th><th>'+(z()?'重量':'Weight')+'</th><th>'+(z()?'費用':'Fee')+'</th><th>'+(z()?'狀態／案件':'Status / case')+'</th></tr></thead><tbody>'
+        +r.map(function(x){return '<tr><td>'+E(x.seg)+'</td><td>'+E(md(x.mode))+'</td><td>'+E(x.who||'—')+'</td><td>'+(x.kg?E(x.kg)+' kg':'—')+'</td><td>'+(x.fee?'USD '+E(x.fee):'—')+'</td><td>'+(x.st==='ok'?(z()?'已核准':'Approved'):(z()?'審核中':'Pending'))+' · '+E(x.caseNo||'')+'</td></tr>'}).join('')+'</tbody></table></div>'}catch(_){return ''}};
+  try{var cs=document.createElement('style');cs.textContent='.k29-petcell{color:#7A4B00}.k29-peth{margin:16px 0 6px;font:700 15px inherit;color:#0B3D2E}';document.head.appendChild(cs)}catch(_){}
+})();

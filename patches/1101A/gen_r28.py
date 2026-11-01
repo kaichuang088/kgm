@@ -222,13 +222,23 @@ RW('res28 list',"<small>'+(z()?'備選座位 ':'Backup seat ')+E(x.backupSeat||'
    "<small>'+(x.backupSeat?((z()?'備選座位 ':'Backup seat ')+E(x.backupSeat)+' · '):'')+(z()?'未得標改訂 ':'Fallback ')+E(x.alt||'—')+'</small>")
 
 # G6：多航段搜尋：新增的航段目的地還沒選時，下拉選單顯示「請選擇目的地」（原本畫面顯示第一個城市、資料卻是空的，路線摘要變成「…」）；版面在 fr28（.mc-search）
+# 1101B：使用者「多航段搜尋航點格式不對」→ 出發地／目的地改用主搜尋表單同一個機場選擇器（代碼＋城市＋英文、可搜尋），不再是下拉選單；
+#        選擇器的鍵用 mc<i>fr／mc<i>to，讀寫 S.search.segs[i]（r158 pickerHTML158／kgmApPickR158 加這一支）
+RW('mc29 fr picker','<select id="mc-seg-${i}-fr" class="inp" onchange="S.search.segs[${i}].fr=this.value">${cityOpts(seg.fr)}</select>',
+   '<div class="k29-mcap" id="mc-seg-${i}-fr">${apPickerHTML("mc"+i+"fr")}</div>')
 RW('mc28 to placeholder','<select id="mc-seg-${i}-to" class="inp" onchange="S.search.segs[${i}].to=this.value">${cityOpts(seg.to)}</select>',
-   '<select id="mc-seg-${i}-to" class="inp" onchange="S.search.segs[${i}].to=this.value">${seg.to?"":`<option value="" selected disabled>${LANG==="en"?"Select destination":"請選擇目的地"}</option>`}${cityOpts(seg.to)}</select>')
+   '<div class="k29-mcap" id="mc-seg-${i}-to">${apPickerHTML("mc"+i+"to")}</div>')
+RW('mc29 cur',"var cur=(which==='fr')?s.fr:s.to;",
+   "var cur=(which==='fr')?s.fr:s.to;\n  var mc29=/^mc(\\d+)(fr|to)$/.exec(String(which||''));   /* 1101B：多航段的航點 */\n  if(mc29){var sg29=(s.segs||[])[+mc29[1]]||{};cur=sg29[mc29[2]]||'';s={fr:mc29[2]==='to'?sg29.fr:sg29.to,to:mc29[2]==='fr'?sg29.to:sg29.fr}}")
+RW('mc29 pick',"S.search[which]=a;",
+   "var mc29=/^mc(\\d+)(fr|to)$/.exec(String(which||''));   /* 1101B：多航段 */\n    if(mc29){var sg29=(S.search.segs||[])[+mc29[1]];if(sg29)sg29[mc29[2]]=a}else\n    S.search[which]=a;")
+RW('mc29 label',"+E(cur||'')+'<span style=\"font-family:system-ui,sans-serif;font-size:13.5px;font-weight:400;'",
+   "+(cur?E(cur):'<span class=\"k29-ph\">'+(z()?'請選擇':'Select')+'</span>')+'<span style=\"font-family:system-ui,sans-serif;font-size:13.5px;font-weight:400;'")
 
 # F：案件與寵物（js/cs28.js）
 RW('cs28 ct7',"group_account:['團體帳號綁定','Group account']};","group_account:['團體帳號綁定','Group account'],pet:['寵物同行申請','Pet travel application']};   /* 1101A */")
-RW('cs28 menu','{zh:"登機證",en:"Boarding Pass",nav:"manage"}]}\n    ]},',
-   '{zh:"登機證",en:"Boarding Pass",nav:"manage"}]},\n      {zh:"旅客服務",en:"Customer Care",items:[{zh:"寵物同行申請",en:"Travel with Pets",nav:"pet28"},{zh:"建立客服案件",en:"Contact Us · New Case",nav:"case28"}]}   /* 1101A */\n    ]},')
+RW('cs28 menu','{zh:"特殊醫療",en:"Medical Needs",nav:"prep",tab:"special"}]}\n    ]},',
+   '{zh:"特殊醫療",en:"Medical Needs",nav:"prep",tab:"special"},{zh:"寵物同行",en:"Travel with Pets",nav:"pet28"}]},\n      {zh:"旅客服務",en:"Customer Care",items:[{zh:"寵物同行申請",en:"Pet Application",nav:"pet28"},{zh:"建立客服案件",en:"Contact Us · New Case",nav:"case28"},{zh:"案件進度查詢",en:"Case Status",nav:"case_lookup_0831B"}]}   /* 1101B：使用者「上排像是寵物還有其他的要加入到上排，指的是這裡」＝飛行準備選單 */\n    ]},')
 RW('cs28 cat filter',"  var zh=ZJ(),all=caseRowsJ(),F=S.case7F||{},q=String(S.caseFilter0831B||'').toUpperCase();",
    "  var zh=ZJ(),all0=caseRowsJ(),cat28=S.case28Cat==='refund'?'refund':'other',isR28=function(r){return window.kgmCaseIsRefundR1101A?window.kgmCaseIsRefundR1101A(r):false};   /* 1101A：退票退費（需 CEO）／其他 兩個分頁 */\n  var all=all0.filter(function(r){return isR28(r)===(cat28==='refund')}),F=S.case7F||{},q=String(S.caseFilter0831B||'').toUpperCase();\n  var cnt28=function(rf){return all0.filter(function(r){return isR28(r)===rf&&!closed7(r)}).length},ceo28=function(rf){return all0.filter(function(r){return isR28(r)===rf&&/ceo_review|needs_more_info/.test(r.status)}).length};\n  var catBar28='<div class=\"k28-cat\" role=\"tablist\"><button type=\"button\" class=\"'+(cat28==='refund'?'on':'')+'\" onclick=\"S.case28Cat=\\'refund\\';S.case7Sel=null;render()\">'+(zh?'退票退費':'Refunds')+'<b>'+cnt28(true)+'</b><small>'+(zh?'需執行長核准・待 CEO '+ceo28(true):'CEO approval')+'</small></button><button type=\"button\" class=\"'+(cat28==='other'?'on':'')+'\" onclick=\"S.case28Cat=\\'other\\';S.case7Sel=null;render()\">'+(zh?'其他案件':'Other cases')+'<b>'+cnt28(false)+'</b><small>'+(zh?'行李、客訴、寵物、團體異動…・待 CEO '+ceo28(false):'Bags, complaints, pets…')+'</small></button></div>';")
 RW('cs28 cat bar',"    +'<div class=\"k7c-kpi\">'+kpi.map(","    +catBar28+'<div class=\"k7c-kpi\">'+kpi.map(")
@@ -250,7 +260,7 @@ RW('cs28 ai pet',"    [/寵物|狗|貓|動物|pet/i,function(){return '寵物（
 # F2：《動物運送規定》KGM-PET-009 改版 Rev. B（pet_doc.py；PDF 同一份 pol/pet28_pdf.py）：網站內嵌條文換成新版（份數不變）
 import json, pet_doc, grp_doc28
 RW('pet28 policy doc',"window.kgmPolicyDocR914=function(id){",
-   "/* 1101A：《動物運送規定》KGM-PET-009 Rev. B（patches/1101A/pet_doc.py，PDF 同一份）、《團體訂位規章》KGM-GRP-021 Rev. B（grp_doc28.py） */\nwindow.KGM_POLICY_DOCS_R914[\"KGM-PET-009\"]="+json.dumps(pet_doc.doc(),ensure_ascii=False)+";\nwindow.KGM_POLICY_DOCS_R914[\"KGM-GRP-021\"]="+json.dumps(grp_doc28.doc(),ensure_ascii=False)+";\nwindow.kgmPolicyDocR914=function(id){")
+   "/* 1101A：《動物運送規定》KGM-PET-009 Rev. B（patches/1101A/pet_doc.py，PDF 同一份）、《團體訂位規章》KGM-GRP-021 Rev. C（grp_doc28.py；1101B 改版） */\nwindow.KGM_POLICY_DOCS_R914[\"KGM-PET-009\"]="+json.dumps(pet_doc.doc(),ensure_ascii=False)+";\nwindow.KGM_POLICY_DOCS_R914[\"KGM-GRP-021\"]="+json.dumps(grp_doc28.doc(),ensure_ascii=False)+";\nwindow.kgmPolicyDocR914=function(id){")
 
 # H5：通知管理「航班旅客」分航段（js/ad28.js）
 RW('nt28 code',"value=\"${S.anFltCode||''}\" oninput=\"S.anFltCode=this.value.toUpperCase()\">","value=\"${S.anFltCode||''}\" oninput=\"S.anFltCode=this.value.toUpperCase()\" onchange=\"render()\">")
@@ -315,6 +325,90 @@ RW('mail28 charter quoted',"  {ev:'group.charter_approved',who:'ext',zh:'包機�
 # Z：稽核 R182 跟著 1101A 規則（Residence 競標不再保留備選座位 → 送出時不帶 backupSeat 才對）
 RW('res28 audit r182',"  if(!(o.submitPasses&&o.submitPasses.backupSeat&&o.submitPasses.confirmed))\n    bad.push('送出現金出價仍然沒有帶 backupSeat／confirmed');",
    "  if(!(o.submitPasses&&o.submitPasses.confirmed))\n    bad.push('送出現金出價沒有帶 confirmed');\n  if(o.submitPasses&&o.submitPasses.backupSeat)\n    bad.push('1101A 起競標不保留備選座位，送出仍帶 backupSeat');   /* 1101A：使用者「Residence 備選座位不賣」 */")
+
+# R2-A：後台卡頓——cabinInventory54 每問一次就把全部訂位重跑 segs7（每段還查季節時刻）；排組員 DH 一班要問幾百次（開頁 2 分鐘後 33 秒裡 12.6 秒在這裡）。
+#   每筆訂位的實體航段清單記在訂位上（不可列舉、不存檔），航班／日期／艙等（outF/inbF/mcFlights/outC/inbC）一變就重算；座位、狀態、單段升等照舊每次即時讀。
+RW('lag29 inv segs',"(window.segs7(b,true)||[]).forEach(function(s){var sf=s.f||{};if(sf.code!==f.code",
+   "(window.kgmSegsMemoR1101B?window.kgmSegsMemoR1101B(b):(window.segs7(b,true)||[])).forEach(function(s){var sf=s.f||{};if(sf.code!==f.code")
+
+# R2-A：背景計算讓出主執行緒（使用者：「非常嚴重的卡頓，確保都有解決」；clk28 1101A p50 0.74 秒、p90 2.9 秒、最長 7.5 秒；1027A p50 2.7 秒、最長 12.5 秒）
+#   開頁後機隊整年重排：每一段（準備每段 0.4～2 秒、最後組合 3.2 秒、拆機收尾 3.2 秒）原本不管使用者有沒有在操作 → 每段開始前先確認使用者停手 1.5 秒（最後組合與拆機收尾 3 秒）
+RW('lag29 fleet gate',"function next6(f){setTimeout(function(){try{f()}catch(e){try{console.warn('r72 final prep',e)}catch(_){}finish6()}},0)}",
+   "function gate6(ms,fn){var go=function(){var w=Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<ms||Date.now()-(gate6.end||0)<1.5*(gate6.dur||0);if(w){setTimeout(go,400);return}var t=Date.now();try{fn()}finally{gate6.dur=Date.now()-t;gate6.end=Date.now()}};setTimeout(go,0)}   /* 1101B：使用者停手才做下一段；做完一段讓出 1.5 倍時間（佔主執行緒 ≤ 40%） */\n"
+   "    function next6(f){gate6(f===finish6?3000:1500,function(){try{f()}catch(e){try{console.warn('r72 final prep',e)}catch(_){}finish6()}})}")
+RW('lag29 split gate',"      setTimeout(function(){\n        var t15=Date.now();","      gate6(3000,function(){\n        var t15=Date.now();")
+#   組員排班背景：算一天 1～2.6 秒 → 開始算之前再確認使用者停手 1.5 秒（瀏覽器空檔回呼可能逾時觸發）；不在組員班表分頁時，兩天之間至少讓出「上一天花的時間 × 3」（佔主執行緒 ≤ 25%）；進度存檔 5 天一次 → 20 天一次（一次 2～3 秒）
+RW('lag29 crew gate',"    idle(function(){try{window.kgmCrewStepR121(1,target())}catch(_){}BUSY25=false;",
+   "    idle(function(){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500){BUSY25=false;setTimeout(tick,1500);return}var t29=Date.now();try{window.kgmCrewStepR121(1,target())}catch(_){}window.__crewMs29=Date.now()-t29;BUSY25=false;")
+RW('lag29 crew pace',"      setTimeout(tick,pace27())});","      setTimeout(tick,Math.max(pace27(),pace27()<100?0:8*(window.__crewMs29||0)))});   /* 1101B：不在組員班表分頁時佔主執行緒 ≤ 11%（一天 1～4 秒不能中斷，算一天休息 8 倍時間，撞到點擊的機率降到約 1/9） */")
+#   競標預補：一班最多 1.5 秒（結算要 Payload 艙單），補完一班花超過 0.3 秒就休息 5 倍時間
+RW('lag29 auc pace',"      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);if(Q.length)idle25(step)})();",
+   "      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);var dt29=Date.now()-t;if(Q.length){if(dt29>300)setTimeout(function(){idle25(step)},5*dt29);else idle25(step)}})();   /* 1101B：一班超過 0.3 秒就休息 5 倍時間 */")
+RW('lag29 crew save',"days27(SAVEDCUR27,CURSOR121)>=5))save25();","days27(SAVEDCUR27,CURSOR121)>=20))save25();   /* 1101B：5→20 天存一次（一次 2～3 秒） */")
+#   DH 騰位掃描：一班 0.1～0.6 秒，原本不看使用者 → 停手 5 秒才掃下一班
+RW('lag29 dh gate',"      var i=0,w15=0;(function step(){if(i>=list.length)return;if(busy7()){setTimeout(step,15000);return}",
+   "      var i=0,w15=0;(function step(){if(i>=list.length)return;if(busy7()){setTimeout(step,15000);return}if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<5000){setTimeout(step,2000);return}   /* 1101B：使用者停手才掃 */")
+
+RW('lag29 fleet cache',"setTimeout(function(){\n  try{\n    if(window.KGM_ROT_FINAL_R913||window.KGM_FINALRUN_1006A)return;\n    if(window.KGM_SIDE==='front')return;",
+   "setTimeout(function fin29(){\n  try{\n    if(window.KGM_ROT_FINAL_R913||window.KGM_FINALRUN_1006A)return;\n    if(window.KGM_SIDE==='front')return;\n    if(window.kgmFleetCacheR1101B&&!fin29.go29){fin29.go29=1;window.kgmFleetCacheR1101B(fin29);return}   /* 1101B：同一天、輸入沒變就讀回上次整年重排的結果（js/gr28.js） */")
+
+# R2-A 附帶：KX30 溫哥華→多倫多時刻被兩層來回改（r77 定值 22:25 寫進航班表、r179 中停 75 分改回 21:00，各自計時重跑）→ 網站顯示的時刻看什麼時候看（21:30–05:10／22:25–06:05），
+#   機隊整年重排讀到的航班表也不一定 → 定值改成 r179 定案的值（夏 21:00–04:10⁺¹、冬 21:30–04:25⁺¹、營運日 1·3·5·7），兩層一致就不再來回改
+RW('kx30 fixed',"'KX30|YVR|YYZ':{summer:['22:25','05:35',1,[1,3,5,7],'B789'],winter:['00:05','07:00',0,[1,2,4,6],'B789']},",
+   "'KX30|YVR|YYZ':{summer:['21:00','04:10',1,[1,3,5,7],'B789'],winter:['21:30','04:25',1,[1,3,5,7],'B789']},   /* 1101B：跟 r179 中停 75 分定案的值一致（原本兩層來回改） */\n      ")
+RW('kx30 fixed thru',"'KX30|TPE|YYZ':{summer:['23:50','05:35',1,[1,3,5,7],'B789'],winter:['23:50','07:00',1,[1,3,5,7],'B789']},",
+   "'KX30|TPE|YYZ':{summer:['23:50','04:10',1,[1,3,5,7],'B789'],winter:['23:35','04:25',1,[1,3,5,7],'B789']},")
+
+# R2-D：團體（使用者：「圖一不要顯示 但是整體應該還是要比單獨訂便宜很多」「改票一律都是以整筆訂位而非單次費用 手續費與現在一樣」）
+RW('grp29 mul q',"mul:0.93,","mul:0.72,")
+RW('grp29 mul u',"mul:1.08,","mul:0.85,")
+RW('grp29 chg txt',"改票每人 NT$","改票每筆訂位 NT$",cnt=7)
+RW('grp29 chg card','"Per passenger · counter same fee":"每位旅客 · 櫃檯同價"','"Per booking · counter same fee":"每筆訂位 · 櫃檯同價"')
+RW('grp29 chg fee',"    fee=changeFeeOf(s.cls);\n    if(fee<0){changeable=false;fee=0}\n    fee=fee*pax;",
+   "    fee=changeFeeOf(s.cls);\n    if(fee<0){changeable=false;fee=0}\n    if(!(window.kgmIsGrpCodeR1026C&&window.kgmIsGrpCodeR1026C(s.cls)))fee=fee*pax;   /* 1101B：團體改票以整筆訂位收一次 */")
+
+# R2-F：Residence 每艙保留 1 席給未得標者（js/gr28.js kgmResHold1R1101B）
+RW('res29 hold1',"  Object.keys(S.seatHoldsR4||{}).forEach(function(k){var hold=S.seatHoldsR4[k];",
+   "  try{if(window.kgmResHold1R1101B)window.kgmResHold1R1101B(f,date,cabin,slots,used)}catch(_){}   /* 1101B：有進行中的 Residence 出價，每艙保留 1 席 */\n  Object.keys(S.seatHoldsR4||{}).forEach(function(k){var hold=S.seatHoldsR4[k];")
+
+# R2-E：定位管理顯示寵物（js/cs28.js）——定位管理實際的畫面是 0819J 票務中心（.j-dossier），表頭加「寵物同行」、完整行程下面加寵物表
+RW('pet29 booking cell',"<div><small>'+(ZJ()?'狀態':'Status')+'</small><b>'+EJ(b.status||'confirmed')+'</b></div><div><small>'+(ZJ()?'訂購時間（訂購地當地）'",
+   "<div><small>'+(ZJ()?'狀態':'Status')+'</small><b>'+EJ(b.status||'confirmed')+'</b></div>'+(window.kgmPetBookingCellR1101B?window.kgmPetBookingCellR1101B(b):'')+'<div><small>'+(ZJ()?'訂購時間（訂購地當地）'")
+RW('pet29 booking detail',"'+EJ(s.acft||s.f&&s.f.acft||'—')+'</span></div></article>'}).join('')+'</div><h3>'+(ZJ()?'票價、付款與服務'",
+   "'+EJ(s.acft||s.f&&s.f.acft||'—')+'</span></div></article>'}).join('')+'</div>'+(window.kgmPetBookingDetailR1101B?window.kgmPetBookingDetailR1101B(b):'')+'<h3>'+(ZJ()?'票價、付款與服務'")
+
+# R2-C：航班預估時刻跟路線圖同一套（使用者：「圖四這種直接改延遲抵達並同步更新航班動態啊」「圖四寫預計晚快一小時 圖五寫提早到？？？」）
+#   圖四「多飛約 55 分」是跟大圓直飛比（班表本來就含繞道）；EST（predict7）只算當天高空風、沒算「繞道比班表還多的時間」（kgmWarDelayR1025B.min，48 小時延遲抵達通知用的那個）。
+#   → predict7 抵達加上 min；晚 15 分以上＝延誤（延遲抵達）＋原因；航班資料、航班動態、通知都讀 predict7 這一份。路線圖文字改成「比直飛多 X 分（班表已含）・預計準時／晚到 N 分」。
+RW('war29 sig',"sg27=[f.dep,f.arr,ov27.status||'',ov27.dep||'',ov27.arr||'',ov27.reason||''].join('|');",
+   "wm29=(function(){try{var w=window.kgmWarDelayR1025B&&window.kgmWarDelayR1025B(f,date);return w&&w.min||0}catch(_){return 0}})(),sg27=[f.dep,f.arr,ov27.status||'',ov27.dep||'',ov27.arr||'',ov27.reason||'','w29:'+wm29].join('|');   /* 1101B：繞道比班表多的時間（kgmWarDelayR1025B.min） */")
+RW('war29 arr',"arr=dep+(wd27?wd27.diff:0)+Math.max(0,b.impact-2)+(H(k+'FLOW')%7)-3,",
+   "arr=dep+(wd27?wd27.diff:0)+wm29+Math.max(0,b.impact-2)+(H(k+'FLOW')%7)-3,")
+RW('war29 status',"p.sigR1026C=sg27;p.windR1026C=wd27;try{",
+   "p.sigR1026C=sg27;p.windR1026C=wd27;p.warMinR1101B=wm29;try{if(wm29>0&&p.arrDelta>=15&&p.depDelta<15&&!/^(Diverted|Cancelled)$/.test(p.status)){p.status='Delayed';p.arrLateR1101B=1;p.reasonR1026C=(z()?'避開關閉空域繞道，預計晚到 '+p.arrDelta+' 分（準時起飛）':'Closed-airspace detour — arriving about '+p.arrDelta+' min late')}}catch(_){}try{")
+RW('war29 legend',"(wd?((z()?'・多飛約 ':' · about ')+'<b>'+Math.round(wd.raw)+(z()?' 分鐘':' min')+'</b>'):'')",
+   "(wd?((z()?'・比直飛多約 ':' · about ')+Math.round(wd.raw)+(z()?' 分鐘（班表已含 '+Math.min(Math.round(wd.raw),Math.round(wd.slack||0))+' 分）':' min more than direct (schedule allows '+Math.min(Math.round(wd.raw),Math.round(wd.slack||0))+')')+'・'+(wd.min>0?'<b>'+(z()?'繞道預計晚到 '+wd.min+' 分':'detour adds '+wd.min+' min')+'</b>':(z()?'繞道不影響抵達時間':'detour does not delay arrival'))+(z()?'（當天預估時刻見上方 EST）':' (see EST above for today)')):'')")
+
+# R2-C：後台航班狀態頁（js/ad28.js kgmAdStNoteR1101B／kgmAdStExtraR1101B）：狀態下面寫預估時刻與原因、轉降寫續航、續航那天的航線多一列
+RW('st29 note','<td style="padding:7px 10px"><span style="font-weight:700;color:${stColors[st]||"#888"}">&bull; ${st}</span></td>',
+   '<td style="padding:7px 10px"><span style="font-weight:700;color:${stColors[st]||"#888"}">&bull; ${st}</span>${window.kgmAdStNoteR1101B?window.kgmAdStNoteR1101B(f,qdate,ov,st):""}</td>')
+RW('st29 extra','&#10003; Arrived</button>\n            </div></td>\n          </tr>`;}).join("")}\n        </tbody>',
+   '&#10003; Arrived</button>\n            </div></td>\n          </tr>`;}).join("")}${window.kgmAdStExtraR1101B?window.kgmAdStExtraR1101B(S.adSearchFr||"TPE",S.adSearchTo||"NRT",qdate):""}\n        </tbody>')
+RW('st29 show','${srchF.length?`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px">',
+   '${(srchF.length||(window.kgmAdStExtraR1101B&&window.kgmAdStExtraR1101B(S.adSearchFr||"TPE",S.adSearchTo||"NRT",qdate)))?`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px">')
+
+# R2-C：前台航班動態——48 小時內繞道晚到（geo26 job 寫的 S.flightOverrides，warDelayR1025B）狀態寫「延遲抵達」（原本寫「時間更改」）
+RW('st29 front label',"    var m=ST20[s];if(m){m=m.slice();","    var m=ST20[s];if(s==='Time Change'&&ov&&ov.warDelayR1025B)m=['延遲抵達','Late arrival','warn'];   /* 1101B */\n    if(m){m=m.slice();")
+
+# R2-C：48 小時延遲抵達通知（geo26 job）的新抵達時間改用 predict7 的預估抵達（繞道＋當天高空風／天候），跟航班資料 EST、後台航班狀態同一個數字（原本只加繞道分鐘 → 前台 19:35、EST 19:44 兩個數字）
+RW('war29 job',"var w=window.kgmWarDelayR1025B(f,d);if(!w||w.min<15)return;",
+   "var w=window.kgmWarDelayR1025B(f,d);if(!w||w.min<15)return;var pr29=null;try{pr29=window.kgmOpsPredR1026C?window.kgmOpsPredR1026C(f,d):null}catch(_){}if(pr29&&pr29.arrDelta!=null){if(pr29.arrDelta<15)return;w=Object.assign({},w,{min:pr29.arrDelta,routeMinR1101B:w.min})}   /* 1101B：晚幾分＝預測（EST）的抵達差 */")
+
+# R2-G：IRR-013 Rev. B 增訂第 8 條之一（irr_doc29.py；網站內嵌的條文是 JSON 字串，引號要跳脫）
+import irr_doc29
+RW('irr29 art',irr_doc29.ANCHOR,irr_doc29.ANCHOR+irr_doc29.ART.replace('"','\\"'))
+RW('irr29 ver','"KGM-IRR-013":{"t":"航班異常處理及旅客權益辦法","en":"Irregular Operations and Passenger Rights","ver":"2026.09（Rev. A）","eff":"2026-09-14","owner":"聯合管制中心\u3000會同旅客服務處","arts":16,',
+   '"KGM-IRR-013":{"t":"航班異常處理及旅客權益辦法","en":"Irregular Operations and Passenger Rights","ver":"2026.11（Rev. B）","eff":"2026-11-08","owner":"聯合管制中心\u3000會同旅客服務處","arts":17,')
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()

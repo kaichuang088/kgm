@@ -127,7 +127,8 @@
   var NIGHT28={'KX9|ORD|TPE|w':1};
   function bkk28(f){return f&&(f.fr==='BKK'||f.to==='BKK')}
   var NOMID27={'KX8|TPE|DTW|w':1};
-  var GAP28={KX53:1,KX54:1,KX60:1,KX59:1};   /* 1101A：墨爾本夏令時間跟北半球季節不一致那幾週改用冬季時刻的輪轉 */
+  var GAP28={KX53:1,KX54:1,KX60:1,KX59:1};
+  var NZW29={KX51:1,KX52:1};   /* 1101B：紐西蘭／澳洲夏令錯開那一週照估算輪擋 */   /* 1101A：墨爾本夏令時間跟北半球季節不一致那幾週改用冬季時刻的輪轉 */
   var EARLY27={"KX52|TPE|SYD|s":"18:45","KX52|SYD|AKL|s":"07:15","KX51|AKL|SYD|s":"14:00","KX51|SYD|TPE|s":"16:50","KX8|TPE|DTW|s":"21:40","KX52|TPE|SYD|w":"18:25","KX52|SYD|CHC|w":"08:00","KX51|CHC|SYD|w":"14:45","KX51|SYD|TPE|w":"17:35","KX66|TPE|AUH|s":"18:40","KX60|TPE|KUL|w":"06:15","KX60|KUL|MEL|w":"11:55","KX53|PER|MEL|w":"16:20","KX290|TPE|SIN|w":"19:00","KX288|TPE|SGN|s":"21:20","KX334|TPE|SZX|w":"18:45","KX208|TPE|KTI|s":"15:20","KX207|KTI|TPE|s":"19:20","KX316|TPE|CKG|s":"17:05","KX315|CKG|TPE|s":"21:10","KX254|TPE|MNL|w":"17:55","KX253|MNL|TPE|w":"21:30","KX310|TPE|PVG|s":"19:15","KX309|PVG|TPE|s":"22:10","KX333|SZX|TPE|w":"22:05","KX282|TPE|SIN|s":"13:10","KX55|AKL|TPE|s":"16:55","KX170|TPE|FUK|w":"18:20","KX398|TPE|PEK|s":"16:40","KX397|PEK|TPE|s":"21:00","KX310|TPE|PVG|w":"19:05","KX309|PVG|TPE|w":"22:10","KX316|TPE|CKG|w":"17:00","KX315|CKG|TPE|w":"21:15","KX281|SIN|TPE|s":"19:15","KX266|TPE|CNX|s":"20:50","KX208|TPE|KTI|w":"15:20","KX207|KTI|TPE|w":"19:25","KX62|TPE|BKK|w":"20:55","KX98|TPE|HEL|s":"18:45","KX52|SYD|CHC|s":"07:15","KX51|CHC|SYD|s":"14:00","KX52|SYD|AKL|w":"07:15","KX51|AKL|SYD|w":"14:00","KX262|TPE|CEB|w":"22:30","KX66|TPE|AUH|w":"19:40","KX9|ORD|TPE|w":"02:50"};
   function proj(f,x,win,px,sx,date){
     var dep0=mn(x.dep),dd0=+x.dd||0,off=date?offAt(f.fr,f.to,date,dd0):offSea(f.fr,f.to,win),blk0=blkOff(x.dep,x.arr,dd0,off);   /* 1026C：時差依日期（夏令時間） */
@@ -158,6 +159,9 @@
     if(date&&off!==offSea(f.fr,f.to,win)){var tw=Math.ceil(t/5)*5;if(blk<tw-10){var room=dep1-360;
         if(P&&pp&&pp.p){var nd3=P.k==='fifth'?75:minTurn(x.acft||f.acft),g3=((dep1-mn(pp.p.arr))%1440+1440)%1440;if(g3>720)g3-=1440;room=Math.min(room,g3-nd3)}
         var mv=Math.min(tw-blk,room);if(mv>=5){mv=Math.floor(mv/5)*5;dep1-=mv;blk+=mv;LOG.dstEarly=(LOG.dstEarly||0)+1}}}
+    /* 1101B：KX51／52 紐西蘭已進夏令、澳洲還沒（約 9/27～10/3）那一週，照當地時刻算的輪擋多出 1 小時（奧克蘭／基督城→雪梨 4h25），把雪梨→台北壓到 8h15 →
+       這兩班在時差跟整季不同的日子，輪擋比估算長 10 分以上就照估算（出發不動、抵達提前）。只限這兩個班號（其他班改了會動到美加換季週的抵達時刻） */
+    if(date&&NZW29[f.code]&&off!==offSea(f.fr,f.to,win)){var tw29=Math.ceil(t/5)*5;if(blk>tw29+10){blk=tw29;a1=dep1+blk+off;LOG.nzw29=(LOG.nzw29||0)+1}}
     if(shift&&why)LOG[why]++;if(depE<dep0)LOG.early27=(LOG.early27||0)+1;
     var dd1=Math.floor(a1/1440)-Math.floor(dep1/1440),depS=hm(dep1),depDay=Math.floor(dep1/1440);
     if(depDay>0&&LOG.midnight.length<50&&LOG.midnight.indexOf(f.code+' '+f.fr+f.to)<0)LOG.midnight.push(f.code+' '+f.fr+f.to);

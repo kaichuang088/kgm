@@ -1,0 +1,80 @@
+# 1101B：帶狀標題（棕色條：出發地 → 目的地 ‧ 飛行時間）重排（使用者：「箭頭要對齊喔」）
+#   底稿從 1020B 起箭頭跟著出發地文字長度走（同一欄 58～157 pt 都有）→ 整本每一欄的箭頭放同一個位置：
+#   ① 箭頭：欄位左緣＋T（T＝整本最長的出發地文字右緣＋間距，左右兩欄同一個相對位置）
+#   ② 目的地文字：整塊照原樣（向量、原字型）平移到箭頭後面（show_pdf_page 從修改前的底稿剪下來貼）
+#   ③ 飛行時間：重寫、靠右；一行放得下就一行，放不下而且標題是兩行高就分兩行（「A ~」／「B」）
+#   tt28 算好的新飛行時間在 BANDTXT[(頁, 第一行 x, 第一行 y)]；沒有的照原本文字
+import pymupdf as fitz, re
+TIME = re.compile(r'^\d+h\d\dm( ~)?( ~ \d+h\d\dm)?$|^~$')
+def _white(s): return s['color'] == 0xffffff
+def _bands(pg):
+    out = []
+    for g in pg.get_drawings():
+        r = g['rect']; f = g.get('fill')
+        if not f or g.get('type') not in ('f', 'fs'): continue
+        if sum(f) < 2.4 and 12 < r.height < 27 and r.width > 250 and r.y0 > 40:   # 各區顏色不同（棕、藍綠、深藍、桃紅…）
+            out.append((fitz.Rect(r), f))
+    return out
+def _spans(pg):
+    return [s for b in pg.get_text('dict')['blocks'] for l in b.get('lines', []) for s in l['spans'] if s['text'].strip()]
+def _parse(pg):
+    sp = _spans(pg); res = []
+    for R, f in _bands(pg):
+        ins = [s for s in sp if _white(s) and R.contains(fitz.Point((s['bbox'][0] + s['bbox'][2]) / 2, (s['bbox'][1] + s['bbox'][3]) / 2))]
+        ar = [s for s in ins if s['text'].strip() == '→']
+        if len(ar) != 1: continue
+        a = ar[0]; tm = [s for s in ins if TIME.match(s['text'].strip())]
+        org = [s for s in ins if s is not a and s not in tm and s['bbox'][2] <= a['bbox'][0] + 0.6]
+        dst = [s for s in ins if s is not a and s not in tm and s not in org]
+        if not org or not dst: continue
+        res.append(dict(R=R, fill=f, a=a, tm=sorted(tm, key=lambda s: s['bbox'][1]), org=org, dst=dst))
+    return res
+def run(doc, BANDTXT, put, tw, WHITE):
+    src = fitz.open('pdf', doc.tobytes())
+    P = {pno: _parse(doc[pno]) for pno in range(doc.page_count)}
+    ow = [max(s['bbox'][2] for s in h['org']) - h['R'].x0 for L in P.values() for h in L]
+    if not ow: return 'no bands'
+    n = 0; tight = []; TS = {}
+    for pno, L in P.items():
+        if not L: continue
+        # 箭頭的相對位置（欄位左緣起算）：同一頁同一欄（左＝去程、右＝回程）全部對齊；一般＝台北桃園 TAIPEI TAOYUAN 那種寬度（96.5），這一欄有特別長的出發地就整欄往右
+        TC = {}
+        for h in L:
+            c = h['R'].x0 > 290; TC[c] = max(TC.get(c, 96.5), max(s['bbox'][2] for s in h['org']) - h['R'].x0 + 5.5)
+        for c, v in TC.items():
+            if v != 96.5: TS[(pno + 1, 'R' if c else 'L')] = round(v, 1)
+        pg = doc[pno]; jobs = []
+        for h in L:
+            R, a = h['R'], h['a']; T = TC[R.x0 > 290]
+            sh = (R.x0 + T) - a['bbox'][0]
+            D = fitz.Rect(h['dst'][0]['bbox'])
+            for s in h['dst'][1:]: D |= fitz.Rect(s['bbox'])
+            old = ' '.join(s['text'].strip() for s in h['tm']).replace(' ~ ~', ' ~')
+            t0 = h['tm'][0] if h['tm'] else None
+            key = (pno, round(t0['bbox'][0]), round(t0['bbox'][1])) if t0 else None
+            nt = BANDTXT.get(key) or BANDTXT.get(next((k for k in BANDTXT if k[0] == pno and t0 and any(abs(k[1] - round(s['bbox'][0])) <= 1 and abs(k[2] - round(s['bbox'][1])) <= 1 for s in h['tm'])), None)) or re.sub(r'\s+', ' ', old).strip()
+            sz = (t0['size'] if t0 else 5.9); right = R.x1 - 5.9; room = right - (D.x1 + sh) - 7
+            parts = nt.split(' ~ ')
+            if tw(nt, 'bold', sz) <= room or len(parts) == 1: lines = [nt]
+            else: lines = [parts[0] + ' ~', parts[1]]
+            if len(lines) == 2 and R.height < 20: lines = [nt]
+            while max(tw(x, 'bold', sz) for x in lines) > room and sz > 4.9: sz -= 0.15   # 放不下：時間字縮小一點（最小 4.9）
+            if max(tw(x, 'bold', sz) for x in lines) > room: tight.append((pno + 1, nt, round(room, 1)))
+            jobs.append((h, sh, D, lines, sz, T))
+            for s in [a] + h['dst'] + h['tm']:
+                r = fitz.Rect(s['bbox']); pg.add_redact_annot(fitz.Rect(r.x0 - 0.2, r.y0 + 0.1, r.x1 + 0.2, r.y1 - 0.1), fill=h['fill'])
+        pg.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE, graphics=fitz.PDF_REDACT_LINE_ART_NONE)
+        # 有些頁的內容包在表單物件（Form XObject）裡，清除清不到 → 一律再用標題底色蓋掉舊的箭頭、目的地、時間
+        for h, sh, D, lines, sz, T in jobs:
+            R = h['R']; x0 = min(h['a']['bbox'][0], D.x0) - 0.6
+            pg.draw_rect(fitz.Rect(x0, R.y0 + 0.4, R.x1 - 0.4, R.y1 - 0.4), color=None, fill=h['fill'], overlay=True)
+        for h, sh, D, lines, sz, T in jobs:
+            R, a = h['R'], h['a']
+            C = fitz.Rect(D.x0 - 0.4, max(R.y0, D.y0 - 0.6), D.x1 + 0.6, min(R.y1, D.y1 + 0.6))
+            pg.show_pdf_page(fitz.Rect(C.x0 + sh, C.y0, C.x1 + sh, C.y1), src, pno, clip=C)
+            put(pg, R.x0 + T, a['origin'][1], '→', 'reg', a['size'], WHITE)
+            mid = (R.y0 + R.y1) / 2
+            ys = [mid + sz * 0.36] if len(lines) == 1 else [mid - 0.6, mid + sz + 0.3]
+            for x, y in zip(lines, ys): put(pg, R.x1 - 5.9 - tw(x, 'bold', sz), y, x, 'bold', sz, WHITE)
+            n += 1
+    return dict(bands=n, T={k: v for k, v in TS.items() if v != 96.5}, tight=tight[:30])

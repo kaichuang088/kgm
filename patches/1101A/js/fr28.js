@@ -102,6 +102,10 @@
    +'#app .mc-search .mc-seg select.inp:focus,#app .mc-search .mc-seg input.inp:focus,#app .mc-search .mc-seg button.inp:focus{border-bottom-color:#0B3D2E;outline:none}'
    +'#app .mc-search .k134-add{width:auto;margin:14px 0 4px;padding:10px 18px;border:1px dashed rgba(176,138,62,.6);border-radius:999px;background:#FFFCF5;color:#0B3D2E;font:600 13.5px inherit;font-family:inherit}'
    +'#app .mc-search .k134-add:hover{background:#0B3D2E;color:#fff;border-color:#0B3D2E}'
+   /* 1101B：航點改用主表單同一個機場選擇器（.apbig）；這裡只調大小，底線跟其他欄位一致 */
+   +'#app .mc-search .k29-mcap .apbig{font-size:19px;line-height:1.35;padding:4px 22px 7px 0;border-bottom:1.5px solid #D9DED9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+   +'#app .mc-search .k29-mcap .apbig:focus{border-bottom-color:#0B3D2E}'
+   +'#app .mc-search .k29-mcap .k29-ph{font:500 15px system-ui,sans-serif;color:#8A938E}'
    +'#app .mc-search .mc-remove{border-radius:999px}#app .mc-search .mc-seg button.inp{text-align:left;width:100%;background-image:linear-gradient(transparent,transparent)}#app .mc-search .mc-seg button.inp:before{content:"\\1F4C5";font-size:13px;margin-right:8px;opacity:.55}'
    +'.k28-ci-why{display:block;margin-top:6px;font-size:11.5px;color:#7A857F;text-align:center;letter-spacing:.02em}';
     document.head.appendChild(cs)}catch(_){}

@@ -81,6 +81,21 @@
   window.kgmDivertFieldsR1101A=function(k){var zh=z(),ov=(S.flightOverrides||{})[k]||{},P=keyParts(k);var L=P?window.kgmDivertLegR1101A(P.code,P.date,P.f,Object.assign({},ov,{status:'Diverted',divertTo:ov.divertTo||''})):null;var man=ov.divertLegR1101A&&!ov.divertLegR1101A.est?ov.divertLegR1101A:{};
     return '<div class="k28-dvc"><label>'+(zh?'續航起飛（轉降地當地時間）':'Continuation dep (local)')+'</label><input id="adDvDep" class="inp" placeholder="'+(L?L.dep:'HH:MM')+'" value="'+E(man.dep||'')+'"><small>'+(L?((zh?'續航日期 ':'Date ')+L.date+(L.src==='est'?(zh?'（估算，可改）':' (estimated)'):L.src==='ai'?(zh?'（AI 轉降紀錄）':' (AI record)'):'')):(zh?'Diverted 時填轉降地即自動估算':'Set Diverted + airport'))+'</small></div>'
       +'<div class="k28-dvc"><label>'+(zh?'續航抵達（目的地當地時間）':'Continuation arr (local)')+'</label><input id="adDvArr" class="inp" placeholder="'+(L?L.arr:'HH:MM')+'" value="'+E(man.arr||'')+'"><small>'+(zh?'航班動態會在續航那天多一段 ':'Shown in flight status: ')+(P&&L?E(P.code+' '+L.fr+'→'+L.to):'')+'</small></div>'};
+  /* 1101B：後台「航班狀態」頁（使用者：「後台航班動態你沒改啊」）——
+     ① 每班狀態底下寫預估出發／抵達（kgmOpsPredR1026C＝predict7，跟前台航班動態、航班資料路線圖同一份；含繞道比班表多的時間），比班表晚／早幾分、原因；
+     ② Diverted 寫轉降地與續航段；③ 續航那天、續航航線（如 KIX→TPE）多一列續航段（只在那天）。 */
+  function dm(a,b){var x=hm(a)-hm(b);if(x>720)x-=1440;if(x<-720)x+=1440;return x}
+  window.kgmAdStNoteR1101B=function(f,date,ov,st){try{var zh=z(),o=[];ov=ov||{};var lb=st==='Arrived'?(zh?'實際':'ACT'):st==='Departed'?(zh?'起飛後預估':'EST'):'EST';
+      if(ov.status==='Diverted'&&ov.divertTo){var L=window.kgmDivertLegR1101A(f.code,date,f,ov);o.push('<span class="k29st-dv">'+(zh?'轉降 ':'Diverted to ')+E(String(ov.divertTo).toUpperCase())+(L?(zh?'・續航 ':' · continues ')+E(L.date.slice(5)+' '+L.dep+' '+L.fr+'→'+L.to+(L.arr?' '+L.arr+(L.dd?'⁺'+L.dd:''):'')):'')+'</span>')}
+      else if(ov.status!=='Cancelled'){var p=window.kgmOpsPredR1026C?window.kgmOpsPredR1026C(f,date):null;
+        if(p&&p.estDep&&p.estArr){var dD=p.depDelta!=null?p.depDelta:dm(p.estDep,p.scheduledDep),aD=p.arrDelta!=null?p.arrDelta:dm(p.estArr,p.scheduledArr);
+          var t=function(v){return v===0?(zh?'準時':'on time'):(v>0?(zh?'晚 ':'+')+v+(zh?' 分':' min'):(zh?'早 ':'')+(-v)+(zh?' 分':' min early'))};
+          o.push('<span class="k29st-est"><b>'+lb+'</b> '+E(p.estDep)+' <small>'+t(dD)+'</small> → '+E(p.estArr)+' <small class="'+(aD>=15?'late':aD<=-5?'early':'')+'">'+t(aD)+'</small></span>');
+          if(p.reasonR1026C&&(p.arrLateR1101B||aD>=15||dD>=15))o.push('<span class="k29st-why">'+E(p.reasonR1026C)+'</span>');
+          else if(p.warMinR1101B>0)o.push('<span class="k29st-why">'+(zh?'含繞道關閉空域 '+p.warMinR1101B+' 分':'incl. '+p.warMinR1101B+' min detour')+'</span>')}}
+      return o.length?'<div class="k29st">'+o.join('')+'</div>':''}catch(_){return ''}};
+  window.kgmAdStExtraR1101B=function(fr,to,date){try{var zh=z(),L=window.kgmDivertFindR1101A(false,'',date,fr,to)||[];return L.map(function(x){var g=x.legs[0].f;
+      return '<tr class="k29st-cont"><td style="padding:7px 10px"><div style="font-weight:700;color:var(--g);font-size:13px">'+E(g.code)+'</div><div style="font-size:10px;color:#888">'+(zh?'轉降續航段':'Diversion continuation')+'</div></td><td style="padding:7px 10px;font-size:12px">'+E(g.fr)+' → '+E(g.to)+'</td><td style="padding:7px 10px;font-size:13px;font-weight:600">'+E(g.dep)+'</td><td style="padding:7px 10px;font-size:13px;font-weight:600">'+E(g.arr||'—')+(g.dd?'<sup>+'+g.dd+'</sup>':'')+'</td><td style="padding:7px 10px"><span style="font-weight:700;color:#b45309">&bull; '+(zh?'續航（原 '+E(g.divertFromR1101A)+' 出發，轉降 '+E(g.fr)+'）':'Continuation (diverted from '+E(g.divertFromR1101A)+')')+'</span></td><td style="padding:7px 10px;font-size:11px;color:#889">'+(zh?'在原航班編輯':'Edit on the original flight')+'</td></tr>'}).join('')}catch(_){return ''}};
   window.kgmEditHeadR1101A=function(k){var P=keyParts(k),zh=z();if(!P)return 'Edit: '+E(k);return '<small>'+(zh?'編輯航班狀態':'EDIT FLIGHT STATUS')+'</small>'+E(P.code)+'<span>'+E(P.f.fr)+' → '+E(P.f.to)+' · '+E(P.date)+'</span>'};
   try{var sv0=window.doAdminSave;if(typeof sv0==='function'&&!sv0.__dv28){var sv28=function(){var k=S.adEditKey||'',d1=String((document.getElementById('adDvDep')||{}).value||'').trim(),a1=String((document.getElementById('adDvArr')||{}).value||'').trim();
       var r=sv0.apply(this,arguments);try{var ov=(S.flightOverrides||{})[k];var P=keyParts(k);if(ov&&P){if(ov.status==='Diverted'&&ov.divertTo){delete ov.divertLegR1101A;var L=window.kgmDivertLegR1101A(P.code,P.date,P.f,ov);
@@ -126,6 +141,7 @@
    +'.k28-audit{margin:0 0 12px;border:1px dashed #D3DCD7;border-radius:12px;padding:8px 14px;background:#FAFBFA}.k28-audit summary{cursor:pointer;font-size:12.5px;font-weight:700;color:#55605B}.k28-audit[open]{background:#fff}'
    +'.k28-chat{border-radius:16px!important}.k28-chat>div{min-height:520px!important}.k28-chat div[style*="max-height:300px"]{max-height:420px!important}'
    +'@media(max-width:760px){.k28-kpi{grid-template-columns:1fr 1fr}}'
+   +'.k29st{display:flex;flex-direction:column;gap:2px;margin-top:4px;font-size:11.5px;line-height:1.45;color:#4B5A53}.k29st-est b{font-size:9.5px;letter-spacing:.08em;color:#8A938E;margin-right:2px}.k29st-est small{font-size:10.5px;color:#6B776F}.k29st-est small.late{color:#b45309;font-weight:700}.k29st-est small.early{color:#15803d}.k29st-why{color:#92400E;font-size:11px}.k29st-dv{color:#b45309;font-weight:600}tr.k29st-cont{background:#FFF8EC!important}'
    +'.k28-dvc{background:#FFF8EC;border:1px dashed rgba(176,138,62,.55);border-radius:12px;padding:8px 10px}.k28-dvc small{display:block;margin-top:4px;font-size:11px;color:#7A5A12}';
     document.head.appendChild(cs)}catch(_){}
 })();
