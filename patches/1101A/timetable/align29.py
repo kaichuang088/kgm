@@ -13,6 +13,8 @@ def _bands(pg):
         r = g['rect']; f = g.get('fill')
         if not f or g.get('type') not in ('f', 'fs'): continue
         if sum(f) < 2.4 and 12 < r.height < 27 and r.width > 250 and r.y0 > 40:   # 各區顏色不同（棕、藍綠、深藍、桃紅…）
+            dup = [i for i, (o, _) in enumerate(out) if abs(r.y0 - o.y0) < 2.5 and abs(r.x0 - o.x0) < 30]
+            if dup: out[dup[0]] = (out[dup[0]][0] & fitz.Rect(r), out[dup[0]][1]); continue   # 底稿同一條標題疊了兩個底色框（舊版拷貝，差 0.75 pt）→ 只算一次、用兩個的交集（蓋底色才不會超出看得到的那一層）
             out.append((fitz.Rect(r), f))
     return out
 def _spans(pg):
@@ -40,9 +42,9 @@ def run(doc, BANDTXT, put, tw, WHITE):
         # 箭頭的相對位置（欄位左緣起算）：同一頁同一欄（左＝去程、右＝回程）全部對齊；一般＝台北桃園 TAIPEI TAOYUAN 那種寬度（96.5），這一欄有特別長的出發地就整欄往右
         TC = {}
         for h in L:
-            c = h['R'].x0 > 290; TC[c] = max(TC.get(c, 96.5), max(s['bbox'][2] for s in h['org']) - h['R'].x0 + 5.5)
+            c = h['R'].x0 > 290; TC[c] = max(TC.get(c, 0), max(s['bbox'][2] for s in h['org']) - h['R'].x0 + 5.5)   # 這一欄最長的出發地＋5.5（不設下限：目的地長的欄才放得下時間）
         for c, v in TC.items():
-            if v != 96.5: TS[(pno + 1, 'R' if c else 'L')] = round(v, 1)
+            TS[(pno + 1, 'R' if c else 'L')] = round(v, 1)
         pg = doc[pno]; jobs = []
         for h in L:
             R, a = h['R'], h['a']; T = TC[R.x0 > 290]
@@ -58,7 +60,8 @@ def run(doc, BANDTXT, put, tw, WHITE):
             if tw(nt, 'bold', sz) <= room or len(parts) == 1: lines = [nt]
             else: lines = [parts[0] + ' ~', parts[1]]
             if len(lines) == 2 and R.height < 20: lines = [nt]
-            while max(tw(x, 'bold', sz) for x in lines) > room and sz > 4.9: sz -= 0.15   # 放不下：時間字縮小一點（最小 4.9）
+            while max(tw(x, 'bold', sz) for x in lines) > room and sz > 5.3: sz -= 0.15   # 放不下：時間字縮小一點
+            if max(tw(x, 'bold', sz) for x in lines) > room and len(parts) == 2: lines = [parts[0] + ' ~', parts[1]]; sz = min(sz, 5.4)   # 還是放不下（單行標題、目的地很長）：分兩行
             if max(tw(x, 'bold', sz) for x in lines) > room: tight.append((pno + 1, nt, round(room, 1)))
             jobs.append((h, sh, D, lines, sz, T))
             for s in [a] + h['dst'] + h['tm']:
@@ -74,7 +77,9 @@ def run(doc, BANDTXT, put, tw, WHITE):
             pg.show_pdf_page(fitz.Rect(C.x0 + sh, C.y0, C.x1 + sh, C.y1), src, pno, clip=C)
             put(pg, R.x0 + T, a['origin'][1], '→', 'reg', a['size'], WHITE)
             mid = (R.y0 + R.y1) / 2
-            ys = [mid + sz * 0.36] if len(lines) == 1 else [mid - 0.6, mid + sz + 0.3]
+            ob = min(s['origin'][1] for s in h['org'])   # 單行標題：跟城市名同一條基線
+            ys = [ob if R.height < 20 else mid + sz * 0.36] if len(lines) == 1 else ([mid - 0.5, mid + sz] if R.height < 20 else [mid - 0.6, mid + sz + 0.3])
             for x, y in zip(lines, ys): put(pg, R.x1 - 5.9 - tw(x, 'bold', sz), y, x, 'bold', sz, WHITE)
             n += 1
-    return dict(bands=n, T={k: v for k, v in TS.items() if v != 96.5}, tight=tight[:30])
+    import collections
+    return dict(bands=n, T=sorted(collections.Counter(TS.values()).items()), tight=tight[:30])
