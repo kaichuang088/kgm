@@ -42,17 +42,19 @@
     return {list:out,bad:bad,ok:!bad.length&&out.length===n}}
   window.kgmCharterAcceptR1101A=function(id){var r=req(id),zh=z();if(!r||r.status!=='quoted'||!r.quoteR1101A)return;var Q=r.quoteR1101A;
     if(T()>Q.until){r.status='expired';save1();try{render()}catch(_){}return}
-    var nm=parseNames((document.getElementById('k28q-names-'+id)||{}).value,r.pax);
+    var PX31=Math.max(+r.pax||0,+r.paxRet||0);   /* 1103A：去回程人數不同 → 團體訂位人數＝人多的那一段（金額照報價） */
+    var nm=parseNames((document.getElementById('k28q-names-'+id)||{}).value,PX31);
     /* 1102A（使用者：「按下接受並付款沒反應」）：原本要一次填滿全體名單，不足就只在頁面最上方寫提示（看起來沒反應）。
        改成名單可以先不填／填一部分，接受後立即付款，起飛前 14 天前在團體名單補齊（沒補齊的不開票）；格式錯或超過人數才擋，錯誤寫在按鈕旁邊。 */
     var er30=document.getElementById('k28q-msg-'+id),say30=function(m){if(er30){er30.textContent=m;er30.style.display='block';try{er30.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}}else alert(m)};
     if(nm.bad.length){say30(zh?('名單第 '+nm.bad.slice(0,6).join('、')+' 行格式不對（每行一位：姓/名，可加 /KGM 會員卡號）。'):'Some lines are not LAST/FIRST.');return}
-    if(nm.list.length>r.pax){say30(zh?('名單有 '+nm.list.length+' 位，超過申請的 '+r.pax+' 位。'):'Too many names.');return}
-    if(!confirm(zh?('接受報價 '+M(Q.amount)+'？確認後立即付清全額，系統建立航班與團體訂位。'+(nm.list.length<r.pax?'\n名單目前 '+nm.list.length+'／'+r.pax+' 位，其餘請在起飛前 14 天前於團體名單補齊（補齊後才開票）。':'名單到起飛前 14 天都還可以改，之後自動開票。')):'Accept and pay '+M(Q.amount)+'?'))return;
+    if(nm.list.length>PX31){say30(zh?('名單有 '+nm.list.length+' 位，超過申請的 '+PX31+' 位。'):'Too many names.');return}
+    if(!confirm(zh?('接受報價 '+M(Q.amount)+'？確認後立即付清全額，系統建立航班與團體訂位。'+(nm.list.length<PX31?'\n名單目前 '+nm.list.length+'／'+PX31+' 位，其餘請在起飛前 14 天前於團體名單補齊（補齊後才開票）。':'名單到起飛前 14 天都還可以改，之後自動開票。')):'Accept and pay '+M(Q.amount)+'?'))return;
     S.k27crPick=S.k27crPick||{};S.k27crPick[id]=Q.picks||{};var c0=window.confirm;window.confirm=function(){return true};window.__k28accept=1;
     /* 1101A：原本的核准只接受 pending → 暫時改回 pending 再呼叫，失敗就還原成 quoted */
     var m0=S.k27crMsg,d0m=S.k27cdMsg;S.k27crMsg='';S.k27cdMsg='';r.status='pending';
-    try{A0.call(window,id)}catch(e){S.k27crMsg=String(e&&e.message||e)}finally{window.confirm=c0;window.__k28accept=0}
+    var pax0=r.pax;r.pax=PX31;
+    try{A0.call(window,id)}catch(e){S.k27crMsg=String(e&&e.message||e)}finally{window.confirm=c0;window.__k28accept=0;r.pax=pax0}
     if(r.status!=='approved'){var why=S.k27cdMsg||S.k27crMsg||'';S.k27cdMsg=d0m;if(r.status==='pending')r.status='quoted';S.k27crMsg=(zh?'目前無法建立航班（可能飛機已被排走），請聯絡團體業務':'Could not create the flight')+(why?(zh?'：':': ')+why:'');save1();try{render()}catch(_){}return}
     S.k27crMsg=m0;S.k27cdMsg=d0m;
     try{var g=(S.groupsR1023A||[]).filter(function(x){return x&&x.id===r.groupId})[0],b=g&&(S.bookings||[]).filter(function(x){return x&&x.pnr===g.pnr})[0];
@@ -108,7 +110,7 @@
   function frontDecor(){if(S.view==='admin')return;var zh=z();
     R().forEach(function(r){if(!r)return;var art=[].filter.call(document.querySelectorAll('.k27cr-list article'),function(a){return (a.textContent||'').indexOf(r.id)>=0})[0];if(!art||art.querySelector('.k28q-f'))return;var d=document.createElement('div');d.className='k28q-f';var Q=r.quoteR1101A||{},h='';
       if(r.status==='quoted'){var t14=AD(r.date,-14),left=Math.max(0,days(T(),Q.until));   /* 1102A：報價改兩欄（金額＋三個步驟），名單即時計數（使用者：「團體定位頁面不好看」） */
-        h='<div class="k28q-offer k30q"><div class="k30q-amt"><small>'+(zh?'KGM 報價（不二價）':'KGM offer')+'</small><b>'+M(Q.amount)+'</b><span>'+(zh?'全團 '+r.pax+' 位・每位約 ':r.pax+' pax · about ')+M(Q.amount/Math.max(1,+r.pax||1))+'</span><em class="'+(left<=3?'hot':'')+'">'+(zh?'請於 '+E(Q.until)+' 前回覆・剩 '+left+' 天':'Respond by '+E(Q.until)+' · '+left+' days left')+'</em></div>'
+        h='<div class="k28q-offer k30q"><div class="k30q-amt"><small>'+(zh?'KGM 報價（不二價）':'KGM offer')+'</small><b>'+M(Q.amount)+'</b><span>'+(zh?'全團 '+(window.kgmCharterPaxTxtR1103A?window.kgmCharterPaxTxtR1103A(r):r.pax+' 位')+'・每位約 ':r.pax+' pax · about ')+M(Q.amount/Math.max(1,Math.max(+r.pax||1,+r.paxRet||0)))+'</span><em class="'+(left<=3?'hot':'')+'">'+(zh?'請於 '+E(Q.until)+' 前回覆・剩 '+left+' 天':'Respond by '+E(Q.until)+' · '+left+' days left')+'</em></div>'
           +'<ol class="k30q-steps"><li><b>'+(zh?'接受並付款':'Accept & pay')+'</b><span>'+(zh?'一次付清全額':'Pay the full amount')+'</span></li><li><b>'+(zh?'補齊名單':'Add names')+'</b><span>'+(zh?E(AD(t14,-1))+' 前都可以修改':'Editable until '+E(AD(t14,-1)))+'</span></li><li><b>'+(zh?'自動開票':'Ticketing')+'</b><span>'+(zh?E(t14)+' 起依名單開票（一人一個 PNR）':'From '+E(t14)+', one PNR each')+'</span></li></ol></div>'
           +'<label class="k30q-names"><span>'+(zh?'旅客名單（選填，可以之後再補）':'Passenger names (optional for now)')+'<em id="k30q-cnt-'+E(r.id)+'">'+(zh?'已填 0／':'0 / ')+r.pax+(zh?' 位':'')+'</em></span><small>'+(zh?'每行一位：姓/名，可加 /KGM 會員卡號':'One per line: LAST/FIRST[/member no.]')+'</small><textarea id="k28q-names-'+E(r.id)+'" class="inp" rows="4" placeholder="WANG/DAMING\nLIN/MEI/KGM100123" oninput="kgmQCountR1102A(this,\''+E(r.id)+'\','+(+r.pax||0)+')"></textarea></label>'
           +'<div class="k28q-msg" id="k28q-msg-'+E(r.id)+'" role="alert" style="display:none"></div><div class="k28q-acts"><button type="button" class="k25g-btn ghost" onclick="kgmCharterRejectR1101A(\''+E(r.id)+'\')">'+(zh?'拒絕報價':'Decline')+'</button><button type="button" class="k25g-btn" onclick="kgmCharterAcceptR1101A(\''+E(r.id)+'\')">'+(zh?'接受並付款 ':'Accept & pay ')+M(Q.amount)+'</button></div>'}

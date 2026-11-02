@@ -500,7 +500,7 @@ RW('map30 flex dist',"<div class=\"r7-route-legend\"><div><small>DISTANCE</small
 # K：我的團體訂位——包機／自創航班卡片的「CHR… · 自創航班 · TPE→PHX 2027-07-29 · 192 位」一行字改成對齊的資訊格（案件／類型／航段＋城市／日期＋星期／人數）；報價區塊在 cr28.js
 RW('grp30 facts',"'</div><div class=\"k27cr-m\">'+E(r.id)+' · '+kindName(r.kind)+' · '+E(r.fr)+'→'+E(r.to)+' '+E(r.date)+(r.retDate?(z()?'，回程 ':' · return ')+E(r.retDate):'')+' · '+r.pax+(z()?' 位':' pax')+'</div>'",
    "'</div>'+(function(){var cy=function(a){try{return (z()?CITY_ZH:(typeof CITY_EN!=='undefined'?CITY_EN:CITY_ZH))[a]||a}catch(_){return a}},wk=function(d){try{return z()?'（'+'日一二三四五六'.charAt(new Date(d+'T00:00:00Z').getUTCDay())+'）':''}catch(_){return ''}};   /* 1102A：資訊格 */\n"
-   "      return '<div class=\"k30cr-facts\"><div><small>'+(z()?'申請編號':'Request')+'</small><b class=\"mono\">'+E(r.id)+'</b></div><div><small>'+(z()?'類型':'Type')+'</small><b>'+kindName(r.kind)+'</b></div><div><small>'+(z()?'航段':'Route')+'</small><b>'+E(r.fr)+' → '+E(r.to)+'</b><i>'+E(cy(r.fr))+' → '+E(cy(r.to))+'</i></div><div><small>'+(z()?'去程日期':'Date')+'</small><b>'+E(r.date)+wk(r.date)+'</b>'+(r.retDate?'<i>'+(z()?'回程 ':'Return ')+E(r.retDate)+wk(r.retDate)+'</i>':'')+'</div><div><small>'+(z()?'旅客':'Pax')+'</small><b>'+r.pax+(z()?' 位':'')+'</b></div></div>'})()")
+   "      return '<div class=\"k30cr-facts\"><div><small>'+(z()?'申請編號':'Request')+'</small><b class=\"mono\">'+E(r.id)+'</b></div><div><small>'+(z()?'類型':'Type')+'</small><b>'+kindName(r.kind)+'</b></div><div><small>'+(z()?'航段':'Route')+'</small><b>'+E(r.fr)+' → '+E(r.to)+'</b><i>'+E(cy(r.fr))+' → '+E(cy(r.to))+'</i></div><div><small>'+(z()?'去程日期':'Date')+'</small><b>'+E(r.date)+wk(r.date)+'</b>'+(r.retDate?'<i>'+(z()?'回程 ':'Return ')+E(r.retDate)+wk(r.retDate)+'</i>':'')+'</div><div><small>'+(z()?'旅客':'Pax')+'</small><b>'+(r.paxRet&&r.paxRet!==r.pax?r.pax+'／'+r.paxRet:r.pax)+(z()?' 位':'')+'</b>'+(r.paxRet&&r.paxRet!==r.pax?'<i>'+(z()?'去程／回程':'out / return')+'</i>':'')+'</div></div>'})()")   # 1103A：去回程人數不同
 
 # I：員工票——使用者：「員工票如果原本艙等沒辦法上次等可以要自動發出通知改成次等然後+/-差價在薪資裡面喔」
 #   原本起飛前 48 小時定案只試首選、次選，兩個都沒位就一直候補到機場。改成：都沒位就自動往下一個艙等找（商務→豪經→經濟），
@@ -581,6 +581,12 @@ RW('rot31 curtail',"function curDate69(){return S._fsDate||T()}","function curDa
 RW('rot31 cal sort',"    var d=D(start,k),rows=(byDate[d]||[]).map(function(x){return liveRow(x,d)}).sort(function(a,b){\n      return String(a.dep).localeCompare(String(b.dep))});",
    "    var d=D(start,k),rows=(byDate[d]||[]).map(function(x){return liveRow(x,d)}).sort(function(a,b){\n      if(window.kgmRotSpanR1103A)return window.kgmRotSpanR1103A(a)[0]-window.kgmRotSpanR1103A(b)[0];   /* 1103A：依真實（UTC）先後排，不用當地時刻字串 */\n      return String(a.dep).localeCompare(String(b.dep))});")
 RW('bg31 crew tick',"setInterval(tick,3000);\n})();\n\nvar MOVE121","setInterval(tick,3000);window.kgmCrewTickR1103A=tick;   /* 1103A：分頁看不見時由 rot31.js 的 Worker 每 3 秒叫一次 */\n})();\n\nvar MOVE121")
+# A：自創航班申請（cf31.js）：機型選單依兩端機場／航程／人數重產；去程／回程人數分開，報價每段用那一段的人數
+RW('cf31 quote',"if(r.kind==='custom'){var p=seatPrice(f,'Economy');lines.push({cab:'Economy',n:r.pax,p:p});sum=r.pax*p}",
+   "if(r.kind==='custom'){var p=seatPrice(f,'Economy'),n31=(r.paxRet&&f&&f.fr===r.to&&f.to===r.fr)?r.paxRet:r.pax;lines.push({cab:'Economy',n:n31,p:p});sum=n31*p}   /* 1103A：回程用回程人數 */")
+RW('cf31 admin pax',"<div class=\"k27cd-n\"><b>'+r.pax+'</b><small>'+(z()?'位':'pax')+'</small></div></div>'",
+   "<div class=\"k27cd-n\"><b>'+(r.paxRet&&r.paxRet!==r.pax?r.pax+'／'+r.paxRet:r.pax)+'</b><small>'+(r.paxRet&&r.paxRet!==r.pax?(z()?'去／回 位':'out / ret'):(z()?'位':'pax'))+'</small></div></div>'")
+EMB28.append('cf31.js')
 EMB28.append('rot31.js')
 
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
