@@ -609,6 +609,19 @@ RW('bm31 head',"+'<div><small>'+(z()?'本班托運行李':'Bags on board')+'</sm
    "+'<div><small>'+(z()?'已報到托運行李':'Checked bags')+'</small><b>'+L.length+'</b><span>'+N(Math.round(L.reduce(function(s,b){return s+b.kg},0)*10)/10)+' kg'+(bags.pendN?(z()?'　｜　未報到 '+bags.pendN+' 位，預估 '+bags.pend+' 件約 '+N(Math.round(bags.pendKg))+' kg（報到後才有實際重量，不能改運）':' · '+bags.pendN+' pax not checked in (~'+bags.pend+' bags)'):'')+'</span></div>'")
 EMB28.append('rot31.js')
 
+# K：員工票狀態——Payload 只能上 N 人時，各艙燈號／「給員工票的座位」不能還寫座位數（使用者：「你都說可上０人後面為啥還有」）
+RW('stx31 cells',"var n=Math.max(0,+((p.after||{})[c])||0),k=lt6(n);tot[k]++;\n      return '<td class=\"k6ss-c\"><span class=\"k6ss-p '+k+'\" title=\"'+ltTxt6(k)+'\"><i></i><b>'+n+'</b><small>'+(z()?'席':'')+'</small></span></td>';",
+   "var s31=Math.max(0,+((p.after||{})[c])||0),pc31=p.payload?Math.max(0,Math.floor(Math.max(0,+p.payload.after||0)/(p.payload.kg||107))):Infinity,n=Math.min(s31,pc31),k=lt6(n);tot[k]++;   /* 1103A：Payload 上限（整班共用）也要算進每艙可上人數 */\n      return '<td class=\"k6ss-c\"><span class=\"k6ss-p '+k+'\" title=\"'+ltTxt6(k)+'\"><i></i><b>'+n+'</b><small>'+(z()?'席':'')+'</small></span>'+(n<s31?'<small class=\"k31-plcap\">'+(z()?'空位 '+s31+'・Payload 限 '+pc31+' 人':s31+' seats · payload '+pc31)+'</small>':'')+'</td>';")
+RW('stx31 strip',"+'<span><i>'+(z()?'給員工票的座位':'Seats for staff')+'</i><b>'+plan.forStaffTotal+'</b><em>'+(z()?'扣除 ①②':'after ①②')+'</em></span>'",
+   "+(function(){var pc=plan.payload?Math.max(0,Math.floor(Math.max(0,+plan.payload.left0||0)/(plan.payload.kg||107))):Infinity,v=Math.min(plan.forStaffTotal,pc);return '<span><i>'+(z()?'給員工票的座位':'Seats for staff')+'</i><b>'+v+'</b><em>'+(v<plan.forStaffTotal?(z()?'空位 '+plan.forStaffTotal+'，Payload 只夠 '+pc+' 人':plan.forStaffTotal+' seats, payload '+pc):(z()?'扣除 ①②':'after ①②'))+'</em></span>'})()")   # 1103A：同上，候補名單頁上方
+RW('stx31 wl',"var pl=window.kgmPayloadR1023A(code,date,fr,to);if(!pl)return '';var kg=+window.KGM_STAFF_KG_R1023A||107,n=Math.floor(pl.left/kg);",
+   "var pl=window.kgmPayloadR1023A(code,date,fr,to);if(!pl)return '';var kg=+window.KGM_STAFF_KG_R1023A||107,n=Math.max(0,Math.floor(((p&&p.payload&&isFinite(+p.payload.after))?+p.payload.after:pl.left)/kg));   /* 1103A：座位數是扣掉已候補上的員工票後的，Payload 也要扣（同一個基準） */")
+
+RW('stx31 css',"+'.k6ss-c{text-align:center;width:13%}","+'.k31-plcap{display:block;margin-top:4px;font-size:10.5px;line-height:1.3;color:#9b2d17;font-weight:700}.k6ss-c{text-align:center;width:13%}")
+# K：超賣／撞位處理（ov31.js，座位圖分頁上方）：航班資料層內部的寫入／通知函式開給它用（不另寫一套）
+RW('ov31 kit',"window.kgmFdFilterR929=function(q){S.fdQR929=String(q||'');fdApply929()};",
+   "window.kgmFdFilterR929=function(q){S.fdQR929=String(q||'');fdApply929()};\n  window.kgmFdKitR1103A={applyRow:applyRow929,tell:tell929,cabZh:cabZh929,seatsFlat:seatsFlat7,type:type7,fromKey:upgradeFlightFromKey7,fare:curFare929,low:lowFare929,upFare:upgradeFare7};   /* 1103A：ov31.js 超賣處理用 */")
+EMB28.append('ov31.js')
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")
