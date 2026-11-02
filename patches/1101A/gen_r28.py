@@ -666,6 +666,31 @@ EMB28.append('bd31.js')
 # H：團體航點（grp31.js）——團體模式的航點選單多一區（HKT、CXR、日本／中國 A21N 可起降機場），沒有定期航班的航線走自創航班
 RW('grp31 regions',"function regions158(){\n  try{\n    if(typeof REGIONS==='function')return REGIONS();","function regions158(){var R31=regions158_0();try{if(window.kgmGrpRegionsR1103A)return window.kgmGrpRegionsR1103A(R31)}catch(_){}return R31}   /* 1103A：團體模式加團體專屬航點（grp31.js） */\nfunction regions158_0(){\n  try{\n    if(typeof REGIONS==='function')return REGIONS();")
 EMB28.append('grp31.js')
+# C：團體票只剩 G（ga31.js）——新方案 G（E-G／P-G／B-G），舊 Q／U 訂位照原規則；帳號申請表＋後台審核＋試用期
+RW('g31 plan',"free:6,upg:true}};","free:6,upg:true},\n           G:{k:'G',zh:'團體票',en:'Group fare',mul:0.72,chg:1400,ref:2600,names:28,bal:21,free:3,upg:false}};   /* 1103A：團體只賣 G（訂金、名單、尾款同優惠方案；開票後不能改期、不退票價：ga31.js changeFeeOf／refundPolicyOf） */")
+RW('g31 codes',"GC[cab]={};['Q','U'].forEach(function(k){var code=pre+'-'+k,P=PLANS[k],base=FARES[k==='Q'?bq:bu]||{};",
+   "GC[cab]={};['Q','U','G'].forEach(function(k){var code=pre+'-'+k,P=PLANS[k],base=FARES[k==='U'?bu:bq]||{};   /* 1103A：加 G */")
+RW('g31 soldout',"if(f&&f.groupPlanR1026C==='Q'&&r&&r.ok===false)","if(f&&/^[QG]$/.test(f.groupPlanR1026C||'')&&r&&r.ok===false)")
+RW('g31 charter code',"gc=window.kgmGrpCodeR1025B(cab,r.plan==='Q'?'Q':'U')","gc=window.kgmGrpCodeR1025B(cab,r.plan==='G'?'G':(r.plan==='Q'?'Q':'U'))")
+RW('g31 charter txt',"名單與尾款期限依'+(r.plan==='Q'?'團體優惠':'團體彈性')+'方案。","名單與尾款期限依'+(r.plan==='G'?'團體票 G':(r.plan==='Q'?'團體優惠':'團體彈性'))+'方案。")
+RW('g31 hero',"'<ul><li><b>Q</b><span>'+(z()?'團體優惠：名單 28 天、尾款 21 天前，±3 位免手續費':'Group Saver')+'</span></li><li><b>U</b><span>'+(z()?'團體彈性：名單 14 天、尾款 7 天前，±6 位免手續費':'Group Flex')+'</span></li>",
+   "'<ul><li><b>G</b><span>'+(z()?'團體票：名單 28 天、尾款 21 天前，±3 位免手續費；開票後不能改期、不退票價':'Group fare (G)')+'</span></li><li><b>'+(z()?'混艙':'Mix')+'</b><span>'+(z()?'經濟、豪經、商務可混搭，退改規則一致':'Mixed cabins, one set of rules')+'</span></li>")
+RW('g31 charter plan',"var plan='<label><span>'+(z()?'團體方案（改退費、名單與尾款期限）':'Group plan')+'</span><select id=\"k27c-plan\"><option value=\"U\">'+(z()?'團體彈性 U（名單 14 天、尾款 7 天前）':'Group Flex (U)')+'</option><option value=\"Q\"'+(dv('k27c-plan')==='Q'?' selected':'')+'>'+(z()?'團體優惠 Q（名單 28 天、尾款 21 天前）':'Group Saver (Q)')+'</option></select></label>';",
+   "var plan='<label><span>'+(z()?'團體票種':'Group fare')+'</span><select id=\"k27c-plan\"><option value=\"G\" selected>'+(z()?'團體票 G（名單 28 天、尾款 21 天前；開票後不能改期、不退票價）':'Group fare (G)')+'</option></select></label>';   /* 1103A：只剩 G */")
+EMB28.append('ga31.js')
+# 1103A：前台 AI 客服不再自己開通團體帳號（1026C 舊流程「AI 核對＝審核、直接開通一年」繞過人工審核）→ 引導到申請表；萬一舊對話還停在確認步驟，也只建立「審核中」
+RW('ga31 ai start',"c.grp25={step:'type',data:{}};return (z()?'團體訂位（10–99 位）要先綁定團體帳號，我需要核對幾項基本資料：類型、名稱、統一編號、（旅行社）執照號碼、聯絡人與電話。\\n\\n':'')+ask('type',c.grp25.data)}",
+   "return window.kgmGaAiMsgR1103A?window.kgmGaAiMsgR1103A():''}   /* 1103A：改由團體訂位頁申請表＋後台人工審核（ga31.js） */")
+RW('ga31 ai restart',"if(c&&c.messages&&!c.grp25&&TRIG.test(t)&&!acct()&&S.user)c.grp25={step:'type',data:{}}","/* 1103A：不再開 AI 收資料流程 */")
+RW('ga31 ai confirm',"var r=bind(d);c.grp25=null;","var r=bind(d);c.grp25=null;if(r&&window.kgmGaAiMsgR1103A)return window.kgmGaAiMsgR1103A();")
+RW('ga31 bind pending',"var rec={status:'active',type:d.type,","var rec={status:'pending',type:d.type,")
+RW('ga31 bind noapprove',"caseNo:no,boundAt:now,boundBy:'AI',from:T(),to:AD(T(),365),approvedAt:now,approvedBy:'AI'};","caseNo:no,boundAt:now,boundBy:'AI'};   /* 1103A：只建立申請，開放期間由後台人工審核後設定 */")
+RW('ga31 bind case',"S.staffCasesR1007A.unshift({caseNo:no,pnr:'',type:'group_account',status:'resolved',","S.staffCasesR1007A.unshift({caseNo:no,pnr:'',type:'group_account',status:'processing',")
+RW('ga31 bind progress',"{at:now,status:'resolved',label:z()?'AI 審核通過（統編檢查碼、執照、聯絡資料），開通團體帳號一年':'Verified and approved by AI (one year)',by:'AI'}",
+   "{at:now,status:'processing',label:z()?'AI 客服初步核對完成，轉 KGM 團體業務人工審核（公司登記、執照、負責人與聯絡人國籍）':'Forwarded to the group desk for review',by:'AI'}")
+RW('ga31 bind mail',"'您的團體帳號已由 AI 客服審核開通（'+d.company+'），開放期間 '+rec.from+' ～ '+rec.to+'；期間內可在首頁訂票卡的「團體訂位」分頁訂位。':'Your group account is active.'",
+   "'已收到您的團體帳號申請（'+d.company+'），KGM 團體業務會人工審核，通常 3 個工作天內以 email 通知結果。':'We received your group account application and will email you the result.'")
+RW('ga31 hero pending',"'AI 客服已核對您的資料，KGM 團體業務核准並設定開放期間後會寄信通知您。'","'KGM 團體業務人工審核中（公司登記、旅行業執照、負責人與聯絡人國籍），通常 3 個工作天內以 email 通知結果；審核通過前不能訂團體票。'")
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")

@@ -16,7 +16,7 @@
   function P(){return window.KGM_GRP_PLANS_R1026C||{}}
   function M(n){return 'NT$'+Math.round(+n||0).toLocaleString()}
   function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
-  var SEATFEE={Q:{Economy:750,Premium:2000},U:{Economy:0,Premium:1500}};window.KGM_GRP_SEATFEE_R1101A=SEATFEE;
+  var SEATFEE={Q:{Economy:750,Premium:2000},U:{Economy:0,Premium:1500},G:{Economy:750,Premium:2000}};   /* 1103A：團體票 G 同優惠方案 */window.KGM_GRP_SEATFEE_R1101A=SEATFEE;
   /* ① 前置視窗 */
   var m0=window.kgmGrpModeR1025B;
   if(typeof m0==='function'&&!m0.__r28){var m28=function(v){var r=m0.apply(this,arguments);try{if(v&&on()){S.search.grpPlanR1101A='';S.grp28Pre=false}else if(!v){S.grp28Pre=false;if(S.search)S.search.grpPlanR1101A=''}   /* 1101B：切到團體不再先跳視窗，改成每次按「搜尋航班」才跳（下面 nav 包裝） */}catch(_){}return r};m28.__r28=1;window.kgmGrpModeR1025B=m28}
@@ -25,23 +25,24 @@
     S.search.grpPlanR1101A=k;S.grp28Pre=false;S.openFare=null;
     if(S.grp28PendingNav){S.grp28PendingNav=0;window.__grp28go=1;try{nav('booking')}finally{window.__grp28go=0}return}
     try{render()}catch(_){}};
-  function preModal(){var zh=z(),p=P(),Q=p.Q||{},U=p.U||{};
+  function preModal(){var zh=z(),p=P(),Q=p.G||p.Q||{},U=p.U||{};
     var row=function(l,a,b){return '<tr><th>'+l+'</th><td>'+a+'</td><td>'+b+'</td></tr>'};
-    return '<div class="k28g-mask"><div class="k28g-dlg" role="dialog" aria-modal="true"><header><div><small>GROUP BOOKING</small><h3>'+(zh?'選擇團體方案':'Choose a group plan')+'</h3><p>'+(zh?'去程、回程用同一個方案；確認後才進入訂位。':'Outbound and return use the same plan.')+'</p></div><button type="button" class="x" onclick="S.grp28Pre=false;S.grp28PendingNav=0;render()" aria-label="close">×</button></header>'
-      +'<table class="k28g-cmp"><thead><tr><th></th><th>'+(zh?'團體優惠 Group Saver（Q）':'Group Saver (Q)')+'</th><th>'+(zh?'團體彈性 Group Flex（U）':'Group Flex (U)')+'</th></tr></thead><tbody>'
-      +row(zh?'票價':'Fare',zh?'團體最低價：比一般訂票便宜很多（訂位頁顯示每位價格）':'Lowest group fare — well below individual fares',zh?'團體彈性價：比優惠方案貴一些，仍比一般訂票便宜':'Flexible group fare — still below individual fares')   /* 1101B：不顯示係數（使用者） */
-      +row(zh?'改票（每筆訂位一次）':'Change (per booking)',M(Q.chg),M(U.chg))+row(zh?'退票（每人）':'Refund (per person)',M(Q.ref),M(U.ref))   /* 1101B：改票以整筆訂位計 */
-      +row(zh?'名單期限':'Names due',(zh?'出發前 ':'')+Q.names+(zh?' 天':' days before'),(zh?'出發前 ':'')+U.names+(zh?' 天':' days before'))
-      +row(zh?'尾款期限':'Balance due',(zh?'出發前 ':'')+Q.bal+(zh?' 天（之內訂位當下付清＋填名單）':' days'),(zh?'出發前 ':'')+U.bal+(zh?' 天（之內訂位當下付清＋填名單）':' days'))
-      +row(zh?'免手續費增減':'Free changes in size','±'+Q.free,'±'+U.free)
-      +row(zh?'經濟艙選位':'Economy seats',(zh?'一次收每位 NT$750（可整團一次劃位）':'NT$750 per person, once'),(zh?'免費（隨時；可整團一次劃位）':'Free'))
-      +row(zh?'豪華經濟艙選位':'Premium Economy seats',(zh?'每位 NT$2,000':'NT$2,000 pp'),(zh?'每位 NT$1,500':'NT$1,500 pp'))
-      +row(zh?'哩程升等':'Mileage upgrade',zh?'不可':'No',zh?'可（依「超值」規則）':'Yes')
-      +row(zh?'艙等':'Cabins',zh?'經濟、豪經、商務（不含頭等）':'Economy, Premium, Business',zh?'經濟、豪經、商務（不含頭等）':'Economy, Premium, Business')
-      +'</tbody></table>'
-      +'<div class="k28g-how"><div><b>'+(zh?'現有航班':'Scheduled flights')+'</b><span>'+(zh?'在時刻表上的航班訂團體票':'Book seats on scheduled flights')+'</span><div class="b"><button type="button" onclick="kgmGrpPickR1101A(\'Q\')">'+(zh?'選團體優惠':'Saver')+'</button><button type="button" class="g" onclick="kgmGrpPickR1101A(\'U\')">'+(zh?'選團體彈性':'Flex')+'</button></div></div>'
-      +'<div><b>'+(zh?'包機':'Charter')+'</b><span>'+(zh?'整架包下現有航班；起飛前 6 個月申請，機型不能更換':'Whole aircraft on a scheduled flight')+'</span><div class="b"><button type="button" onclick="kgmGrpPickR1101A(\'U\',\'charter\')">'+(zh?'申請包機':'Request charter')+'</button></div></div>'
-      +'<div><b>'+(zh?'自創航班':'Custom flight')+'</b><span>'+(zh?'自訂航線與日期（包機進階版）；填需要人數，起飛前 3 個月申請，可申請換大機型':'Your own route and date')+'</span><div class="b"><button type="button" onclick="kgmGrpPickR1101A(\'U\',\'custom\')">'+(zh?'申請自創航班':'Request custom flight')+'</button></div></div></div>'
+    return '<div class="k28g-mask"><div class="k28g-dlg" role="dialog" aria-modal="true"><header><div><small>GROUP BOOKING</small><h3>'+(zh?'團體票（G 艙）':'Group fare (G)')+'</h3><p>'+(zh?'團體只有一種票：G 艙。先看規則，再選要訂現有航班、包機或自創航班。':'One group fare. Review the rules, then choose how to fly.')+'</p></div><button type="button" class="x" onclick="S.grp28Pre=false;S.grp28PendingNav=0;render()" aria-label="close">×</button></header>'
+      /* 1103A：團體票只剩 G 艙一種（使用者：「團體票改成只有 G Class…退改辦法統一」；可混艙、規則一致）——內部沿用優惠方案 Q 的票價與期限 */
+      +'<div class="k31g-card"><div class="k31g-badge"><b>G</b><span>'+(zh?'團體票':'GROUP')+'</span></div><div class="k31g-body"><h4>'+(zh?'團體票（G 艙）—— 經濟、豪經、商務可混艙，退改規則全團一致':'Group fare (G) — mixed cabins, one set of rules')+'</h4>'
+      +'<ul class="k31g-rules">'
+        +'<li><b>'+(zh?'人數':'Size')+'</b><span>'+(zh?'10–99 位，去程、回程全團同一航班（團進團出）':'10–99, the whole group on the same flights')+'</span></li>'
+        +'<li><b>'+(zh?'訂金':'Deposit')+'</b><span>'+(zh?'總票價 10%，訂位後付清；不退':'10% on booking, non-refundable')+'</span></li>'
+        +'<li><b>'+(zh?'名單':'Names')+'</b><span>'+(zh?'出發前 '+Q.names+' 天交齊；之前可免費改名':Q.names+' days before departure')+'</span></li>'
+        +'<li><b>'+(zh?'尾款・開票':'Balance & ticketing')+'</b><span>'+(zh?'出發前 '+Q.bal+' 天付清並開票（'+Q.bal+' 天內訂位：當下付清＋填名單）':Q.bal+' days before departure')+'</span></li>'
+        +'<li><b>'+(zh?'增減人數':'Size change')+'</b><span>'+(zh?'名單期限前 ±'+Q.free+' 位免手續費；之後加人每筆 '+M(Q.chg)+'、減人每位 '+M(Q.ref):'±'+Q.free+' free before names')+'</span></li>'
+        +'<li><b>'+(zh?'改期・退票':'Changes & refunds')+'</b><span>'+(zh?'開票後不能改期、改航班或改名；未搭乘不退票價（只退未使用的機場稅）':'No date/flight/name changes after ticketing; unused tickets refund taxes only')+'</span></li>'
+        +'<li><b>'+(zh?'選位':'Seats')+'</b><span>'+(zh?'經濟艙每位 NT$750、豪經每位 NT$2,000（整團一次劃位）':'Economy NT$750, Premium NT$2,000 per person')+'</span></li>'
+        +'<li><b>'+(zh?'哩程':'Miles')+'</b><span>'+(zh?'累積比率與會籍積分為同艙超值票的 50%；不可哩程升等或 BigDeal':'50% of Value fares; no upgrades')+'</span></li>'
+      +'</ul><p class="k31g-n">'+(zh?'完整條文：《團體旅客運送規定》KGM-GRP-021。':'Full terms: KGM-GRP-021.')+'</p></div></div>'
+      +'<div class="k28g-how"><div><b>'+(zh?'現有航班':'Scheduled flights')+'</b><span>'+(zh?'在時刻表上的航班訂團體票':'Book seats on scheduled flights')+'</span><div class="b"><button type="button" class="g" onclick="kgmGrpPickR1101A(\'G\')">'+(zh?'用團體票 G 訂位':'Book group fare')+'</button></div></div>'
+      +'<div><b>'+(zh?'包機':'Charter')+'</b><span>'+(zh?'整架包下現有航班；起飛前 6 個月申請，機型不能更換':'Whole aircraft on a scheduled flight')+'</span><div class="b"><button type="button" onclick="kgmGrpPickR1101A(\'G\',\'charter\')">'+(zh?'申請包機':'Request charter')+'</button></div></div>'
+      +'<div><b>'+(zh?'自創航班':'Custom flight')+'</b><span>'+(zh?'自訂航線與日期（包機進階版）；填需要人數，起飛前 3 個月申請，可申請換大機型':'Your own route and date')+'</span><div class="b"><button type="button" onclick="kgmGrpPickR1101A(\'G\',\'custom\')">'+(zh?'申請自創航班':'Request custom flight')+'</button></div></div></div>'
       +'</div></div>'}
 
   /* 1101B：使用者「是每次按下搜尋之後才會顯示，每次團體都要」——團體模式在首頁按「搜尋航班」（nav('booking')）先跳方案視窗，選好才往下搜尋 */
