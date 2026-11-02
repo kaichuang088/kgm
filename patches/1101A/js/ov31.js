@@ -11,7 +11,7 @@
    · 執行：寫進航班資料（作業動作紀錄，跟「作業動作」同一份 store7 列，可用「復原」撤銷換座位）、通知旅客、自動成立案件（kgmCaseAutoR1103A）、動作歷史。
      真實訂位改搭：整筆訂位的這一段一起改到新航班（irropsReplaceBookingSeg0815，跟取消航班改搭同一支），原座位清除、登機證作廢。
      模擬旅客改搭：只在原航班標記改搭到哪一班（模擬旅客名單是依航班產生，不會寫進新航班名單）。
-   · 抵用券寫進訂位 b.vouchersR1103A（一年效期），里程直接入會員帳戶（有會員才入）。 */
+   · 機場抵用券寫進跟 1101A 換座位補償同一份 S.vouchersR1101A（一年效期），里程直接入會員帳戶（有會員才入）。 */
 (function(){
   if(window.__ov31)return;window.__ov31=1;
   function z(){try{return LANG!=='en'}catch(_){return true}}
@@ -137,7 +137,7 @@
       try{irropsReplaceBookingSeg0815(b,seg,{code:nf.code,date:q.date,dep:nf.dep,arr:nf.arr,fr:nf.fr,to:nf.to,acft:nf.acft})}catch(e){alert((z()?'改訂位失敗：':'Rebook failed: ')+(e&&e.message||e));return}
       b.seats=b.seats||{};b.seats[seg]={};b.boardingPass=b.boardingPass||{};delete b.boardingPass[seg];
       (b.compR929=b.compR929||[]).push({seg:seg,act:'ovbflight',usd:usd,miles:miles,amount:cash,meal:!!o.meal,hotel:!!o.hotel,from:c.f.code+' '+c.date,to:nf.code+' '+q.date,at:now,by:who()});
-      if(usd){var exp=addDays(todayISO(),365);(b.vouchersR1103A=b.vouchersR1103A||[]).push({type:'airport',usd:usd,code:'KGV'+String(Date.now()).slice(-7),issued:todayISO(),exp:exp,why:'ovbflight',flight:c.f.code+' '+c.date,used:false})}
+      if(usd){S.vouchersR1101A=S.vouchersR1101A||[];var vno='KGV'+String(Date.now()).slice(-8);S.vouchersR1101A.push({no:vno,pnr:b.pnr,usd:usd,code:c.f.code,date:c.date,ts:now,used:false,exp:addDays(todayISO(),365),why:'ovbflight',userId:b.userId||null});rec.voucher=vno}   /* 跟 1101A 換座位補償同一份機場抵用券（S.vouchersR1101A） */
       cr=credit(b,miles,(z()?'超賣改搭補償 ':'Oversale compensation ')+c.f.code+' '+c.date);
       k.applyRow(c.key,x,{offloadR929:true,seat:'',physical:false,boarded:false,opsActR929:rec},c.f,c.date)}
     else k.applyRow(c.key,x,{offloadR929:true,seat:'',physical:false,boarded:false,opsActR929:rec,prevR929:{cabin:x.cabin,fare:x.fare,seat:x.seat}},c.f,c.date);
