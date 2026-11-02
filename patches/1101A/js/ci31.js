@@ -29,9 +29,17 @@
   window.kgmCiInfoR1103A=info;
   function docsOf(I){var a=[{k:'bp',t:z()?'登機證':'Boarding pass'}];if(I.buys.length)a.unshift({k:'rc',t:z()?'收據':'Receipt'});if(I.lounge)a.push({k:'lg',t:z()?'貴賓室邀請卡':'Lounge invitation'});return a}
   /* ── 文件 ── */
-  function bpHtml(I){var b=I.b||{pnr:I.d.pnr,paxList:[{lastName:I.name.split('/')[0],firstName:I.name.split('/')[1]||''}]};
-    try{var data=window.kgmBpDataR1012A(b,'out',{f:I.f,fare:I.fare,seat:I.seat,date:I.f.date});if(data){data.name=I.name||data.name;if(I.seat)data.seat=I.seat;if(!data.member&&I.x&&I.x.member)data.member=I.x.member;return window.kgmBpCardR1012A(data)}}catch(_){}
+  /* 登機門：跟機場看板、後台「登機門／櫃檯」同一份（kgmGateOfR26）。地勤櫃檯列印時旅客已在機場 → 直接印排定的登機門（不受起飛前 12 小時才公布的限制） */
+  function gateOf(f,ground){try{if(!window.kgmGateOfR26||!f||!f.code)return null;var raw=S._k65Raw;if(ground)S._k65Raw=1;var g;try{g=window.kgmGateOfR26(f.code,f.date)}finally{S._k65Raw=raw}
+      if(!g||!g.gate||g.withheldR65||g.departed&&!ground)return null;return g}catch(_){return null}}
+  function bpData(I){var b=I.b||{pnr:I.d.pnr,paxList:[{lastName:I.name.split('/')[0],firstName:I.name.split('/')[1]||''}]};
+    var data=window.kgmBpDataR1012A(b,'out',{f:I.f,fare:I.fare,seat:I.seat,date:I.f.date,groundR1103A:1});if(!data)return null;data.name=I.name||data.name;if(I.seat)data.seat=I.seat;if(!data.member&&I.x&&I.x.member)data.member=I.x.member;
+    var g=gateOf(I.f,true);if(g)data.gate=g.gate;return data}
+  function bpHtml(I){try{var data=bpData(I);if(data)return window.kgmBpCardR1012A(data)}catch(_){}
     return '<div class="k31pr-doc"><b>BOARDING PASS</b><p>'+E(I.name)+' · '+E(I.f.code)+' '+E(I.f.fr)+'→'+E(I.f.to)+' '+E(I.f.date)+' · '+E(I.seat)+'</p></div>'}
+  /* 前台登機證也改讀同一份登機門（原本 bp12 用舊的 gateFor，跟看板的登機門不一定一樣；公布時間照看板：起飛前 12 小時） */
+  (function(){function hook(){var O=window.kgmBpDataR1012A;if(typeof O!=='function'||O.__ci31g)return;var w=function(b,seg,ov){var d=O.apply(this,arguments);try{if(d&&d.f&&/^KX/.test(String(d.f.code||''))){var g=gateOf(d.f,!!(ov&&ov.groundR1103A));d.gate=g?g.gate:''}}catch(_){}return d};w.__ci31g=1;window.kgmBpDataR1012A=w}
+    hook();setTimeout(hook,0);setTimeout(hook,3000)})();
   function money(v,c){c=c||'TWD';if(c!=='TWD')return c+' '+Math.round(+v||0).toLocaleString('en-US');   /* fmtAmt 的金額是台幣、會換算 → 外幣直接寫 */
     try{return fmtAmt(Math.round(+v||0),'TWD')}catch(_){return 'TWD '+Math.round(+v||0).toLocaleString('en-US')}}
   function rcHtml(I){var sum={};I.buys.forEach(function(x){sum[x.curr]=(sum[x.curr]||0)+x.amt});
@@ -41,13 +49,22 @@
       +'<tfoot>'+Object.keys(sum).map(function(c){return '<tr><td>'+(z()?'合計':'Total')+'</td><td>'+money(sum[c],c)+'</td></tr>'}).join('')+'</tfoot></table>'
       +'<p class="k31pr-fine">'+(z()?'本收據僅證明上列附加服務費用；機票票款收據請於行程管理下載。':'Ancillary charges only; ticket receipts are available in Manage Booking.')+'</p></section>'}
   function lgName(ap){return ap==='TPE'?(z()?'KGM Galaxy 貴賓室（桃園機場第二航廈）':'KGM Galaxy Lounge · TPE Terminal 2'):(ap==='TSA'?(z()?'KGM 松山貴賓室':'KGM Lounge · Taipei Songshan'):(z()?'oneworld 合作貴賓室（'+ap+'）':'oneworld partner lounge · '+ap))}
+  function hm(t){var m=((t%1440)+1440)%1440;return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2)}
+  function mins(t){var q=String(t||'0:0').split(':');return (+q[0]||0)*60+(+q[1]||0)}
   function lgHtml(I){var why=I.voucher?(z()?'貴賓室券（徽章驚喜包）':'Lounge voucher'):(/Resident/i.test(I.cab)?'Residence':(/First/i.test(I.cab)?(z()?'頭等艙':'First'):(/Business/i.test(I.cab)?(z()?'商務艙':'Business'):I.tier+' Explorer')));
-    var guest=/diamond|black/i.test(I.tier)?1:0;
+    var guest=/diamond|black/i.test(I.tier)||/Resident/i.test(I.cab)?1:0,dep=mins(I.f.dep),g=gateOf(I.f,true),d=null;try{d=bpData(I)}catch(_){}
+    var from=hm(dep-180),until=(d&&d.board)||hm(dep-30),no='LI'+String(Math.abs((I.d.pnr+I.name+I.f.code).split('').reduce(function(h,c){return (h*31+c.charCodeAt(0))|0},7))%1000000).padStart(6,'0');
     return '<section class="k31pr-doc k31pr-lg"><div class="k31pr-lgcard"><div class="k31pr-lgtop"><small>LOUNGE INVITATION</small><b>KGM <span>AIRWAYS</span></b></div>'
       +'<h3>'+E(lgName(I.f.fr))+'</h3>'
-      +'<div class="k31pr-lgrow"><div><small>'+(z()?'旅客':'Guest')+'</small><b>'+E(I.name)+'</b></div><div><small>'+(z()?'資格':'Eligibility')+'</small><b>'+E(why)+'</b></div></div>'
-      +'<div class="k31pr-lgrow"><div><small>'+(z()?'航班':'Flight')+'</small><b>'+E(I.f.code)+' · '+E(I.f.fr)+'→'+E(I.f.to)+'</b></div><div><small>'+(z()?'日期':'Date')+'</small><b>'+E(I.f.date)+'</b></div><div><small>'+(z()?'同行':'Guests')+'</small><b>'+(guest?'+'+guest:(z()?'本人':'Holder only'))+'</b></div></div>'
-      +'<p>'+(z()?'限當日、本航班起飛前 3 小時起使用；請連同登機證出示。':'Valid on the day, from 3 hours before departure; present with your boarding pass.')+'</p></div></section>'}
+      +'<div class="k31pr-lgname">'+E(I.name)+'</div>'
+      +'<div class="k31pr-lgrow"><div><small>'+(z()?'航班':'Flight')+'</small><b>'+E(I.f.code)+'</b></div><div><small>'+(z()?'日期':'Date')+'</small><b>'+E(I.f.date)+'</b></div><div><small>'+(z()?'登機門':'Gate')+'</small><b>'+E(g?g.gate:'—')+'</b></div><div><small>'+(z()?'座位':'Seat')+'</small><b>'+E(I.seat||'—')+'</b></div></div>'
+      +'<div class="k31pr-lgfoot"><span>'+E(no)+'</span><span>'+(guest?(z()?'可攜同行 1 位':'+1 guest'):(z()?'限本人':'Holder only'))+'</span></div></div>'
+      +'<div class="k31pr-lgtx"><h4>'+(z()?'貴賓室使用說明':'How to use')+'</h4><dl>'
+      +'<dt>'+(z()?'資格':'Eligibility')+'</dt><dd>'+E(why)+'</dd>'
+      +'<dt>'+(z()?'可使用時間':'Valid')+'</dt><dd>'+E(I.f.date)+' '+E(from)+' – '+E(until)+(z()?'（起飛前 3 小時起，至登機時間）':' (3 h before departure until boarding)')+'</dd>'
+      +'<dt>'+(z()?'同行':'Guests')+'</dt><dd>'+(guest?(z()?'1 位（須搭乘同一航班）':'1 guest on the same flight'):(z()?'限本人':'Holder only'))+'</dd>'
+      +'<dt>'+(z()?'登機':'Boarding')+'</dt><dd>'+(z()?'登機門 ':'Gate ')+E(g?g.gate:'—')+(z()?'，登機時間 ':' · boarding ')+E(until)+'</dd></dl>'
+      +'<p>'+(z()?'請連同登機證出示本邀請卡。限當日本航班使用，不得轉讓。':'Present with your boarding pass. Valid only for this flight; not transferable.')+'</p></div></section>'}
   function docHtml(I,k){return k==='rc'?rcHtml(I):(k==='lg'?lgHtml(I):bpHtml(I))}
   /* ── 報到成功畫面的列印區 ── */
   window.kgmCiPrintR1103A=function(d){if(!d||!d.key)return '';var I=info(d),docs=docsOf(I),me=d.key+'|'+d.id;
@@ -67,9 +84,17 @@
     [].forEach.call(document.querySelectorAll('.k31ci-qb'),function(x){if(!x.checked)return;var m2=x.getAttribute('data-me'),q=Q.filter(function(y){return y.me===m2})[0];if(!q)return;jobs.push({I:info(q.d),ks:q.docs.map(function(y){return y.k})});Q.splice(Q.indexOf(q),1)});
     if(!jobs.length){var m=document.getElementById('k31ci-msg');if(m)m.textContent=z()?'請至少勾選一項。':'Select at least one.';return}
     printJobs(jobs)};
+  var TT={bp:['登機證','BOARDING PASS'],lg:['貴賓室邀請卡','LOUNGE INVITATION'],rc:['收據','RECEIPT']};
+  function pageHtml(j){var I=j.I,g=gateOf(I.f,true),now=new Date(),ts=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2)+' '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+    var who=(S.adminUser&&(S.adminUser.name||S.adminUser.empId))||'';
+    var order=['bp','lg','rc'].filter(function(k){return j.ks.indexOf(k)>=0});
+    return '<div class="k31pr-page"><div class="k31pr-ph"><div><b>KGM <span>AIRWAYS</span></b><small>'+(z()?'機場報到文件 · AIRPORT CHECK-IN DOCUMENTS':'AIRPORT CHECK-IN DOCUMENTS')+'</small></div>'
+      +'<dl><div><dt>'+(z()?'旅客':'Passenger')+'</dt><dd>'+E(I.name)+'</dd></div><div><dt>'+(z()?'航班':'Flight')+'</dt><dd>'+E(I.f.code)+' '+E(I.f.fr)+'→'+E(I.f.to)+'</dd></div><div><dt>'+(z()?'日期':'Date')+'</dt><dd>'+E(I.f.date)+' '+E(I.f.dep||'')+'</dd></div><div><dt>'+(z()?'登機門':'Gate')+'</dt><dd>'+E(g?g.gate:'—')+'</dd></div></dl></div>'
+      +order.map(function(k,i){return (i?(k==='rc'&&order.length>1?'<div class="k31pr-brk"></div>':'<div class="k31pr-cut"><span>✂ '+(z()?'沿虛線剪下':'Cut here')+'</span></div>'):'')+'<section class="k31pr-sec k31pr-s-'+k+'"><h5><b>'+(z()?TT[k][0]:'')+'</b>'+TT[k][1]+'</h5>'+docHtml(I,k)+'</section>'}).join('')
+      +'<div class="k31pr-pf">'+(z()?'列印：':'Printed ')+E(ts)+(who?' · '+E(who):'')+' · PNR '+E(I.d.pnr)+'</div></div>'}
   function printJobs(jobs){var box=document.getElementById('k31pr');if(!box){box=document.createElement('div');box.id='k31pr';document.body.appendChild(box)}
-    box.innerHTML=jobs.map(function(j){return j.ks.map(function(k){return '<div class="k31pr-page">'+docHtml(j.I,k)+'</div>'}).join('')}).join('');
-    window.KGM_CIPRINT_R1103A={at:Date.now(),pages:box.querySelectorAll('.k31pr-page').length,who:jobs.map(function(j){return j.I.name})};
+    box.innerHTML=jobs.map(pageHtml).join('');
+    window.KGM_CIPRINT_R1103A={at:Date.now(),pages:box.querySelectorAll('.k31pr-page').length,docs:box.querySelectorAll('.k31pr-sec').length,who:jobs.map(function(j){return j.I.name})};
     var h=document.documentElement;h.classList.add('k31-printing');var off=function(){h.classList.remove('k31-printing');window.removeEventListener('afterprint',off)};window.addEventListener('afterprint',off);
     try{if(!window.KGM_NOPRINT_R1103A)window.print()}catch(_){}setTimeout(off,60000)}
   window.kgmCiPrintJobsR1103A=printJobs;
@@ -112,9 +137,25 @@
     +'.k31ci-acts{display:flex;gap:8px;flex-wrap:wrap}.k31ci-msg{margin:8px 0 0;font-size:12.5px;color:#0B6B48;min-height:1em}'
     +'#k31pr{display:none}.k31pr-doc{font-family:inherit;color:#1D2622}.k31pr-rc{max-width:560px;margin:0 auto;padding:24px;border:1px solid #DDD}.k31pr-rc header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #1C3D33;padding-bottom:8px;margin-bottom:12px}.k31pr-rc header b span,.k31pr-lgtop b span{color:#B08A3E}'
     +'.k31pr-rc dl{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:13px;margin:0 0 14px}.k31pr-rc dt{color:#6B736F}.k31pr-rc table{width:100%;border-collapse:collapse;font-size:13px}.k31pr-rc th,.k31pr-rc td{padding:6px 4px;border-bottom:1px solid #EEE;text-align:left}.k31pr-rc td:last-child,.k31pr-rc th:last-child{text-align:right}.k31pr-rc tfoot td{font-weight:800}.k31pr-fine{font-size:11px;color:#777;margin-top:12px}'
-    +'.k31pr-lgcard{max-width:520px;margin:0 auto;padding:26px 28px;border-radius:18px;background:linear-gradient(140deg,#14322A,#1F4A3E 60%,#2A5B4D);color:#F4EFE2;box-shadow:0 0 0 2px #B08A3E inset}.k31pr-lgtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.k31pr-lgtop small{letter-spacing:.2em;font-size:10.5px;color:#D9C38F}'
-    +'.k31pr-lgcard h3{margin:0 0 14px;font-size:18px;font-weight:700}.k31pr-lgrow{display:flex;gap:22px;margin-bottom:10px}.k31pr-lgrow small{display:block;font-size:10px;letter-spacing:.12em;color:#CDBB8E}.k31pr-lgrow b{font-size:14px}.k31pr-lgcard p{margin:10px 0 0;font-size:11.5px;color:#E5DCC3}'
+    +'.k31pr-lg{display:grid;grid-template-columns:92mm 1fr;gap:8mm;align-items:start}.k31pr-lgcard{width:92mm;height:58mm;box-sizing:border-box;padding:5mm 6mm;border-radius:4mm;background:linear-gradient(140deg,#14322A,#1F4A3E 60%,#2A5B4D);color:#F4EFE2;box-shadow:0 0 0 .6mm #B08A3E inset;display:flex;flex-direction:column;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.k31pr-lgtop{display:flex;justify-content:space-between;align-items:center}.k31pr-lgtop small{letter-spacing:.22em;font-size:7.5pt;color:#D9C38F}.k31pr-lgtop b{font:700 10pt Georgia,serif}.k31pr-lgcard h3{margin:3mm 0 1mm;font:700 11pt Georgia,serif;color:#fff}'
+    +'.k31pr-lgname{font-size:13pt;font-weight:800;letter-spacing:.04em;margin:1mm 0 2.5mm}.k31pr-lgrow{display:flex;gap:6mm}.k31pr-lgrow small{display:block;font-size:6.5pt;letter-spacing:.12em;color:#CDBB8E}.k31pr-lgrow b{font-size:10.5pt}'
+    +'.k31pr-lgfoot{margin-top:auto;display:flex;justify-content:space-between;font-size:7pt;color:#D9C38F;letter-spacing:.1em;border-top:.3mm solid rgba(217,195,143,.45);padding-top:1.5mm}'
+    +'.k31pr-lgtx h4{margin:0 0 2.5mm;font-size:11pt;color:#14322A}.k31pr-lgtx dl{display:grid;grid-template-columns:22mm 1fr;gap:1.6mm 3mm;margin:0;font-size:9pt}.k31pr-lgtx dt{color:#6B736F}.k31pr-lgtx dd{margin:0;color:#1D2622}.k31pr-lgtx p{margin:3mm 0 0;font-size:8pt;color:#6B736F;line-height:1.5}'
+    +'.k31pr-page{width:190mm;margin:0 auto;box-sizing:border-box;font-family:"Noto Sans TC",system-ui,sans-serif;color:#1D2622}'
+    +'.k31pr-ph{display:flex;justify-content:space-between;align-items:flex-end;gap:6mm;border-bottom:.6mm solid #14322A;padding-bottom:3mm;margin-bottom:5mm}.k31pr-ph b{display:block;font:900 15pt Georgia,serif;color:#14322A}.k31pr-ph b span{color:#B08A3E}.k31pr-ph small{font-size:7pt;letter-spacing:.14em;color:#8A7F68;font-weight:700}'
+    +'.k31pr-ph dl{display:flex;gap:6mm;margin:0}.k31pr-ph dt{font-size:6.5pt;letter-spacing:.1em;color:#8A7F68;font-weight:700}.k31pr-ph dd{margin:0;font-size:10pt;font-weight:800}'
+    +'.k31pr-sec{break-inside:avoid;page-break-inside:avoid}.k31pr-sec h5{margin:0 0 2.5mm;font-size:7.5pt;letter-spacing:.16em;color:#8A7F68;font-weight:700}.k31pr-sec h5 b{font-size:9pt;letter-spacing:0;color:#14322A;margin-right:2.5mm}'
+    +'.k31pr-cut{position:relative;border-top:.35mm dashed #B9B2A3;margin:5mm 0 4mm;height:0}.k31pr-cut span{position:absolute;right:0;top:-2.2mm;background:#fff;padding-left:2mm;font-size:7pt;color:#A39C8C}'
+    +'.k31pr-pf{margin-top:5mm;font-size:7pt;color:#A39C8C;text-align:right}'
+    /* 登機證在 A4 上縮成合適大小（版型本身不動，只調列印字級） */
+    +'.k31pr-page .k12bp-one{margin:0}.k31pr-page .k12bp-card{border:.3mm solid #C9C4B8;border-radius:3mm;box-shadow:none}.k31pr-page .k12bp-k{font-size:7.5pt}.k31pr-page .k12bp-v{font-size:14pt}.k31pr-page .k12bp-cab{font-size:11pt}.k31pr-page .k12bp-logo b{font-size:13pt}'
+    +'.k31pr-page .k12bp-dl{font-size:8.5pt}.k31pr-page .k12bp-note{font-size:8pt}.k31pr-page .k12bp-qr{width:24mm;height:24mm}.k31pr-page .k12bp-ap b{font-size:14pt}.k31pr-page .k12bp-ap span{font-size:7.5pt}.k31pr-page .k12bp-fl .k12bp-v{font-size:16pt}'
+    +'.k31pr-page .k12bp-info{font-size:8pt;margin:3mm 0 3mm;padding:3mm 4mm;background:#F6F3EC;border-radius:2mm}.k31pr-page .k12bp-info h4{font-size:8.5pt;font-weight:700;margin:0 0 1.5mm}.k31pr-page .k12bp-info ul{padding-left:4mm}.k31pr-page .k12bp-info li{margin:1mm 0;line-height:1.45}'
+    +'.k31pr-page .k12bp-stub{padding:3mm 5mm;margin:0;border-radius:2mm;font-size:8.5pt}.k31pr-page .k12bp-stub dl{font-size:8.5pt;gap:1.5mm 6mm}.k31pr-page .k12bp-imm{font-size:8pt;padding:3mm 6mm}'
+    +'.k31pr-rc{max-width:none;border:.3mm solid #DDD}.k31pr-s-bp .k12bp-one{zoom:.8}.k31pr-brk{break-before:page;page-break-before:always;height:0}'
+    +'@media print{html.k31-printing,html.k31-printing body{background:#fff!important}}'
     +'.k31-toast{position:fixed;right:22px;bottom:22px;z-index:99999;background:#14322A;color:#F4EFE2;padding:11px 16px;border-radius:12px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.18)}'
-    +'@media print{html.k31-printing body>*{display:none!important}html.k31-printing #k31pr{display:block!important}html.k31-printing .k31pr-page{page-break-after:always;break-after:page;padding:12mm 0}html.k31-printing .k31pr-page:last-child{page-break-after:auto}}';
+    +'@media print{html.k31-printing body>*{display:none!important}html.k31-printing #k31pr{display:block!important}@page{size:A4;margin:10mm}html.k31-printing .k31pr-page{page-break-after:always;break-after:page;padding:0}html.k31-printing .k31pr-page:last-child{page-break-after:auto}}';
     document.head.appendChild(cs)}catch(_){}
 })();
