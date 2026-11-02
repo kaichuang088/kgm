@@ -4,8 +4,8 @@
 #   參考：華航 2025 年底起改採會籍積分（一年 360／720／1,400 分，50% 以上須為華航自營航班），並承諾兩年內只升不降。
 #   網站：js/tp31.js（同一份門檻與計算）；PDF：pol/ffp31_pdf.py。
 ID = 'KGM-FFP-011'
-VER_OLD = '"ver":"2026.10（Rev. C）","eff":"2026-10-12"'
-VER_NEW = '"ver":"2026.11（Rev. D）","eff":"2026-11-15"'
+VER_OLD = '"ver":"2026.10（Rev. C）","eff":"2026-10-12","owner":"會員行銷處","arts":19'
+VER_NEW = '"ver":"2026.11（Rev. D）","eff":"2026-11-15","owner":"會員行銷處","arts":20'   # 多一條第 4 條之一（同 IRR-013 Rev. B 第 8 條之一的算法）
 TBL1 = ('<table class="t"><caption>表一之一　距離基數</caption><thead><tr><th>航段大圓距離</th><th>基數</th></tr></thead><tbody>'
         '<tr><td>未滿 1,000 公里</td><td>10</td></tr><tr><td>1,000～1,999 公里</td><td>15</td></tr><tr><td>2,000～3,999 公里</td><td>20</td></tr>'
         '<tr><td>4,000～6,999 公里</td><td>35</td></tr><tr><td>7,000～9,999 公里</td><td>50</td></tr><tr><td>10,000 公里以上</td><td>60</td></tr></tbody></table>')

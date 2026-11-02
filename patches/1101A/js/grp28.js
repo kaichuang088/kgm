@@ -39,7 +39,7 @@
         +'<li><b>'+(zh?'改期・退票':'Changes & refunds')+'</b><span>'+(zh?'開票後不能改期、改航班或改名；未搭乘不退票價（只退未使用的機場稅）':'No date/flight/name changes after ticketing; unused tickets refund taxes only')+'</span></li>'
         +'<li><b>'+(zh?'選位':'Seats')+'</b><span>'+(zh?'經濟艙每位 NT$750、豪經每位 NT$2,000（整團一次劃位）':'Economy NT$750, Premium NT$2,000 per person')+'</span></li>'
         +'<li><b>'+(zh?'哩程':'Miles')+'</b><span>'+(zh?'累積比率與會籍積分為同艙超值票的 50%；不可哩程升等或 BigDeal':'50% of Value fares; no upgrades')+'</span></li>'
-      +'</ul><p class="k31g-n">'+(zh?'完整條文：《團體旅客運送規定》KGM-GRP-021。':'Full terms: KGM-GRP-021.')+'</p></div></div>'
+      +'</ul><p class="k31g-n">'+(zh?'完整條文：《團體訂位規章》KGM-GRP-021。':'Full terms: KGM-GRP-021.')+'</p></div></div>'
       +'<div class="k28g-how"><div><b>'+(zh?'現有航班':'Scheduled flights')+'</b><span>'+(zh?'在時刻表上的航班訂團體票':'Book seats on scheduled flights')+'</span><div class="b"><button type="button" class="g" onclick="kgmGrpPickR1101A(\'G\')">'+(zh?'用團體票 G 訂位':'Book group fare')+'</button></div></div>'
       +'<div><b>'+(zh?'包機':'Charter')+'</b><span>'+(zh?'整架包下現有航班；起飛前 6 個月申請，機型不能更換':'Whole aircraft on a scheduled flight')+'</span><div class="b"><button type="button" onclick="kgmGrpPickR1101A(\'G\',\'charter\')">'+(zh?'申請包機':'Request charter')+'</button></div></div>'
       +'<div><b>'+(zh?'自創航班':'Custom flight')+'</b><span>'+(zh?'自訂航線與日期（包機進階版）；填需要人數，起飛前 3 個月申請，可申請換大機型':'Your own route and date')+'</span><div class="b"><button type="button" onclick="kgmGrpPickR1101A(\'G\',\'custom\')">'+(zh?'申請自創航班':'Request custom flight')+'</button></div></div></div>'

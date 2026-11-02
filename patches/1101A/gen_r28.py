@@ -690,6 +690,13 @@ RW('ga31 bind progress',"{at:now,status:'resolved',label:z()?'AI 審核通過（
    "{at:now,status:'processing',label:z()?'AI 客服初步核對完成，轉 KGM 團體業務人工審核（公司登記、執照、負責人與聯絡人國籍）':'Forwarded to the group desk for review',by:'AI'}")
 RW('ga31 bind mail',"'您的團體帳號已由 AI 客服審核開通（'+d.company+'），開放期間 '+rec.from+' ～ '+rec.to+'；期間內可在首頁訂票卡的「團體訂位」分頁訂位。':'Your group account is active.'",
    "'已收到您的團體帳號申請（'+d.company+'），KGM 團體業務會人工審核，通常 3 個工作天內以 email 通知結果。':'We received your group account application and will email you the result.'")
+# 1103A：G 的票價卡／退改判斷文字跟規則一致（原本沿用 Q 的「NT$1,400／NT$2,600」，但 G 開票後不改不退）；行李、票價家族跟 Q 一樣（G 沿用 Q 的票價與期限）
+RW('g31 chg txt',"chgZH:'NT$'+P.chg.toLocaleString(),chgEN:'NT$'+P.chg.toLocaleString(),refZH:'NT$'+P.ref.toLocaleString(),refEN:'NT$'+P.ref.toLocaleString(),",
+   "chgZH:k==='G'?'開票後不可改票':'NT$'+P.chg.toLocaleString(),chgEN:k==='G'?'No changes after ticketing':'NT$'+P.chg.toLocaleString(),refZH:k==='G'?'不可退票（未使用之代收稅費可申請退還）':'NT$'+P.ref.toLocaleString(),refEN:k==='G'?'Non-refundable (unused taxes refundable on request)':'NT$'+P.ref.toLocaleString(),")
+RW('g31 fam',"familyR48:k==='Q'?'Basic':'Value'","familyR48:k==='U'?'Value':'Basic'")
+RW('g31 bag',"if(cab==='Economy')o.bag=k==='Q'?","if(k==='G'){try{var mv31=(FARES[bu]||{}).mile;if(mv31!=null)o.mile=Math.round(mv31/2)}catch(_){}}   /* 1103A：G 哩程累積＝同艙超值票的 50%（會籍積分同，tp31） */\n        if(cab==='Economy')o.bag=k!=='U'?")
+RW('g31 ref alert',"alert(LANG===\"en\"?\"This fare is non-refundable. You can still change the flight for a fee.\":\n      \"此票種不可退票。您仍可以付費改票。\");",
+   "alert(/不可改票/.test((FARES[fareCode]||{}).chgZH||'')?(LANG===\"en\"?\"This group fare (G) can be neither refunded nor changed after ticketing. To reclaim unused taxes, please open a case.\":\"團體票（G 艙）開票後不可退票、也不可改票；未使用之代收稅費請以「建立案件」申請退還。\"):(LANG===\"en\"?\"This fare is non-refundable. You can still change the flight for a fee.\":\n      \"此票種不可退票。您仍可以付費改票。\"));   /* 1103A */")
 RW('ga31 hero pending',"'AI 客服已核對您的資料，KGM 團體業務核准並設定開放期間後會寄信通知您。'","'KGM 團體業務人工審核中（公司登記、旅行業執照、負責人與聯絡人國籍），通常 3 個工作天內以 email 通知結果；審核通過前不能訂團體票。'")
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")

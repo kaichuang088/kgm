@@ -56,7 +56,7 @@
       +row(z()?'預估年度出團數':'Groups per year',sel('volume',[['1-5','1–5'],['6-20','6–20'],['21-50','21–50'],['51+','51+']]),1)
       +row(z()?'主要目的地':'Main destinations',inp('dests',z()?'例：日本、泰國':''),0)
       +row(z()?'申請說明':'Notes',inp('reason',z()?'主要客群、出團型態等':''),0,1)
-      +'</div><label class="k31ga-ck"><input type="checkbox"'+(f.agree?' checked':'')+' onchange="kgmGaSetR1103A(\'agree\',this.checked)"> '+(z()?'我已閱讀並同意《團體旅客運送規定》KGM-GRP-021（團體票 G：開票後不能改期、不退票價），並保證以上資料屬實。':'I agree to KGM-GRP-021 and confirm the information is true.')+'</label>'
+      +'</div><label class="k31ga-ck"><input type="checkbox"'+(f.agree?' checked':'')+' onchange="kgmGaSetR1103A(\'agree\',this.checked)"> '+(z()?'我已閱讀並同意《團體訂位規章》KGM-GRP-021（團體票 G：開票後不能改期、不退票價），並保證以上資料屬實。':'I agree to KGM-GRP-021 and confirm the information is true.')+'</label>'
       +(f.err?'<p class="k31ga-warn">'+E(f.err)+'</p>':'')
       +'<button class="k31ga-go" onclick="kgmGaSubmitR1103A()">'+(z()?'送出申請':'Submit application')+'</button></section>'}
   function summary(x){var a=x.appR1103A||{};return [[z()?'公司':'Org',x.company],[z()?'統編':'Tax ID',x.taxId],[z()?'執照':'Licence',x.license||'—'],[z()?'登記國家':'Country',natName(a.country)],[z()?'負責人':'Representative',(a.owner||'')+'（'+natName(a.ownerNat)+'）'],[z()?'聯絡人':'Contact',((x.contact||{}).name||'')+'（'+natName(a.contactNat)+'）'],[z()?'電話／email':'Phone / email',((x.contact||{}).phone||'')+' · '+((x.contact||{}).email||'')],[z()?'地址':'Address',a.addr||''],[z()?'年度出團':'Volume',a.volume||''],[z()?'目的地':'Destinations',a.dests||'—']].map(function(r){return '<dt>'+E(r[0])+'</dt><dd>'+E(r[1])+'</dd>'}).join('')}
