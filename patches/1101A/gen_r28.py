@@ -626,6 +626,38 @@ EMB28.append('ov31.js')
 RW('kc31 menu','{zh:"哩程補登",en:"Retro Claim",nav:"profile"}]}\n    ]}\n  };',
    '{zh:"哩程補登",en:"Retro Claim",nav:"profile"}]}\n    ]},\n    ...((window.kgmHasCardR1103A&&window.kgmHasCardR1103A())?{cards31:{zh:"KGM Cards",en:"KGM Cards",cols:[   /* 1103A：綁定 KGM Cards 的會員才有（kc31.js） */\n      {zh:"我的卡片",en:"My Card",items:[{zh:"帳單與消費",en:"Statement",nav:"card31"},{zh:"機場接送",en:"Airport Transfer",nav:"card31x"}]},\n      {zh:"卡片權益",en:"Benefits",items:[{zh:"卡別與權益",en:"Card Benefits",nav:"card31p"}]}\n    ]}}:{})\n  };')
 EMB28.append('kc31.js')
+# B：會籍積分（tp31.js）——卡等只看會籍積分＋自營航班會籍積分（KGM-FFP-011 Rev. D）；會員頁面板、卡級效期、AI 回答、權益說明、規章
+RW('tp31 eval',"window.kgmTierEvalR1006A=function(u){\n  var f=flownStats(u||{}),best='Bronze';",
+   "window.kgmTierEvalR1006A=function(u){\n  if(window.kgmTpEvalR1103A){var e31=window.kgmTpEvalR1103A(u||{}),f31=flownStats(u||{});return {tier:e31.tier,miles:f31.miles,sectors:f31.sectors,tp:e31.tp,own:e31.own}}   /* 1103A：卡等改看會籍積分（tp31.js） */\n  var f=flownStats(u||{}),best='Bronze';")
+RW('tp31 panel',"function qualPanel(){\n  var u=me()||{};","function qualPanel(){\n  if(window.kgmTpPanelR1103A)return window.kgmTpPanelR1103A(me()||{});   /* 1103A：會籍積分面板（華航式：兩個環形量表） */\n  var u=me()||{};")
+RW('tp31 valid',"<small>'+(Z()?'卡級效期':'VALIDITY')+'</small><b>'+(Z()?'永久':'Lifetime')+'</b>",
+   "<small>'+(Z()?'卡級效期':'VALIDITY')+'</small><b>'+(window.kgmTierValidR1103A?window.kgmTierValidR1103A(u):(Z()?'永久':'Lifetime'))+'</b>")
+RW('tp31 renew',"<div><small>'+(Z()?'續卡資格計算':'RENEWAL')+'</small><b>'+(Z()?'永久':'Lifetime')+'</b></div></section>';",
+   "<div><small>'+(Z()?'會籍積分（'+todayISO().slice(0,4)+'）':'TIER POINTS')+'</small><b>'+(window.kgmTpOfR1103A?window.kgmTpOfR1103A(u).tp:0).toLocaleString()+' <em>'+(Z()?'分':'pts')+'</em></b><span>'+(Z()?'自營航班 ':'On KGM ')+(window.kgmTpOfR1103A?window.kgmTpOfR1103A(u).own:0).toLocaleString()+(Z()?' 分':' pts')+'</span></div></section>';")
+RW('tp31 ai1','["Bronze","0–9,999 資格哩程"','["Bronze","加入即享"')
+RW('tp31 ai2','["Silver","10,000 資格哩程或 12 航段"','["Silver","會籍積分 240 分（自營 120 分）"')
+RW('tp31 ai3','["Gold","20,000 資格哩程或 24 航段"','["Gold","會籍積分 480 分（自營 240 分）"')
+RW('tp31 ai4','["Diamond","40,000 資格哩程或 48 航段"','["Diamond","會籍積分 960 分（自營 480 分）"')
+RW('tp31 ai5',"會員等級：Bronze(免費)→Silver(10,000 資格哩程或 12 航段)→Gold(20,000 或 24 航段)→Black/Diamond(40,000 或 48 航段)。資格以每年 1/1–12/31 實際搭乘 KGM 航班計算（購買、受讓的里程不列入），只升不降。",
+   "會員等級看會籍積分：Bronze(免費)→Silver(240 分，其中 KGM 自營航班 120 分)→Gold(480／240)→Black/Diamond(960／480)。每年 1/1–12/31 累計；每航段＝距離基數 10～60 分 × 艙等票價比率，KGM Cards Star G／M 簽帳也送。哩程與航段數不再作為門檻；2027 年底前只升不降（KGM-FFP-011 Rev. D）。")
+RW('tp31 ai6',"Tiers: Bronze (free) → Silver (10,000 qualifying miles or 12 sectors) → Gold (20,000 or 24) → Black/Diamond (40,000 or 48). Counted per calendar year on KGM flights actually flown; purchased or transferred miles do not qualify. Never downgrades.",
+   "Tiers run on tier points: Bronze (free) → Silver (240, of which 120 on KGM-operated flights) → Gold (480/240) → Black/Diamond (960/480), per calendar year. Each segment earns a distance base of 10–60 × the cabin/fare rate; KGM Cards Star G/M spend also earns. Miles and sectors no longer qualify; no downgrades until the end of 2027 (KGM-FFP-011 Rev. D).")
+RW('tp31 req1','每年 1/1–12/31 搭乘 KGM 累積 10,000 資格哩程，或 12 個航段（擇一）','每年 1/1–12/31 累積會籍積分 240 分，其中 KGM 自營航班會籍積分至少 120 分',2)
+RW('tp31 req2','每年 1/1–12/31 搭乘 KGM 累積 20,000 資格哩程，或 24 個航段（擇一）','每年 1/1–12/31 累積會籍積分 480 分，其中 KGM 自營航班會籍積分至少 240 分',2)
+RW('tp31 req3','每年 1/1–12/31 搭乘 KGM 累積 40,000 資格哩程，或 48 個航段（擇一）','每年 1/1–12/31 累積會籍積分 960 分，其中 KGM 自營航班會籍積分至少 480 分',2)
+RW('tp31 req4','資格哩程僅計本人實際搭乘 KGM 航班；購買、受讓、酬賓及員工票不列入','會籍積分依航段距離與艙等票價計算，KGM Cards Star G／M 簽帳也累積；購買、受讓的哩程與酬賓、員工票不列入',6)
+RW('tp31 mt1','次年度再達成 Silver 門檻（10,000 資格哩程或 12 個航段）','次年度再達成 Silver 門檻（240 分，自營 120 分）',2)
+RW('tp31 mt2','次年度再達成 Gold 門檻（20,000 資格哩程或 24 個航段）','次年度再達成 Gold 門檻（480 分，自營 240 分）',2)
+RW('tp31 mt3','次年度再達成 Black 門檻（40,000 資格哩程或 48 個航段）','次年度再達成 Black 門檻（960 分，自營 480 分）',2)
+EMB28.append('tp31.js')
+import ffp_doc31, crd_doc31
+for _i,(_a,_b) in enumerate(ffp_doc31.PAIRS):
+  RW('ffp31 %d'%_i,_a.replace('"','\\"'),_b.replace('"','\\"'))
+RW('ffp31 ver','"KGM-FFP-011":{"t":"KGM Explorer 會員及哩程計畫條款","en":"KGM Explorer Membership and Mileage Programme",'+ffp_doc31.VER_OLD,
+   '"KGM-FFP-011":{"t":"KGM Explorer 會員及哩程計畫條款","en":"KGM Explorer Membership and Mileage Programme",'+ffp_doc31.VER_NEW)
+RW('crd31 doc','window.KGM_POLICY_DOCS_R914["KGM-CRD-020"]='+json.dumps(crd_doc31.old_doc(),ensure_ascii=False)+';',
+   'window.KGM_POLICY_DOCS_R914["KGM-CRD-020"]='+json.dumps(crd_doc31.doc(),ensure_ascii=False)+';')   # 1103A：CRD-020 Rev. B（crd_doc31.py，PDF 同一份）
+
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")

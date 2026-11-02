@@ -26,7 +26,7 @@
   function base(km){for(var i=0;i<BANDS.length;i++)if(km<BANDS[i][0])return BANDS[i][1];return 60}
   function pctOf(code){var f=null;try{f=FARES[code]}catch(_){}if(!f)return 100;var cab=f.cabin||'Economy',fam=String(f.familyR48||f.tierEN||f.tier||'Value'),t=PCT[cab]||PCT.Economy;
     if(/staff/i.test(fam)||/^S[EKZH]$/.test(code))return 0;
-    if(/group/i.test(fam)||/^G$/.test(code))return Math.round((t.Value||100)/2);
+    if(/group/i.test(String(f.tierEN||'')+' '+fam)||/^G$/.test(code))return Math.round((t.Value||100)/2);   /* 團體票（Group Saver／Flex）的 familyR48 寫的是 Basic／Value → 先看 tierEN */
     return t[fam]!=null?t[fam]:(t.Value||100)}
   window.kgmTpSegR1103A=function(fr,to,fare){var km=0;try{km=distOf(fr,to)||0}catch(_){}return Math.round(base(km)*pctOf(fare)/100)};
   function partnerOf(code,fr,to){if(!/^KX/.test(String(code||'')))return true;try{var r=[].concat(FLIGHTS,S.customFlights||[]).filter(function(f){return f&&f.code===code&&f.fr===fr&&f.to===to})[0];return !!(r&&r.partner)}catch(_){return false}}
@@ -69,7 +69,7 @@
   try{var css=document.createElement('style');css.textContent=[
     '.k31t-h{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.k31t-h small{font-size:10px;letter-spacing:.16em;color:var(--gold,#a77d33);font-weight:800}.k31t-h h3{margin:2px 0 4px}.k31t-h p{margin:0;font-size:12px;color:#6b645a;max-width:360px;line-height:1.55}',
     '.k31t-card{width:200px;border-radius:14px;padding:12px 14px;color:#fff;background:linear-gradient(135deg,#7a6a52,#b49a6c);box-shadow:0 8px 20px rgba(0,0,0,.12)}.k31t-card.silver{background:linear-gradient(135deg,#6f7780,#c4ccd4)}.k31t-card.gold{background:linear-gradient(135deg,#8A6A22,#D6B25E)}.k31t-card.diamond,.k31t-card.black{background:linear-gradient(135deg,#0d0d0d,#3a3a3a 65%,#7d6a40)}',
-    '.k31t-card small{font-size:9px;letter-spacing:.16em;opacity:.85}.k31t-card b{display:block;font:700 20px Georgia,serif;margin:4px 0 2px}.k31t-card span{font:600 11.5px ui-monospace,monospace;letter-spacing:.08em;opacity:.9}.k31t-card dl{display:flex;gap:16px;margin:8px 0 0}.k31t-card dt{font-size:9.5px;opacity:.8}.k31t-card dd{margin:0;font-weight:800;font-size:12.5px}',
+    '.k31t-card small{font-size:9px;letter-spacing:.16em;opacity:.85;color:#fff!important}.k31t-card b{display:block;font:700 20px Georgia,serif;margin:4px 0 2px}.k31t-card span{font:600 11.5px ui-monospace,monospace;letter-spacing:.08em;opacity:.9}.k31t-card dl{display:flex;gap:16px;margin:8px 0 0}.k31t-card dt{font-size:9.5px;opacity:.8}.k31t-card dd{margin:0;font-weight:800;font-size:12.5px}',
     '.k31t-rings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 8px}.k31t-ring{position:relative;text-align:center;background:#fbf9f4;border:1px solid #ece6d8;border-radius:14px;padding:12px 8px}.k31t-ring svg{display:block;margin:0 auto}',
     '.k31t-rv{position:absolute;left:0;right:0;top:48px;text-align:center}.k31t-rv b{display:block;font-size:24px;color:#0b3b30;line-height:1}.k31t-rv span{font-size:11px;color:#8a8175}.k31t-ring h5{margin:6px 0 2px;font-size:13px;color:#0b3b30}.k31t-ring p{margin:0;font-size:11.5px;color:#6b645a}.k31t-ring p b{color:#9b2d17}',
     '.k31t-keep{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:8px;margin:8px 0}.k31t-keep>div{border:1px solid #ece6d8;border-radius:10px;padding:8px 10px}.k31t-keep small{display:block;font-size:10.5px;color:#8a8175;font-weight:700}.k31t-keep b{font-size:13px;color:#0b3b30}',

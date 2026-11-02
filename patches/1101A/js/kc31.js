@@ -9,7 +9,7 @@
    · 會籍積分（CRD-020 Rev. B 新增）：Star G 每 NT$10,000 簽帳 2 分、Star M 3 分，同時計入「會籍積分」與「自營航班會籍積分」；每曆年上限 Star G 100 分、Star M 200 分。Star K 不送。
    · 機場接送（CRD-020 Rev. B 新增）：Star G／Star M 每曆年 2 次（桃園／松山，限搭乘 KGM 航班當天），起飛／抵達前 24 小時前可取消並退回次數。
    · 消費資料：發卡銀行是虛構的，消費明細依卡片編號固定產生（同一張卡每次開頁一樣）；會員自己用這張卡（付款方式末四碼相同）在官網買的 KGM 機票照實列入。
-     結帳日每月最後一天，結帳後 9 天（約 7 個工作日）入帳到綁定的 Explorer 帳戶；綁定前一年內已結帳的帳單在綁定後補入（CRD-020 第 10 條）。
+     結帳日每月最後一天，結帳後 9 天（約 7 個工作日）入帳到綁定的 Explorer 帳戶；綁定前一年內已結帳的帳單在綁定後補入（CRD-020 第 9 條）。
    · 入帳紀錄 S.cardPostR1103A（kgm31_cpost，卡片 → 已入帳月份）；接送預約 S.cardXferR1103A（kgm31_xfer）。 */
 (function(){
   if(window.__kc31)return;window.__kc31=1;
@@ -24,7 +24,7 @@
             starg:{dom:20,ovs:15,kgm:10,cap:200000,fee:8800,fx:1.0,tp:2,tpCap:100,xfer:2,name:'Star G',lounge:6},
             starm:{dom:15,ovs:10,kgm:8,cap:Infinity,fee:36000,fx:0,tp:3,tpCap:200,xfer:2,name:'Star M',lounge:-1}};
   window.KGM_CARD_RATE_R1103A=RATE;
-  /* 商店：[名稱, 類別 dom/ovs/ovsweb/none, 原幣, 金額範圍(原幣)]；none＝不回饋（CRD-020 第 11 條） */
+  /* 商店：[名稱, 類別 dom/ovs/ovsweb/none, 原幣, 金額範圍(原幣)]；none＝不回饋（CRD-020 第 10 條） */
   var SHOP=[['全聯福利中心','dom','TWD',[180,2600]],['誠品書店','dom','TWD',[320,2400]],['台灣高鐵','dom','TWD',[700,3000]],['台灣中油','dom','TWD',[900,2200]],['新光三越','dom','TWD',[1500,26000]],
     ['Uber Eats','dom','TWD',[220,1100]],['中華電信','dom','TWD',[499,1399]],['好市多 Costco','dom','TWD',[1800,12000]],['鼎泰豐','dom','TWD',[900,4200]],['台北 101 購物中心','dom','TWD',[2000,48000]],
     ['Amazon.com','ovsweb','USD',[18,420]],['Apple.com/us','ovsweb','USD',[1,1599]],['Booking.com','ovsweb','EUR',[120,980]],['Agoda','ovsweb','USD',[90,760]],['Netflix.com','ovsweb','USD',[15,23]],['Steam','ovsweb','USD',[9,70]],
@@ -123,7 +123,7 @@
     var body='';
     if(tab==='bill')body='<section class="k31c-box"><div class="k31c-bh"><label>'+(z()?'帳單月份':'Statement')+'<select class="inp" onchange="S.k31ym=this.value;render()">'+ms.map(function(m){return '<option value="'+m+'"'+(m===ym?' selected':'')+'>'+m+'</option>'}).join('')+'</select></label>'
         +'<div class="k31c-sum"><span><small>'+(z()?'結帳日':'Closing')+'</small><b>'+E(s.close)+'</b></span><span><small>'+(z()?'本期應繳':'Amount due')+'</small><b>NT$'+N(s.bill)+'</b></span><span><small>'+(z()?'繳款截止':'Due')+'</small><b>'+E(s.due)+'</b></span><span><small>'+(z()?'本期回饋':'Miles')+'</small><b>'+N(s.mi)+(z()?' 哩':' mi')+'</b></span><span>'+stState(s)+'</span></div></div>'+stmtTable(s)
-        +'<p class="k31c-foot">'+(z()?'海外消費＝交易幣別非新臺幣或收單機構在境外（含國外網站）。預借現金、繳稅、年費與手續費不回饋（KGM-CRD-020 第 11 條）。':'')+'</p></section>';
+        +'<p class="k31c-foot">'+(z()?'海外消費＝交易幣別非新臺幣或收單機構在境外（含國外網站）。預借現金、繳稅、年費與手續費不回饋（KGM-CRD-020 第 10 條）。':'')+'</p></section>';
     else if(tab==='miles')body='<section class="k31c-box"><table class="k31c-t"><thead><tr><th>'+(z()?'帳單月份':'Month')+'</th><th class="r">'+(z()?'國內':'Domestic')+'</th><th class="r">'+(z()?'海外（含線上）':'Overseas')+'</th><th class="r">KGM</th><th class="r">'+(z()?'簽帳合計':'Spend')+'</th><th class="r">'+(z()?'回饋哩程':'Miles')+'</th><th>'+(z()?'入帳':'Status')+'</th></tr></thead><tbody>'
         +ms.map(function(m){var q=stmt(c,m),by={dom:0,ovs:0,kgm:0};q.L.forEach(function(t){if(t.cat==='dom')by.dom+=t.twd;else if(t.cat==='ovs'||t.cat==='ovsweb')by.ovs+=t.twd;else if(t.cat==='kgm')by.kgm+=t.twd});
           return '<tr><td><a href="javascript:void(0)" onclick="S.k31ym=\''+m+'\';S.k31tab=\'bill\';render()">'+m+'</a></td><td class="r">'+N(by.dom)+'</td><td class="r">'+N(by.ovs)+'</td><td class="r">'+N(by.kgm)+'</td><td class="r">'+N(q.spend)+'</td><td class="r"><b>'+N(q.mi)+'</b></td><td>'+stState(q)+'</td></tr>'}).join('')+'</tbody></table>'
