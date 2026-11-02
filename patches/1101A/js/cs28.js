@@ -228,6 +228,19 @@
   var PCL={refund_req:['退款申請','Refund request'],bag_delayed:['行李延誤','Delayed baggage'],bag_lost:['行李遺失','Lost baggage'],bag_damaged:['行李損壞','Damaged baggage'],item_lost:['遺失物品','Lost property'],
     complaint:['服務客訴','Service complaint'],assistance:['特殊協助','Special assistance'],miles_claim:['里程補登','Missing miles'],group_change:['團體改名／名單異動','Group name change'],other:['其他','Other'],pet:['寵物同行申請','Pet travel']};
   function caseLabel(k){var p=PCL[k];return p?(z()?p[0]:p[1]):k}
+  /* 1103A：航班資料的作業動作套用到旅客（移出、升等、超賣補償、自願讓位、非自願／自願降等）→ 自動成立案件（使用者：「後台可能在航班資料表格按下任意一個action有套用到旅客那旅客就會自動收到案件成立」）。
+     真的訂位：旅客「我的案件」看得到、訂位通知寫案件編號、有 Email 才寄（模擬旅客不寄）。 */
+  window.kgmCaseAutoR1103A=function(o){try{var no=caseNo(),at=new Date().toISOString(),b=null;try{b=(S.bookings||[]).filter(function(x){return x&&x.pnr===o.pnr})[0]||null}catch(_){}
+      var rec={caseNo:no,pnr:o.pnr,type:o.type||'other',status:'processing',priority:o.priority||'normal',paxIndex:0,paxName:o.paxName||'',segment:o.segment||{},detail:o.detail||'',bag:null,files:[],
+        createdAt:at,updatedAt:at,by:{empId:o.empId||'',name:o.staff||'',role:'ground'},assignee:{empId:o.empId||'',name:o.staff||''},userId:(b&&b.userId)||null,email:(b&&(b.contactEmail||((b.paxList||[])[0]||{}).email))||'',
+        typeLabelR1101A:o.label||'',autoR1103A:o.act||'',simR1103A:!b,
+        progress:[{at:at,status:'received',label:z()?'航班作業自動建立':'Opened automatically by flight operations',by:o.staff||'GROUND'},{at:at,status:'processing',label:o.detail||'',by:o.staff||'GROUND'}],notes:[]};
+      addCase(rec);
+      if(b){var msg=(z()?'您的案件 '+no+' 已成立：':'Case '+no+' opened: ')+(o.label||'')+'（'+((o.segment||{}).code||'')+' '+((o.segment||{}).date||'')+'）'+(z()?'。可在「我的案件」查看處理進度。':'. Track it under My cases.');
+        b.notifs=b.notifs||[];b.notifs.unshift({msg:msg,date:todayISO(),read:false});
+        try{if(rec.email&&typeof kgmNotify==='function')Promise.resolve(kgmNotify('case.updated',{email:rec.email,caseNo:no,pnr:o.pnr,status:'processing',subject:(z()?'案件成立 ':'Case opened ')+no,message:msg})).catch(function(){})}catch(_){}}
+      return no}catch(e){return ''}};
+  window.kgmCaseAutoCloseR1103A=function(pnr,code,date,why){var n=0;(S.staffCasesR1007A||[]).forEach(function(c){if(c&&c.autoR1103A&&c.pnr===pnr&&(c.segment||{}).code===code&&(c.segment||{}).date===date&&!/closed|completed/.test(c.status||'')){var at=new Date().toISOString();c.status='closed';c.updatedAt=at;(c.progress=c.progress||[]).push({at:at,status:'closed',label:why||(z()?'作業動作已復原，案件結案':'Action undone; case closed'),by:'GROUND'});n++}});return n};
   function casePage(){var zh=z(),F=cf(),b=F.pnr?findBk(F.pnr,F.last):null,mine=myBookings();
     if(F.done)return '<main class="k60 k28pet"><header class="k60-head"><span>CUSTOMER CARE</span><h1>'+(zh?'案件已送出':'Case submitted')+'</h1><p>'+(zh?'案件編號 ':'Case ')+'<b>'+E(F.done)+'</b>'+(zh?'。專人會在 1 個工作天內回覆，進度會以 Email 與站內通知告訴您。':'.')+'</p></header><div class="k28pet-acts"><button class="k60-btn" onclick="S.case28=null;render()">'+(zh?'再建立一件':'New case')+'</button><button class="k60-btn ghost" onclick="S.view=\'case_lookup_0831B\';render()">'+(zh?'查詢案件進度':'Track case')+'</button></div></main>';
     var segs=b?segsOf(b):[];

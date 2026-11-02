@@ -88,7 +88,22 @@
   function mo(name){var O=window[name];if(typeof O!=='function'||O.__ci31mo)return;var w=function(){MO++;try{return O.apply(this,arguments)}finally{MO--}};w.__ci31mo=1;window[name]=w}
   function wrapToggle(){var O=window.toggleOpsR7;if(typeof O!=='function'||O.__ci31mo)return;
     var w=function(key,id,field,val){if(field==='physical'&&val){MO++;try{return O.apply(this,arguments)}finally{MO--}}return O.apply(this,arguments)};w.__ci31mo=1;window.toggleOpsR7=w}
-  function hookAll(){wrapFinish();['kgmCheckinNext49','kgmResolveResident49'].forEach(mo);wrapToggle();wrapRender()}
+  /* 航班資料「作業動作」套用到旅客 → 自動成立案件（cs28 kgmCaseAutoR1103A）；「復原」→ 那件自動案件結案 */
+  var ACTN={offload:['移出此航班','Offloaded','irregular','urgent'],freeup:['免費升等','Complimentary upgrade','other','normal'],paidup:['付費升等','Paid upgrade','other','normal'],comp:['超賣補償（拒絕登機）','Denied boarding compensation','compensation','urgent'],volbump:['自願讓位（改搭下一班）','Volunteer bump','compensation','normal'],invdown:['非自願降等','Involuntary downgrade','compensation','urgent'],voldown:['自願降等','Voluntary downgrade','compensation','normal']};
+  function wrapAct(){var O=window.kgmFdActR929;if(typeof O!=='function'||O.__ci31)return;
+    var w=function(key,id){var act=S.fdActR929||'',f=null,before=null;
+      try{if(act){f=flightOf(key);window.KGM_NODH_R1023A=1;var x0=(manifest7(f,f.date)||[]).filter(function(q){return q&&q.id===id})[0];if(x0)before={cabin:x0.cabin,fare:x0.fare,seat:x0.seat,off:!!x0.offloadR929,a:x0.opsActR929}}}catch(_){}finally{window.KGM_NODH_R1023A=0}
+      var r=O.apply(this,arguments);
+      try{if(!act||!before||!window.kgmCaseAutoR1103A)return r;window.KGM_NODH_R1023A=1;var x=null;try{x=(manifest7(f,f.date)||[]).filter(function(q){return q&&q.id===id})[0]}finally{window.KGM_NODH_R1023A=0}if(!x)return r;
+        var changed=x.cabin!==before.cabin||x.fare!==before.fare||x.seat!==before.seat||!!x.offloadR929!==before.off||x.opsActR929!==before.a;if(!changed)return r;
+        var seg={code:f.code,fr:f.fr,to:f.to,date:f.date},pnr=x.pnr||((x.booking||{}).pnr)||'',who=(S.adminUser&&(S.adminUser.name||S.adminUser.empId))||'GROUND';
+        if(act==='restore'){window.kgmCaseAutoCloseR1103A&&window.kgmCaseAutoCloseR1103A(pnr,f.code,f.date);try{save()}catch(_){}return r}
+        var a=ACTN[act]||[act,act,'other','normal'],detail=(z()?a[0]:a[1])+'：'+(before.cabin!==x.cabin?(before.cabin+' → '+x.cabin+' · '):'')+(before.seat!==x.seat&&x.seat?((z()?'座位 ':'seat ')+(before.seat||'—')+' → '+x.seat+' · '):'')+f.code+' '+f.fr+'→'+f.to+' '+f.date;
+        var no=window.kgmCaseAutoR1103A({pnr:pnr,act:act,type:a[2],priority:a[3],label:z()?a[0]:a[1],detail:detail,segment:seg,paxName:x.name||((x.last||'')+' / '+(x.first||'')),staff:who,empId:(S.adminUser&&S.adminUser.empId)||''});
+        if(no){window.KGM_LASTCASE_R1103A=no;try{save()}catch(_){}try{var t=document.createElement('div');t.className='k31-toast';t.textContent=(z()?'已自動成立案件 ':'Case opened ')+no+' · '+(x.name||pnr);document.body.appendChild(t);setTimeout(function(){t.remove()},4000)}catch(_){}}
+      }catch(_){}return r};
+    w.__ci31=1;window.kgmFdActR929=w}
+  function hookAll(){wrapAct();wrapFinish();['kgmCheckinNext49','kgmResolveResident49'].forEach(mo);wrapToggle();wrapRender()}
   hookAll();setTimeout(hookAll,0);setTimeout(hookAll,3000);setTimeout(hookAll,10000);
   try{var cs=document.createElement('style');cs.textContent=
     '.k31ci-pr{margin:18px 0 6px;padding:16px 18px;border:1px solid #E3DFD4;border-radius:16px;background:#FBFAF6;text-align:left}.k31ci-pr h3{margin:0 0 8px;font-size:15px;color:#1C3D33}'
@@ -99,6 +114,7 @@
     +'.k31pr-rc dl{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:13px;margin:0 0 14px}.k31pr-rc dt{color:#6B736F}.k31pr-rc table{width:100%;border-collapse:collapse;font-size:13px}.k31pr-rc th,.k31pr-rc td{padding:6px 4px;border-bottom:1px solid #EEE;text-align:left}.k31pr-rc td:last-child,.k31pr-rc th:last-child{text-align:right}.k31pr-rc tfoot td{font-weight:800}.k31pr-fine{font-size:11px;color:#777;margin-top:12px}'
     +'.k31pr-lgcard{max-width:520px;margin:0 auto;padding:26px 28px;border-radius:18px;background:linear-gradient(140deg,#14322A,#1F4A3E 60%,#2A5B4D);color:#F4EFE2;box-shadow:0 0 0 2px #B08A3E inset}.k31pr-lgtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.k31pr-lgtop small{letter-spacing:.2em;font-size:10.5px;color:#D9C38F}'
     +'.k31pr-lgcard h3{margin:0 0 14px;font-size:18px;font-weight:700}.k31pr-lgrow{display:flex;gap:22px;margin-bottom:10px}.k31pr-lgrow small{display:block;font-size:10px;letter-spacing:.12em;color:#CDBB8E}.k31pr-lgrow b{font-size:14px}.k31pr-lgcard p{margin:10px 0 0;font-size:11.5px;color:#E5DCC3}'
+    +'.k31-toast{position:fixed;right:22px;bottom:22px;z-index:99999;background:#14322A;color:#F4EFE2;padding:11px 16px;border-radius:12px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.18)}'
     +'@media print{html.k31-printing body>*{display:none!important}html.k31-printing #k31pr{display:block!important}html.k31-printing .k31pr-page{page-break-after:always;break-after:page;padding:12mm 0}html.k31-printing .k31pr-page:last-child{page-break-after:auto}}';
     document.head.appendChild(cs)}catch(_){}
 })();
