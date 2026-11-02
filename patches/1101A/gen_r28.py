@@ -131,9 +131,9 @@ RW('seat28 auto sh6',"  var sh6=function(sid){return window.kgmShownSeatR1006A?w
 RW('lag28 sig pool',"    try{if(window.KGM_FULLDONE_1006A)try{pool121()}catch(_){}",
    "    try{if(window.KGM_FULLDONE_1006A&&!POOL121)try{pool121()}catch(_){}   /* 1101A：名單已建好就不再重建（每次 0.8 秒） */")
 RW('lag28 idle',"  function idle(f){if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:2500});else setTimeout(f,60)}\n  function tick(){",
-   "  function idle(f){var to=(S.view==='admin'&&S.adminTab==='sched')?2500:10000;   /* 1101A：不在組員班表分頁時多等瀏覽器空檔 */\n    if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:to});else setTimeout(f,60)}\n  function tick(){")
+   "  function idle(f){var to=(S.view==='admin'&&S.adminTab==='sched')?2500:10000;   /* 1101A：不在組員班表分頁時多等瀏覽器空檔 */\n    if(window.kgmBgHiddenR1103A&&window.kgmBgHiddenR1103A())return window.kgmBgSoonR1103A(f,0);   /* 1103A：分頁看不見時 requestIdleCallback 幾乎不跑 → Worker 叫醒（rot31.js） */\n    if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:to});else setTimeout(f,60)}\n  function tick(){")
 RW('lag28 input',"    if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<2000)return;   /* 使用者正在操作就先讓開",
-   "    if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<((S.view==='admin'&&S.adminTab==='sched')?4000:20000))return;   /* 1101B：其他頁 10→20 秒（一天 1～15 秒不能中斷，看頁面時不開始算） */   /* 1101A：使用者停手 4 秒（組員班表分頁）／10 秒（其他頁）才算，一算就卡 1 秒 */   /* 使用者正在操作就先讓開")
+   "    if(!(window.kgmBgHiddenR1103A&&window.kgmBgHiddenR1103A())&&Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<((S.view==='admin'&&S.adminTab==='sched')?4000:6000))return;   /* 1103A：其他頁 20→6 秒（使用者：看其他頁也要繼續跑）；分頁看不見時不等 */   /* 1101B：其他頁 10→20 秒（一天 1～15 秒不能中斷，看頁面時不開始算） */   /* 1101A：使用者停手 4 秒（組員班表分頁）／10 秒（其他頁）才算，一算就卡 1 秒 */   /* 使用者正在操作就先讓開")
 
 # ══ H2：後台卡頓（續）——真人點擊剖析（tests/prof28c.js）：除了組員背景，還有競標模擬資料預補（1025B：使用者 1.5 秒沒操作就補一班，一班 0.1 秒以上、還會牽動 Payload 艙單與組員計畫）、
 #   航班資料 DH 背景補算（1026C dhLater929，沒有看使用者是否正在操作）→ 都改成使用者停手 8 秒才做（讀一頁的時間通常超過 1.5 秒，下一次點擊剛好撞上就卡）。
@@ -271,7 +271,7 @@ RW('nt28 legs',"<div style=\"font-size:11px;color:var(--sub);margin-bottom:6px\"
 RW('ferry28 var',"    return T.map(function(t){var st='ok',why='';","    return T.map(function(t){var st='ok',why='',ferry=null;")
 RW('ferry28 away',"if(at!==f0&&!(at==='TPE'&&f0==='TSA')&&!(at==='TSA'&&f0==='TPE')){st='away';why=(z()?'不在 ':'Not at ')+f0+(z()?'（在 '+at+'）':' (at '+at+')')}",
    "if(at!==f0&&!(at==='TPE'&&f0==='TSA')&&!(at==='TSA'&&f0==='TPE')){var fy=null;try{fy=window.kgmFerryR1101A?window.kgmFerryR1101A(t,at,f0,legs,win,span,routeOf):null}catch(_){}   /* 1101A：在 TPE 的飛機算空機調派 */\n            if(fy&&fy.ok){st='ok';why=fy.why;ferry=fy}else{st='away';why=(fy&&fy.why)||((z()?'不在 ':'Not at ')+f0+(z()?'（在 '+at+'）':' (at '+at+')'))}}")
-RW('ferry28 ret',"      return {tail:t,st:st,why:why,legs:n,cur:t===mv.tail}});","      return {tail:t,st:st,why:why,legs:n,cur:t===mv.tail,ferry:ferry}});")
+RW('ferry28 ret',"      return {tail:t,st:st,why:why,legs:n,cur:t===mv.tail}});","      if(st==='ok'&&!ferry&&t!==mv.tail&&mv.tail&&window.kgmRotMoveR1103A){try{var r31=window.kgmRotMoveR1103A([{code:code,date:date,route:fr+'→'+to}],t,{dry:1});if(r31&&!r31.ok&&r31.kind!=='none'){st=r31.kind==='mx'?'mx':(r31.kind==='away'?'away':'busy');why=r31.why}}catch(_){}}   /* 1103A：跟換過去實際用的同一套檢查（rot31.js；要空機調派的照 1101A 算法） */\n      return {tail:t,st:st,why:why,legs:n,cur:t===mv.tail,ferry:ferry}});")
 RW('ferry28 label',"(x.st==='ok'?((z()?'當天 ':'')+x.legs+(z()?' 段':' legs')):E(x.why))","(x.st==='ok'?(x.ferry?E(x.why):((z()?'當天 ':'')+x.legs+(z()?' 段':' legs'))):E(x.why))")
 
 # H3：航班狀態「轉降」→ 航班動態該日追加續航段（例：KX37 轉降 KIX → 當日加一段 KX37 KIX→TPE），編輯面板加續航時刻與版面（js/ad28.js）
@@ -334,7 +334,7 @@ RW('lag29 inv segs',"(window.segs7(b,true)||[]).forEach(function(s){var sf=s.f||
 # R2-A：背景計算讓出主執行緒（使用者：「非常嚴重的卡頓，確保都有解決」；clk28 1101A p50 0.74 秒、p90 2.9 秒、最長 7.5 秒；1027A p50 2.7 秒、最長 12.5 秒）
 #   開頁後機隊整年重排：每一段（準備每段 0.4～2 秒、最後組合 3.2 秒、拆機收尾 3.2 秒）原本不管使用者有沒有在操作 → 每段開始前先確認使用者停手 1.5 秒（最後組合與拆機收尾 3 秒）
 RW('lag29 fleet gate',"function next6(f){setTimeout(function(){try{f()}catch(e){try{console.warn('r72 final prep',e)}catch(_){}finish6()}},0)}",
-   "function gate6(ms,fn){var go=function(){var w=Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<ms||(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<30000&&(Date.now()-(gate6.end||0)<1.5*(gate6.dur||0)||Date.now()-(window.KGM_BG_LAST_R1101B||0)<2500));if(w){setTimeout(go,400);return}var t=Date.now();try{fn()}finally{gate6.dur=Date.now()-t;gate6.end=window.KGM_BG_LAST_R1101B=Date.now()}};setTimeout(go,0)}   /* 1101B：使用者停手才做下一段；使用者 30 秒內有操作時做完一段讓出 1.5 倍時間（沒人操作照原本速度，整年重排不會變晚） */\n"
+   "function gate6(ms,fn){var go=function(){var w=!(window.kgmBgHiddenR1103A&&window.kgmBgHiddenR1103A())&&(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<ms||(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<30000&&(Date.now()-(gate6.end||0)<1.5*(gate6.dur||0)||Date.now()-(window.KGM_BG_LAST_R1101B||0)<2500)));if(w){(window.kgmBgSoonR1103A||setTimeout)(go,400);return}var t=Date.now();try{fn()}finally{gate6.dur=Date.now()-t;gate6.end=window.KGM_BG_LAST_R1101B=Date.now()}};(window.kgmBgSoonR1103A||setTimeout)(go,0)}   /* 1103A：分頁看不見時不等使用者、由 Worker 叫醒（rot31.js） */   /* 1101B：使用者停手才做下一段；使用者 30 秒內有操作時做完一段讓出 1.5 倍時間（沒人操作照原本速度，整年重排不會變晚） */\n"
    "    function next6(f){gate6(f===finish6?3000:1500,function(){try{f()}catch(e){try{console.warn('r72 final prep',e)}catch(_){}finish6()}})}")
 RW('lag29 split gate',"      setTimeout(function(){\n        var t15=Date.now();","      gate6(3000,function(){\n        var t15=Date.now();")
 #   組員排班背景：算一天 1～2.6 秒 → 開始算之前再確認使用者停手 1.5 秒（瀏覽器空檔回呼可能逾時觸發）；不在組員班表分頁時，兩天之間至少讓出「上一天花的時間 × 3」（佔主執行緒 ≤ 25%）；進度存檔 5 天一次 → 20 天一次（一次 2～3 秒）
@@ -343,8 +343,8 @@ RW('lag29 r135 wait',"setTimeout(function(){try{if(typeof window.kgmRebuild135==
 RW('lag29 crew pool',"    BUSY25=true;\n    idle(function(){",
    "    BUSY25=true;\n    if(!POOL121){idle(function(){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500||(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000&&Date.now()-(window.KGM_BG_LAST_R1101B||0)<2500)){BUSY25=false;setTimeout(tick,1500);return}try{pool121()}catch(_){}window.KGM_BG_LAST_R1101B=Date.now();BUSY25=false;setTimeout(tick,Math.max(900,Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000?6000:0))});return}   /* 1101B：組員名單（約 3 秒）第一次另外算一段，不跟第一天（1～4 秒）擠在同一段 */\n    idle(function(){")
 RW('lag29 crew gate',"    idle(function(){try{window.kgmCrewStepR121(1,target())}catch(_){}BUSY25=false;",
-   "    idle(function(){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500||(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000&&Date.now()-(window.KGM_BG_LAST_R1101B||0)<2500)){BUSY25=false;setTimeout(tick,1500);return}var t29=Date.now();try{window.kgmCrewStepR121(1,target())}catch(_){}window.__crewMs29=Date.now()-t29;window.KGM_BG_LAST_R1101B=Date.now();BUSY25=false;")
-RW('lag29 crew pace',"      setTimeout(tick,pace27())});","      setTimeout(tick,Math.max(pace27(),pace27()<100||Date.now()-(window.KGM_LAST_INPUT_R1025B||0)>60000?0:8*(window.__crewMs29||0)))});   /* 1101B：不在組員班表分頁、使用者 60 秒內有操作時佔主執行緒 ≤ 11%（一天 1～4 秒不能中斷，算一天休息 8 倍時間，撞到點擊的機率約 1/9）；沒人操作照原本 0.9 秒 */")
+   "    idle(function(){if(!(window.kgmBgHiddenR1103A&&window.kgmBgHiddenR1103A())&&(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500||(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000&&Date.now()-(window.KGM_BG_LAST_R1101B||0)<2500))){BUSY25=false;(window.kgmBgSoonR1103A||setTimeout)(tick,1500);return}var t29=Date.now();try{window.kgmCrewStepR121(1,target())}catch(_){}window.__crewMs29=Date.now()-t29;window.KGM_BG_LAST_R1101B=Date.now();BUSY25=false;")
+RW('lag29 crew pace',"      setTimeout(tick,pace27())});","      (window.kgmBgSoonR1103A||setTimeout)(tick,Math.max(pace27(),pace27()<100||Date.now()-(window.KGM_LAST_INPUT_R1025B||0)>60000?0:3*(window.__crewMs29||0)))});   /* 1103A：8→3 倍（使用者：看其他頁也要繼續跑）；分頁看不見時 Worker 叫醒 */   /* 1101B：不在組員班表分頁、使用者 60 秒內有操作時佔主執行緒 ≤ 11%（一天 1～4 秒不能中斷，算一天休息 8 倍時間，撞到點擊的機率約 1/9）；沒人操作照原本 0.9 秒 */")
 #   競標預補：一班最多 1.5 秒（結算要 Payload 艙單），補完一班花超過 0.3 秒就休息 5 倍時間
 RW('lag29 auc pace',"      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);if(Q.length)idle25(step)})();",
    "      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);var dt29=Date.now()-t;if(Q.length){if(dt29>300&&Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000)setTimeout(function(){idle25(step)},5*dt29);else idle25(step)}})();   /* 1101B：一班超過 0.3 秒就休息 5 倍時間 */")
@@ -566,7 +566,7 @@ RW('fy30 pk',"var pk={code:k.code,date:k.date,tail:tail,legs:specsFor(k.code,k.d
 RW('fy30 pk2',"var pk2={code:k.code,date:k.date,tail:tail,legs:specsFor(k.code,k.date,f.fr,f.to,null),at:new Date().toISOString(),by:(S.adminUser||{}).empId||''};",
    "var pk2={code:k.code,date:k.date,tail:tail,legs:specsFor(k.code,k.date,f.fr,f.to,null),at:new Date().toISOString(),by:(S.adminUser||{}).empId||'',ferryR1102A:FY30};")
 RW('fy30 apply',"  function applyPick(pk){\n    var got=pk.legs.map(findLeg).filter(Boolean);if(!got.length)return 0;",
-   "  function applyPick(pk){\n    try{if(pk&&pk.ferryR1102A&&window.kgmFerryRowR1102A)window.kgmFerryRowR1102A(pk.tail,pk)}catch(_){}   /* 1102A：空機調派段放進那架的輪轉 */\n    var got=pk.legs.map(findLeg).filter(Boolean);if(!got.length)return 0;")
+   "  function applyPick(pk){\n    try{if(pk&&pk.ferryR1102A&&window.kgmFerryRowR1102A)window.kgmFerryRowR1102A(pk.tail,pk)}catch(_){}   /* 1102A：空機調派段放進那架的輪轉 */\n    if(window.kgmRotMoveR1103A){var r31=window.kgmRotMoveR1103A(pk.legs,pk.tail,{mark:'byR1023A'});if(r31.ok)delete pk.skipR1103A;else pk.skipR1103A=r31.why;return r31.ok?(r31.n||0):0}   /* 1103A：統一規則（rot31.js）：整趟搬、UTC 比時間、接點要接得上；不過就不動 */\n    var got=pk.legs.map(findLeg).filter(Boolean);if(!got.length)return 0;")
 
 # H4：前台第一次搜尋——sortedFlights 的快取上限 180 筆，但一次搜尋（含轉機）會查 ~1,860 個「航線＋日期」→ 查到一半就被清掉、一直重算。
 #   上限改 8,000 筆（每筆是那條航線那天的幾個班次，約幾 MB；換季／改時刻照原本的鍵（customFlights、flightDateOverride、flightOverrides 數量）失效）。
@@ -575,6 +575,14 @@ RW('srch30 cache',"if(cacheJ.size>180)cacheJ.clear();","if(cacheJ.size>8000)cach
 # R2（使用者：「沒改的就把它改完吧」）前台第一次搜尋：訂票頁七天價格列每一天都查「之後 3 天內出發」的轉機（findConnectionsFull(...,3)），
 #   再把兩段都當成那一天報價 → 一次搜尋做 7 次大範圍轉機搜尋（TPE→LAX 約 0.8 秒），而且晚 1～3 天出發的轉機被算成當天的價格。
 #   改成只查當天出發（第二段可以隔天，原本的轉機規則），第二段用它自己的日期報價。
+# ══ 1103A ══
+# J：機隊輪轉統一規則（rot31.js）：機隊排班頁「＋」／換機身／可選機身清單都走 kgmRotMoveR1103A；逐月排班格子依 UTC 真實先後排
+RW('rot31 curtail',"function curDate69(){return S._fsDate||T()}","function curDate69(){return S._fsDate||T()}\nwindow.kgmFsTailR1103A=function(){return curTail69()};   /* 1103A：rot31 的「＋」要知道目前選的是哪一架 */")
+RW('rot31 cal sort',"    var d=D(start,k),rows=(byDate[d]||[]).map(function(x){return liveRow(x,d)}).sort(function(a,b){\n      return String(a.dep).localeCompare(String(b.dep))});",
+   "    var d=D(start,k),rows=(byDate[d]||[]).map(function(x){return liveRow(x,d)}).sort(function(a,b){\n      if(window.kgmRotSpanR1103A)return window.kgmRotSpanR1103A(a)[0]-window.kgmRotSpanR1103A(b)[0];   /* 1103A：依真實（UTC）先後排，不用當地時刻字串 */\n      return String(a.dep).localeCompare(String(b.dep))});")
+RW('bg31 crew tick',"setInterval(tick,3000);\n})();\n\nvar MOVE121","setInterval(tick,3000);window.kgmCrewTickR1103A=tick;   /* 1103A：分頁看不見時由 rot31.js 的 Worker 每 3 秒叫一次 */\n})();\n\nvar MOVE121")
+EMB28.append('rot31.js')
+
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")
