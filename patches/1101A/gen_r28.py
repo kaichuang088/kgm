@@ -588,6 +588,19 @@ RW('cf31 admin pax',"<div class=\"k27cd-n\"><b>'+r.pax+'</b><small>'+(z()?'位':
    "<div class=\"k27cd-n\"><b>'+(r.paxRet&&r.paxRet!==r.pax?r.pax+'／'+r.paxRet:r.pax)+'</b><small>'+(r.paxRet&&r.paxRet!==r.pax?(z()?'去／回 位':'out / ret'):(z()?'位':'pax'))+'</small></div></div>'")
 EMB28.append('cf31.js')
 EMB28.append('ui31.js')
+# I：地勤報到——Residence（或模擬名單）旅客的艙等／票價要跟航班資料名單同一份（名單寫 Resident / R，報到卻當成經濟基本 2 件）
+RW('ci31 call',"onchange=\"toggleOpsR7(\\''+A(k)+'\\',\\''+A(x.id)+'\\',\\'physical\\',this.checked,\\''+A(x.tier||'Bronze')+'\\')\"",
+   "onchange=\"toggleOpsR7(\\''+A(k)+'\\',\\''+A(x.id)+'\\',\\'physical\\',this.checked,\\''+A(x.tier||'Bronze')+'\\',\\''+A(x.cabin||'')+'\\',\\''+A(x.fare||'')+'\\')\"")
+RW('ci31 open',"S.checkin49={key:key,id:id,pnr:pnr,code:p[0],date:p[1],fr:p[2],to:p[3],step:1,bags:0,weights:'',extra:0,memberTier:memberTier||'Bronze'};render();return}",
+   "S.checkin49={key:key,id:id,pnr:pnr,code:p[0],date:p[1],fr:p[2],to:p[3],step:1,bags:0,weights:'',extra:0,memberTier:memberTier||'Bronze',cabR1103A:String(arguments[5]||''),fareR1103A:String(arguments[6]||'')};render();return}   /* 1103A：帶名單上的艙等／票價 */")
+RW('ci31 wiz',"var clsNow=(segNow&&segNow.cls)||(b&&b.outC)||'',famNow=family49(clsNow)||'Basic',cabNow=((FARES[clsNow]||{}).cabin)||cab||'Economy',longNow=false;",
+   "var clsNow=((c.fareR1103A&&FARES[c.fareR1103A])?c.fareR1103A:'')||(segNow&&segNow.cls)||(b&&b.outC)||'',famNow=family49(clsNow)||(((FARES[clsNow]||{}).cabin==='Resident')?'':'Basic'),cabNow=((FARES[clsNow]||{}).cabin)||c.cabR1103A||cab||'Economy',longNow=false;   /* 1103A：名單上的艙等優先（Residence 得標、模擬名單） */")
+RW('ci31 calc',"var cls=(s&&s.cls)||(b&&b.outC)||'',fam=family49(cls)||'Basic',cab=((FARES[cls]||{}).cabin)||'Economy',isLong=false;",
+   "var cls=((c.fareR1103A&&FARES[c.fareR1103A])?c.fareR1103A:'')||(s&&s.cls)||(b&&b.outC)||'',fam=family49(cls)||'Basic',cab=((FARES[cls]||{}).cabin)||c.cabR1103A||'Economy',isLong=false;   /* 1103A：名單上的艙等優先 */",2)
+RW('ci31 tier',"/silver|gold|diamond|black/i.test(tier)?1:0","(/diamond|black/i.test(tier)?2:(/silver|gold/i.test(tier)?1:0))   /* 1103A：尊爵卡 +2 件（規章 FFP 表：銀 +1、金 +1、尊爵 +2） */",3)
+RW('ci31 print',"+(d.paymentSent?bagSent23(d):'')+'<button class=\"btn btn-g\" onclick=\"S.checkin49=null;render()\">'",
+   "+(d.paymentSent?bagSent23(d):'')+(window.kgmCiPrintR1103A?window.kgmCiPrintR1103A(d):'')+'<button class=\"btn btn-g\" onclick=\"S.checkin49=null;render()\">'")   # 1103A：報到完成 → 列印（ci31.js）
+EMB28.append('ci31.js')
 EMB28.append('rot31.js')
 
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
