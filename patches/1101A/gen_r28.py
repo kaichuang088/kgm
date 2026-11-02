@@ -600,6 +600,7 @@ RW('ci31 calc',"var cls=(s&&s.cls)||(b&&b.outC)||'',fam=family49(cls)||'Basic',c
 RW('ci31 tier',"/silver|gold|diamond|black/i.test(tier)?1:0","(/diamond|black/i.test(tier)?2:(/silver|gold/i.test(tier)?1:0))   /* 1103A：尊爵卡 +2 件（規章 FFP 表：銀 +1、金 +1、尊爵 +2） */",3)
 RW('ci31 print',"+(d.paymentSent?bagSent23(d):'')+'<button class=\"btn btn-g\" onclick=\"S.checkin49=null;render()\">'",
    "+(d.paymentSent?bagSent23(d):'')+(window.kgmCiPrintR1103A?window.kgmCiPrintR1103A(d):'')+'<button class=\"btn btn-g\" onclick=\"S.checkin49=null;render()\">'")   # 1103A：報到完成 → 列印（ci31.js）
+RW('ci31 wizexp',"function checkinWizard49(){","window.kgmCiWizHtmlR1103A=function(){return checkinWizard49()};   /* 1103A：報到視窗單獨重畫（ci31.js） */\nfunction checkinWizard49(){")
 EMB28.append('ci31.js')
 EMB28.append('rot31.js')
 

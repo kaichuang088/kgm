@@ -76,9 +76,20 @@
   /* 「完成報到」按下去後畫面停在第 3 步（原本就有的問題）：完成時中途會重畫一次，第 3 步的視窗又被放回去，
      之後「已經有視窗就不再放」→ 報到成功畫面永遠出不來。完成後把舊視窗拿掉再畫一次。 */
   function wrapFinish(){var O=window.kgmCheckinFinish49;if(typeof O!=='function'||O.__ci31)return;
-    var w=function(){var r=O.apply(this,arguments);try{if(S.checkin49&&S.checkin49.step===4){[].forEach.call(document.querySelectorAll('.r49-modal'),function(m){m.remove()});render()}}catch(_){}return r};
+    var w=function(){MO++;var r;try{r=O.apply(this,arguments)}finally{MO--}try{if(S.checkin49&&S.checkin49.step===4)modalOnly()}catch(_){}return r};
     w.__ci31=1;window.kgmCheckinFinish49=w}
-  wrapFinish();setTimeout(wrapFinish,0);setTimeout(wrapFinish,3000);
+  /* 報到頁卡頓（使用者：「航班資料報到頁面卡頓」）：報到視窗每一步（下一步、完成）都整頁重畫航班資料（KX4 460 位旅客，一次 1.1～1.5 秒，
+     完成報到 4 秒）。視窗開著的時候後面的名單看不到 → 這段期間只重畫報到視窗；關掉視窗（返回航班資料／取消）時才整頁重畫一次。 */
+  var MO=0;
+  function modalOnly(){try{[].forEach.call(document.querySelectorAll('.r49-modal'),function(m){m.remove()});if(S.checkin49&&window.kgmCiWizHtmlR1103A)document.body.insertAdjacentHTML('beforeend',window.kgmCiWizHtmlR1103A())}catch(_){}}
+  function wrapRender(){var R0=window.render;if(typeof R0!=='function'||R0.__ci31)return;
+    var w=function(){if(MO&&S.checkin49&&S.view==='admin'){modalOnly();return}return R0.apply(this,arguments)};
+    try{Object.keys(R0).forEach(function(k){if(!(k in w))w[k]=R0[k]})}catch(_){}w.__ci31=1;window.render=w;try{render=w}catch(_){}}
+  function mo(name){var O=window[name];if(typeof O!=='function'||O.__ci31mo)return;var w=function(){MO++;try{return O.apply(this,arguments)}finally{MO--}};w.__ci31mo=1;window[name]=w}
+  function wrapToggle(){var O=window.toggleOpsR7;if(typeof O!=='function'||O.__ci31mo)return;
+    var w=function(key,id,field,val){if(field==='physical'&&val){MO++;try{return O.apply(this,arguments)}finally{MO--}}return O.apply(this,arguments)};w.__ci31mo=1;window.toggleOpsR7=w}
+  function hookAll(){wrapFinish();['kgmCheckinNext49','kgmResolveResident49'].forEach(mo);wrapToggle();wrapRender()}
+  hookAll();setTimeout(hookAll,0);setTimeout(hookAll,3000);setTimeout(hookAll,10000);
   try{var cs=document.createElement('style');cs.textContent=
     '.k31ci-pr{margin:18px 0 6px;padding:16px 18px;border:1px solid #E3DFD4;border-radius:16px;background:#FBFAF6;text-align:left}.k31ci-pr h3{margin:0 0 8px;font-size:15px;color:#1C3D33}'
     +'.k31ci-who{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}.k31ci-who b{font-size:14px}.k31ci-who span{font-size:12px;color:#6B736F}'
