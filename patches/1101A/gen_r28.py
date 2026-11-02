@@ -663,6 +663,9 @@ RW('bd31 win',"var WIN={Premium:'P-A',Business:'B-K',First:'F-X',Resident:'R-R'}
 RW('bd31 auc',"        if(S.adminTab==='auctions'){\n          var body=auctionPage920();","        if(S.adminTab==='auctions'){\n          var body=window.kgmAucPageR1103A?window.kgmAucPageR1103A(auctionPage920):auctionPage920();   /* 1103A：頂部總覽、分類切換、每組預設收起（bd31.js） */")
 RW('bd31 inv',"function cabinInventory54(f,date,cabin,excludePnr){","window.kgmCabInvR1103A=function(){return cabinInventory54.apply(this,arguments)};   /* 1103A：升等券查上一艙空位（bd31.js），跟訂位庫存同一份 */\nfunction cabinInventory54(f,date,cabin,excludePnr){")
 EMB28.append('bd31.js')
+# H：團體航點（grp31.js）——團體模式的航點選單多一區（HKT、CXR、日本／中國 A21N 可起降機場），沒有定期航班的航線走自創航班
+RW('grp31 regions',"function regions158(){\n  try{\n    if(typeof REGIONS==='function')return REGIONS();","function regions158(){var R31=regions158_0();try{if(window.kgmGrpRegionsR1103A)return window.kgmGrpRegionsR1103A(R31)}catch(_){}return R31}   /* 1103A：團體模式加團體專屬航點（grp31.js） */\nfunction regions158_0(){\n  try{\n    if(typeof REGIONS==='function')return REGIONS();")
+EMB28.append('grp31.js')
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")
