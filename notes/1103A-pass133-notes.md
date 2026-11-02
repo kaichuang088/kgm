@@ -30,6 +30,8 @@
 - Policies 彙編：`pack31.py <1102A 的 KGM_Policies 資料夾（/tmp/j/out32 ZIP 解開）> <ffp31> <crd31> <grp28 PDF> <out.zip>`；跟 1102A 比只有 11、20、21 三個 PDF 不同（逐檔 cmp 核對）。
 - kc33 測試裡的 mail-service pageerror 是測試自己塞的訂位（沒網路），不是網站錯誤。
 - 首頁團體模式的英雄區「LAX」標籤重疊，1102A 就有（沒動）。
+- **grp31 補機場資料不能碰 KGM 有定期航班的機場**：HIJ／KOJ／OKJ 原本沒有 `AP_XY`，補了之後冬季風向修正改變 KX191 KOJ→TPE 冬季抵達（18:30→18:25）。交付前一定要用 `tests/dumptt23.js` 對 1102A 跑一次逐班比對（402 段應全部相同）、`tests/ap33.js` 比對有飛的機場資料、`tests/pl28dump.js` 比對 Payload。
+- t_sched922 每次差很多（1103A 3.8～5.5 秒、1102A 2.8～4.3 秒），t_admlag 單頁 paint 也會因背景排班差到 5 倍（milesverify 0.3～4.9 秒）：要比較就同一台機器、同一段時間 A／B 輪流量。
 
 ## 已知未做／限制
 
@@ -38,4 +40,9 @@
 
 ## 關卡結果
 
-（見交付前填寫）
+- 最終檔 w29（`/tmp/j/kgm1103A_w29.html`），2026-11-02 依序跑、一次一支：
+  - syn 248／0、241 層；vfy1 24／24；vfy2d、vfy3、vfy4 各 8／8；vfy5、vfy5d 5／6（AA1 萬聖節促銷＝日期，同 1102A）；vfy6 53／55（H30 前提不成立同 1102A；H31 換頁動畫不穩，w28 那次過、w29 這次沒過）。
+  - t_crewrule 0／0／0；t_fl1 116,442 段、重疊 0、孤兒 0；tz8 missing 0；ai9t 真連線 401（沒有金鑰）、模擬通過，同 1102A；reg2 notOk 78 跟 1102A 基準逐一相同，view errors 0、PAGE ERRORS 0（基準存成 `baselines/reg_1103A.out`）。
+  - t_sched922：60／60 天算好；最長卡頓 1103A 3.8／4.3／5.5／7.0 秒 vs 1102A 2.8／4.3 秒（同機 A／B）。原因是 D 項：在後台其他頁停手 6 秒就開始算（原 20 秒）、休息 3 倍（原 8 倍），同樣時間算的天數多（54～60 vs 47～51），碰到一天算很久的機會也多。要不要改回原本節奏給使用者決定。
+  - t_admlag 36 個分頁沒有錯誤；單頁 paint 會因背景排班差到 10 倍（cardverify 1103A 0.2～3.1 秒、1102A 0.18～3.4 秒），sync 時間 cardverify 約 0.2 秒（1102A 0.08 秒，多了 KGM Cards 分頁）。
+  - 1103A 功能測試 16 支（`tests/*33.js`）全部 exit 0；`tests/dumptt23.js` 402 段時刻跟 1102A 相同；`tests/pl28dump.js` Payload 資料逐位元相同；`tests/ap33.js` 有飛的機場資料沒變。
