@@ -689,7 +689,9 @@ RW('ga31 bind case',"S.staffCasesR1007A.unshift({caseNo:no,pnr:'',type:'group_ac
 RW('ga31 bind progress',"{at:now,status:'resolved',label:z()?'AI 審核通過（統編檢查碼、執照、聯絡資料），開通團體帳號一年':'Verified and approved by AI (one year)',by:'AI'}",
    "{at:now,status:'processing',label:z()?'AI 客服初步核對完成，轉 KGM 團體業務人工審核（公司登記、執照、負責人與聯絡人國籍）':'Forwarded to the group desk for review',by:'AI'}")
 RW('ga31 bind mail',"'您的團體帳號已由 AI 客服審核開通（'+d.company+'），開放期間 '+rec.from+' ～ '+rec.to+'；期間內可在首頁訂票卡的「團體訂位」分頁訂位。':'Your group account is active.'",
-   "'已收到您的團體帳號申請（'+d.company+'），KGM 團體業務會人工審核，通常 3 個工作天內以 email 通知結果。':'We received your group account application and will email you the result.'")
+   "'已收到您的團體帳號申請（'+d.company+'），KGM 團體業務會人工審核，通常 3 個工作天內以 email 通知結果。':'We received your group account application and will email you the result.'),subject:'[KGM Airways] '+(z()?'團體帳號申請已收到 · 案件 '+no:'Group account application received · '+no")
+RW('ga31 mail cat',"{ev:'group.account_bound',who:'ext',zh:'團體帳號已綁定（案件號）',en:'Group account activated',when:'AI 客服審核通過或團體業務人工新增帳號，寫明可訂團體票的開放期間'}",
+   "{ev:'group.account_bound',who:'ext',zh:'團體帳號審核結果／開放期間（案件號）',en:'Group account review result',when:'團體業務人工審核核准（寫明開放期間）、開放期間更新、人工新增帳號；申請未通過（附原因）與 AI 客服受理申請也用這個事件，主旨另寫'}")
 # 1103A：G 的票價卡／退改判斷文字跟規則一致（原本沿用 Q 的「NT$1,400／NT$2,600」，但 G 開票後不改不退）；行李、票價家族跟 Q 一樣（G 沿用 Q 的票價與期限）
 RW('g31 chg txt',"chgZH:'NT$'+P.chg.toLocaleString(),chgEN:'NT$'+P.chg.toLocaleString(),refZH:'NT$'+P.ref.toLocaleString(),refEN:'NT$'+P.ref.toLocaleString(),",
    "chgZH:k==='G'?'開票後不可改票':'NT$'+P.chg.toLocaleString(),chgEN:k==='G'?'No changes after ticketing':'NT$'+P.chg.toLocaleString(),refZH:k==='G'?'不可退票（未使用之代收稅費可申請退還）':'NT$'+P.ref.toLocaleString(),refEN:k==='G'?'Non-refundable (unused taxes refundable on request)':'NT$'+P.ref.toLocaleString(),")

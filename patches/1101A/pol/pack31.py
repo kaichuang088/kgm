@@ -1,7 +1,7 @@
 # 1103A：KGM_Policies 彙編 = 1102A 交付的 22 份（pack30 的結果），換掉 11《KGM Explorer 會員及哩程計畫條款》（KGM-FFP-011 Rev. D：會籍積分）、
 #   20《KGM Cards 聯名卡使用辦法》（KGM-CRD-020 Rev. B：Star G／M 會籍積分、機場接送）、21《團體訂位規章》（KGM-GRP-021 Rev. D：團體票 G、團體帳號人工審核），其餘沒有改
 #   用法：python3 pack31.py <1102A 的 KGM_Policies 資料夾> <ffp31_pdf.py 輸出> <crd31_pdf.py 輸出> <grp28_pdf.py 輸出> <輸出 ZIP>
-#   （這個環境沒有 1102A 的 ZIP：用 1101A ZIP → pack29（irr29／grp28 PDF）→ pack30（pet28 PDF）重建 1102A 資料夾，再跑本檔）
+#   1102A 的 ZIP 在 /tmp/j/out32/KGM_Policies_1102A.zip（解開後傳 KGM_Policies 資料夾）；跟 1102A 比只有 11、20、21 三個 PDF 不同（已核對）
 import sys, os, shutil, zipfile, tempfile, re
 src, fpdf, cpdf, gpdf, out = sys.argv[1:6]
 from pypdf import PdfReader
