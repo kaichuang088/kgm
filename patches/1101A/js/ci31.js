@@ -94,6 +94,7 @@
       +'<div class="k31pr-pf">'+(z()?'列印：':'Printed ')+E(ts)+(who?' · '+E(who):'')+' · PNR '+E(I.d.pnr)+'</div></div>'}
   function printJobs(jobs){var box=document.getElementById('k31pr');if(!box){box=document.createElement('div');box.id='k31pr';document.body.appendChild(box)}
     box.innerHTML=jobs.map(pageHtml).join('');
+    jobs.forEach(function(j){if(j.I.voucher&&j.ks.indexOf('lg')>=0&&window.kgmLoungeVoucherUseR1103A)window.kgmLoungeVoucherUseR1103A(j.I.voucher,j.I.d.pnr,j.I.f)});   /* 貴賓室券（徽章驚喜包）：印出邀請卡即用掉（bd31） */
     window.KGM_CIPRINT_R1103A={at:Date.now(),pages:box.querySelectorAll('.k31pr-page').length,docs:box.querySelectorAll('.k31pr-sec').length,who:jobs.map(function(j){return j.I.name})};
     var h=document.documentElement;h.classList.add('k31-printing');var off=function(){h.classList.remove('k31-printing');window.removeEventListener('afterprint',off)};window.addEventListener('afterprint',off);
     try{if(!window.KGM_NOPRINT_R1103A)window.print()}catch(_){}setTimeout(off,60000)}

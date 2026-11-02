@@ -444,8 +444,8 @@ RW('pet30 order',"var ORDER7=['status','flightdata','groundops','bookings','grou
 #   ② 卡片改成固定欄寬的格線（勾勾／訂位代號／航線／出發／旅客／狀態），分隔線與各欄每一列對齊；旅客寫總數＋成人／兒童／嬰兒
 RW('trip30 mine',"  return all.filter(function(b){return !b.userId||b.userId===S.user.id});",
    "  var lk30=((S.tripLookR1102A||{})[S.user.id])||[];return all.filter(function(b){return b.userId===S.user.id||lk30.indexOf(b.pnr)>=0});   /* 1102A：只列自己的＋查詢過的（組員 DH 等沒有會員的訂位不算） */")
-RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),tripLookR1102A:LS.get("kgm30_triplook",{}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
-RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});')
+RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),tripLookR1102A:LS.get("kgm30_triplook",{}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),badgeR1103A:LS.get("kgm31_badge",{}),invR1103A:LS.get("kgm31_inv",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
+RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});LS.set("kgm31_badge",S.badgeR1103A||{});LS.set("kgm31_inv",S.invR1103A||{});')
 RW('trip30 card',"""    var pax=(b.paxList||[]).length||1;""",
    """    var pl30=b.paxList||[],pax=pl30.length||1,pc30={ADT:0,CHD:0,INF:0};pl30.forEach(function(p){var t=String(p.passengerType||'ADT').toUpperCase();pc30[pc30[t]!=null?t:'ADT']++});   /* 1102A：旅客＝成人＋兒童＋嬰兒 */
     var pxs30=[pc30.ADT?(z()?'成人 ':'Adult ')+pc30.ADT:'',pc30.CHD?(z()?'兒童 ':'Child ')+pc30.CHD:'',pc30.INF?(z()?'嬰兒 ':'Infant ')+pc30.INF:''].filter(Boolean).join(z()?'・':' · ');
@@ -624,7 +624,7 @@ RW('ov31 kit',"window.kgmFdFilterR929=function(q){S.fdQR929=String(q||'');fdAppl
 EMB28.append('ov31.js')
 # L：KGM Cards（kc31.js）——上排「KGM Cards」只給綁定 KGM Cards 的會員；帳單、哩程回饋、機場接送、權益
 RW('kc31 menu','{zh:"哩程補登",en:"Retro Claim",nav:"profile"}]}\n    ]}\n  };',
-   '{zh:"哩程補登",en:"Retro Claim",nav:"profile"}]}\n    ]},\n    ...((window.kgmHasCardR1103A&&window.kgmHasCardR1103A())?{cards31:{zh:"KGM Cards",en:"KGM Cards",cols:[   /* 1103A：綁定 KGM Cards 的會員才有（kc31.js） */\n      {zh:"我的卡片",en:"My Card",items:[{zh:"帳單與消費",en:"Statement",nav:"card31"},{zh:"機場接送",en:"Airport Transfer",nav:"card31x"}]},\n      {zh:"卡片權益",en:"Benefits",items:[{zh:"卡別與權益",en:"Card Benefits",nav:"card31p"}]}\n    ]}}:{})\n  };')
+   '{zh:"哩程補登",en:"Retro Claim",nav:"profile"},{zh:"BigDeal 競標升等",en:"BigDeal",nav:"bigdeal31"},{zh:"我的徽章",en:"My Badges",nav:"badge31"},{zh:"我的票夾",en:"My Wallet",nav:"inv31"}]}\n    ]},\n    ...((window.kgmHasCardR1103A&&window.kgmHasCardR1103A())?{cards31:{zh:"KGM Cards",en:"KGM Cards",cols:[   /* 1103A：綁定 KGM Cards 的會員才有（kc31.js） */\n      {zh:"我的卡片",en:"My Card",items:[{zh:"帳單與消費",en:"Statement",nav:"card31"},{zh:"機場接送",en:"Airport Transfer",nav:"card31x"}]},\n      {zh:"卡片權益",en:"Benefits",items:[{zh:"卡別與權益",en:"Card Benefits",nav:"card31p"}]}\n    ]}}:{})\n  };')
 EMB28.append('kc31.js')
 # B：會籍積分（tp31.js）——卡等只看會籍積分＋自營航班會籍積分（KGM-FFP-011 Rev. D）；會員頁面板、卡級效期、AI 回答、權益說明、規章
 RW('tp31 eval',"window.kgmTierEvalR1006A=function(u){\n  var f=flownStats(u||{}),best='Bronze';",
@@ -658,6 +658,11 @@ RW('ffp31 ver','"KGM-FFP-011":{"t":"KGM Explorer 會員及哩程計畫條款","e
 RW('crd31 doc','window.KGM_POLICY_DOCS_R914["KGM-CRD-020"]='+json.dumps(crd_doc31.old_doc(),ensure_ascii=False)+';',
    'window.KGM_POLICY_DOCS_R914["KGM-CRD-020"]='+json.dumps(crd_doc31.doc(),ensure_ascii=False)+';')   # 1103A：CRD-020 Rev. B（crd_doc31.py，PDF 同一份）
 
+# G：BigDeal 前台頁、徽章、驚喜包、票夾、後台競標管理整理（bd31.js）
+RW('bd31 win',"var WIN={Premium:'P-A',Business:'B-K',First:'F-X',Resident:'R-R'};","var WIN={Premium:'P-A',Business:'B-K',First:'F-X',Resident:'R-R'};window.KGM_BD_WIN_R1103A=WIN;   /* 1103A：升等券升艙用同一份艙等代號（bd31.js） */")
+RW('bd31 auc',"        if(S.adminTab==='auctions'){\n          var body=auctionPage920();","        if(S.adminTab==='auctions'){\n          var body=window.kgmAucPageR1103A?window.kgmAucPageR1103A(auctionPage920):auctionPage920();   /* 1103A：頂部總覽、分類切換、每組預設收起（bd31.js） */")
+RW('bd31 inv',"function cabinInventory54(f,date,cabin,excludePnr){","window.kgmCabInvR1103A=function(){return cabinInventory54.apply(this,arguments)};   /* 1103A：升等券查上一艙空位（bd31.js），跟訂位庫存同一份 */\nfunction cabinInventory54(f,date,cabin,excludePnr){")
+EMB28.append('bd31.js')
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")
