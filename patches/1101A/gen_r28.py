@@ -572,6 +572,12 @@ RW('fy30 apply',"  function applyPick(pk){\n    var got=pk.legs.map(findLeg).fil
 #   上限改 8,000 筆（每筆是那條航線那天的幾個班次，約幾 MB；換季／改時刻照原本的鍵（customFlights、flightDateOverride、flightOverrides 數量）失效）。
 RW('srch30 cache',"if(cacheJ.size>180)cacheJ.clear();","if(cacheJ.size>8000)cacheJ.clear();   /* 1102A：原本 180，一次搜尋就超過、一直清掉重算 */")
 
+# R2（使用者：「沒改的就把它改完吧」）前台第一次搜尋：訂票頁七天價格列每一天都查「之後 3 天內出發」的轉機（findConnectionsFull(...,3)），
+#   再把兩段都當成那一天報價 → 一次搜尋做 7 次大範圍轉機搜尋（TPE→LAX 約 0.8 秒），而且晚 1～3 天出發的轉機被算成當天的價格。
+#   改成只查當天出發（第二段可以隔天，原本的轉機規則），第二段用它自己的日期報價。
+RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")
+RW('srch31 strip date',"const g1={...cn.f1,date:d},g2={...cn.f2,date:d};","const g1={...cn.f1,date:d},g2={...cn.f2,date:cn.f2.date||d};   /* 1102A：第二段用自己的日期 */")
+
 # R2-G：IRR-013 Rev. B 增訂第 8 條之一（irr_doc29.py；網站內嵌的條文是 JSON 字串，引號要跳脫）
 import irr_doc29
 RW('irr29 art',irr_doc29.ANCHOR,irr_doc29.ANCHOR+irr_doc29.ART.replace('"','\\"'))

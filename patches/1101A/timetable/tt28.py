@@ -168,5 +168,5 @@ for l in miss[:40]: print('MISS', l)
 for l in sm[:40]: print('SUMMER', l)
 if not DRY:   # 1102A：TT29_SUBSET=1 做子集化（1101B 沒做 → 3.0 MB）；1101B：標題重排後子集化要十幾分鐘（搬移的表單物件），預設不做（多約 1 MB，只多 LiberationSans 兩個字型）
     import align29; print('align29', align29.run(doc, BANDTXT, put, tw, WHITE))
-    os.environ.get('TT29_SUBSET') == '1' and doc.subset_fonts(); doc.set_metadata(dict(doc.metadata, modDate=fitz.get_pdf_now())); doc.save(OUT, garbage=4, deflate=True, clean=os.environ.get('TT29_SUBSET') == '1')   # 1101B：clean 在標題重排後很慢
+    os.environ.get('TT29_SUBSET') == '1' and doc.subset_fonts(); doc.set_metadata(dict(doc.metadata, modDate=fitz.get_pdf_now())); doc.save(OUT, garbage=4, deflate=True, use_objstms=1, clean=False)   # 1102A：clean 會把描邊寬度（w）拿掉 → 中文糊成一團   # 1101B：clean 在標題重排後很慢
     json.dump(log, open(OUT + '.log.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=0); print('saved', OUT, doc.page_count)

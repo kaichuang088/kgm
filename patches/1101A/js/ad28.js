@@ -66,6 +66,16 @@
        班表寫「空機調派 KX8900 TPE→外站」＋落地休息 ≥ 12 小時後搭第一班 KGM 回 TPE（DH）。要等組員班表算到那幾天才挑（不同步算還沒算的日子）。 */
   function rt30(t){t=String(t||'');return /^A3[12]|^A21/.test(t)?'A320':/^A33/.test(t)?'A330':/^B78/.test(t)?'B787':/^B77/.test(t)?'B777':/^A35/.test(t)?'A350':/^A38/.test(t)?'A380':''}
   function loc30(abs){var d=new Date(abs*60000).toISOString();return {date:d.slice(0,10),time:d.slice(11,16)}}
+  /* 1102A R2：空機調派／代班挑人要過組員規則（跟 t_crewrule 同一套）：同一天不能飛兩段、長程（輪擋 ≥8 小時）隔天不能飛、兩段之間休息 ≥10 小時；
+     看這個人前後 3 天的實際班表（kgmCrewChainR210）加上新的那幾段。 */
+  function legal30(empId,add,d0,d1){try{var from=addDays(d0,-3),n=Math.round((Date.parse(d1)-Date.parse(from))/864e5)+4,ch=window.kgmCrewChainR210(empId,from,n),L=[];
+      ch.forEach(function(day){(day.legs||[]).forEach(function(l){if(l&&!l.deadhead&&!l.dhR913&&isFinite(+l.depUTC))L.push({d:day.date,a:+l.depUTC,b:+(l.arrUTC||l.depUTC),blk:+l.block||0})})});
+      add.forEach(function(x){L.push({d:x.d,a:+x.depUTC,b:+(x.arrUTC||x.depUTC),blk:+x.block||0})});
+      L.sort(function(x,y){return x.a-y.a});var per={};
+      for(var i=0;i<L.length;i++){per[L[i].d]=(per[L[i].d]||0)+1;if(per[L[i].d]>1)return 'two';
+        if(i&&L[i].a-L[i-1].b<600)return 'rest';if(i&&L[i-1].blk>=480&&L[i].d===addDays(L[i-1].d,1))return 'longhaul'}
+      return ''}catch(e){return 'err'}}
+  window.kgmLegal30R1102A=legal30;
   window.kgmFerryRowR1102A=function(tail,pk){try{var F=pk&&pk.ferryR1102A;if(!F||!tail)return false;var TA=S.tailAssign=S.tailAssign||{},a=loc30(F.depAbs),b=loc30(F.arrAbs),id=F.id||(pk.code+'|'+pk.date);
       Object.keys(TA).forEach(function(t){if(t!==tail&&TA[t])TA[t]=TA[t].filter(function(x){return !(x&&x.ferryR1102A===id)})});
       var L=TA[tail]=TA[tail]||[];if(L.some(function(x){return x&&x.ferryR1102A===id}))return false;
@@ -77,7 +87,9 @@
       for(var i=0;i<ds.length;i++){var b=busy30(ds[i]);if(!b)return null;Object.assign(busy,b)}
       (S.tailPickR1023A||[]).forEach(function(q){((q&&q.ferryR1102A&&q.ferryR1102A.crew)||[]).forEach(function(c){busy[c.empId]=1})});
       var ty='';try{ty=(window.kgmTypeOfTailR1023A?window.kgmTypeOfTailR1023A(pk.tail):'')||''}catch(_){}if(!ty){try{ty=acftOfFlight(pk.code,pk.date)}catch(_){}}var rt=rt30(ty),P=(window.kgmCrewPoolR121()||{}).pilots||[];
-      var pick=function(rank){return P.filter(function(c){return c&&c.base==='TPE'&&c.rank===rank&&(!rt||c.rating===rt)&&!busy[c.empId]&&!c.standbyOnly}).sort(function(x,y){return (x.virtualR121?1:0)-(y.virtualR121?1:0)||String(x.empId).localeCompare(String(y.empId))})[0]};
+      var fl30={d:a.date,depUTC:F.depAbs-480,arrUTC:F.arrAbs-((TZ&&TZ[F.to]!=null?TZ[F.to]:8)*60),block:F.block};
+      var pick=function(rank){var cs=P.filter(function(c){return c&&c.base==='TPE'&&c.rank===rank&&(!rt||c.rating===rt)&&!busy[c.empId]&&!c.standbyOnly}).sort(function(x,y){return (x.virtualR121?1:0)-(y.virtualR121?1:0)||String(x.empId).localeCompare(String(y.empId))});
+        for(var i=0;i<cs.length&&i<40;i++){if(!legal30(cs[i].empId,[fl30],a.date,addDays(a.date,2)))return cs[i];busy[cs[i].empId]=1}return null};   /* 1102A R2：要過組員規則 */
       var cp=pick('CP'),fo=pick('FO');if(!cp||!fo)return null;
       var arrUTC=F.arrAbs-((TZ&&TZ[F.to]!=null?TZ[F.to]:8)*60),back=null;try{for(var k3=0;k3<16&&!back;k3++){var nd=arrUTC+720+180*(k3+1)+60,x3=window.kgmRealDhR1004B?window.kgmRealDhR1004B(F.to,'TPE',new Date((nd+480)*60000).toISOString().slice(0,10),nd):null;if(x3&&x3.depUTC>=arrUTC+720&&!x3.viaR1004B)back=x3}}catch(_){}   /* 落地休息 12 小時後的第一班 KGM 直飛回 TPE */
       F.crew=[{empId:cp.empId,name:cp.name||'',rank:'CP',pos:'PIC'},{empId:fo.empId,name:fo.name||'',rank:'FO',pos:'SIC'}];F.rating=rt;F.dhBack=back&&back.depUTC>=arrUTC+12*60?{code:back.code,date:back.date,dep:back.dep,arr:back.arr,dd:back.dd||0,depUTC:back.depUTC,arrUTC:back.arrUTC}:null;
@@ -128,7 +140,8 @@
       days.forEach(function(d){Object.assign(busy,busy30(d)||{})});lastMoves30().forEach(function(x){(x.subR1102A||[]).forEach(function(s2){busy[s2.in]=1})});(S.tailPickR1023A||[]).forEach(function(q){((q&&q.ferryR1102A&&q.ferryR1102A.crew)||[]).forEach(function(c){busy[c.empId]=1})});
       var subs=[],prev=null;bad.forEach(function(b){var rep=null;if(prev&&prev.loc===b.leg.fr&&+b.leg.depUTC>=prev.free)rep=prev.c;   /* 同一趟的下一段：同一位代班接著飛 */
         if(!rep){var cs=all.filter(function(c){return c&&c.empId!==m.empId&&c.role===me.role&&c.rank===me.rank&&(me.role!=='pilot'||c.rating===me.rating)&&c.base===(me.base||'TPE')&&!busy[c.empId]&&!c.standbyOnly}).sort(function(x,y){return (x.virtualR121?1:0)-(y.virtualR121?1:0)||String(x.empId).localeCompare(String(y.empId))});
-          for(var ci=0;ci<cs.length&&ci<40&&!rep;ci++){var cc=null;try{cc=window.kgmCrewChainR210(cs[ci].empId,addDays(b.day,-1),1)}catch(_){}if(cc&&cc[0]&&!cc[0].awayAt&&!(cc[0].legs||[]).length)rep=cs[ci];else busy[cs[ci].empId]=1}}   /* 前一天要在基地、沒有勤務（不在外站過夜） */
+          var later=bad.filter(function(x){return +x.leg.depUTC>=+b.leg.depUTC}).map(function(x){return {d:x.day,depUTC:x.leg.depUTC,arrUTC:x.leg.arrUTC,block:x.leg.block}}),lastD=later.length?later[later.length-1].d:b.day;   /* 這一位會接到的段（同一趟後面也是他） */
+          for(var ci=0;ci<cs.length&&ci<40&&!rep;ci++){var cc=null;try{cc=window.kgmCrewChainR210(cs[ci].empId,addDays(b.day,-1),1)}catch(_){}if(cc&&cc[0]&&!cc[0].awayAt&&!(cc[0].legs||[]).length&&!legal30(cs[ci].empId,later,b.day,lastD))rep=cs[ci];else busy[cs[ci].empId]=1}}   /* 1102A R2：前一天在基地、沒勤務，而且過組員規則 */   /* 前一天要在基地、沒有勤務（不在外站過夜） */
         if(!rep){subs.push({day:b.day,leg:b.leg,none:true});return}busy[rep.empId]=1;var dh=null,home=rep.base||'TPE',same=prev&&prev.c===rep;
         if(!same&&b.leg.fr!==home&&!((home==='TPE'||home==='TSA')&&(b.leg.fr==='TPE'||b.leg.fr==='TSA'))){var x=null;try{x=window.kgmRealDhR1004B(home,b.leg.fr,b.day,+b.leg.depUTC)}catch(_){}if(x)dh={code:'DH',fr:home,to:b.leg.fr,date:x.date,dep:x.dep,arr:x.arr,dd:x.dd||0,depUTC:x.depUTC,arrUTC:x.arrUTC,block:0,blockStr:'DH',acft:'—',type:'—',deadhead:true,operating:false,dhFlightR1004B:x.code,dhDateR1004B:x.date,remark:(z()?'DH · 代班前往 ':'DH · positioning to ')+b.leg.fr}}
         var L=Object.assign({},b.leg);delete L.subForR1102A;subs.push({day:b.day,leg:L,in:rep.empId,inName:rep.name||'',out:m.empId,outName:m.name||'',dh:dh});prev={c:rep,loc:b.leg.to,free:(+b.leg.arrUTC||+b.leg.depUTC)+600}});

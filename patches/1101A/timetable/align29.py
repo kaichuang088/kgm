@@ -2,6 +2,8 @@
 #   底稿從 1020B 起箭頭跟著出發地文字長度走（同一欄 58～157 pt 都有）→ 整本每一欄的箭頭放同一個位置：
 #   ① 箭頭：欄位左緣＋T（T＝整本最長的出發地文字右緣＋間距，左右兩欄同一個相對位置）
 #   ② 目的地文字：整塊照原樣（向量、原字型）平移到箭頭後面（show_pdf_page 從修改前的底稿剪下來貼）
+#      1102A：show_pdf_page 會把整頁原內容再存一份（3.0→3.4 MB 的元兇）→ 改成逐字重畫：中文用同一個字型（文泉驛正黑，底稿裡是同字形的 Type3）、
+#      英文 LiberationSans-Bold，每個字放在原本的位置＋平移量（rawdict 的逐字座標）；最後 subset_fonts 只留用到的字
 #   ③ 飛行時間：重寫、靠右；一行放得下就一行，放不下而且標題是兩行高就分兩行（「A ~」／「B」）
 #   tt28 算好的新飛行時間在 BANDTXT[(頁, 第一行 x, 第一行 y)]；沒有的照原本文字
 import pymupdf as fitz, re
@@ -31,9 +33,17 @@ def _parse(pg):
         if not org or not dst: continue
         res.append(dict(R=R, fill=f, a=a, tm=sorted(tm, key=lambda s: s['bbox'][1]), org=org, dst=dst))
     return res
+CJK = '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc'; LBB = '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
+def _raw(pg):   # 逐字座標：key＝span 外框（取 0.1 pt）
+    out = {}
+    for b in pg.get_text('rawdict')['blocks']:
+        for l in b.get('lines', []):
+            for sp in l['spans']:
+                out[tuple(round(v, 1) for v in sp['bbox'])] = sp
+    return out
 def run(doc, BANDTXT, put, tw, WHITE):
-    src = fitz.open('pdf', doc.tobytes())
     P = {pno: _parse(doc[pno]) for pno in range(doc.page_count)}
+    RAW = {pno: _raw(doc[pno]) for pno in P if P[pno]}
     ow = [max(s['bbox'][2] for s in h['org']) - h['R'].x0 for L in P.values() for h in L]
     if not ow: return 'no bands'
     n = 0; tight = []; TS = {}
@@ -73,8 +83,14 @@ def run(doc, BANDTXT, put, tw, WHITE):
             pg.draw_rect(fitz.Rect(x0, R.y0 + 0.4, R.x1 - 0.4, R.y1 - 0.4), color=None, fill=h['fill'], overlay=True)
         for h, sh, D, lines, sz, T in jobs:
             R, a = h['R'], h['a']
-            C = fitz.Rect(D.x0 - 0.4, max(R.y0, D.y0 - 0.6), D.x1 + 0.6, min(R.y1, D.y1 + 0.6))
-            pg.show_pdf_page(fitz.Rect(C.x0 + sh, C.y0, C.x1 + sh, C.y1), src, pno, clip=C)
+            for s in h['dst']:   # 1102A：逐字重畫（不再整頁剪貼）
+                rs = RAW[pno].get(tuple(round(v, 1) for v in s['bbox']))
+                cjk = 'Type3' in s['font'] or any(ord(ch) > 0x2e80 for ch in s['text'])
+                fn, ff = ('k31cjk', CJK) if cjk else ('k31lb', LBB)
+                chars = rs['chars'] if rs else [dict(c=s['text'], origin=s['origin'])]
+                for ch in chars:
+                    if not ch['c'].strip(): continue
+                    pg.insert_text((ch['origin'][0] + sh, ch['origin'][1]), ch['c'], fontname=fn, fontfile=ff, fontsize=s['size'], color=WHITE, fill=WHITE, render_mode=2 if cjk else 0, border_width=(0.03 if 'Type3' in s['font'] else 0.05) if cjk else 0)   # 底稿的中文是加粗描邊：Type3 那種描邊 0.03、文泉驛那種 0.05（字級倍數，逐字放大比對過）
             put(pg, R.x0 + T, a['origin'][1], '→', 'reg', a['size'], WHITE)
             mid = (R.y0 + R.y1) / 2
             ob = min(s['origin'][1] for s in h['org'])   # 單行標題：跟城市名同一條基線
