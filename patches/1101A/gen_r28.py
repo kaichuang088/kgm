@@ -575,6 +575,8 @@ RW('srch30 cache',"if(cacheJ.size>180)cacheJ.clear();","if(cacheJ.size>8000)cach
 # R2（使用者：「沒改的就把它改完吧」）前台第一次搜尋：訂票頁七天價格列每一天都查「之後 3 天內出發」的轉機（findConnectionsFull(...,3)），
 #   再把兩段都當成那一天報價 → 一次搜尋做 7 次大範圍轉機搜尋（TPE→LAX 約 0.8 秒），而且晚 1～3 天出發的轉機被算成當天的價格。
 #   改成只查當天出發（第二段可以隔天，原本的轉機規則），第二段用它自己的日期報價。
+RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
+   "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")
 RW('srch31 strip date',"const g1={...cn.f1,date:d},g2={...cn.f2,date:d};","const g1={...cn.f1,date:d},g2={...cn.f2,date:cn.f2.date||d};   /* 1102A：第二段用自己的日期 */")
 

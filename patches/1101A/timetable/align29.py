@@ -41,9 +41,32 @@ def _raw(pg):   # 逐字座標：key＝span 外框（取 0.1 pt）
             for sp in l['spans']:
                 out[tuple(round(v, 1) for v in sp['bbox'])] = sp
     return out
-def run(doc, BANDTXT, put, tw, WHITE):
+def _stk(pg):   # 1102A：底稿哪些字有描邊（文泉驛：大部分頁只有填色，少數標題填色＋描邊 0.366 pt）→ [(外框, 描邊寬÷字級)]
+    return [(fitz.Rect(t['bbox']), t['linewidth'] / t['size']) for t in pg.get_texttrace() if t['type'] == 1 and t.get('linewidth')]
+def fixw(doc, src):   # 1102A：清除（apply_redactions）會把表單物件複製一份新的、描邊字的線寬（「.3663 w 1 M」）沒帶過去 → 用預設 1 pt 描邊、字糊成一團（1101B 起第 24 頁「首爾仁川」）。存檔前照底稿同一頁、同一順位的物件補回去
+    S = fitz.open(src); n = 0
+    PAT = re.compile(rb'(?<! w 1 M )BT/(\S+) ([\d.]+) Tf (\d) Tr ([\d.-]+ [\d.-]+) TD')   # 用 字型＋字級＋位置 對應（清除後被搬走的那幾段不在了，數量會不同）
+    for pno in range(min(doc.page_count, S.page_count)):
+        A, B = S[pno].get_xobjects(), doc[pno].get_xobjects()
+        if len(A) != len(B): continue
+        for xa, xb in zip(A, B):
+            if xa[1] != xb[1]: continue
+            o = S.xref_stream(xa[0]) or b''
+            W = {m.group(2, 3, 4): m.group(1) for m in re.finditer(rb'([\d.]+) w 1 M BT/(\S+) ([\d.]+) Tf \d Tr ([\d.-]+ [\d.-]+) TD', o)}
+            if not W: continue
+            nw = doc.xref_stream(xb[0]) or b''; k = [0]
+            def sub(m):
+                w = W.get((m.group(1), m.group(2), m.group(4)))
+                if not w: return m.group(0)
+                k[0] += 1; return w + b' w 1 M ' + m.group(0)
+            nw2 = PAT.sub(sub, nw)
+            if k[0]: doc.update_stream(xb[0], nw2); n += k[0]
+    return n
+def run(doc, BANDTXT, put, tw, WHITE, src=None):
     P = {pno: _parse(doc[pno]) for pno in range(doc.page_count)}
     RAW = {pno: _raw(doc[pno]) for pno in P if P[pno]}
+    SD = fitz.open(src) if src else doc   # 描邊要讀底稿（tt28 前面改時刻已經清除過的頁，線寬已經不見了）
+    STK = {pno: _stk(SD[pno]) for pno in P if P[pno]}
     ow = [max(s['bbox'][2] for s in h['org']) - h['R'].x0 for L in P.values() for h in L]
     if not ow: return 'no bands'
     n = 0; tight = []; TS = {}
@@ -88,9 +111,11 @@ def run(doc, BANDTXT, put, tw, WHITE):
                 cjk = 'Type3' in s['font'] or any(ord(ch) > 0x2e80 for ch in s['text'])
                 fn, ff = ('k31cjk', CJK) if cjk else ('k31lb', LBB)
                 chars = rs['chars'] if rs else [dict(c=s['text'], origin=s['origin'])]
+                SR = fitz.Rect(s['bbox'])
+                bw = 0.03 if 'Type3' in s['font'] else next((w for r, w in STK[pno] if abs(r.x0 - SR.x0) < 0.6 and r.y0 < SR.y1 and r.y1 > SR.y0), 0)   # Type3 字形本身是粗字（描邊 0.03 逐字放大比對過）；文泉驛照底稿那個字有沒有描邊
                 for ch in chars:
                     if not ch['c'].strip(): continue
-                    pg.insert_text((ch['origin'][0] + sh, ch['origin'][1]), ch['c'], fontname=fn, fontfile=ff, fontsize=s['size'], color=WHITE, fill=WHITE, render_mode=2 if cjk else 0, border_width=(0.03 if 'Type3' in s['font'] else 0.05) if cjk else 0)   # 底稿的中文是加粗描邊：Type3 那種描邊 0.03、文泉驛那種 0.05（字級倍數，逐字放大比對過）
+                    pg.insert_text((ch['origin'][0] + sh, ch['origin'][1]), ch['c'], fontname=fn, fontfile=ff, fontsize=s['size'], color=WHITE, fill=WHITE, render_mode=2 if (cjk and bw) else 0, border_width=bw if cjk else 0)
             put(pg, R.x0 + T, a['origin'][1], '→', 'reg', a['size'], WHITE)
             mid = (R.y0 + R.y1) / 2
             ob = min(s['origin'][1] for s in h['org'])   # 單行標題：跟城市名同一條基線

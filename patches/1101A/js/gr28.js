@@ -88,6 +88,21 @@
     var s=window.segs7(b,true)||[];
     try{if(m)m.k=k,m.g=g,m.s=s;else Object.defineProperty(b,'__sg29',{value:{k:k,g:g,s:s},writable:true,configurable:true,enumerable:false})}catch(_){}
     return s};
+  /* 1102A R2：前台第一次搜尋一半時間在 cabinInventory54——每問一班一天一艙就把全部訂位（含每段）掃一遍。
+     同一批計算（跟 cabinInventory54 自己的同批次快取一樣：到下一個 setTimeout 0 為止）先把訂位依「班號|起|訖|日期」建一次索引，
+     順序跟 S.bookings 一樣、每筆訂位在同一個鍵只出現一次；迴圈裡的條件（取消、排除的訂位、艙等、員工票…）照舊逐筆判斷 → 結果相同。
+     訂位陣列換了、筆數變了、或這一批裡存過檔（kgmSaveCoalescedR32 變了）就重建。known＝全部訂位代號（含已取消，跟原本一樣）。 */
+  var IX30=null;
+  window.kgmInvIdxR1102A=function(arr){
+    var sv=window.kgmSaveCoalescedR32||0;
+    if(IX30&&IX30.arr===arr&&IX30.n===arr.length&&IX30.sv===sv)return IX30;
+    var by={},known={};
+    for(var i=0;i<arr.length;i++){var b=arr[i];if(!b)continue;known[b.pnr]=true;var seen={};
+      var ss=window.kgmSegsMemoR1101B(b)||[];
+      for(var j=0;j<ss.length;j++){var s=ss[j],sf=(s&&s.f)||{},k=sf.code+'|'+sf.fr+'|'+sf.to+'|'+s.date;if(seen[k])continue;seen[k]=1;(by[k]||(by[k]=[])).push(b)}}
+    IX30={arr:arr,n:arr.length,sv:sv,by:by,known:known};
+    setTimeout(function(){IX30=null},0);
+    return IX30};
   /* 季節時刻（人工改時刻、換季）變了 → 全部重算：每 60 秒換一次版本（中停第二段的日期會跟時刻變） */
   setInterval(function(){window.KGM_SEASON_GEN_R1101B=(window.KGM_SEASON_GEN_R1101B||0)+1},60000);
 })();
