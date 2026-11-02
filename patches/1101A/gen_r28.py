@@ -415,9 +415,9 @@ RW('est30 manual',"if(ov27.dep&&ov27.status==='Delayed'){p.estDep=ov27.dep;if(ov
    "if(ov27.dep&&ov27.status!=='Cancelled'){var md30=mins(ov27.dep)+(+ov27.depDD||0)*1440-mins(f.dep);if(md30){p.estDep=ov27.dep;p.depDelta=md30;p.arrDelta+=md30;p.estArr=clock(mins(f.arr)+p.arrDelta)}   /* 1102A：人工改出發 → 抵達跟著移（加當天飛行狀況） */\n        if(ov27.arr&&!ov27.warDelayR1025B){var ad30=mins(ov27.arr)-mins(f.arr);if(ad30>720)ad30-=1440;if(ad30<-720)ad30+=1440;p.estArr=ov27.arr;p.arrDelta=ad30}}   /* 人工填的抵達優先 */")
 # 前台航班動態（fb20b info20）：起飛前 48 小時內（到落地後一天）把預估抵達發佈出去；狀態寫延遲抵達／提早抵達
 RW('est30 front',"dd2=addDays(d,dOff);\n    var sk=aoff20(f,d,f.dep,f.arr),",
-   "dd2=addDays(d,dOff);\n    var pe30=null;try{if(!ov.arr&&!f.partner&&!f.divertContR1101A&&window.kgmOpsPredR1026C){var h30=(utc20(d,f.dep,f.fr)-Date.now())/36e5;if(h30<=48&&h30>-30){var pp30=window.kgmOpsPredR1026C(f,d);if(pp30&&pp30.estArr){pe30=pp30;if(pp30.estDep&&!ov.dep)dep=pp30.estDep;arr=pp30.estArr}}}}catch(_){}   /* 1102A：航班資料的預估（EST）發佈到旅客航班動態（起飛前 48 小時起） */\n    var sk=aoff20(f,d,f.dep,f.arr),")
+   "dd2=addDays(d,dOff);\n    var pe30=null;try{if(!ov.arr&&!f.partner&&!f.divertContR1101A&&window.kgmOpsPredR1026C){var h30=(utc20(d,f.dep,f.fr)-Date.now())/36e5;if(h30<=168&&h30>-30){   /* 1103A：48 小時→7 天（後台看得到 EST 的都發佈） */ var pp30=window.kgmOpsPredR1026C(f,d);if(pp30&&pp30.estArr){pe30=pp30;if(pp30.estDep&&!ov.dep)dep=pp30.estDep;arr=pp30.estArr}}}}catch(_){}   /* 1102A：航班資料的預估（EST）發佈到旅客航班動態（起飛前 48 小時起） */\n    var sk=aoff20(f,d,f.dep,f.arr),")
 RW('est30 front st',"ty:ty,st:st20(f,d,ov,depEp),can:can};",
-   "ty:ty,st:(function(s){if(pe30&&!ov.status&&s&&/^(ok|warn)$/.test(s[2])){if(pe30.arrDelta>=15)return ['延遲抵達','Late arrival','warn'];if(pe30.arrDelta<=-15)return ['提早抵達','Early arrival','ok']}return s})(st20(f,d,ov,depEp)),can:can,estR1102A:!!pe30};")
+   "ty:ty,st:(function(s){if(pe30&&!ov.status&&s&&/^(ok|warn)$/.test(s[2])){if(pe30.arrDelta>=5)return ['預計延遲 '+pe30.arrDelta+' 分抵達','Late arrival +'+pe30.arrDelta+' min','warn'];if(pe30.arrDelta<=-5)return ['預計提早 '+(-pe30.arrDelta)+' 分抵達','Early arrival '+(-pe30.arrDelta)+' min','ok']}return s}   /* 1103A：差 5 分以上就寫（使用者：後台寫早 10 分，前台也要改） */)(st20(f,d,ov,depEp)),can:can,estR1102A:!!pe30};")
 # 後台航班狀態編輯：改出發 → 抵達自動帶入（當天預估飛行時間），可以再改
 RW('est30 form',"<input id=\"adNewDep\" class=\"inp\" placeholder=\"HH:MM\" value=\"${(S.flightOverrides?.[editKey]||{}).dep||\"\"}\"></div>",
    "<input id=\"adNewDep\" class=\"inp\" placeholder=\"HH:MM\" value=\"${(S.flightOverrides?.[editKey]||{}).dep||\"\"}\" oninput=\"window.kgmEstFillR1102A&&kgmEstFillR1102A()\"><small style=\"display:block;font-size:10.5px;color:var(--sub);margin-top:2px\">${LANG===\"en\"?\"Arrival fills in from today's flying conditions; you can still edit it\":\"填出發後，抵達依當天飛行狀況自動帶入，可再修改\"}</small></div>")
@@ -587,6 +587,7 @@ RW('cf31 quote',"if(r.kind==='custom'){var p=seatPrice(f,'Economy');lines.push({
 RW('cf31 admin pax',"<div class=\"k27cd-n\"><b>'+r.pax+'</b><small>'+(z()?'位':'pax')+'</small></div></div>'",
    "<div class=\"k27cd-n\"><b>'+(r.paxRet&&r.paxRet!==r.pax?r.pax+'／'+r.paxRet:r.pax)+'</b><small>'+(r.paxRet&&r.paxRet!==r.pax?(z()?'去／回 位':'out / ret'):(z()?'位':'pax'))+'</small></div></div>'")
 EMB28.append('cf31.js')
+EMB28.append('ui31.js')
 EMB28.append('rot31.js')
 
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
