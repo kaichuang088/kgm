@@ -23,7 +23,9 @@
     WUX:['無錫','Wuxi',120.43,31.49],CZX:['常州','Changzhou',119.78,31.92],ZUH:['珠海','Zhuhai',113.38,22.01],SWA:['揭陽潮汕','Jieyang Chaoshan',116.50,23.55],YNJ:['延吉','Yanji',129.45,42.88],YTY:['揚州泰州','Yangzhou Taizhou',119.72,32.56],
     LJG:['麗江','Lijiang',100.25,26.68],JHG:['西雙版納','Xishuangbanna',100.76,21.97],INC:['銀川','Yinchuan',106.39,38.32],DYG:['張家界','Zhangjiajie',110.44,29.10],WEH:['威海','Weihai',122.23,37.19],DLU:['大理','Dali',100.32,25.65]};
   var SEA={HKT:['普吉島','Phuket',98.31,8.11],CXR:['芽莊','Nha Trang',109.22,11.99]};
-  var LIST=[];function add(tbl,tz){Object.keys(tbl).forEach(function(a){LIST.push(a);var d=tbl[a];if(!d)return;
+  /* 1103A 第二次檢查：KGM 已經有定期航班的機場（例：廣島、鹿兒島、岡山）一律不補資料——原本網站這三個沒有座標，補了之後冬季風向修正跟著變（KX191 鹿兒島→台北冬季抵達 18:30 → 18:25），動到時刻表 */
+  var SRV={};try{[].concat(FLIGHTS,(typeof S!=='undefined'&&S.customFlights)||[]).forEach(function(f){if(f&&!f.partner&&/^KX/.test(String(f.code||''))){SRV[f.fr]=1;SRV[f.to]=1}})}catch(_){}
+  var LIST=[];function add(tbl,tz){Object.keys(tbl).forEach(function(a){LIST.push(a);var d=tbl[a];if(!d||SRV[a])return;
       try{if(!CITY_ZH[a])CITY_ZH[a]=d[0]}catch(_){}try{if(!CITY_EN[a])CITY_EN[a]=d[1]}catch(_){}
       try{if(typeof AP_XY!=='undefined'&&!AP_XY[a])AP_XY[a]=[d[2],d[3]]}catch(_){}
       try{if(typeof TZ!=='undefined'&&TZ[a]==null)TZ[a]=tz}catch(_){}
