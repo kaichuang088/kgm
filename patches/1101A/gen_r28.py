@@ -133,7 +133,7 @@ RW('lag28 sig pool',"    try{if(window.KGM_FULLDONE_1006A)try{pool121()}catch(_)
 RW('lag28 idle',"  function idle(f){if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:2500});else setTimeout(f,60)}\n  function tick(){",
    "  function idle(f){var to=(S.view==='admin'&&S.adminTab==='sched')?2500:10000;   /* 1101A：不在組員班表分頁時多等瀏覽器空檔 */\n    if(window.kgmBgHiddenR1103A&&window.kgmBgHiddenR1103A())return window.kgmBgSoonR1103A(f,0);   /* 1103A：分頁看不見時 requestIdleCallback 幾乎不跑 → Worker 叫醒（rot31.js） */\n    if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:to});else setTimeout(f,60)}\n  function tick(){")
 RW('lag28 input',"    if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<2000)return;   /* 使用者正在操作就先讓開",
-   "    if(!(window.kgmBgHiddenR1103A&&window.kgmBgHiddenR1103A())&&Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<((S.view==='admin'&&S.adminTab==='sched')?4000:6000))return;   /* 1103A：其他頁 20→6 秒（使用者：看其他頁也要繼續跑）；分頁看不見時不等 */   /* 1101B：其他頁 10→20 秒（一天 1～15 秒不能中斷，看頁面時不開始算） */   /* 1101A：使用者停手 4 秒（組員班表分頁）／10 秒（其他頁）才算，一算就卡 1 秒 */   /* 使用者正在操作就先讓開")
+   "    if(!(window.kgmBgHiddenR1103A&&window.kgmBgHiddenR1103A())&&Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<((S.view==='admin'&&S.adminTab==='sched')?4000:20000))return;   /* 1104A：使用者選畫面順 → 其他頁改回 20 秒（切到別的分頁時照樣不等） */   /* 1103A：其他頁 20→6 秒（使用者：看其他頁也要繼續跑）；分頁看不見時不等 */   /* 1101B：其他頁 10→20 秒（一天 1～15 秒不能中斷，看頁面時不開始算） */   /* 1101A：使用者停手 4 秒（組員班表分頁）／10 秒（其他頁）才算，一算就卡 1 秒 */   /* 使用者正在操作就先讓開")
 
 # ══ H2：後台卡頓（續）——真人點擊剖析（tests/prof28c.js）：除了組員背景，還有競標模擬資料預補（1025B：使用者 1.5 秒沒操作就補一班，一班 0.1 秒以上、還會牽動 Payload 艙單與組員計畫）、
 #   航班資料 DH 背景補算（1026C dhLater929，沒有看使用者是否正在操作）→ 都改成使用者停手 8 秒才做（讀一頁的時間通常超過 1.5 秒，下一次點擊剛好撞上就卡）。
@@ -344,7 +344,7 @@ RW('lag29 crew pool',"    BUSY25=true;\n    idle(function(){",
    "    BUSY25=true;\n    if(!POOL121){idle(function(){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500||(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000&&Date.now()-(window.KGM_BG_LAST_R1101B||0)<2500)){BUSY25=false;setTimeout(tick,1500);return}try{pool121()}catch(_){}window.KGM_BG_LAST_R1101B=Date.now();BUSY25=false;setTimeout(tick,Math.max(900,Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000?6000:0))});return}   /* 1101B：組員名單（約 3 秒）第一次另外算一段，不跟第一天（1～4 秒）擠在同一段 */\n    idle(function(){")
 RW('lag29 crew gate',"    idle(function(){try{window.kgmCrewStepR121(1,target())}catch(_){}BUSY25=false;",
    "    idle(function(){if(!(window.kgmBgHiddenR1103A&&window.kgmBgHiddenR1103A())&&(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<1500||(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000&&Date.now()-(window.KGM_BG_LAST_R1101B||0)<2500))){BUSY25=false;(window.kgmBgSoonR1103A||setTimeout)(tick,1500);return}var t29=Date.now();try{window.kgmCrewStepR121(1,target())}catch(_){}window.__crewMs29=Date.now()-t29;window.KGM_BG_LAST_R1101B=Date.now();BUSY25=false;")
-RW('lag29 crew pace',"      setTimeout(tick,pace27())});","      (window.kgmBgSoonR1103A||setTimeout)(tick,Math.max(pace27(),pace27()<100||Date.now()-(window.KGM_LAST_INPUT_R1025B||0)>60000?0:3*(window.__crewMs29||0)))});   /* 1103A：8→3 倍（使用者：看其他頁也要繼續跑）；分頁看不見時 Worker 叫醒 */   /* 1101B：不在組員班表分頁、使用者 60 秒內有操作時佔主執行緒 ≤ 11%（一天 1～4 秒不能中斷，算一天休息 8 倍時間，撞到點擊的機率約 1/9）；沒人操作照原本 0.9 秒 */")
+RW('lag29 crew pace',"      setTimeout(tick,pace27())});","      (window.kgmBgSoonR1103A||setTimeout)(tick,Math.max(pace27(),pace27()<100||Date.now()-(window.KGM_LAST_INPUT_R1025B||0)>60000?0:8*(window.__crewMs29||0)))});   /* 1104A：改回 8 倍（使用者：卡頓要解決） */   /* 1103A：8→3 倍（使用者：看其他頁也要繼續跑）；分頁看不見時 Worker 叫醒 */   /* 1101B：不在組員班表分頁、使用者 60 秒內有操作時佔主執行緒 ≤ 11%（一天 1～4 秒不能中斷，算一天休息 8 倍時間，撞到點擊的機率約 1/9）；沒人操作照原本 0.9 秒 */")
 #   競標預補：一班最多 1.5 秒（結算要 Payload 艙單），補完一班花超過 0.3 秒就休息 5 倍時間
 RW('lag29 auc pace',"      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);if(Q.length)idle25(step)})();",
    "      window.KGM_AUC_DEFER_SAVE_R1025B=0;flush25(!Q.length);var dt29=Date.now()-t;if(Q.length){if(dt29>300&&Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<60000)setTimeout(function(){idle25(step)},5*dt29);else idle25(step)}})();   /* 1101B：一班超過 0.3 秒就休息 5 倍時間 */")
@@ -700,6 +700,15 @@ RW('g31 bag',"if(cab==='Economy')o.bag=k==='Q'?","if(k==='G'){try{var mv31=(FARE
 RW('g31 ref alert',"alert(LANG===\"en\"?\"This fare is non-refundable. You can still change the flight for a fee.\":\n      \"此票種不可退票。您仍可以付費改票。\");",
    "alert(/不可改票/.test((FARES[fareCode]||{}).chgZH||'')?(LANG===\"en\"?\"This group fare (G) can be neither refunded nor changed after ticketing. To reclaim unused taxes, please open a case.\":\"團體票（G 艙）開票後不可退票、也不可改票；未使用之代收稅費請以「建立案件」申請退還。\"):(LANG===\"en\"?\"This fare is non-refundable. You can still change the flight for a fee.\":\n      \"此票種不可退票。您仍可以付費改票。\"));   /* 1103A */")
 RW('ga31 hero pending',"'AI 客服已核對您的資料，KGM 團體業務核准並設定開放期間後會寄信通知您。'","'KGM 團體業務人工審核中（公司登記、旅行業執照、負責人與聯絡人國籍），通常 3 個工作天內以 email 通知結果；審核通過前不能訂團體票。'")
+# ══ 1104A ══
+# 團體票全部「未提供」（使用者：「把團體票全部都售完的事情解決」）：團體模式的可賣代號清單（grp25_27 vcWrap）只放 Q／U，1103A 加的 G 沒放進去 → grp28 篩成只剩 G 時一個都沒有
+RW('g32 vc',"out.push(GC[cb].Q,GC[cb].U)","out.push(GC[cb].Q,GC[cb].U);if(GC[cb].G)out.push(GC[cb].G)")
+# 旅行社／團體帳號在「行程管理」多一項「我的團體訂位」（使用者：圖二要多一個我的旅行團或團體訂購）；只有帳號申請過（審核中／已開通／被退回）的會員看得到
+RW('g32 menu','{zh:"退票申請",en:"Refund Request",nav:"manage"}]},',
+   '{zh:"退票申請",en:"Refund Request",nav:"manage"},...((function(){try{var g=S.user&&S.user.groupAccountR1025B;return !!(g&&g.status&&g.status!=="revoked")}catch(_){return false}})()?[{zh:"我的團體訂位",en:"My Group Bookings",nav:"group23"}]:[])]},   /* 1104A */')
+# 團體資料頁填的名單帶進團體（grp28.js kgmGrpDraftNamesR1104A）；搜尋頁「去程起」也要看 G
+RW('g32 draft names',"due:{balance:du.balance,names:du.names},names:[],history:[],","due:{balance:du.balance,names:du.names},names:(window.kgmGrpDraftNamesR1104A?window.kgmGrpDraftNamesR1104A(d,pc):[]),history:[],")
+RW('g32 cc',"if(g)return [g.Q,g.U].concat(r)","if(g)return [g.Q,g.U].concat(g.G?[g.G]:[]).concat(r)")
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")

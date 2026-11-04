@@ -99,22 +99,41 @@
   setInterval(memberFix,30000);setTimeout(memberFix,15000);
   /* ⑦ 已在尾款期限內 → 名單當下填完 */
   function late(){try{var k=S.search.grpPlanR1101A||((FARES[S.outC]||{}).groupPlanR1026C)||'U',pl=P()[k]||{},d0=(S.outF&&S.outF.date)||S.search.dep;return Math.round((Date.parse(d0)-Date.parse(T()))/864e5)<=(+pl.bal||0)}catch(_){return false}}
-  function namesForm(){var zh=z(),p=passengerCounts(),d=S.grpDraftR1025B=S.grpDraftR1025B||{};d.namesR1101A=d.namesR1101A||[];var rows='';
+  /* 1104A：名單表每次都出現（使用者：「旅客名單要是表格需要每位旅客的生日啊會員號碼(optional)等等 有輸入的話可以獲得對應里程」）：
+     欄位跟「我的團體訂位」名單頁一樣（姓、名、性別、生日、護照、KGM 會員卡號選填）；尾款期限內訂位一定要填完，其他時候可以先填一部分、沒填的以 TBA 保留，
+     填過的帶進團體名單（grp25 finish → kgmGrpDraftNamesR1104A）；有填會員卡號的旅客開票後里程進他自己的帳號（memberFix）。 */
+  function namesForm(){var zh=z(),p=passengerCounts(),d=S.grpDraftR1025B=S.grpDraftR1025B||{},lt=late();d.namesR1101A=d.namesR1101A||[];var rows='',k=S.search.grpPlanR1101A||'G',pl=P()[k]||{};
+    var cell=function(i,key,r,ph,w){if(i>0&&key!=='member')ph='';return '<td><input class="inp" value="'+E(r[key]||'')+'" placeholder="'+E(ph)+'"'+(w?' style="min-width:'+w+'px"':'')+' oninput="kgmGrpNmR1101A('+i+',\''+key+'\',this.value)"></td>'};
     for(var i=0;i<p.seats+p.infants;i++){var r=d.namesR1101A[i]||{},ty=i<p.adults?'ADT':(i<p.seats?'CHD':'INF');
-      rows+='<tr><td>'+(i+1)+'<small>'+ty+'</small></td><td><input class="inp" value="'+E(r.last||'')+'" placeholder="WANG" oninput="kgmGrpNmR1101A('+i+',\'last\',this.value)"></td><td><input class="inp" value="'+E(r.first||'')+'" placeholder="DAMING" oninput="kgmGrpNmR1101A('+i+',\'first\',this.value)"></td><td><input class="inp" value="'+E(r.member||'')+'" placeholder="'+(zh?'選填':'optional')+'" oninput="kgmGrpNmR1101A('+i+',\'member\',this.value)"></td></tr>'}
-    return '<div class="k28g-names"><b>'+(zh?'出發前 '+(P()[S.search.grpPlanR1101A||'U']||{}).bal+' 天內訂位：要當下付清並填好全部旅客姓名':'Within the balance window: pay in full and give all names now')+'</b><table><thead><tr><th>#</th><th>'+(zh?'姓 Last':'Last')+'</th><th>'+(zh?'名 First':'First')+'</th><th>'+(zh?'KGM 會員卡號（選填，里程進該會員；不填進訂購者）':'KGM member no. (optional)')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>'}
-  window.kgmGrpNmR1101A=function(i,k,v){var d=S.grpDraftR1025B=S.grpDraftR1025B||{};d.namesR1101A=d.namesR1101A||[];d.namesR1101A[i]=d.namesR1101A[i]||{};d.namesR1101A[i][k]=k==='member'?String(v).trim().toUpperCase():String(v).toUpperCase().replace(/[^A-Z\- ]/g,'')};
+      rows+='<tr><td>'+(i+1)+'<small>'+(zh?(ty==='ADT'?'成人':(ty==='CHD'?'兒童':'嬰兒')):ty)+'</small></td>'+cell(i,'last',r,'WANG',90)+cell(i,'first',r,'DAMING',110)
+        +'<td><select class="inp" onchange="kgmGrpNmR1101A('+i+',\'gender\',this.value)"><option value=""></option><option value="M"'+(r.gender==='M'?' selected':'')+'>M</option><option value="F"'+(r.gender==='F'?' selected':'')+'>F</option></select></td>'
+        +cell(i,'dob',r,'1990-05-20',110)+cell(i,'passport',r,zh?'護照號碼':'Passport',110)+cell(i,'member',r,zh?'選填':'optional',110)+'</tr>'}
+    return '<div class="k28g-names k32-names"><b>'+(lt?(zh?'出發前 '+pl.bal+' 天內訂位：要當下付清並填好全部旅客（姓名、性別、生日）':'Within the balance window: enter every traveller now'):(zh?'旅客名單（可以現在填，也可以之後在「我的團體訂位」補；沒填的先以 TBA 保留，名單期限 出發前 '+pl.names+' 天）':'Traveller list (optional now; blank rows are held as TBA)'))+'</b>'
+      +'<p>'+(zh?'姓名照護照英文拼音、姓名分開；生日 YYYY-MM-DD。填了 <b>KGM 會員卡號</b> 的旅客，開票後這段的里程與會籍積分進他自己的帳號；沒填的累積到訂購的團體帳號。':'Names as in passport. With a KGM member number, miles go to that member.')+'</p>'
+      +'<div class="k25g-scroll"><table><thead><tr><th>#</th><th>'+(zh?'姓 Last':'Last')+'</th><th>'+(zh?'名 First':'First')+'</th><th>'+(zh?'性別':'Sex')+'</th><th>'+(zh?'生日':'DOB')+'</th><th>'+(zh?'護照號碼':'Passport')+'</th><th>'+(zh?'KGM 會員卡號（選填）':'KGM member no. (optional)')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'}
+  window.kgmGrpNmR1101A=function(i,k,v){var d=S.grpDraftR1025B=S.grpDraftR1025B||{};d.namesR1101A=d.namesR1101A||[];d.namesR1101A[i]=d.namesR1101A[i]||{};v=String(v==null?'':v);
+    d.namesR1101A[i][k]=(k==='member'||k==='passport')?v.trim().toUpperCase():(k==='dob'||k==='gender'?v.trim():v.toUpperCase().replace(/[^A-Z\- ]/g,''))};
+  try{var cs32=document.createElement('style');cs32.textContent='.k32-names td:first-child{white-space:nowrap}.k32-names td{padding:3px 4px!important}.k32-names .inp{height:34px;padding:4px 8px;font-size:13px}.k32-names select.inp{min-width:56px}.k32-names p{font-size:12.5px;color:#5d665f;margin:4px 0 8px}';document.head.appendChild(cs32)}catch(_){}
+  function chkNames(all){var p=passengerCounts(),L=(S.grpDraftR1025B||{}).namesR1101A||[],bad=[],zh=z();
+    for(var i=0;i<p.seats+p.infants;i++){var r=L[i]||{},any=r.last||r.first||r.gender||r.dob||r.passport||r.member;
+      if(all||any){if(!r.last||!r.first)bad.push((i+1)+(zh?'：姓、名都要填':': last and first name'));else if(all&&(!r.gender||!r.dob))bad.push((i+1)+(zh?'：性別、生日要填':': sex and DOB'))}
+      if(r.dob&&!/^\d{4}-\d{2}-\d{2}$/.test(r.dob)||(r.dob&&(r.dob>T()||isNaN(Date.parse(r.dob)))))bad.push((i+1)+(zh?'：生日格式 YYYY-MM-DD':': DOB YYYY-MM-DD'));
+      if(r.member&&!(S.users||[]).some(function(u){return u&&(String(u.id).toUpperCase()===r.member||String(u.memberId||'').toUpperCase()===r.member)}))bad.push((i+1)+(zh?'：查無 KGM 會員卡號 ':': unknown member ')+r.member)}
+    return bad}
+  /* grp25 finish 建立團體時讀這裡：草稿名單 → g.names（只取佔位的旅客） */
+  window.kgmGrpDraftNamesR1104A=function(d,pc){try{var L=(d&&d.namesR1101A)||[],n=pc?pc.seats:0,out=[];for(var i=0;i<n;i++){var r=L[i]||{};out.push({last:r.last||'',first:r.first||'',gender:r.gender||'',dob:r.dob||'',passport:r.passport||'',member:r.member||'',type:i>=(pc.adults||0)?'CHD':'ADT'})}
+      return out.some(function(x){return x.last||x.first})?out:[]}catch(_){return []}};
   var px0=window.kgmGrpPaxNextR1025B;
-  if(typeof px0==='function'&&!px0.__r28){var px28=function(){try{if(on()&&late()){var p=passengerCounts(),d=S.grpDraftR1025B||{},L=d.namesR1101A||[],miss=[];for(var i=0;i<p.seats+p.infants;i++){var r=L[i]||{};if(!r.last||!r.first)miss.push(i+1)}
-        if(miss.length){alert(z()?('尾款期限內訂位要先填好全部旅客姓名：第 '+miss.slice(0,10).join('、')+' 位還沒填。'):'Please enter all names.');return}}}catch(_){}
+  if(typeof px0==='function'&&!px0.__r28){var px28=function(){try{if(on()){var bad=chkNames(late());if(bad.length){alert((z()?(late()?'尾款期限內訂位要先填好全部旅客：\n':'名單有幾格要修正：\n'):'Please fix the traveller list:\n')+bad.slice(0,8).join('\n'));return}}}catch(_){}
       var r=px0.apply(this,arguments);
-      try{if(on()&&late()&&S.paxList){var L2=(S.grpDraftR1025B||{}).namesR1101A||[];S.paxList.forEach(function(p,i){var n=L2[i];if(n&&n.last&&n.first){p.lastName=n.last;p.firstName=n.first;p.groupNameTbaR1023A=false;if(n.member)p.kgmMemberR1101A=n.member}})}}catch(_){}return r};
+      try{if(on()&&S.paxList){var L2=(S.grpDraftR1025B||{}).namesR1101A||[];S.paxList.forEach(function(p,i){var n=L2[i];if(n&&n.last&&n.first){p.lastName=n.last;p.firstName=n.first;p.groupNameTbaR1023A=false;if(n.gender){p.gender=n.gender;p.title=n.gender==='F'?(p.passengerType==='CHD'?'MISS':'MS'):(p.passengerType==='CHD'?'MSTR':'MR')}if(n.dob)p.dob=n.dob;if(n.passport)p.passport=n.passport;if(n.member)p.kgmMemberR1101A=n.member}})}}catch(_){}return r};   /* 1104A：不只尾款期限內，有填的都帶（含性別、生日、護照、會員卡號） */
     px28.__r28=1;window.kgmGrpPaxNextR1025B=px28}
   /* 畫面：前置視窗、回程提示、團體資料頁加名單表、搜尋艙等選單拿掉頭等 */
   try{var r0=window.render;if(typeof r0==='function'&&!r0.__grp28){var w=function(){autoName();var r=r0.apply(this,arguments);try{decorate()}catch(_){}return r};w.__grp28=1;window.render=w;try{render=w}catch(_){}}}catch(_){}
   function decorate(){var host=document.getElementById('k28g-host');if(!host){host=document.createElement('div');host.id='k28g-host';document.body.appendChild(host)}
     retWarn();var h='';if(on()&&S.grp28Pre&&S.view!=='admin')h=preModal();else if(on()&&S.grp28RetWarn)h=retModal();if(host.__h!==h){host.innerHTML=h;host.__h=h}
-    if(on()&&S.view==='booking'&&S.phase==='pax'&&late()){var pg=document.querySelector('.k25g-pax');if(pg&&!pg.querySelector('.k28g-names')){var act=pg.querySelector('.k25g-act');var d=document.createElement('div');d.innerHTML=namesForm();if(act)pg.insertBefore(d.firstChild,act);else pg.appendChild(d.firstChild)}}
+    try{g32rules()}catch(_){}
+    if(on()&&S.view==='booking'&&S.phase==='pax'){var pg=document.querySelector('.k25g-pax');if(pg&&!pg.querySelector('.k28g-names')){var act=pg.querySelector('.k25g-act');var d=document.createElement('div');d.innerHTML=namesForm();if(act)pg.insertBefore(d.firstChild,act);else pg.appendChild(d.firstChild)}}
     if(on()){[].forEach.call(document.querySelectorAll('#app select option[value="First"]'),function(o){o.disabled=true;o.hidden=true});if(S.search&&S.search.cabin==='First')S.search.cabin='Business'}
     /* ⑨ 搜尋卡客艙級別底下寫艙等分配 */
     /* 1101B：人數跟艙等已合併在乘客面板（三艙各幾位都能改）→ 團體模式首頁的「客艙級別」下拉藏起來，原位置寫各艙人數，點了打開同一個面板（不會有兩個地方互相蓋） */
@@ -125,6 +144,12 @@
       sl.__k29=1;if(sl.style.display!=='none')sl.style.display='none';
       var h='<b>'+t+'</b><small>'+(mx?(z()?'分艙訂位・在乘客人數修改':'Split cabins · edit in Travellers'):(z()?'在乘客人數修改':'Edit in Travellers'))+'</small>';if(cap.__h!==h){cap.innerHTML=h;cap.__h=h}})}catch(_){}}
   setInterval(function(){try{if(on()&&(S.grp28Pre||S.grp28RetWarn||S.phase==='pax'))decorate()}catch(_){}},1200);
+  /* 1104A：團體資料頁、我的團體訂位右欄的「團體票規」原本寫 Q 的改票／退票費（舊方案的字）→ G 改寫成 G 的規則 */
+  function g32rules(){var zh=z(),G0=P().G||{};
+    if(S.view==='booking'&&S.phase==='pax'&&(S.search.grpPlanR1101A||((FARES[S.outC]||{}).groupPlanR1026C))==='G'){var bx=document.querySelector('.k25g-pax .k25g-pay > div:nth-child(2)');
+      if(bx&&!bx.__g32){bx.__g32=1;bx.innerHTML='<small>'+(zh?'團體票規（團體票 G）':'Group fare rules (G)')+'</small><b>'+(zh?'開票後不能改期、改航班、改艙、改名；不退票價（未搭乘可申請退回未使用的代收稅費）':'No changes or refunds after ticketing')+'</b><span>'+(zh?'開票前：名單期限前 ±'+(G0.free||3)+' 位免手續費，之後加人每筆 '+M(G0.chg||1400)+'、減人每位 '+M(G0.ref||2600)+'；訂金不退。選位經濟艙每位 NT$750、豪華經濟艙每位 NT$2,000（可整團一次劃位）。開票後一位旅客一個 PNR；不能網路報到；不能使用酬賓機票、哩程升等、Residence 競標。':'Before ticketing: ±'+(G0.free||3)+' free before the name deadline.')+'</span>'}}
+    [].forEach.call(document.querySelectorAll('.k25box.rules'),function(bx){var sm=bx.querySelector('small');if(bx.__g32||!sm||!/ G$|\(G\)|Group fare$/.test(sm.textContent.trim()))return;var ul=bx.querySelector('ul');if(!ul)return;bx.__g32=1;
+      ul.innerHTML=[zh?'開票後不能改期、改航班、改艙、改名；不退票價（未搭乘可申請退回代收稅費）':'No changes or refunds after ticketing',zh?'開票前：名單期限前 ±'+(G0.free||3)+' 位免手續費；之後加人每筆 '+M(G0.chg||1400)+'、減人每位 '+M(G0.ref||2600):'±'+(G0.free||3)+' free before names',zh?'訂金不退；尾款逾期自動取消':'Deposit non-refundable',zh?'不能網路報到：出發當日由領隊或全體旅客到櫃檯辦理':'Airport check-in only',zh?'選位經濟艙每位 NT$750、豪華經濟艙每位 NT$2,000；座位保留到起飛前 60 分鐘':'Seat fees apply',zh?'開票後一人一個 PNR':'One PNR per traveller'].map(function(t){return '<li>'+E(t)+'</li>'}).join('')})}
   /* ⑨ 混艙（使用者：「定位時要可以選擇幾位旅客哪個倉等幾位旅客哪個倉等 所以搜尋介面要調一下」）
      搜尋人數選單多一段「艙等分配」：豪經、商務填人數，其餘自動算經濟艙；S.search.grpMixR1101A={Premium,Business}。
      訂位：人數最多的那一艙當主訂位（整團一起付訂金／尾款），付款完成、團體成立後，其他艙的人用原本「名單頁改艙等」那一套
@@ -191,9 +216,9 @@
       +'<div class="award-date-strip"><button class="award-arrow" aria-label="Previous week" onclick="kgmSelectTravelDay0911(&quot;'+dir+'&quot;,&quot;'+addDays(d,-7)+'&quot;)">‹</button>'+strip+'<button class="award-arrow" aria-label="Next week" onclick="kgmSelectTravelDay0911(&quot;'+dir+'&quot;,&quot;'+addDays(d,7)+'&quot;)">›</button></div>'
       +'<div class="award-tools"><div><b>'+E(typeof CITY==='function'?CITY(fr):fr)+' ('+fr+') → '+E(typeof CITY==='function'?CITY(to):to)+' ('+to+')</b><p>'+(zh?'團體 '+seats+' 位（成人 '+(pc.adults||0)+(pc.children?'・兒童 '+pc.children:'')+(pc.infants?'・嬰兒 '+pc.infants:'')+'）':seats+' travellers')+(m?' · '+mixTxt(m):'')+' · '+(zh?'去回程同一方案；兒童票價 75%':'same plan both ways')+'</p></div><span class="award-mode">'+E(zh?(pl.zh||'團體'):(pl.en||'Group'))+'</span></div>'
       +'<div class="award-matrix-scroll">'+head+rows+'</div>'
-      +'<div class="k28m-foot"><button class="btn" onclick="nav(&quot;home&quot;)">← '+(zh?'修改搜尋（人數／艙等分配）':'Edit search')+'</button><button class="btn" onclick="S.grp28List=1;render()">'+(zh?'看轉機航班與完整清單':'Connections & full list')+'</button></div></section>'}
+      +'<div class="k28m-foot"><button class="btn" onclick="nav(&quot;home&quot;)">← '+(zh?'修改搜尋（人數／艙等分配）':'Edit search')+'</button></div></section>'}
   window.kgmGrpShopPickR1101A=function(dir,i,c){var k=S.search.grpPlanR1101A||'U',cd=null;try{cd=window.kgmGrpCodeR1025B(c,k)}catch(_){}if(!cd)return;if(!mixOf())S.search.cabin=c;try{pickFare(dir,+i,cd,true)}catch(e){try{console.warn('grp28 pick',e)}catch(_){}}};
-  function fs(){var O=window.flightSel;if(typeof O!=='function'||O.__r28)return;var w=function(dir){try{if(on()&&S.view==='booking'&&!S.grp28List&&S.search&&S.search.type!=='MC'&&!S.search.useMiles&&!(S.stx&&S.stx.plan)){var h=shop(dir);if(h)return h}}catch(e){try{console.warn('grp28 shop',e)}catch(_){}}
+  function fs(){var O=window.flightSel;if(typeof O!=='function'||O.__r28)return;var w=function(dir){try{if(on()&&S.view==='booking'&&(S.grp28List=0,true)&&S.search&&S.search.type!=='MC'&&!S.search.useMiles&&!(S.stx&&S.stx.plan)){var h=shop(dir);if(h)return h}}catch(e){try{console.warn('grp28 shop',e)}catch(_){}}
         var r=O.apply(this,arguments);try{if(on()&&S.grp28List)r='<div class="k28m-back"><button class="btn" onclick="S.grp28List=0;render()">← '+(z()?'回到艙等矩陣':'Back to cabin grid')+'</button></div>'+r}catch(_){}return r};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__r28=1;window.flightSel=w;try{flightSel=w}catch(_){}}
   fs();setTimeout(fs,0);setTimeout(fs,3500);setTimeout(fs,13000);
