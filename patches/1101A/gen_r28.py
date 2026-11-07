@@ -709,6 +709,10 @@ RW('g32 menu','{zh:"退票申請",en:"Refund Request",nav:"manage"}]},',
 # 團體資料頁填的名單帶進團體（grp28.js kgmGrpDraftNamesR1104A）；搜尋頁「去程起」也要看 G
 RW('g32 draft names',"due:{balance:du.balance,names:du.names},names:[],history:[],","due:{balance:du.balance,names:du.names},names:(window.kgmGrpDraftNamesR1104A?window.kgmGrpDraftNamesR1104A(d,pc):[]),history:[],")
 RW('g32 cc',"if(g)return [g.Q,g.U].concat(r)","if(g)return [g.Q,g.U].concat(g.G?[g.G]:[]).concat(r)")
+# ══ 1108A ══
+# 酬賓機票（使用者：「現在酬賓機票無法使用喔 全部都售完」）：每班每艙酬賓配額只有 v0805 表的 1/3（經濟 4～12、商務 1～2），再被載客率、未售座位、連假減半壓到 0～2 席 → 兩人以上幾乎全部「售完」。
+#   酬賓配額改成原表的 2/3（×2）；載客率、未售座位比例、連假／春節減半、2/2–2/15 封鎖期照舊。AWARD_AVAIL 表本身不動（哩程升等等其他地方讀的照舊）。
+RW('aw38 quota',"  var q=awardQuota(tp,cabin);","  var q=awardQuota(tp,cabin)*2;   /* 1108A：酬賓配額 ×2（原表 1/3 → 2/3） */")
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")
