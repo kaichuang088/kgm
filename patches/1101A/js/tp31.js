@@ -79,3 +79,19 @@
     '@media(max-width:640px){.k31t-rings{grid-template-columns:1fr}.k31t-keep{grid-template-columns:1fr}.k31t-lad{grid-template-columns:1fr 1fr}}'
   ].join('');document.head.appendChild(css)}catch(_){}
 })();
+
+/* ══ 1108A：訂位頁每個票價卡「哩程累積 N 哩」後面加（會籍積分 N 分）（使用者：「定位時每個航班要在累積多少里程後面括號那一趟會累計匯集幾分」）
+   票價卡是舊層（1004A k929）畫的，這裡在每次 render 後補字：從卡上的 pickFare(方向,班次,代號) 取代號，去程／回程依搜尋的出發地、目的地；積分＝kgmTpSegR1103A（跟會員頁同一份計算）。 */
+(function(){
+  if(window.__tp38)return;window.__tp38=1;
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function deco(){try{if(S.view!=='booking'||!S.search||S.search.useMiles)return;
+      [].forEach.call(document.querySelectorAll('#app article.k929-fare'),function(a){if(a.__tp38)return;var on=a.querySelector('[onclick*="pickFare("]')||(String(a.getAttribute('onclick')||'').indexOf('pickFare(')>=0?a:null);if(!on)return;
+        var m=/pickFare\('(out|inb)',\s*\d+,\s*'([^']+)'/.exec(on.getAttribute('onclick')||'');if(!m)return;var fr=m[1]==='out'?S.search.fr:S.search.to,to=m[1]==='out'?S.search.to:S.search.fr;
+        var b=[].filter.call(a.querySelectorAll('b'),function(x){return /^\d[\d,]*\s*哩$|^\d[\d,]*\s*mi(les)?$/.test(x.textContent.trim())})[0];if(!b)return;a.__tp38=1;
+        var tp=0;try{tp=window.kgmTpSegR1103A(fr,to,m[2])||0}catch(_){}
+        var s=document.createElement('small');s.className='k38tp';s.textContent=z()?'（會籍積分 '+tp+' 分）':' ('+tp+' tier pts)';b.appendChild(s)})}catch(e){try{console.warn('tp38',e)}catch(_){}}}
+  function hook(){var r0=window.render;if(typeof r0==='function'&&!r0.__tp38){var w=function(){var r=r0.apply(this,arguments);deco();return r};try{Object.keys(r0).forEach(function(k){if(!(k in w))w[k]=r0[k]})}catch(_){}w.__tp38=1;window.render=w;try{render=w}catch(_){}}}
+  hook();setTimeout(hook,0);setTimeout(hook,4000);setTimeout(hook,13000);
+  try{var c=document.createElement('style');c.textContent='.k38tp{display:block;font-size:11px;color:#8a6d2b;font-weight:600;white-space:nowrap;text-align:right}';document.head.appendChild(c)}catch(_){}
+})();
