@@ -31,6 +31,8 @@
   function bdWon(u){return (S.bigDeals||[]).filter(function(b){return b&&u&&b.userId===u.id&&b.status==='won'&&!b.demoR922}).length}
   function resWon(u){try{return (S.residenceBidsR83||[]).some(function(b){return b&&u&&b.userId===u.id&&/won|awarded|confirmed/.test(String(b.status||''))})}catch(_){return false}}
   function petCase(u){try{return (S.staffCasesR1007A||[]).some(function(c){return c&&u&&c.type==='pet'&&c.userId===u.id})}catch(_){return false}}
+  /* 1108A（使用者：「寵物同行不能是一個徽章換一個」）：原本送出一件申請就拿到徽章（＋500 哩）→ 改成核准且已搭乘的寵物同行航段累計 3 段才拿到；撤回、不同意、還沒飛的不算 */
+  function petTrips(u){var n=0,t='';try{t=todayISO()}catch(_){t=new Date().toISOString().slice(0,10)}try{(S.bookings||[]).forEach(function(b){if(!b||!u||b.userId!==u.id||b.status==='cancelled')return;(b.petsR1101A||[]).forEach(function(p){if(p&&p.date&&p.date<t)n++})})}catch(_){}return n}
   function hasCard(u){try{return !!(window.kgmCardsOfR1103A&&u&&window.kgmCardsOfR1103A(u.id).length)}catch(_){return false}}
   function lvl(u){var t=tierN((u&&(u.level||u.tier))||'Bronze');return ['Bronze','Silver','Gold','Diamond'].indexOf(t)}
   /* [id, 中文, English, 說明, 顏色, 圖示, 進度(u,F)→[目前,目標]] */
@@ -50,7 +52,7 @@
     ['sil','銀翼','Silver Wings','取得 Silver 以上卡等','#6F7780','S',function(u){return [lvl(u)>=1?1:0,1]}],
     ['gld','金翼','Gold Wings','取得 Gold 以上卡等','#B08A3E','G',function(u){return [lvl(u)>=2?1:0,1]}],
     ['card','KGM Cards 持卡人','Cardholder','綁定 KGM Cards（Star K／G／M）','#222','▭',function(u){return [hasCard(u)?1:0,1]}],
-    ['pet','寵物好夥伴','Pet Pal','送出寵物同行申請','#5B7A2E','❀',function(u){return [petCase(u)?1:0,1]}]];
+    ['pet','寵物好夥伴','Pet Pal','帶寵物搭乘 3 個航段（核准且已搭乘）','#5B7A2E','❀',function(u){return [Math.min(3,petTrips(u)),3]}]];
   window.KGM_BADGES_R1103A=BADGES;
   function led(){return S.badgeR1103A=S.badgeR1103A||{}}
   function invAll(){return S.invR1103A=S.invR1103A||{}}

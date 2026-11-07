@@ -245,7 +245,7 @@ RW('cs28 cat bar',"    +'<div class=\"k7c-kpi\">'+kpi.map(","    +catBar28+'<div
 RW('cs28 ceo acts',"  if(staff&&!cl){\n    acts='<div class=\"k7c-act\">",
    "  if(staff&&!cl&&raw.status==='ceo_review'&&window.kgmCase28CeoActsR1101A){acts=window.kgmCase28CeoActsR1101A(r)}   /* 1101A：送 CEO 最後審核的案件 */\n  else if(staff&&!cl){\n    acts='<div class=\"k7c-act\">")
 RW('cs28 to ceo btn',"      +'<div class=\"k7c-btns\"><button class=\"btn btn-g\" onclick=\"kgmCase7Update(\\''+AJ(r.no)+'\\')\">'+(zh?'儲存並更新':'Save update')+'</button></div></div>';",
-   "      +'<div class=\"k7c-btns\"><button class=\"btn\" onclick=\"kgmCase28ToCeo(\\''+AJ(r.no)+'\\')\">'+(zh?'送 CEO 最後審核':'Assign to CEO')+'</button><button class=\"btn btn-g\" onclick=\"kgmCase7Update(\\''+AJ(r.no)+'\\')\">'+(zh?'儲存並更新':'Save update')+'</button></div></div>';")
+   "      +'<div class=\"k7c-btns\"><button class=\"btn\" onclick=\"kgmCase28ToCeo(\\''+AJ(r.no)+'\\')\">'+(window.kgmCaseNeedsDecisionR1108A&&window.kgmCaseNeedsDecisionR1108A(raw,r)?(zh?'初審同意，送 CEO 核准':'Agree — send to CEO'):(zh?'送 CEO 最後審核':'Assign to CEO'))+'</button>'+(window.kgmCaseNeedsDecisionR1108A&&window.kgmCaseNeedsDecisionR1108A(raw,r)?'<button class=\"btn j-reject\" onclick=\"kgmCase28DenyR1108A(\\''+AJ(r.no)+'\\')\">'+(zh?'不同意（結案）':'Deny & close')+'</button>':'')+'<button class=\"btn btn-g\" onclick=\"kgmCase7Update(\\''+AJ(r.no)+'\\')\">'+(zh?'儲存並更新':'Save update')+'</button></div></div>';")   # 1108A N10：寵物／退款案件客服可「不同意」
 RW('cs28 files',"    +bag+(r.source==='profile'?profileBlockR913(r):'')","    +bag+(window.kgmCaseFilesHtmlR1101A?window.kgmCaseFilesHtmlR1101A(raw):'')+(r.source==='profile'?profileBlockR913(r):'')")
 RW('cs28 flight',"  if(raw.segment&&raw.segment.code)x.flight=raw.segment.code+' '+(raw.segment.fr||'')+'→'+(raw.segment.to||'')+' '+String(raw.segment.date||'').slice(5);",
    "  if(raw.segment&&raw.segment.code)x.flight=window.kgmCaseFlightR1101A?window.kgmCaseFlightR1101A(raw.segment.code,raw.segment.fr,raw.segment.to,raw.segment.date):(raw.segment.code+' '+(raw.segment.fr||'')+'→'+(raw.segment.to||'')+' '+String(raw.segment.date||'').slice(5));   /* 1101A：夥伴營運寫 CX531 (KX9921) TPE-HKG */")
@@ -306,8 +306,8 @@ RW('grp28 lock',"function lockMember49(){try{if(!(S.view==='booking'&&S.phase===
    "function lockMember49(){try{if(!(S.view==='booking'&&S.phase==='pax'&&S.user))return;if(window.kgmGrpOnR1025B&&window.kgmGrpOnR1025B())return;   /* 1101A：團體資料頁（團名、領隊）不是會員本人資料，不能鎖 */")
 RW('grp28 rebal',"function rebal(g,b,why){","window.kgmGrpRebalR1101A=function(g,b,why){return rebal(g,b,why)};   /* 1101A：選位費加進尾款（js/grp28.js） */\nfunction rebal(g,b,why){")
 RW('grp28 names td',"<td><input id=\"k25gNP'+i+'\" class=\"inp\" value=\"'+E(r.passport||'')+'\"></td>'",
-   "<td><input id=\"k25gNP'+i+'\" class=\"inp\" value=\"'+E(r.passport||'')+'\"></td><td><input id=\"k25gNM'+i+'\" class=\"inp\" value=\"'+E(r.member||'')+'\" placeholder=\"'+(z()?'選填':'optional')+'\"></td>'")
-RW('grp28 names th',"<th>'+(z()?'護照號碼':'Passport')+'</th><th>'+(z()?'艙等':'Cabin')+'</th>","<th>'+(z()?'護照號碼':'Passport')+'</th><th>'+(z()?'KGM 會員卡號（里程進該會員；不填進訂購者）':'KGM member no.')+'</th><th>'+(z()?'艙等':'Cabin')+'</th>")
+   "<td><input id=\"k25gNP'+i+'\" class=\"inp\" value=\"'+E(r.passport||'')+'\" placeholder=\"'+(i?'':'A12345678')+'\"></td><td><input id=\"k25gNN'+i+'\" class=\"inp\" value=\"'+E(r.nat||'')+'\" maxlength=\"2\" style=\"width:58px;text-transform:uppercase\" placeholder=\"'+(i?'':'TW')+'\"></td><td><input id=\"k25gNM'+i+'\" class=\"inp\" value=\"'+E(r.member||'')+'\" placeholder=\"'+(i?(z()?'選填':'optional'):'KGM100000')+'\"></td>'")   # 1108A：護照範例、國籍欄（使用者 G4）
+RW('grp28 names th',"<th>'+(z()?'護照號碼':'Passport')+'</th><th>'+(z()?'艙等':'Cabin')+'</th>","<th>'+(z()?'護照號碼':'Passport')+'</th><th>'+(z()?'國籍':'Nationality')+'</th><th>'+(z()?'KGM 會員卡號（選填；里程進該會員，不填進訂購者）':'KGM member no.')+'</th><th>'+(z()?'艙等':'Cabin')+'</th>")
 
 # E：包機／自創航班報價流程（js/cr28.js）＋原程式：狀態名稱、開票等到起飛前 14 天
 RW('cr28 stz',"cancelled:['已撤回／取消','Cancelled','#6B6F6C','#F1F2F1']};",
@@ -415,7 +415,7 @@ RW('est30 manual',"if(ov27.dep&&ov27.status==='Delayed'){p.estDep=ov27.dep;if(ov
    "if(ov27.dep&&ov27.status!=='Cancelled'){var md30=mins(ov27.dep)+(+ov27.depDD||0)*1440-mins(f.dep);if(md30){p.estDep=ov27.dep;p.depDelta=md30;p.arrDelta+=md30;p.estArr=clock(mins(f.arr)+p.arrDelta)}   /* 1102A：人工改出發 → 抵達跟著移（加當天飛行狀況） */\n        if(ov27.arr&&!ov27.warDelayR1025B){var ad30=mins(ov27.arr)-mins(f.arr);if(ad30>720)ad30-=1440;if(ad30<-720)ad30+=1440;p.estArr=ov27.arr;p.arrDelta=ad30}}   /* 人工填的抵達優先 */")
 # 前台航班動態（fb20b info20）：起飛前 48 小時內（到落地後一天）把預估抵達發佈出去；狀態寫延遲抵達／提早抵達
 RW('est30 front',"dd2=addDays(d,dOff);\n    var sk=aoff20(f,d,f.dep,f.arr),",
-   "dd2=addDays(d,dOff);\n    var pe30=null;try{if(!ov.arr&&!f.partner&&!f.divertContR1101A&&window.kgmOpsPredR1026C){var h30=(utc20(d,f.dep,f.fr)-Date.now())/36e5;if(h30<=168&&h30>-30){   /* 1103A：48 小時→7 天（後台看得到 EST 的都發佈） */ var pp30=window.kgmOpsPredR1026C(f,d);if(pp30&&pp30.estArr){pe30=pp30;if(pp30.estDep&&!ov.dep)dep=pp30.estDep;arr=pp30.estArr}}}}catch(_){}   /* 1102A：航班資料的預估（EST）發佈到旅客航班動態（起飛前 48 小時起） */\n    var sk=aoff20(f,d,f.dep,f.arr),")
+   "dd2=addDays(d,dOff);\n    var pe30=null;try{if(!ov.arr&&!f.partner&&!f.divertContR1101A&&window.kgmOpsPredR1026C){var h30=(utc20(d,f.dep,f.fr)-Date.now())/36e5;if(d<=addDays(todayISO(),1)&&h30>-30){   /* 1108A：只發布到隔天（使用者：今天 11/4 只能 publish 到 11/5） */   /* 1103A：48 小時→7 天（後台看得到 EST 的都發佈） */ var pp30=window.kgmOpsPredR1026C(f,d);if(pp30&&pp30.estArr){pe30=pp30;if(pp30.estDep&&!ov.dep)dep=pp30.estDep;arr=pp30.estArr}}}}catch(_){}   /* 1102A：航班資料的預估（EST）發佈到旅客航班動態（起飛前 48 小時起） */\n    var sk=aoff20(f,d,f.dep,f.arr),")
 RW('est30 front st',"ty:ty,st:st20(f,d,ov,depEp),can:can};",
    "ty:ty,st:(function(s){if(pe30&&!ov.status&&s&&/^(ok|warn)$/.test(s[2])){if(pe30.arrDelta>=5)return ['預計延遲 '+pe30.arrDelta+' 分抵達','Late arrival +'+pe30.arrDelta+' min','warn'];if(pe30.arrDelta<=-5)return ['預計提早 '+(-pe30.arrDelta)+' 分抵達','Early arrival '+(-pe30.arrDelta)+' min','ok']}return s}   /* 1103A：差 5 分以上就寫（使用者：後台寫早 10 分，前台也要改） */)(st20(f,d,ov,depEp)),can:can,estR1102A:!!pe30};")
 # 後台航班狀態編輯：改出發 → 抵達自動帶入（當天預估飛行時間），可以再改
@@ -443,9 +443,9 @@ RW('pet30 order',"var ORDER7=['status','flightdata','groundops','bookings','grou
 #   ① 清單來源：原本「沒有 userId 的訂位全部算自己的」→ 組員 DH 訂位（877 筆）全部混進來；改成只列自己的（userId）＋登入後用訂位代號查過的（S.tripLookR1102A，存 kgm30_triplook）
 #   ② 卡片改成固定欄寬的格線（勾勾／訂位代號／航線／出發／旅客／狀態），分隔線與各欄每一列對齊；旅客寫總數＋成人／兒童／嬰兒
 RW('trip30 mine',"  return all.filter(function(b){return !b.userId||b.userId===S.user.id});",
-   "  var lk30=((S.tripLookR1102A||{})[S.user.id])||[];return all.filter(function(b){return b.userId===S.user.id||lk30.indexOf(b.pnr)>=0});   /* 1102A：只列自己的＋查詢過的（組員 DH 等沒有會員的訂位不算） */")
-RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),tripLookR1102A:LS.get("kgm30_triplook",{}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),badgeR1103A:LS.get("kgm31_badge",{}),invR1103A:LS.get("kgm31_inv",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
-RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});LS.set("kgm31_badge",S.badgeR1103A||{});LS.set("kgm31_inv",S.invR1103A||{});')
+   "  var lk30=((S.tripLookR1102A||{})[S.user.id])||[];return all.filter(function(b){return (b.userId===S.user.id||lk30.indexOf(b.pnr)>=0)&&!(window.kgmGrpHideR1108A&&window.kgmGrpHideR1108A(b))});   /* 1102A：只列自己的＋查詢過的（組員 DH 等沒有會員的訂位不算） */   /* 1108A：團體開票前的整團／改艙訂位不列（使用者 G1） */")
+RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),tripLookR1102A:LS.get("kgm30_triplook",{}),crewSwapR1108A:LS.get("kgm38_cswap",{recs:{}}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),badgeR1103A:LS.get("kgm31_badge",{}),invR1103A:LS.get("kgm31_inv",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
+RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm38_cswap",S.crewSwapR1108A||{recs:{}});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});LS.set("kgm31_badge",S.badgeR1103A||{});LS.set("kgm31_inv",S.invR1103A||{});')
 RW('trip30 card',"""    var pax=(b.paxList||[]).length||1;""",
    """    var pl30=b.paxList||[],pax=pl30.length||1,pc30={ADT:0,CHD:0,INF:0};pl30.forEach(function(p){var t=String(p.passengerType||'ADT').toUpperCase();pc30[pc30[t]!=null?t:'ADT']++});   /* 1102A：旅客＝成人＋兒童＋嬰兒 */
     var pxs30=[pc30.ADT?(z()?'成人 ':'Adult ')+pc30.ADT:'',pc30.CHD?(z()?'兒童 ':'Child ')+pc30.CHD:'',pc30.INF?(z()?'嬰兒 ':'Infant ')+pc30.INF:''].filter(Boolean).join(z()?'・':' · ');
@@ -713,6 +713,60 @@ RW('g32 cc',"if(g)return [g.Q,g.U].concat(r)","if(g)return [g.Q,g.U].concat(g.G?
 # 酬賓機票（使用者：「現在酬賓機票無法使用喔 全部都售完」）：每班每艙酬賓配額只有 v0805 表的 1/3（經濟 4～12、商務 1～2），再被載客率、未售座位、連假減半壓到 0～2 席 → 兩人以上幾乎全部「售完」。
 #   酬賓配額改成原表的 2/3（×2）；載客率、未售座位比例、連假／春節減半、2/2–2/15 封鎖期照舊。AWARD_AVAIL 表本身不動（哩程升等等其他地方讀的照舊）。
 RW('aw38 quota',"  var q=awardQuota(tp,cabin);","  var q=awardQuota(tp,cabin)*2;   /* 1108A：酬賓配額 ×2（原表 1/3 → 2/3） */")
+# 訂票頁「航班詳情」視窗（使用者：「航班資料頁面圖一移除準點和預估時間」）：拿掉上方狀態膠囊（準點／延誤）與「預估時刻」整段；其他（航段、客艙配置…）不動
+RW('fd38 chip',"    +(est?'<span class=\"r31-chip '+(est.depDelay>=15?'warn':'ok')+'\">'+E(est.status)+'</span>':'')\n","    /* 1108A：狀態膠囊（準點／延誤）拿掉 */\n")
+RW('fd38 live',"  var live='';\n  if(est){\n    /* weather removed at the customer's request","  var live='';\n  if(false&&est){   /* 1108A：預估時刻整段拿掉（使用者） */\n    /* weather removed at the customer's request")
+# 航班證明：實際抵達後才可下載（使用者）——原本「當天的班」不管飛到哪都可以下載（qdate<=todayISO()），舊航班動態頁與 fb20b 兩處都拿掉；取消的照舊可下載
+RW('st38 cert',"var can=(ov.status==='Cancelled')||(Date.now()>=arrEp+3600000)||(d<=todayISO());","var can=(ov.status==='Cancelled')||(Date.now()>=arrEp);   /* 1108A：實際抵達後才可下載（原本當天的班都可以） */")
+RW('st38 cert txt',"(Z?'抵達 1 小時後可列印航班證明':'Certificate available 1h after arrival')","(Z?'航班抵達後可下載航班證明':'Certificate available after arrival')")
+RW('st38 cert old',"const _canCert=(ov.status===\"Cancelled\")||(Date.now()>=_arrEp+3600000)||(qdate<=todayISO());","const _canCert=(ov.status===\"Cancelled\")||(Date.now()>=_arrEp);   /* 1108A：實際抵達後才可下載 */")
+# 登機門公布時間文字：起飛前 12 小時 → 起飛前一天 23:00
+RW('st38 gate txt1',"登機門將於起飛前 12 小時公布","登機門將於起飛前一天 23:00 公布",cnt=2)
+RW('st38 gate txt2',"Gate is published 12 hours before departure","Gate is published at 23:00 the day before departure",cnt=2)
+RW('st38 gate txt3',"登機門於起飛前 12 小時對旅客公布","登機門於起飛前一天 23:00 對旅客公布",cnt=2)
+RW('st38 gate txt4',"Gates are published to guests 12 hours before departure","Gates are published to guests at 23:00 the day before departure")
+RW('st38 gate txt5',"Gates publish 12 hours before departure","Gates publish at 23:00 the day before departure")
+RW('st38 gate txt6',"登機門在起飛前 12 小時才會公布","登機門在起飛前一天 23:00 才會公布")
+EMB28.append('st38.js')
+# 團體名單（使用者 G4／G5）：Excel 貼上格式加國籍、會員卡號＋範例；名單頁說明加範例列。存名單的草稿／國籍／生日格式在 js/grp38.js
+RW('g38 paste fmt',"'每行一位：姓/名, 性別, 生日, 護照號碼':'LAST/FIRST, M/F, YYYY-MM-DD, passport'","'每行一位：姓/名, 性別, 生日, 護照號碼, 國籍, KGM 會員卡號（選填）　例：WANG/DAMING, M, 1990-05-20, A12345678, TW, KGM100000':'LAST/FIRST, M/F, YYYY-MM-DD, passport, nationality, KGM member no. (optional) — e.g. WANG/DAMING, M, 1990-05-20, A12345678, TW, KGM100000'")
+RW('g38 names hint',"'姓名照護照英文拼音（姓、名分開），可以分次填、每次按「儲存名單」。期限 '","'姓名照護照英文拼音（姓、名分開）、性別、生日（YYYY-MM-DD）、護照號碼、國籍（兩碼，例 TW）；KGM 會員卡號選填。範例：WANG／DAMING／M／1990-05-20／A12345678／TW／KGM100000。可以分次填、每次按「儲存名單」；格式有錯時已輸入的內容會保留。期限 '")
+EMB28.append('grp38.js')
+# N12：換機型換機長（js/cx38.js）；班表格子寫「換機型改派，照常計薪」
+RW('cx38 cell',"      }\n      h+='</div>';\n    });\n    h+='</div>';\n  });\n  return h+'</div>';\n}","      }\n      if(x.paidSwapR1108A&&x.paidSwapR1108A.length)h+='<i class=\"k196-dh\" style=\"color:#8a5a12\">'+(z()?'換機型改派：':'Aircraft change: ')+E(x.paidSwapR1108A.join('・'))+'</i>';   /* 1108A N12 */\n      h+='</div>';\n    });\n    h+='</div>';\n  });\n  return h+'</div>';\n}")
+EMB28.append('cx38.js')
+EMB28.append('pdf38.js')   # N7：航班作業報告（航線圖、高階會員基本資料、依職位版本）
+# N11（使用者：「圖一是啥意思」，班表卡 DH 那一行被截成「18:45–20…」）：DH 行與 DH 訂位代號可換行不截字；代號標成「DH 員工票 PNR」（4 碼英數＝1007A 使用者指定，不改）
+RW('cab38 dh pnr',"return 'DH PNR '+E(r.pnr)","return (z()?'DH 員工票 PNR ':'DH staff ticket PNR ')+E(r.pnr)")
+# N11（使用者：「只有飛行員才要分機型組員不用」）：排班引擎原本客艙組員也依機型族分桶（A320／A330／A350／B777／B787／A380 各一批），改成客艙組員一桶（CABIN），只有機師依機型族；稽核的機型檢定只查機師
+RW('cab38 pool',"POOL121={pilots:pilots,cabin:cabin,byType:byType};POOLSTAMP=stamp;","cabin.forEach(function(p){if(p.fam!=='CABIN'){p.famR1108A=p.fam;p.fam='CABIN'}});   /* 1108A：客艙組員不分機型（國籍／基地分配之後才併） */\n  POOL121={pilots:pilots,cabin:cabin,byType:byType};POOLSTAMP=stamp;")
+RW('cab38 choose',"var baseKey=fam121(f.type)+'|'+role,list=[]","var baseKey=(role==='cabin'?'CABIN':fam121(f.type))+'|'+role,list=[]")
+RW('cab38 sorted',"var remaining=sortedB22(fam121(f.type)+'|'+role);","var remaining=sortedB22((role==='cabin'?'CABIN':fam121(f.type))+'|'+role);")
+RW('cab38 turn',"(function(){var _tk=fam121(f.type)+'|'+p.role+'|'+f.to;","(function(){var _tk=(p.role==='cabin'?'CABIN':fam121(f.type))+'|'+p.role+'|'+f.to;")
+RW('cab38 need',"var k=fam+'|cabin|'+f.fr;nextNeed[k]=","var k='CABIN|cabin|'+f.fr;nextNeed[k]=")
+RW('cab38 stby',"var p=(buckets[fam121(f.type)+'|'+role]||[]).find(","var p=(buckets[(role==='cabin'?'CABIN':fam121(f.type))+'|'+role]||[]).find(")
+RW('cab38 audit',"var badRating=f.pilots.concat(f.cabin).filter(function(p){","var badRating=f.pilots.filter(function(p){   /* 1108A：機型檢定只看機師 */")
+# N9：航班資料座位圖標寵物座位（🐾）、座位圖下方寵物表（js/cs28.js kgmPetSeatR1108A／kgmPetPanelR1108A）
+RW('pet38 seat',"+(sel?'selected ':'')+(s.resident?'resident':'')+'\" title=\"'+E(p?p.name:s.id)+'\"","+(sel?'selected ':'')+(s.resident?'resident':'')+((p&&window.kgmPetSeatR1108A&&window.kgmPetSeatR1108A(k,p,s.id))?' pet38':'')+'\" title=\"'+E(p?p.name+((window.kgmPetSeatR1108A&&window.kgmPetSeatR1108A(k,p,s.id))?(z()?'・🐾 寵物同行':' · 🐾 pet'):''):s.id)+'\"")
+RW('pet38 bind',"  function seatMap7(f,date,m){var k=opKey(f,date),t=type7(f,date),by={};","  function seatMap7(f,date,m){var k=opKey(f,date),t=type7(f,date),by={};try{window.kgmPetBindR1108A&&window.kgmPetBindR1108A(k,m)}catch(_){}   /* 1108A：模擬寵物申請綁到這班的模擬旅客 */")
+RW('pet38 panel',"+seatMap7(f,date,m)+'</section></div>'","+seatMap7(f,date,m)+(window.kgmPetPanelR1108A?window.kgmPetPanelR1108A(f,date):'')+'</section></div>'")
+# G2：尾款到期自動扣款（js/grp38.js）——文字跟著改
+RW('g38 ap pay note',"(z()?'（10%）；尾款 ':'; balance ')+'<b>'+M(tot-dep,cur)+'</b>'+(z()?' 最晚 '+du.balance+' 前付清，付款連結訂位後立即寄出。':' due '+du.balance))","(z()?'（10%）；尾款 ':'; balance ')+'<b>'+M(tot-dep,cur)+'</b>'+(z()?' 於 '+du.balance+' 自動扣款（可選另一張卡，見下方）；也可以提前用付款連結付清。':' is charged automatically on '+du.balance))")
+RW('g38 ap body',"'付款連結也已寄到 '+E(g.contact&&g.contact.email||'')+'；未付清前每 7 天、期限前 3 天與 1 天提醒，逾期自動取消並釋出座位（訂金不退）。'","'付款連結也已寄到 '+E(g.contact&&g.contact.email||'')+'；設定了扣款卡的，期限當天自動扣款；沒有扣款卡又未付清的，每 7 天、期限前 3 天與 1 天提醒，逾期自動取消並釋出座位（訂金不退）。'")
+RW('g38 ap remind',"(z()?'團體尾款 '+M(g.balance.amount,g.curr)+' 請於 '+g.due.balance+' 前付清（還有 '+left+' 天）。':'Balance due '+g.due.balance)","(z()?'團體尾款 '+M(g.balance.amount,g.curr)+(g.autoPayR1108A?' 將於 '+g.due.balance+' 自動以 •••• '+(g.autoPayR1108A.last4||'')+' 扣款（還有 '+left+' 天）；要換卡請到「我的團體訂位」。':' 請於 '+g.due.balance+' 前付清（還有 '+left+' 天）。'):'Balance due '+g.due.balance)")
+RW('g38 mt mine','return b.status==="confirmed"&&(!S.user||b.userId===S.user.id);','return b.status==="confirmed"&&(!S.user||b.userId===S.user.id)&&!(window.kgmGrpHideR1108A&&window.kgmGrpHideR1108A(b));   /* 1108A：團體開票前的整團訂位不列（G1） */')
+RW('g38 trip6',"    var b=findTripBooking6();\n","    var b=findTripBooking6();\n    if(b&&window.kgmGrpHideR1108A&&window.kgmGrpHideR1108A(b))b=null;   /* 1108A：團體開票前不畫行程管理（G1） */\n")
+# G1a（使用者圖一：團體訂位票價寫「Economy Basic」）：G 艙的 familyR48 是 Basic（行李、選位規則沿用），顯示名稱改成「團體票 G」——票價名稱的幾個出口都改
+RW('g38 fare nm',"FARE_NM=function(k){var f=FARES[k]||AWARD_FARES[k];if(f&&/^(E|P|B|F|R)-/.test(k)){var fam=f.familyR48||f.tierEN||'',","FARE_NM=function(k){var f=FARES[k]||AWARD_FARES[k];if(f&&f.groupPlanR1026C==='G')return k+' '+(LANG==='en'?'Group fare G':'團體票 G');   /* 1108A */if(f&&/^(E|P|B|F|R)-/.test(k)){var fam=f.familyR48||f.tierEN||'',")
+RW('g38 brand6',"    var fam=fi.familyR48||fi.family||'';\n    var cab=fi.cabin||'Economy';\n    return cab+' '+(fam||'Standard');","    var fam=fi.familyR48||fi.family||'';\n    var cab=fi.cabin||'Economy';\n    if(fi.groupPlanR1026C==='G')return LANG==='en'?cab+' Group fare G':(({Economy:'經濟艙',Premium:'豪華經濟艙',Business:'商務艙'})[cab]||cab)+' 團體票 G';   /* 1108A */\n    return cab+' '+(fam||'Standard');")
+RW('g38 lbl59',"  return z()?(d+'　'+cabZh59(f.cabin)+' '+famZh59(f.familyR48||'')) : (d+' '+(f.cabin||'')+' '+(f.familyR48||''));","  if(f.groupPlanR1026C==='G')return z()?(d+'　'+cabZh59(f.cabin)+' 團體票 G'):(d+' '+(f.cabin||'')+' Group fare G');   /* 1108A */\n  return z()?(d+'　'+cabZh59(f.cabin)+' '+famZh59(f.familyR48||'')) : (d+' '+(f.cabin||'')+' '+(f.familyR48||''));")
+RW('g38 lbl60',"  return z()?(d+'　'+cab+' '+fam):(d+' '+f.cabin+' '+(f.familyR48||''));","  if(f.groupPlanR1026C==='G')return z()?(d+'　'+cab+' 團體票 G'):(d+' '+f.cabin+' Group fare G');   /* 1108A */\n  return z()?(d+'　'+cab+' '+fam):(d+' '+f.cabin+' '+(f.familyR48||''));")
+RW('g38 brand',"function brand(c){var f=fareOf(c);return (f.cabin||'Economy')+' '+(f.familyR48||f.family||'Standard')}","function brand(c){var f=fareOf(c);if(f.groupPlanR1026C==='G')return LANG==='en'?(f.cabin||'Economy')+' Group fare G':(({Economy:'經濟艙',Premium:'豪華經濟艙',Business:'商務艙'})[f.cabin]||'經濟艙')+' 團體票 G';   /* 1108A */return (f.cabin||'Economy')+' '+(f.familyR48||f.family||'Standard')}")
+# G1（使用者：「團體票在還沒開之前都是沒有提供PNR喔 然後要看只能去我的團體行程那裡」）：前台團體頁不寫整團 PNR；行程管理／我的行程擋在 js/grp38.js
+RW('g38 pnr facts',"(z()?'開票前整團 PNR ':'Group PNR ')+E(g.pnr))","(z()?'開票後一人一個訂位代號（PNR）':'PNRs issue at ticketing'))")
+RW('g38 pnr step',"'<p class=\"k25g-p\">'+(z()?planOf(g).zh+'（'+planOf(g).k+'）；PNR ':planOf(g).en+'; PNR ')+E(g.pnr)+(z()?'（開票前是整團一筆）。':'.')+'</p>'","'<p class=\"k25g-p\">'+(z()?planOf(g).zh+'（'+planOf(g).k+'）；開票前不提供訂位代號，團體的行程、座位、付款與名單都在這一頁管理；開票後每位旅客一個訂位代號。':planOf(g).en+'; PNRs are issued at ticketing.')+'</p>'")
+# JFK 線改 A35K（使用者：「JFK航線改A35K飛行」）：MAP18 定案機型（tf18 釘住 FLIGHTS／季節表的 acft）；西行輪擋定值在 js/bt26.js WB38
+RW('map38 jfk',"KX215:'A21N',KX216:'A21N',KX227:'A21N',KX228:'A21N'\n  };","KX215:'A21N',KX216:'A21N',KX227:'A21N',KX228:'A21N',\n    KX48:'A35K',KX47:'A35K'   /* 1108A：JFK 線 A35K（使用者） */\n  };")
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")

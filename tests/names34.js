@@ -6,7 +6,7 @@ const r1=await p.evaluate(async()=>{const u={id:'KGMN34',name:'N TEST',email:'n3
  u.groupAccountR1025B={status:'active',type:'agency',company:'測試旅行社',taxId:'04595257',license:'交觀甲 1234',contact:{name:'N',phone:'0912345678',email:'n34@example.com'},caseNo:'GA1',from:T,to:addDays(T,365),approvedAt:new Date().toISOString(),approvedBy:'K1',reviewR1103A:{done:true}};
  S.view='home';render();kgmGrpModeR1025B(true);const d=addDays(T,60);Object.assign(S.search,{fr:'TPE',to:'NRT',date:d,dep:d,ret:addDays(d,5),type:'RT',grpPax25:12,adults:12,children:0,grpPlanR1101A:'G',cabin:'Economy',grpMixR1101A:null});
  window.__grp28go=1;nav('booking');await new Promise(r=>setTimeout(r,1500));
- const cells=[...document.querySelectorAll('.award-plan-btn')];const okBtn=cells.find(x=>!x.disabled);if(!okBtn)return {noSeat:true};okBtn.click();await new Promise(r=>setTimeout(r,1200));
+ /* 1108A N2：去程改成逐艙加位 → 第一個經濟艙放得下整團的班「整團都放這艙」＋選擇此航班 */const allBtn=document.querySelector('.k38al-all');if(!allBtn)return {noSeat:true};allBtn.click();await new Promise(r=>setTimeout(r,500));const cf=[...document.querySelectorAll('.k38al-conf .btn')].find(x=>!x.disabled);if(!cf)return {noAlloc:true};cf.click();await new Promise(r=>setTimeout(r,1200));
  const c2=[...document.querySelectorAll('.award-plan-btn')].find(x=>!x.disabled);if(c2)c2.click();await new Promise(r=>setTimeout(r,1200));
  const mem=S.users.find(x=>x&&/^KGM\d/.test(x.id)&&x.id!=='KGMN34');
  kgmGrpNmR1101A(0,'last','chen');kgmGrpNmR1101A(0,'first','ya-ting');kgmGrpNmR1101A(0,'gender','F');kgmGrpNmR1101A(0,'dob','1988-04-02');kgmGrpNmR1101A(0,'passport','a1234567');kgmGrpNmR1101A(0,'member',mem.id);

@@ -130,6 +130,10 @@
   var GAP28={KX53:1,KX54:1,KX60:1,KX59:1};
   var NZW29={KX51:1,KX52:1};   /* 1101B：紐西蘭／澳洲夏令錯開那一週照估算輪擋 */   /* 1101A：墨爾本夏令時間跟北半球季節不一致那幾週改用冬季時刻的輪轉 */
   var EARLY27={"KX52|TPE|SYD|s":"18:45","KX52|SYD|AKL|s":"07:15","KX51|AKL|SYD|s":"14:00","KX51|SYD|TPE|s":"16:50","KX8|TPE|DTW|s":"21:40","KX52|TPE|SYD|w":"18:25","KX52|SYD|CHC|w":"08:00","KX51|CHC|SYD|w":"14:45","KX51|SYD|TPE|w":"17:35","KX66|TPE|AUH|s":"18:40","KX60|TPE|KUL|w":"06:15","KX60|KUL|MEL|w":"11:55","KX53|PER|MEL|w":"16:20","KX290|TPE|SIN|w":"19:00","KX288|TPE|SGN|s":"21:20","KX334|TPE|SZX|w":"18:45","KX208|TPE|KTI|s":"15:20","KX207|KTI|TPE|s":"19:20","KX316|TPE|CKG|s":"17:05","KX315|CKG|TPE|s":"21:10","KX254|TPE|MNL|w":"17:55","KX253|MNL|TPE|w":"21:30","KX310|TPE|PVG|s":"19:15","KX309|PVG|TPE|s":"22:10","KX333|SZX|TPE|w":"22:05","KX282|TPE|SIN|s":"13:10","KX55|AKL|TPE|s":"16:55","KX170|TPE|FUK|w":"18:20","KX398|TPE|PEK|s":"16:40","KX397|PEK|TPE|s":"21:00","KX310|TPE|PVG|w":"19:05","KX309|PVG|TPE|w":"22:10","KX316|TPE|CKG|w":"17:00","KX315|CKG|TPE|w":"21:15","KX281|SIN|TPE|s":"19:15","KX266|TPE|CNX|s":"20:50","KX208|TPE|KTI|w":"15:20","KX207|KTI|TPE|w":"19:25","KX62|TPE|BKK|w":"20:55","KX98|TPE|HEL|s":"18:45","KX52|SYD|CHC|s":"07:15","KX51|CHC|SYD|s":"14:00","KX52|SYD|AKL|w":"07:15","KX51|AKL|SYD|w":"14:00","KX262|TPE|CEB|w":"22:30","KX66|TPE|AUH|w":"19:40","KX9|ORD|TPE|w":"02:50","KX86|TPE|BKK|s":"21:55","KX86|BKK|FRA|s":"02:00","KX86|TPE|BKK|w":"22:25","KX86|BKK|FRA|w":"02:35"};   /* 1102A KX86：夏 台北 21:55→曼谷 00:45、曼谷 02:00→法蘭克福；冬 22:25→01:20、02:35→（過站 75 分） */
+  /* 1108A：使用者「JFK-TPE 預估時間會不會太短？長榮 JFK-TPE 17hr15mins，附近 BOS／IAD／YYZ／ORD 等也是」→ 北美東岸／中部→台北的西行輪擋（分鐘）
+     [冬, 夏]，參考長榮 BR31／BR35／BR51／BR55／BR57 等公布時刻的量級（逆風西行）；出發時刻不動、抵達往後；直飛段才套（YVR 中停、EWR-ATH 不動） */
+  var WB38={'JFK|TPE':[1035,990],'EWR|TPE':[1030,985],'BOS|TPE':[1020,975],'IAD|TPE':[1025,980],'YYZ|TPE':[975,940],
+    'ORD|TPE':[975,940],'DTW|TPE':[970,935],'ATL|TPE':[1020,980],'IAH|TPE':[995,960],'DFW|TPE':[990,955]};
   function proj(f,x,win,px,sx,date){
     var dep0=mn(x.dep),dd0=+x.dd||0,off=date?offAt(f.fr,f.to,date,dd0):offSea(f.fr,f.to,win),blk0=blkOff(x.dep,x.arr,dd0,off);   /* 1026C：時差依日期（夏令時間） */
     if(!(blk0>0))return null;
@@ -140,7 +144,9 @@
       if(pp&&pp.r&&pp.p){var g0=((depE-mn(pp.r.arr))%1440+1440)%1440,gf=((depE-mn(pp.p.arr))%1440+1440)%1440;if(gf>720)gf-=1440;   /* gf：最後的地面時間（負的＝前一班比這一班出發還晚到） */
         var need=P.k==='fifth'?75:minTurn(x.acft||f.acft);   /* 固定值（不看原本的過站），重複套用結果才不會變 */
         if(gf<need&&need-gf<=240){shift=need-gf;why=P.k}}}
-    var dep1=depE+shift,t0=target(f.fr,f.to,x.acft||f.acft,win,dep1,null),t=target(f.fr,f.to,x.acft||f.acft,win,dep1,dep1+t0+off),blk=Math.max(blk0,Math.ceil(t/5)*5);   /* 抵達時段用模型算的抵達（不看原本的輪擋）→ 重複套用結果不變 */
+    var dep1=depE+shift,t0=target(f.fr,f.to,x.acft||f.acft,win,dep1,null),t=target(f.fr,f.to,x.acft||f.acft,win,dep1,dep1+t0+off);
+    var wb38=WB38[f.fr+'|'+f.to];if(wb38&&f.to==='TPE'){var wm=wb38[win?0:1];if(wm>t)t=wm}   /* 1108A：北美→台北 西行輪擋定值（出發不動、抵達往後） */
+    var blk=Math.max(blk0,Math.ceil(t/5)*5);   /* 抵達時段用模型算的抵達（不看原本的輪擋）→ 重複套用結果不變 */
     var a1=dep1+blk+off,loc=((a1%1440)+1440)%1440,aRaw=dep0+blk0+off,locRaw=((aRaw%1440)+1440)%1440,aMin=dep1+blk0+off;   /* aMin：照原本輪擋飛、最早的抵達（出發提前的班會比原本早到） */
     if(blk>blk0){
       if(loc>=180&&loc<240&&bkk28(f)){var back=a1-(loc-175);if(back>=aMin&&(loc-175)<=(240-loc)){a1=back;LOG.cap03++}else{a1=a1+(240-loc);LOG.push04++}}   /* 挪到較近的 02:55 或 04:00（02:55 不能比原本還早到） */
