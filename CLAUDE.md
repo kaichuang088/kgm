@@ -1,7 +1,7 @@
 # KGM Airways — 專案規則（給 Claude Code）
 
 KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一個自包含的 HTML 檔**（約 8.4 MB）。
-版號由使用者指定（目前是 1104A（建置仍在 `patches/1101A`，前一版 1101B、1102A、1103A 也在這裡），下一版由使用者命名；1027A 開工時叫 1026C，程式內部標記、`patches/1026C/`、`notes/1026C-*` 都用 1026C／R1026C、不改名；1026B 程式內部標記、`patches/1026B/`、`notes/1026B-*` 都用 1026B／R1026B；1026A 開工時叫 1025B，程式內部標記、`patches/1025B/`、`notes/1025B-*` 都用 1025B／R1025B、不改名；1025A 開工時叫 1023A，程式內部標記用 1023A／R1023A、不改名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
+版號由使用者指定（目前是 1108A（建置仍在 `patches/1101A`，前一版 1101B、1102A、1103A、1104A 也在這裡），下一版由使用者命名；1027A 開工時叫 1026C，程式內部標記、`patches/1026C/`、`notes/1026C-*` 都用 1026C／R1026C、不改名；1026B 程式內部標記、`patches/1026B/`、`notes/1026B-*` 都用 1026B／R1026B；1026A 開工時叫 1025B，程式內部標記、`patches/1025B/`、`notes/1025B-*` 都用 1025B／R1025B、不改名；1025A 開工時叫 1023A，程式內部標記用 1023A／R1023A、不改名）。1006A 沒有單獨交付，併入 1007A；1011、1013、1016、1017 沒有。
 
 ## 使用者的固定要求（逐字，一律遵守）
 
@@ -50,7 +50,7 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 - 1102A：同一套建置（`patches/1101A`，`gen_r28.py` 新 RW 標 `*30`、程式標 R1102A），版號 `p_h_ver*.js`＝1102A。見 `notes/1102A-pass132-notes.md`。 gen 的 RW 錨點只認 w77 原檔（1101A／1101B RW 新加的字要改原本那條 RW）。寵物多段＋選位（`cs28` `segments[]`、`pets30` 後台分頁、PET-009 Rev. C `pol/pack30.py`）；我的行程只列自己的＋查過的（`kgm30_triplook`）；航班狀態編輯面板草稿 `S.adDraftR1102A`；空機調派 `pk.ferryR1102A`（KX8900）＋機師；DH 改期代班會改 `kgmCrewPlanR121` 的結果（`planWrap30`）。座位：訂位存內部排號、`AC.exitRows` 是顯示排號。時刻表 PDF（`tt28.py`＋`align29.py`）：存檔一律 `clean=False`（clean 會拿掉描邊線寬 `w`，中文糊掉）、每頁內容串流併成一個；`apply_redactions` 會把表單物件複製成新編號並丟掉描邊線寬 → `align29.fixw()` 從底稿補回；描邊粗細讀底稿不讀已清除的頁。組員引擎狀態存 IndexedDB 不能改 JSON（有 Infinity＋共用物件）。
 - 1103A：同一套建置（`patches/1101A`，`gen_r28.py` 新 RW 標 `*31`、放在 `RW('srch31 inv idx',` 前，程式標 R1103A），版號 `p_h_ver*.js`＝1103A。見 `notes/1103A-pass133-notes.md`。新長程式 `cf31`（自創航班表單）`ui31`（航班資料捲動）`rot31`（機隊）`ci31`（地勤報到列印、登機門讀 `kgmGateOfR26`）`ov31`（超賣）`kc31`（KGM Cards）`tp31`（會籍積分）`bd31`（BigDeal／徽章／錢包）`grp31`（團體航點）`ga31`（團體帳號申請審核、G 艙退改）。**團體只賣 G**（E-G／P-G／B-G，開票後不改不退，`changeFeeOf`=-1／`refundPolicyOf.allowed=false`；引擎 feeWrap 12 秒會重包，ga31 依函式身分重掛）；團體帳號一律前台申請＋後台人工審核（AI 客服不能開通）。規章 PDF：`pol/ffp31_pdf.py`（讀 `tests/dumppol33.js` 匯出的網站條文）、`pol/crd31_pdf.py`、`pol/grp28_pdf.py`（Rev. D）、彙編 `pol/pack31.py`；`render_pol` 拿 argv[2] 當輸出目錄。
 - 1104A：同一套建置（`patches/1101A`，新 RW 標 `g32`、程式標 R1104A），版號 1104A。見 `notes/1104A-pass134-notes.md`。團體可賣代號清單（grp25_27 `vcWrap`／`ccWrap`）要含 G（1103A 漏了 → 全部「未提供」）；訂位頁名單表 grp28 `namesForm`（帶進 `g.names`＝`kgmGrpDraftNamesR1104A`）；背景排班其他後台頁 20 秒／8 倍（使用者選畫面順）。**測團體一定要走到訂票矩陣與付款**（`tests/names34.js`），只測前置視窗會漏。
-- **1108A（進行中）**：完整待辦清單（團體 6 點＋酬賓、團體加位、會籍積分顯示、航班動態發布、航班詳情、JFK、PDF 報告、寵物、組員共 18 點）見 `notes/1108A-todo.md`，做完一項就更新狀態。版號 `p_h_ver*.js`＝1108A，新 RW 放在 gen_r28 `# ══ 1108A ══`。
+- 1108A：同一套建置（`patches/1101A`，新 RW 放在 gen_r28 `# ══ 1108A ══`、程式標 R1108A），版號 1108A。18 點逐項＋實測見 `notes/1108A-todo.md`，技術筆記 `notes/1108A-pass135-notes.md`。新長程式 `grp38`（團體開票前不給 PNR `kgmGrpHideR1108A`、尾款自動扣款 `g.autoPayR1108A`、名單草稿 `S.grpNmDraftR1108A`、模擬資料 `mockR1108A` 一律不寄信）`cx38`（換機型換機長 `S.crewSwapR1108A`）`pdf38`（航班作業報告依職位分版本）`st38`（登機門前一天 23:00 公布）。**客艙組員一桶 `CABIN`（gen `cab38 *`），機型族只分機師；代價是開頁 90～150 秒組員引擎比 1104A 多佔約 18 秒主執行緒**。北美西行輪擋定值 bt26 `WB38`。Payload PDF `VER=1108A python pl28pdf.py`。
 - 1101A 坑：時刻規則 WIN28（非曼谷航線不在 03:00–05:59 出發、不在 01:30–03:59 抵達）；**GAP28**：墨爾本夏令跟北半球季節錯開的週，KX54／53、KX60／59 用冬季時刻（bt26 `seaProj`）。團體混艙＝主訂位＋付款後用 `kgmGrpCabinR1026C` 拆艙（`g.mixDoneR1101A`），拆出旅客 TBA 不開票。包機接受報價要先把狀態改回 pending 才能呼叫原本的核准。案件的鍵是 `caseNo`。
 - 1026C 坑：航班資料頁 `matches7`／`predict7` 讀季節時刻（predict7 快取 `sigR1026C`）；**天氣預測寫進 `S.flightDateOverride`（帶 `predictionUpdatedAt`）不算人工改時刻**（bt26／sc27 `hasOv`）。**開航班不能同步算組員班表**（`dhLater929` 背景分段）；路線圖 `PEND27` 去重。時刻表 PDF 底稿已 subset → 寫字要用新字型名（k27）。r77「回程同日」會改 KX30 營運日。前台 AI 舊卡片 r63 看到 `.kgm-i-menu` 就不畫。背景補模擬資料的重畫走 `kgmSafeRenderR1026C`（正在輸入就延後）。rt27 文字節點掃描在大表格後台頁不跑（效能）。**地勤派工 `tasks8` 把 03:00 以前開始的工作算成前一天晚班尾巴 → 台北出發長程不能早於 06:15、短程不能早於 05:15，不然櫃檯 0 人（R1008A）**。中停整段的時刻要從分段組（bt26 `legFix` 找中停列；R205 量過站 ≥75 分，`tests/via27.js`）。
 - 1025B 坑：**FAM54 在 r54 閉包裡**（r54 匯出 `KGM_FAM54_R1025B`）；團體模式所有包裝都只在 `S.search.grp25`＋已綁定才生效，`sell54` 最前面問 `kgmGrpSellR1025B`（null＝照舊）。航班資料頁要 sticky：body／#app 的 overflow-x:hidden 會讓 sticky 失效，這頁用 `html.k25fd-on` 改 clip。Payload 係數：亞洲—歐洲 0.684（華航校正）、其他長程 1.0。避戰空域清單是假設（`geo/route.py` ZONES）。vfy2d P3 偶爾因取樣時間失敗（重跑會過）。
@@ -116,9 +116,9 @@ KGM Airways 是一個虛構航空公司的訂位網站，**整個網站就是一
 
 1. `node syn.js` → `scripts checked 248 errors 0`
 2. `grep -c '<script id=' kgm.html` → `241`
-3. 版號更新（見下），並把 `vfy1.js` 的 `/1104A/.test(t)` 改成新版號
+3. 版號更新（見下），並把 `vfy1.js` 的 `/1108A/.test(t)` 改成新版號
 4. `node vfy1.js`（24 項）、`vfy2`（8；N1／F2／O1 找夏季班 KX160，測試從「今天＋18 天」起找，所以大約每年 10 月初～隔年 1 月下旬跑會找不到而失敗，改跑 `tests/vfy2d.js`（日期挪到 2027 年 4 月））、`vfy3`（8；1012A 起 S1 只挑今天真的有飛的班）、`vfy4`（8）、`vfy5`（6；AC1 在 UTC 00:00–約 04:00（冬季另加 UTC 22:00–24:00）跑會因 KX180 當天已起飛或已截止報到而失敗，改跑 `tests/vfy5d.js`）、`vfy6`（55）全部 PASS
-5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1104A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
+5. `nohup timeout 560 node reg2.js > reg_X.out &` → 跟 `baselines/reg_1108A.out` 比 notOk 集合：**不能多出新的**；view errors 0、PAGE ERRORS 0
    （notOk 裡大部分只是回傳診斷物件、不是失敗；kgmAuditR210／R211 1012A 第三輪起改查「一天一班」（使用者同意）；真的 ok:false 的是 R6、R151 與 0903B/0904A/0905A–0909A 的效能門檻）
 6. `node t_crewrule.js` → twoLegDays 0、longHaulNextDayFly 0、plannerViolations 0
 7. `node t_sched922.js`（組員班表延遲）、`node t_admlag.js`（後台 27 個分頁逐頁量）

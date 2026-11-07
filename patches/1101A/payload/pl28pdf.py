@@ -1,7 +1,7 @@
 # 1101A：pl27pdf 的副本——依目的地分組、加「鎖後 N 排」。
 # 1025B R：每班冬季／夏季 Payload 限座表（資料由 tests/pl25dump.js 從網站匯出：kgmPaxCapR1025B，跟販售用的是同一支）
 # 用法：python3 pl25pdf.py <pl25.json> <out.pdf>
-import json, sys, re
+import json, sys, re, os
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -11,6 +11,7 @@ from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, 
 from reportlab.lib.styles import ParagraphStyle
 
 src, out = sys.argv[1], sys.argv[2]
+VER28 = os.environ.get('VER', '1101A')   # 1108A：頁尾版號（VER=1108A）；不帶就照舊寫 1101A
 D = json.load(open(src))
 pdfmetrics.registerFont(TTFont('CJK', '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc', subfontIndex=0))
 pdfmetrics.registerFont(TTFont('Mono', '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'))
@@ -42,12 +43,12 @@ def deco(c, doc):
     c.setFillColor(colors.white); c.setFont('CJK', 12); c.drawString(14 * mm, H - 10.5 * mm, 'KGM AIRWAYS')
     c.setFillColor(colors.HexColor('#E9C46A')); c.setFont('CJK', 10); c.drawString(48 * mm, H - 10.5 * mm, '每班 Payload 限座表  ·  2026／27 冬季與 2027 夏季')
     c.setFillColor(MUT); c.setFont('CJK', 7.5)
-    c.drawString(14 * mm, 8 * mm, '1101A · 資料來源：網站 kgmPaxCapR1025B 模型值（販售系統 sell54 用同一支計算；後台人工調整不列入）· 關閉空域含巴基斯坦')
+    c.drawString(14 * mm, 8 * mm, VER28 + ' · 資料來源：網站 kgmPaxCapR1025B 模型值（販售系統 sell54 用同一支計算；後台人工調整不列入）· 關閉空域含巴基斯坦')
     c.drawRightString(W - 14 * mm, 8 * mm, '第 %d 頁' % doc.page)
     c.restoreState()
 
 doc = BaseDocTemplate(out, pagesize=landscape(A4), leftMargin=14 * mm, rightMargin=14 * mm, topMargin=22 * mm, bottomMargin=14 * mm,
-                      title='KGM Airways Payload 限座表 1101A', author='KGM Airways')
+                      title='KGM Airways Payload 限座表 ' + VER28, author='KGM Airways')
 doc.addPageTemplates([PageTemplate(id='p', frames=[Frame(14 * mm, 14 * mm, W - 28 * mm, H - 36 * mm, id='f')], onPage=deco)])
 S = []
 
