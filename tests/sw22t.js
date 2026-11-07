@@ -1,0 +1,20 @@
+const {chromium}=require('playwright');const SH='/tmp/claude-0/-home-user-kgm/1b8a8568-8f05-5001-a981-2589b9539787/scratchpad/fd22/';
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();
+const errs=[];p.on('pageerror',e=>{if(!/寄信/.test(e.message))errs.push(e.message)});
+await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});
+await p.waitForFunction(()=>window.KGM_FULLDONE_1006A,null,{timeout:200000}).catch(()=>console.log('no fulldone'));await p.waitForTimeout(3000);
+const info=await p.evaluate(()=>{const t0=Date.now();const P=kgmCrewPlanR121('2026-12-07');const f=(P.flights||[]).filter(f=>f.code==='KX77');
+ const has=f.map(x=>({fr:x.fr,to:x.to,crew:(x.pilots||[]).concat(x.cabin||[]).map(q=>q.empId)}));
+ const k=has.some(x=>x.crew.includes('K10732'));return {ms:Date.now()-t0,kx77:has.map(x=>x.fr+'-'+x.to+' n'+x.crew.length),k10732:k,first:has[0]&&has[0].crew.slice(0,4)}});
+console.log(JSON.stringify(info));
+const who=info.k10732?'K10732':(info.first&&info.first[2]);
+const leg=info.kx77.find(x=>/BKK-TPE/.test(x));console.log('use',who,'leg',leg);
+await p.evaluate(()=>{const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';S.adminTab='sched';S.adminAiOpenR929=true;render()});await p.waitForTimeout(1500);
+const q=who+' 想把 12-07 的 KX77 換到 12-08 其他 BKK-TPE 航班';console.log('ask',q);
+await p.evaluate(q=>kgmAdminAiAskR929(q),q);
+const t0=Date.now();let txt='';
+for(let i=0;i<60;i++){await p.waitForTimeout(5000);txt=await p.evaluate(()=>{const els=[...document.querySelectorAll('[id^=k929ai], .k929ai, .k6sw, .k6sw-top')];return document.body.innerText});if(/方案\s*1|方案 1|找不到|沒有可以/.test(txt)&&!/正在找/.test(txt.slice(-400)))break}
+console.log('secs',(Date.now()-t0)/1000);
+const i=txt.lastIndexOf(q);console.log(txt.slice(i,i+3500));
+await p.screenshot({path:SH+'swap_ai.png'});
+console.log('errs',errs.slice(0,4));await b.close()})();

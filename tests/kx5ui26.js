@@ -1,0 +1,14 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded'});await p.waitForTimeout(15000);
+const D='2026-12-10';
+const s=await p.evaluate(async(D)=>{S.view='booking';S.search={fr:'LAX',to:'TPE',dep:D,type:'OW',adults:1,children:0,infants:0,pax:1,cabin:'Economy'};S.phase='sel_out';S.outF=S.inbF=null;render();await new Promise(r=>setTimeout(r,2000));
+  const t=document.getElementById('app').innerText;const i=t.indexOf('KX5 ');const j=t.indexOf('KX5\n');return t.slice(Math.max(0,(i>=0?i:j)-120),(i>=0?i:j)+60).replace(/\s+/g,' ')},D);
+console.log('SEARCH',s);
+const st=await p.evaluate(async(D)=>{S.view='status';S.stBoardR1019A=false;S.stByNo=true;S.stFlightNo='KX5';S.stBase=D;S.stOff=0;render();await new Promise(r=>setTimeout(r,2000));const t=document.getElementById('app').innerText;const i=t.indexOf('KX5');return t.slice(Math.max(0,i-80),i+260).replace(/\s+/g,' ')},D);
+console.log('STATUS',st);
+await p.screenshot({path:'/tmp/j/kx5_status.png'});
+const ad=await p.evaluate(async(D)=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='status';S.adSearchFr='LAX';S.adSearchTo='TPE';S.adSearchDate=D;render();await new Promise(r=>setTimeout(r,2500));const t=document.getElementById('app').innerText;const i=t.indexOf('KX5');return t.slice(Math.max(0,i-20),i+200).replace(/\s+/g,' ')},D);
+console.log('ADMIN',ad);await p.screenshot({path:'/tmp/j/kx5_admin.png'});
+const sea=await p.evaluate((D)=>{const f=FLIGHTS.find(x=>x.code==='KX5');const x=kgmSeasonFlightR48(f,D);return x.dep+'-'+x.arr},D);console.log('SEASON',sea);
+console.log(errs.slice(0,3));await b.close()})();

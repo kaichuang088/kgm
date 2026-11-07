@@ -1,0 +1,9 @@
+const {chromium}=require('playwright');const SH='/tmp/claude-0/-home-user-kgm/1b8a8568-8f05-5001-a981-2589b9539787/scratchpad/p23/';
+(async()=>{const b=await chromium.launch();for(const W of [1440,390]){const p=await (await b.newContext({viewport:{width:W,height:844}})).newPage();
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(15000);
+ await p.evaluate(()=>{const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX180'&&!x.via);const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';S.adminTab='flightdata';S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');render()});
+ await p.waitForTimeout(4000);
+ await p.click('.k23fd-nav button[data-go="man"]');await p.waitForTimeout(1500);
+ const r=await p.evaluate(()=>{const anc=[];let e=document.querySelector('.k23fd-nav');while(e=e.parentElement){const c=getComputedStyle(e);if(c.overflowX!=='visible'||c.overflowY!=='visible'||e.scrollTop)anc.push(e.tagName+'#'+e.id+'.'+String(e.className).slice(0,25)+' ox='+c.overflowX+' oy='+c.overflowY+' st='+e.scrollTop)}anc.push('win='+scrollY);const n=document.querySelector('.k23fd-nav').getBoundingClientRect();const hs=[...document.querySelectorAll('header,.topbar,[class*="hdr"]')].map(h=>{const c=getComputedStyle(h);return h.tagName+'.'+String(h.className).slice(0,30)+' pos='+c.position+' b='+Math.round(h.getBoundingClientRect().bottom)});const m=document.querySelector('.r7-manifest').getBoundingClientRect();return {anc,navTop:Math.round(n.top),navBot:Math.round(n.bottom),man:Math.round(m.top),hs,on:(document.querySelector('.k23fd-nav button.on')||{}).textContent}});
+ console.log(W,JSON.stringify(r));await p.screenshot({path:SH+'fd_nav'+W+'.png'});await p.close()}
+ await b.close()})();

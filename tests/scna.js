@@ -1,0 +1,15 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext()).newPage();const posts=[];
+ p.on('request',r=>{if(/workers\.dev|kgm-email/.test(r.url())&&r.method()==='POST')posts.push((r.postData()||'').slice(0,300))});
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(8000);
+ const info=await p.evaluate(()=>{const u=S.users[0];S.user=u;
+   const nextDow=(dow)=>{for(let i=10;i<30;i++){const d=addDays(todayISO(),i);if((new Date(d+'T12:00:00Z').getUTCDay()||7)===dow)return d}};
+   const d26=addDays(todayISO(),20),d8=nextDow(2);
+   const mk=(pnr,f,mock)=>{const b={pnr,userId:u.id,email:u.email,status:'confirmed',outF:f,outC:'E-T',paxList:[{lastName:'TEST',firstName:'NA',passengerType:'ADT',email:u.email}],seats:{},total:30000,bookedAt:new Date().toISOString()};if(mock)b.simulated=true;S.bookings.push(b)};
+   mk('NA26R',{code:'KX26',fr:'TPE',to:'SEA',date:d26,dep:'00:20',arr:'19:30',dd:-1,acft:'B779'});
+   mk('NA08R',{code:'KX8',fr:'TPE',to:'DTW',date:d8,dep:'00:15',arr:'01:20',dd:0,acft:'B789'});
+   mk('NA26M',{code:'KX26',fr:'TPE',to:'SEA',date:d26,dep:'00:20',arr:'19:30',dd:-1,acft:'B779'},true);save();return {d26,d8}});
+ console.log('dates',JSON.stringify(info));
+ await p.waitForTimeout(45000);
+ console.log(await p.evaluate(()=>['NA26R','NA08R','NA26M'].map(x=>{const b=S.bookings.find(y=>y.pnr===x);return x+' '+JSON.stringify({d:b.outF.date,was:b.outF.dateWasR1026C,dep:b.outF.dep,arr:b.outF.arr,dd:b.outF.dd,chg:(b.schedChgR1026C||[]).map(c=>c.dDep)})+' notif '+((b.notifs||[])[0]?String(b.notifs[0].message||b.notifs[0].msg||'').slice(0,220):'-')}).join('\n')));
+ console.log('posts',posts.length,posts.map(x=>x.slice(0,160)).join(' || '));await b.close()})();

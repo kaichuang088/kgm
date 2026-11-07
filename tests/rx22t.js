@@ -1,0 +1,17 @@
+const {chromium}=require('playwright');(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();
+const dl=[];p.on('dialog',d=>{dl.push(d.message().slice(0,100));d.accept()});const errs=[];p.on('pageerror',e=>{if(!/寄信/.test(e.message))errs.push(e.message)});
+await p.goto('file://'+process.argv[2],{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(15000);
+const r=await p.evaluate(async()=>{const W=ms=>new Promise(r=>setTimeout(r,ms));const o=[];
+ const src=S.bookings.find(x=>x.pnr==='B8LNQ2');const d0='2026-11-04',d1='2026-11-05';
+ const f54=FLIGHTS.find(f=>f.code==='KX54'&&f.fr==='TPE');const nb=JSON.parse(JSON.stringify(src));nb.pnr='T22RX1';nb.outF=Object.assign({},f54);nb.outC='E-H';nb.search={type:'OW',fr:'TPE',to:'MEL',dep:d0,ret:null,pax:1};nb.paxList=nb.paxList.slice(0,1);delete nb.simR1010A;delete nb.csSimR1012A;S.bookings.push(nb);save();
+ S.view='admin';S.adminAuthed=true;S.adminUser={empId:'MASTER',name:'x',role:'ceo'};S.adminTab='desk';render();await W(300);
+ kgmCabPnrR82('T22RX1');await W(200);const segs=[...document.querySelectorAll('select')].map(s=>s.getAttribute('onchange')||'').filter(x=>/kgmCab/.test(x)).join(' ; ');o.push('selects '+segs.slice(0,300));
+ kgmCabSegR82('out');kgmCabIdentR82('agent');kgmCabFrR82('TPE');kgmCabToR82('SEA');kgmCabDateR82(d1);await W(200);
+ const flights=sortedFlights('TPE','SEA',d1).filter(f=>!f.via).map(f=>f.code);o.push('TPE-SEA '+d1+': '+flights.join(','));
+ kgmCabFlightR82(flights.includes('KX26')?'KX26':flights[0]);kgmCabTargetR82('Economy');await W(200);
+ const q=kgmCabinQuoteR82('T22RX1','out','Economy','',S._cab82.flight,d1,'TPE','SEA');o.push('quote '+(q?(q.airportChanged+' '+q.newCode+' charge '+q.charge+' unavailable '+!!q.unavailable):'null'));
+ if(q&&q.newCode)kgmCabFareR82(q.newCode);await W(300);
+ kgmPolicySetAgreedR914('KGM-CHG-003',true);render();await W(300);
+ kgmCabApplyR82(q.charge>0?'charge':'refund');await W(500);
+ const bb=S.bookings.find(x=>x.pnr==='T22RX1');o.push('after: outF '+bb.outF.code+' '+bb.outF.fr+'-'+bb.outF.to+' date '+(bb.outF.date||'')+' cls '+bb.outC+' swapLog '+JSON.stringify(bb.airportSwapLogR914||null).slice(0,160)+' done '+!!(S._cab82&&S._cab82.done));
+ return o.join('\n')});console.log(r);console.log('dialogs',JSON.stringify(dl));console.log('errs',errs.slice(0,3));await b.close()})();

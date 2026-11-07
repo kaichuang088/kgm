@@ -1,0 +1,15 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1360,height:950}})).newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e).slice(0,200)));p.on('dialog',d=>{console.log('DLG',d.message().slice(0,100));d.accept()});
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(5000);
+ await p.evaluate(()=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='notify';render()});await p.waitForTimeout(1500);
+ await p.screenshot({path:'/tmp/j/nt27_1.png',fullPage:true});
+ await p.click('[data-nt27c="ann"]');await p.waitForTimeout(400);await p.fill('#anAnnMsg','測試公告：系統維護 11/1 02:00–03:00');console.log('val now',await p.evaluate(()=>document.querySelectorAll('#anAnnMsg').length+' '+[...document.querySelectorAll('#anAnnMsg')].map(e=>e.value+'|'+e.offsetHeight).join(',')));
+ const n0=await p.evaluate(()=>JSON.stringify(S.announcements||S.news||'').length);
+ await p.click('.k27nt-card.k27nt-on button');await p.waitForTimeout(800);
+ console.log('ann sent?',await p.evaluate(()=>JSON.stringify(S).indexOf('測試公告：系統維護')>=0));
+ await p.screenshot({path:'/tmp/j/nt27_2.png'});
+ await p.click('[data-nt27t="mail"]');await p.waitForTimeout(400);await p.fill('.k27nt-q','group');await p.waitForTimeout(300);
+ console.log('mail rows visible',await p.evaluate(()=>[...document.querySelectorAll('.k110-t tbody tr')].filter(r=>r.offsetHeight).length),'page h',await p.evaluate(()=>document.documentElement.scrollHeight));
+ await p.screenshot({path:'/tmp/j/nt27_3.png'});
+ await p.setViewportSize({width:390,height:844});await p.click('[data-nt27t="send"]');await p.waitForTimeout(600);console.log('m sw',await p.evaluate(()=>document.documentElement.scrollWidth));await p.screenshot({path:'/tmp/j/nt27_m.png'});
+ console.log('errors',errs);await b.close()})();

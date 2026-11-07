@@ -1,0 +1,107 @@
+from common import *
+# 樣式：沿用後台的綠／金色系（跟著這一頁一起畫出來）
+CSS6=(
+ "<style id=\"kgm-sal-1006A\">"
+ "/* 1006A：全員薪資總表 收合／搜尋／表格內加扣 */\n"
+ ".sal6-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px}\n"
+ ".sal6-bar .inp{flex:1 1 260px;max-width:360px;height:36px}\n"
+ ".sal6-n{font-size:12px;color:#5b6b63;font-weight:700}\n"
+ ".sal6-h:hover td{background:#e3ece7}\n"
+ ".sal6-tg{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-right:8px;border-radius:6px;background:#fff;border:1px solid #c9d8cf;color:var(--g);font-weight:900;font-size:14px;line-height:1;vertical-align:-3px}\n"
+ ".sal6-mb{margin-left:6px;width:24px;height:24px;border-radius:7px;border:1px solid #cfd9d3;background:#fff;color:var(--g);font-weight:900;font-size:13px;cursor:pointer;vertical-align:middle;transition:background .15s,border-color .15s}\n"
+ ".sal6-mb:hover,.sal6-mb.on{background:var(--g);border-color:var(--g);color:#fff}\n"
+ ".sal6-ed td{background:#f7faf8;padding:10px 12px!important}\n"
+ ".sal6-box{display:flex;gap:10px;align-items:center;flex-wrap:wrap}\n"
+ ".sal6-who{font-size:12.5px;color:var(--g);min-width:150px}\n"
+ ".sal6-types{display:flex;gap:6px;flex-wrap:wrap}\n"
+ ".sal6-ty{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:64px;padding:5px 9px;border-radius:9px;border:1px solid #d7e0da;background:#fff;font-weight:800;font-size:12px;cursor:pointer;transition:all .15s}\n"
+ ".sal6-ty small{font-size:10px;font-weight:600;color:#8a948f}\n"
+ ".sal6-ty.pos{color:#1f6b45}.sal6-ty.neg{color:#a3312a}\n"
+ ".sal6-ty.pos.on{background:#e7f4ec;border-color:#2e8b57;box-shadow:0 0 0 2px rgba(46,139,87,.15)}\n"
+ ".sal6-ty.neg.on{background:#fbecea;border-color:#c0392b;box-shadow:0 0 0 2px rgba(192,57,43,.15)}\n"
+ ".sal6-why{flex:1 1 220px;height:36px}\n"
+ ".sal6-why.bad{border-color:#c0392b!important;box-shadow:0 0 0 2px rgba(192,57,43,.15)}\n"
+ "</style>"
+)
+# ══ 1006A #49：全員薪資總表 —— 各職務可以收起來（旁邊 ＋／− 按鈕）、可以搜尋、CEO 直接在表格裡加扣績效（功過） ══
+#   原本 533 列全部攤開，滑不完；登錄功過要另外到上面輸入員工編號。
+#   整頁重畫一次要 0.6～0.8 秒，所以收合／搜尋／打開加扣列只改畫面上那幾列，不重畫；
+#   狀態放在 S（S.salOpen1006A、S.salQ1006A、S.salEdit1006A），之後任何 render() 重畫都照同一個狀態畫出來。
+R('sal search bar',
+ "<div style=\"overflow-x:auto\"><table class=\"adm-tbl\"><tr><th>員工</th><th>職務</th><th>年資</th><th>底薪</th><th>績效</th>",
+ CSS6+"<div class=\"sal6-bar\"><input class=\"inp\" id=\"sal6q\" placeholder=\"搜尋姓名／員工編號／職務\" value=\"${String(S.salQ1006A||'').replace(/&/g,'&amp;').replace(/\"/g,'&quot;').replace(/</g,'&lt;')}\" oninput=\"kgmSalSearchR1006A(this.value)\"><button class=\"btn btn-sm\" onclick=\"kgmSalFoldAllR1006A(false)\">全部展開</button><button class=\"btn btn-sm\" onclick=\"kgmSalFoldAllR1006A(true)\">全部收起</button><span id=\"sal6n\" class=\"sal6-n\"></span></div>"
+ "<div style=\"overflow-x:auto\"><table class=\"adm-tbl sal6-t\"><tr><th>員工</th><th>職務</th><th>年資</th><th>底薪</th><th>績效</th>")
+R('sal group state',
+ "// 依職務分組顯示(item 7):每個職務一個標題列 + 小計",
+ "// 依職務分組顯示(item 7):每個職務一個標題列 + 小計\n"
+ "        /* 1006A：收合／搜尋狀態（預設只展開 CEO，其餘收起；有搜尋字時只列符合的人） */\n"
+ "        var Q6=String(S.salQ1006A||'').trim().toLowerCase();\n"
+ "        var q6=function(x){return (x.name+' '+x.empId+' '+(ROLE_ZH[x.role]||x.role)+' '+x.role).toLowerCase()};\n"
+ "        var vis6=function(x,role){return Q6?q6(x).indexOf(Q6)>=0:window.kgmSalOpenR1006A(role)};")
+R('sal row attrs',
+ "return '<tr><td><b>'+x.name+'</b><div style=\"font-size:10px;color:#889\">'+x.empId+'</div></td>",
+ "return '<tr class=\"sal6-r\" data-role=\"'+role+'\" data-emp=\"'+x.empId+'\" data-q=\"'+q6(x).replace(/\"/g,'')+'\"'+(vis6(x,role)?'':' style=\"display:none\"')+'><td><b>'+x.name+'</b><div style=\"font-size:10px;color:#889\">'+x.empId+'</div></td>")
+R('sal inline merit button',
+ "+(mm.length>4?\" +\"+(mm.length-4):\"\"):\"—\")+'</td><td><input class=\"inp\" style=\"height:28px;width:90px",
+ "+(mm.length>4?\" +\"+(mm.length-4):\"\"):\"—\")+'<button class=\"sal6-mb'+(S.salEdit1006A===x.empId?' on':'')+'\" title=\"加扣績效（功過）\" onclick=\"kgmSalEditR1006A(\\''+x.empId+'\\')\">±</button></td><td><input class=\"inp\" style=\"height:28px;width:90px")
+R('sal inline editor row',
+ "'/12':'')+'</div></td></tr>';}).join(\"\");",
+ "'/12':'')+'</div></td></tr>'+(S.salEdit1006A===x.empId?window.kgmSalEdHtmlR1006A(x,role,vis6(x,role)):'');}).join(\"\");")
+R('sal group header toggle',
+ "return '<tr style=\"background:linear-gradient(180deg,#eef4f0,#e6eeea)\"><td colspan=\"11\" style=\"font-weight:900;color:var(--g);font-size:12.5px;letter-spacing:.5px\">▦ '+(ROLE_ZH[role]||role)+'（'+list.length+' 人）</td>",
+ "var op6=Q6?true:window.kgmSalOpenR1006A(role),hit6=Q6?list.filter(function(x){return q6(x).indexOf(Q6)>=0}).length:list.length;\n"
+ "          return '<tr class=\"sal6-h\" data-role=\"'+role+'\" onclick=\"kgmSalFoldR1006A(\\''+role+'\\')\" style=\"cursor:pointer;background:linear-gradient(180deg,#eef4f0,#e6eeea)'+(hit6?'':';display:none')+'\"><td colspan=\"11\" style=\"font-weight:900;color:var(--g);font-size:12.5px;letter-spacing:.5px\"><span class=\"sal6-tg\">'+(op6?'−':'＋')+'</span>▦ '+(ROLE_ZH[role]||role)+'（'+list.length+' 人）</td>")
+R('sal helpers',
+ "function doRemoveMerit(i){",
+ "/* 1006A：全員薪資總表 —— 收合、搜尋、表格內加扣績效 */\n"
+ "window.kgmSalOpenR1006A=function(role){var o=S.salOpen1006A||{};return Object.prototype.hasOwnProperty.call(o,role)?!!o[role]:role===\"ceo\";};\n"
+ "function salApply1006A(){\n"
+ "  var t=document.querySelector(\"table.sal6-t\");if(!t)return;\n"
+ "  var q=String(S.salQ1006A||\"\").trim().toLowerCase(),hit={},n=0;\n"
+ "  t.querySelectorAll(\"tr.sal6-r\").forEach(function(r){var role=r.getAttribute(\"data-role\"),ok=q?(r.getAttribute(\"data-q\")||\"\").indexOf(q)>=0:window.kgmSalOpenR1006A(role);\n"
+ "    r.style.display=ok?\"\":\"none\";if(!q||ok){hit[role]=(hit[role]||0)+1}if(q&&ok)n++;\n"
+ "    var ed=r.nextElementSibling;if(ed&&ed.classList.contains(\"sal6-ed\"))ed.style.display=ok?\"\":\"none\";});\n"
+ "  t.querySelectorAll(\"tr.sal6-h\").forEach(function(h){var role=h.getAttribute(\"data-role\");\n"
+ "    if(q){h.style.display=hit[role]?\"\":\"none\"}else{h.style.display=\"\";}\n"
+ "    var s=h.querySelector(\".sal6-tg\");if(s)s.textContent=(q||window.kgmSalOpenR1006A(role))?\"−\":\"＋\";});\n"
+ "  var c=document.getElementById(\"sal6n\");if(c)c.textContent=q?(n?(\"找到 \"+n+\" 人\"):\"沒有符合的員工\"):\"\";\n"
+ "}\n"
+ "window.kgmSalApplyR1006A=salApply1006A;\n"
+ "window.kgmSalSearchR1006A=function(v){S.salQ1006A=String(v||\"\");salApply1006A();};\n"
+ "window.kgmSalFoldR1006A=function(role){if(String(S.salQ1006A||\"\").trim())return;S.salOpen1006A=S.salOpen1006A||{};S.salOpen1006A[role]=!window.kgmSalOpenR1006A(role);salApply1006A();};\n"
+ "window.kgmSalFoldAllR1006A=function(fold){S.salOpen1006A=S.salOpen1006A||{};document.querySelectorAll(\"table.sal6-t tr.sal6-h\").forEach(function(h){S.salOpen1006A[h.getAttribute(\"data-role\")]=!fold});salApply1006A();};\n"
+ "/* 表格內加扣：在那位員工下面展開一列，選功過種類＋事由，直接登錄（沿用 doAddMerit：通知本人、記入動作歷史） */\n"
+ "window.kgmSalEdHtmlR1006A=function(x,role,vis){\n"
+ "  var ty=S._mrType||\"award1\",esc=function(s){return String(s||\"\").replace(/&/g,\"&amp;\").replace(/\"/g,\"&quot;\").replace(/</g,\"&lt;\")};\n"
+ "  return '<tr class=\"sal6-ed\" data-role=\"'+role+'\"'+(vis?'':' style=\"display:none\"')+'><td colspan=\"12\"><div class=\"sal6-box\">'\n"
+ "    +'<div class=\"sal6-who\">加扣績效 · <b>'+esc(x.name)+'</b> '+esc(x.empId)+'</div>'\n"
+ "    +'<div class=\"sal6-types\">'+Object.keys(MERIT_TYPES).map(function(k){var mt=MERIT_TYPES[k],pos=mt[1]>0;\n"
+ "      return '<button type=\"button\" data-k=\"'+k+'\" class=\"sal6-ty '+(pos?'pos':'neg')+(ty===k?' on':'')+'\" onclick=\"kgmSalTypeR1006A(this)\">'+mt[0]+'<small>'+(pos?'+NT$'+mt[1].toLocaleString():mt[1]+'% 績效')+'</small></button>'}).join('')+'</div>'\n"
+ "    +'<input class=\"inp sal6-why\" placeholder=\"事由（必填，會通知本人並記入動作歷史）\" value=\"'+esc(S._mrReason)+'\" oninput=\"S._mrReason=this.value;this.classList.remove(\\'bad\\')\" onkeydown=\"if(event.key===\\'Enter\\')kgmSalMeritR1006A(\\''+x.empId+'\\')\">'\n"
+ "    +'<button class=\"btn btn-g\" onclick=\"kgmSalMeritR1006A(\\''+x.empId+'\\')\">登錄</button>'\n"
+ "    +'<button class=\"btn\" onclick=\"kgmSalEditR1006A(\\'\\')\">取消</button>'\n"
+ "    +'</div></td></tr>';\n"
+ "};\n"
+ "window.kgmSalTypeR1006A=function(b){S._mrType=b.getAttribute(\"data-k\");var p=b.parentNode;p.querySelectorAll(\".sal6-ty\").forEach(function(x){x.classList.toggle(\"on\",x===b)});};\n"
+ "window.kgmSalEditR1006A=function(emp){\n"
+ "  if(!isCEO())return;\n"
+ "  var t=document.querySelector(\"table.sal6-t\");\n"
+ "  if(t){t.querySelectorAll(\"tr.sal6-ed\").forEach(function(r){r.remove()});t.querySelectorAll(\".sal6-mb.on\").forEach(function(b){b.classList.remove(\"on\")});}\n"
+ "  if(!emp||S.salEdit1006A===emp){S.salEdit1006A=\"\";return;}\n"
+ "  S.salEdit1006A=emp;S._mrEmp=emp;S._mrReason=\"\";\n"
+ "  var x=(S.staff||[]).find(function(s){return s.empId===emp});if(!x||!t)return;\n"
+ "  var r=t.querySelector('tr.sal6-r[data-emp=\"'+emp+'\"]');if(!r)return;\n"
+ "  r.insertAdjacentHTML(\"afterend\",window.kgmSalEdHtmlR1006A(x,r.getAttribute(\"data-role\"),r.style.display!==\"none\"));\n"
+ "  var b=r.querySelector(\".sal6-mb\");if(b)b.classList.add(\"on\");\n"
+ "  var i=r.nextElementSibling&&r.nextElementSibling.querySelector(\".sal6-why\");if(i)i.focus();\n"
+ "};\n"
+ "window.kgmSalMeritR1006A=function(emp){\n"
+ "  if(!isCEO())return;\n"
+ "  var t=document.querySelector(\"table.sal6-t\"),ed=t&&t.querySelector(\"tr.sal6-ed\"),i=ed&&ed.querySelector(\".sal6-why\");\n"
+ "  if(i)S._mrReason=i.value;\n"
+ "  if(!String(S._mrReason||\"\").trim()){if(i){i.classList.add(\"bad\");i.focus()}return;}\n"
+ "  S._mrEmp=emp;S._mrType=S._mrType||\"award1\";S.salEdit1006A=\"\";\n"
+ "  doAddMerit();\n"
+ "};\n"
+ "function doRemoveMerit(i){")
+save('p_h_sal.js','/* 1006A · 全員薪資總表：收合、搜尋、表格內加扣績效 */\n')

@@ -1,0 +1,11 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:1360,height:950}});const A=await ctx.newPage();
+ const admin=()=>A.evaluate(()=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='dashboard';render()});
+ await A.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});await A.waitForTimeout(3000);await admin();
+ await A.waitForTimeout(195000);console.log('first',JSON.stringify(await A.evaluate(()=>[window.KGM_CREW_SAVE_R1025B,window.KGM_CREW_PART_R1026C])));
+ const cdp=await ctx.newCDPSession(A);await cdp.send('Profiler.enable');await cdp.send('Profiler.setSamplingInterval',{interval:1000});
+ await A.reload({waitUntil:'domcontentloaded',timeout:300000});await cdp.send('Profiler.start');
+ await A.evaluate(()=>{window.__lt=[];new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__lt.push([Math.round(e.startTime),Math.round(e.duration)]))).observe({type:'longtask',buffered:true})});
+ await A.waitForTimeout(3000);await admin();await A.waitForTimeout(+(process.env.T||120)*1000);
+ const {profile}=await cdp.send('Profiler.stop');require('fs').writeFileSync('/tmp/j/reload3.cpuprofile',JSON.stringify(profile));
+ console.log('big',JSON.stringify(await A.evaluate(()=>window.__lt.filter(x=>x[1]>1500))),'restore',JSON.stringify(await A.evaluate(()=>window.KGM_CREW_RESTORE_R1025B)),'save',JSON.stringify(await A.evaluate(()=>window.KGM_CREW_SAVE_R1025B)));await b.close()})();

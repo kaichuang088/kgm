@@ -1,0 +1,3 @@
+              if(!window.__kgmBdSkipR929&&Date.now()-t0929>800)window.__kgmBdSkipR929=1;   /* 1004A：超過預算 → 這一輪先不產生 BigDeal */
+              n+=window.kgmEnsureAuctionsR922(f.code,dd,f);
+              if(window.__kgmBdSkipR929)P929.push([f.code,dd,f]);
