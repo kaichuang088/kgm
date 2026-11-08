@@ -42,9 +42,9 @@ const {chromium}=require('playwright');
   /* 0921B：原本只挑「第一個有班的日子」一天來判定。酬賓名額本來就每天不同
      （C4 就是在驗這件事），挑到剛好 0 席的那一天就會誤判成壞掉。改成掃 50 天，
      要求每一班在多數可飛日都訂得到豪經酬賓。 */
-  T('C2','KX161/KX160 酬賓可訂豪經',()=>{
+  T('C2','KX161/KX162 酬賓可訂豪經',()=>{
     const r={},bad=[];
-    [['TPE','UKB','KX161'],['UKB','TPE','KX160'],['TPE','MLE','KX211'],['MLE','TPE','KX210']].forEach(([a,c,code])=>{
+    [['TPE','UKB','KX161'],['UKB','TPE','KX162'],['TPE','MLE','KX211'],['MLE','TPE','KX212']].forEach(([a,c,code])=>{
       let days=0,okDays=0;
       /* 1004B：神戶線冬季停飛（UKB_DAYS66 winter:'none'），固定看第 20–69 天在 10 月以後會整段落在停飛期（0/0）—— 改成往後找有飛的日子，取前 25 個班次日 */
       for(let i=20;i<400&&days<25;i++){

@@ -3,7 +3,7 @@ const {chromium}=require('playwright');
 const file=process.argv[2]||'/tmp/j/kgm.html',N=+(process.env.N||4),WAIT=+(process.env.W||130);
 const FP=()=>{const T=todayISO();const D=(d,n)=>{const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
   const TA=S.tailAssign||{},day={};const days=[];for(let i=0;i<30;i++)days.push(D(T,i));
-  Object.keys(TA).sort().forEach(tl=>{(TA[tl]||[]).forEach(x=>{if(!x||days.indexOf(x.date)<0)return;if(/^KX90/.test(x.code||''))return;(day[x.date]=day[x.date]||[]).push(tl+':'+x.code+':'+x.fr)})});
+  Object.keys(TA).sort().forEach(tl=>{(TA[tl]||[]).forEach(x=>{if(!x||days.indexOf(x.date)<0)return;if(/^KX92/.test(x.code||''))return;(day[x.date]=day[x.date]||[]).push(tl+':'+x.code+':'+x.fr)})});
   const h=s=>{let v=2166136261;for(let i=0;i<s.length;i++){v^=s.charCodeAt(i);v=Math.imul(v,16777619)}return (v>>>0).toString(36)};
   let crew=[];try{for(const off of [1,3,7,14]){const pl=window.kgmCrewPlanR121&&window.kgmCrewPlanR121(D(T,off));const ids=f=>{const o=[];JSON.stringify(f,(k,v)=>{if(k==='empId')o.push(v);return v});return o.sort().join(',')};crew.push(h((pl&&pl.flights||[]).map(f=>f.code+'|'+f.fr+'|'+ids(f)).sort().join(';')))}}catch(e){crew=['E'+e.message]}crew=crew.join('/')
   let lsz=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);lsz+=(localStorage.getItem(k)||'').length}}catch(_){}

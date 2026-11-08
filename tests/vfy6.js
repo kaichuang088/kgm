@@ -663,17 +663,17 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
    /* 1004A：使用者 0929A #8「長程 B777 大約 16 個、不只一位座艙長」→ 客艙人數＝max(法規下限＋1～2, 機型服務編制)：A388 24、B779 16、B789 12、A21N 6 */
    h24.A388===24&&h24.A388legal===11&&h24.B779===16&&h24.A21N===6&&h24.min===12&&h24.people>=30&&h24.restBad===0&&h24.winBad===0&&h24.maxRun<=6,JSON.stringify(h24));
 
- // H25 UKB: KX161/KX160 on the A21X special are compliant and not reported as type changes
+ // H25 UKB: KX161/KX162 on the A21X special are compliant and not reported as type changes
  const h25=await p.evaluate(()=>{
    let d=null;for(let i=0;i<7&&!d;i++){const x=new Date(Date.now()+i*86400000).toISOString().slice(0,10);const f=[].concat(FLIGHTS).find(q=>q.code==='KX161');const op=(()=>{try{return typeof flightOperatesOn==='function'?flightOperatesOn(f,new Date(x+'T12:00:00')):true}catch(_){return true}})();if(f&&op)d=x}
    const ch=[];for(let i=0;i<7;i++){const x=new Date(Date.now()+i*86400000).toISOString().slice(0,10);(kgmActualAircraftChangesR6(x)||[]).forEach(c=>{if(/UKB/.test(c.route))ch.push(x+' '+c.code)})}
    return {d,kx160:acftOfFlight('KX161',d),kx158:acftOfFlight('KX159',d),ukbChanges:ch.length};
  });
- push('H25','UKB：KX161／KX160 用 A21X 特別版算符合，不列為機型異動',h25.kx160==='A21X'&&h25.kx158==='A21N'&&h25.ukbChanges===0,JSON.stringify(h25));
+ push('H25','UKB：KX161／KX162 用 A21X 特別版算符合，不列為機型異動',h25.kx160==='A21X'&&h25.kx158==='A21N'&&h25.ukbChanges===0,JSON.stringify(h25));
 
- // H26 fleet: DST-correct arrival (KX56 in NZDT), one TSA plan (legs match windows), no ≥7-day blank tails
+ // H26 fleet: DST-correct arrival (KX58 in NZDT), one TSA plan (legs match windows), no ≥7-day blank tails
  const h26=await p.evaluate(()=>{
-   const f=[].concat(FLIGHTS).find(x=>x.code==='KX56');
+   const f=[].concat(FLIGHTS).find(x=>x.code==='KX58');
    const T=todayISO(),D=(d,n)=>{const t=new Date(d+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
    let tsaNoPlan=0,planNoTsa=0;const W=S.tsaWindowsR913||{};
    Object.keys(S.tailAssign).forEach(tl=>{if(_typeOfTail(tl)!=='B78X')return;const has={};(S.tailAssign[tl]||[]).forEach(x=>{if(x&&(x.tsaFixedR830||/TSA/.test((x.fr||'')+(x.to||'')+(x.route||''))))has[x.date]=1});
@@ -699,7 +699,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
        const a=acftOfFlight(c,d,fr,to),b=acftOfFlight(pv.code,pv.date,pv.fr,pv.to);if(a!==b&&bad.length<5)bad.push(d+' '+k+' '+a+' ← '+pv.date+' '+pv.code+' '+b);}});
    return {checked:n,bad:bad.length,dup,sample:bad};
  });
- push('H27','共飛航線（KX81/80、KX17/16、KX83/82、KX97/96、KX51/50）：回程機型＝飛進來那一架，一班配一班',h27.checked>100&&h27.bad===0&&h27.dup===0,JSON.stringify(h27));
+ push('H27','共飛航線（KX81/82、KX17/18、KX83/84、KX97/98、KX51/52）：回程機型＝飛進來那一架，一班配一班',h27.checked>100&&h27.bad===0&&h27.dup===0,JSON.stringify(h27));
 
  // H28 0927C EQV pairs use the outermost outbound type; ICN "one A388 per day" = one aircraft (outbound + its return)
  // 1018A: most EQV routes were finalized to one type at the user's request (only HKG/MFM etc. stay EQV) → 10 codes × 30 days = 300 checks; threshold 300 → 200
@@ -794,7 +794,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
  // H33 0927D miles: both the outbound and the return earn miles; running the credit twice does not double
  const h33=await p.evaluate(()=>{
    const u=S.users.find(x=>x.id==='KGMDEMO0911')||S.users[0];const D=n=>new Date(Date.now()+n*864e5).toISOString().slice(0,10);
-   const o=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX181'),{date:D(-6)}),i=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX182'&&f.fr==='NRT'),{date:D(-3)});
+   const o=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX181'),{date:D(-6)}),i=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX184'&&f.fr==='NRT'),{date:D(-3)});
    S.bookings=S.bookings.filter(b=>b.pnr!=='H33RT');S.bookings.push({pnr:'H33RT',userId:u.id,status:'confirmed',outF:o,outC:'E-T',inbF:i,inbC:'E-T',paxList:[{kgmId:u.id,last:'A',first:'B'}],milesGranted:false});
    const m0=S.users.find(x=>x.id===u.id).miles;checkAutoArrivals();const m1=S.users.find(x=>x.id===u.id).miles;checkAutoArrivals();const m2=S.users.find(x=>x.id===u.id).miles;
    const want=calcMiles(distOf(o.fr,o.to),u.level,'E-T')+calcMiles(distOf(i.fr,i.to),u.level,'E-T');const b=S.bookings.find(x=>x.pnr==='H33RT');
@@ -805,7 +805,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
  // H34 0927D upgrade centre does not list flights that have already departed
  const h34=await p.evaluate(async()=>{
    const u=S.users.find(x=>x.id==='KGMDEMO0911')||S.users[0];S.user=u;const D=n=>new Date(Date.now()+n*864e5).toISOString().slice(0,10);
-   const o=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX181'),{date:D(-2)}),i=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX182'&&f.fr==='NRT'),{date:D(5)});
+   const o=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX181'),{date:D(-2)}),i=Object.assign({},[].concat(FLIGHTS).find(f=>f&&!f.via&&f.code==='KX184'&&f.fr==='NRT'),{date:D(5)});
    S.bookings=S.bookings.filter(b=>b.pnr!=='H34UP');S.bookings.push({pnr:'H34UP',userId:u.id,status:'confirmed',outF:o,outC:'E-T',inbF:i,inbC:'E-T',paxList:[{kgmId:u.id,last:'A',first:'B'}],total:30000});
    S.upgradePick0813=null;S.upgradeSuccess0813=null;S.view='upgrade';render();await new Promise(r=>setTimeout(r,1200));
    const t=document.getElementById('app').innerText;const lines=t.split('\n').filter(l=>/H34UP/.test(l));

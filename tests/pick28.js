@@ -6,7 +6,7 @@ await p.waitForTimeout(15000);
 await p.evaluate(()=>{var u=S.users.find(x=>x.email==='demo@kgm.com')||S.users[0];S.user=u;
 function mk(pnr,code,D,code2,D2,st){var f0=FLIGHTS.filter(x=>x.code===code&&!x.via)[0];var f=Object.assign({},f0,kgmSeasonFlightR48(f0,D),{date:D});var g=null;if(code2){var g0=FLIGHTS.filter(x=>x.code===code2&&!x.via)[0];g=Object.assign({},g0,kgmSeasonFlightR48(g0,D2),{date:D2})}
  S.bookings.push({pnr:pnr,status:st||'confirmed',userId:u.id,email:u.email,outF:f,outC:'E-T',inbF:g,inbC:g?'E-T':null,paxList:[{firstName:'DEMO',lastName:'EXPLORER',title:'MR'}],seats:{},total:30000,curr:'TWD',bookedAt:'2026-09-01T00:00:00Z'})}
-var T=todayISO(),A=n=>addDays(T,n);mk('PST28A','KX179',A(-40),'KX160',A(-35));mk('UPC28B','KX23',A(1),'KX22',A(4));mk('UPC28C','KX181',A(20),'KX182',A(25));kgmAllTripsR60()});
+var T=todayISO(),A=n=>addDays(T,n);mk('PST28A','KX179',A(-40),'KX162',A(-35));mk('UPC28B','KX23',A(1),'KX24',A(4));mk('UPC28C','KX181',A(20),'KX184',A(25));kgmAllTripsR60()});
 await p.waitForTimeout(1500);await p.screenshot({path:'/tmp/j/pk1.png'});
 const dis0=await p.$eval('.k28-pickgo',e=>e.disabled);
 await p.click('.k28-pick[data-pnr28="UPC28B"]');await p.waitForTimeout(400);

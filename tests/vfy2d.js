@@ -41,12 +41,12 @@ const {chromium}=require('playwright');
    const D=n=>new Date(Date.now()+86400000*n).toISOString().slice(0,10);
    let d1='',d2='';
    for(let i=176;i<230&&!d1;i++){const x=D(i);if((sortedFlights('TPE','UKB',x)||[]).some(f=>f.code==='KX161'))d1=x}
-   for(let i=185;i<240&&!d2;i++){const x=D(i);if((sortedFlights('UKB','TPE',x)||[]).some(f=>f.code==='KX160'))d2=x}
+   for(let i=185;i<240&&!d2;i++){const x=D(i);if((sortedFlights('UKB','TPE',x)||[]).some(f=>f.code==='KX162'))d2=x}
    const u=(S.users||[]).find(x=>x.id==='KGMDEMO0911'); if(u)S.user=u;
    S.bookings=[];
    S.search={fr:'TPE',to:'UKB',dep:d1,ret:d2,type:'RT',pax:1,cabin:'Economy'};S.view='booking';
    const fo=sortedFlights('TPE','UKB',d1)||[],fi=sortedFlights('UKB','TPE',d2)||[];
-   const o=fo.find(f=>f.code==='KX161'),i2=fi.find(f=>f.code==='KX160');
+   const o=fo.find(f=>f.code==='KX161'),i2=fi.find(f=>f.code==='KX162');
    pickFare('out',fo.indexOf(o),(validCodes(Object.assign({},o,{date:d1}))||[])[0],true);
    pickFare('inb',fi.indexOf(i2),(validCodes(Object.assign({},i2,{date:d2}))||[])[0],true);
    S.paxList=[{title:'MR',lastName:'K',firstName:'C',dob:'1990-01-01',nat:'TW',passport:'X1',email:'t@g',countryCode:'+886',phone:'900'}];

@@ -7,7 +7,7 @@ await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.
 const out={};
 out.kit=await p.evaluate(()=>Object.keys(window.kgmFdKitR1103A||{}).map(k=>k+':'+typeof window.kgmFdKitR1103A[k]).join(','));
 // A388 班：Residence 雙人不算撞位
-out.a388=await p.evaluate(async()=>{const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX182'&&x.fr==='NRT');const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';S.adminTab='flightdata';S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');S.fdTabR1025B='seat';render();await new Promise(r=>setTimeout(r,2500));
+out.a388=await p.evaluate(async()=>{const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX184'&&x.fr==='NRT');const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';S.adminTab='flightdata';S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');S.fdTabR1025B='seat';render();await new Promise(r=>setTimeout(r,2500));
  const t=document.getElementById('k31ovb');return t?t.querySelector('.k31o-sum').innerText:'NO PANEL'});
 // KX5：做出超賣——把經濟艙旅客一個個改成商務艙（不給座位），商務艙配完後多出來的人就沒有座位
 const setup=await p.evaluate(async()=>{window.alert=m=>{window.__al=m};window.confirm=()=>true;const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX5'&&x.fr==='TPE'&&!x.via);S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');S.fdTabR1025B='seat';render();await new Promise(r=>setTimeout(r,2500));

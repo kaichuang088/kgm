@@ -4,12 +4,12 @@ const {chromium}=require('playwright');
  await p.evaluate(()=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='flightdata';render()});
  await p.waitForFunction(()=>window.KGM_FULLDONE_1006A,null,{timeout:300000,polling:2000});await p.waitForTimeout(8000);
  const hero=async()=>p.evaluate(()=>{const h=document.querySelector('.r7-ops-hero');const m={};if(h)h.querySelectorAll('.r7-metric').forEach(e=>{m[e.querySelector('small').innerText.trim()]=e.querySelector('b').innerText.trim()});const st=document.querySelector('.k25fd-id dd .k25fd-st');const w=document.querySelector('.k25fd-id .k27fd-why');return {m,st:st?st.innerText:'',why:w?w.innerText:''}});
- // 1. season times for KX332 / KX20 tomorrow
+ // 1. season times for KX334 / KX22 tomorrow
  const tm=await p.evaluate(()=>addDays(todayISO(),1));
- for(const x of [['KX332',tm,'SZX','TPE'],['KX20',tm,'NRT','TPE']]){await p.evaluate(x=>kgmFdOpenR1025B(...x),x);await p.waitForTimeout(1200);
+ for(const x of [['KX334',tm,'SZX','TPE'],['KX22',tm,'NRT','TPE']]){await p.evaluate(x=>kgmFdOpenR1025B(...x),x);await p.waitForTimeout(1200);
    const sea=await p.evaluate(x=>{const f=FLIGHTS.find(f=>f.code===x[0]&&f.fr===x[2]);const s=kgmSeasonFlightR48(f,x[1]);return s.dep+'/'+s.arr},x);console.log('T1',x[0],'season',sea,JSON.stringify(await hero()))}
  // 2. force a delay via prediction: pick a flight and set override Delayed w/ reason
- const d2=await p.evaluate(tm=>{const f=FLIGHTS.find(f=>f.code==='KX261');const s=kgmSeasonFlightR48(f,tm);const nd=(()=>{const q=s.dep.split(':');const n=+q[0]*60+(+q[1])+120;return String(Math.floor(n/60)%24).padStart(2,'0')+':'+String(n%60).padStart(2,'0')})();S.flightOverrides['KX261_'+tm]={status:'Delayed',dep:nd,arr:s.arr,reason:'同飛機前段延誤（KX260）'};kgmFdOpenR1025B('KX261',tm,f.fr,f.to);return s.dep+'>'+nd},tm);
+ const d2=await p.evaluate(tm=>{const f=FLIGHTS.find(f=>f.code==='KX261');const s=kgmSeasonFlightR48(f,tm);const nd=(()=>{const q=s.dep.split(':');const n=+q[0]*60+(+q[1])+120;return String(Math.floor(n/60)%24).padStart(2,'0')+':'+String(n%60).padStart(2,'0')})();S.flightOverrides['KX261_'+tm]={status:'Delayed',dep:nd,arr:s.arr,reason:'同飛機前段延誤（KX262）'};kgmFdOpenR1025B('KX261',tm,f.fr,f.to);return s.dep+'>'+nd},tm);
  await p.waitForTimeout(1200);console.log('T2 override',d2,JSON.stringify(await hero()));
  const rowst=await p.evaluate(()=>{const o=kgmOpsPredR1026C(FLIGHTS.find(f=>f.code==='KX261'),addDays(todayISO(),1));return o&&[o.status,o.depDelta,o.reasonR1026C,o.estDep].join('|')});console.log('T2 pred',rowst);
  await p.evaluate(tm=>{delete S.flightOverrides['KX261_'+tm]},tm);

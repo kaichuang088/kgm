@@ -25,7 +25,7 @@ for(const role of ['pilot','cabin','ground']){
    return o});
  // open each own key, confirm the page shows that flight
  const chk=await p.evaluate(async()=>{const m=kgmFdMineR1022A();const out=[];for(const k of m.keys){kgmFdOpenR1022A(k);await new Promise(r=>setTimeout(r,120));const h=(document.querySelector('.r7-ops-hero h2')||{}).textContent||'NONE';const pk=k.split('|');out.push(h.indexOf(pk[0])>=0&&h.indexOf(pk[2])>=0&&h.indexOf(pk[3])>=0?'ok':('FAIL '+k+' → '+h))}
-   /* try selecting a foreign key */ const before=S.opsSelectedR7;selectOpsR7('KX2|2026-12-01|DOH|TPE');const blocked=S.opsSelectedR7===before;return out.filter(x=>x!=='ok').concat(['opened '+out.filter(x=>x==='ok').length+'/'+out.length,'foreign blocked '+blocked]).join('; ')});
+   /* try selecting a foreign key */ const before=S.opsSelectedR7;selectOpsR7('KX4|2026-12-01|DOH|TPE');const blocked=S.opsSelectedR7===before;return out.filter(x=>x!=='ok').concat(['opened '+out.filter(x=>x==='ok').length+'/'+out.length,'foreign blocked '+blocked]).join('; ')});
  console.log(role,who,JSON.stringify(r),'\n  open-check:',chk);
  await p.screenshot({path:SP+role+'.png',fullPage:false});
 }

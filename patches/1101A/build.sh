@@ -10,7 +10,7 @@ cd "$D"
 node pf.js "$TMP" "$TMP2" p_h_r28.js
 node pf.js "$TMP2" "$OUT" p_h_ver.js
 node p_h_ver2.js "$OUT"
-# 1108B B5／B6：班號去程奇數、回程偶數（福岡依出發時間重排）
+# 1108B B5／B6＋1108C：班號去程奇數、回程＝去程＋1（福岡依出發時間重排）
 python3 kx39.py "$OUT" "$OUT"
 node syn2.js "$OUT"
 rm -f "$TMP" "$TMP2"

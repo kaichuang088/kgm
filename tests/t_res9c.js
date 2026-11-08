@@ -64,7 +64,7 @@ const {chromium}=require('playwright');
    const b=document.getElementById('payBtn');if(b)b.click();else doPay(0,'TWD')});
  await p.waitForTimeout(9000);
  console.log('AFTERPAY',JSON.stringify(await p.evaluate((nb0)=>{const bk=S.bookings[S.bookings.length-1];return {nb0,nb:S.bookings.length,pnr:bk&&bk.pnr,segs:bk&&[bk.outF&&bk.outF.code,bk.outC,bk.inbF&&bk.inbF.code,bk.inbC],total:bk&&(bk.total||bk.amount),resBids:bk&&bk.resBidsR923,seg:S.resBidSegR923,bids:(S.residenceBidsR83||[]).slice(0,2).map(x=>({id:x.id,alt:x.alt,amt:x.amount,c4:x.cardLast4R923,pnr:x.pnr,paid:x.paidWithBookingR923}))}},nb0)));
- console.log('SETTLE',JSON.stringify(await p.evaluate(()=>{const a=kgmResSettleR161('KX5','2026-10-25'),b2=kgmResSettleR161('KX4','2026-11-01');const bk=S.bookings[S.bookings.length-1];
+ console.log('SETTLE',JSON.stringify(await p.evaluate(()=>{const a=kgmResSettleR161('KX5','2026-10-25'),b2=kgmResSettleR161('KX6','2026-11-01');const bk=S.bookings[S.bookings.length-1];
   return {a:a.by+' '+(a.winner&&a.winner.id),b:b2.by+' '+(b2.winner&&b2.winner.id),total:bk.total,outC:bk.outC,inbC:bk.inbC,cx:bk.cancelledSegsR60,ch:bk.resChargesR923,bids:(S.residenceBidsR83||[]).filter(x=>x.pnr===bk.pnr).map(x=>x.id+' '+x.status+' '+x.chargedDiffR923+' '+x.refundedR923)}})));
  console.log('APPTXT',JSON.stringify(await p.evaluate(()=>document.getElementById('app').innerText.slice(0,1500))));
  console.log('TOTAL',JSON.stringify(await p.evaluate(()=>{try{return {tot:typeof total==='function'?total():null,ob:S.outC,ib:S.inbC}}catch(e){return String(e)}})));

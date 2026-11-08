@@ -10,9 +10,16 @@
 #       已經存在使用者瀏覽器的資料（訂位、航班狀態、團體…）由開頁時的遷移程式一次改過（MIG，只跑一次，kgm39_kxnum）。
 # 用法：python3 kx39.py <in.html> <out.html>
 import re, sys
-
-FUK = {172: 171, 171: 170, 174: 173, 173: 172, 176: 175, 175: 174, 170: 177, 169: 176}
-def mp(n): return FUK.get(n, n + 1)
+# 1108C（使用者：「等一下回程是+1喔 eg KX129 tpe-kix, KX130 kix-tpe」）：回程＝去程＋1。
+#   舊班號一對＝去程偶數 E、回程 E−1 → 新：去程 E+1（奇數）、回程 E+2（偶數）＝舊去程 +1、舊回程 +3。
+#   福岡照出發時間：去程 KX171／173／175／177，回程各自 +1（172／174／176／178）。
+#   杭州：舊去程 314、回程 315（重慶回程也是 315）→ 去程 315、杭州回程 316（依航線另外改）、重慶 317／318。
+#   KX999（後台新增航班欄位的範例字）不動。各引擎原本用「n−1／n+1、相差 1」找對號班的地方，一律先換回舊班號算、再換回新號（ADDS），結果跟改號前一樣。
+FUK = {172: 171, 171: 172, 174: 173, 173: 174, 176: 175, 175: 176, 170: 177, 169: 178}
+def mp(n):
+    if n in FUK: return FUK[n]
+    if n == 999 or n > 999: return n
+    return n + 1 if n % 2 == 0 else n + 3
 
 FLIPS = [
     # 全部改用開頁最前面定義的輔助函式（kgmKx*R1108B）：1～3 位數＝新規則（去程奇數、回程＝去程−1），
@@ -30,7 +37,7 @@ FLIPS = [
     ("var n=+m[1],q=n%2?n+1:n-1;", "var n=+m[1],q=kgmKxPairR1108B(n);", 1),
     ("var pm928=(m%2)?m+1:m-1", "var pm928=kgmKxPairR1108B(m)", 1),
     # 「這班是去程」
-    ("n%2===0&&num(d.code)===n-1", "kgmKxOutR1108B(n)&&num(d.code)===n-1", 1),
+    ("n%2===0&&num(d.code)===n-1", "kgmKxOutR1108B(n)&&num(d.code)===kgmKxAddR1108C(n,-1)", 1),
     ("n>0&&n%2===0&&BASE[frOf(x)]", "n>0&&kgmKxOutR1108B(n)&&BASE[frOf(x)]", 1),
     ("var n=+m[1];if(n%2!==0)return;", "var n=+m[1];if(!kgmKxOutR1108B(n))return;", 1),
     # 機型種子（r79 seed79、r88／r92 pairSeed）＝去程班號（拿去雜湊；雜湊入口會換回舊班號）
@@ -43,34 +50,59 @@ FLIPS = [
     ("return k.indexOf(code)>=0&&k.indexOf(date)>=0&&k.indexOf(f.fr)>=0", "return kgmKxHasR1108B(k,code)&&k.indexOf(date)>=0&&k.indexOf(f.fr)>=0", 1),
     # 模擬組員評語的班號由亂數產生（100～399）：亂數照舊，號碼換成新班號（同一班）
     ("flight:'KX'+(100+(hh%300))", "flight:'KX'+kgmKxNewR1108B(100+(hh%300))", 2),
+    # 1108C：回程＝去程＋1 以後，「舊班號 ±1／相差 1」不再等於對號班 → 換回舊班號算（kgmKxAddR1108C／kgmKxOldR1108B），結果跟改號前一樣
+    ("retCode='KX'+(num-1)", "retCode='KX'+kgmKxAddR1108C(num,-1)", 1),
+    ("var back=J['KX'+(n-1)];", "var back=J['KX'+kgmKxAddR1108C(n,-1)];", 1),
+    ("PAIR72['KX'+(n-1)]=", "PAIR72['KX'+kgmKxAddR1108C(n,-1)]=", 1),
+    ("var out=byStart['KX'+(n+1)];", "var out=byStart['KX'+kgmKxAddR1108C(n,1)];", 1),
+    ("var want='KX'+(n-1);", "var want='KX'+kgmKxAddR1108C(n,-1);", 1),
+    ("PI['KX'+(n+1)+'>'+f.fr]", "PI['KX'+kgmKxAddR1108C(n,1)+'>'+f.fr]", 1),
+    ("n>0&&y.code==='KX'+(n-1))", "n>0&&y.code==='KX'+kgmKxAddR1108C(n,-1))", 1),
+    ("ST['KX'+(num+1)+'|'+f.to+'|'+f.fr]", "ST['KX'+kgmKxAddR1108C(num,1)+'|'+f.to+'|'+f.fr]", 1),
+    ("ST['KX'+(num-1)+'|'+f.to+'|'+f.fr]", "ST['KX'+kgmKxAddR1108C(num,-1)+'|'+f.to+'|'+f.fr]", 1),
+    ("as=an===n-1?0:1,bs=bn===n-1?0:1;return as-bs||an-bn;", "as=an===kgmKxAddR1108C(n,-1)?0:1,bs=bn===kgmKxAddR1108C(n,-1)?0:1;return as-bs||kgmKxOldR1108B(an)-kgmKxOldR1108B(bn);", 1),
+    ("as=(an===num-1?0:1),bs=(bn===num-1?0:1);", "as=(an===kgmKxAddR1108C(num,-1)?0:1),bs=(bn===kgmKxAddR1108C(num,-1)?0:1);", 1),
+    ("as=an===num-1?0:1,bs=bn===num-1?0:1;", "as=an===kgmKxAddR1108C(num,-1)?0:1,bs=bn===kgmKxAddR1108C(num,-1)?0:1;", 1),
+    ("sa=Math.abs(na-(n-1)),sb=Math.abs(nb-(n-1));", "sa=Math.abs(kgmKxOldR1108B(na)-(kgmKxOldR1108B(n)-1)),sb=Math.abs(kgmKxOldR1108B(nb)-(kgmKxOldR1108B(n)-1));", 1),
+    ("return Math.abs(n2-_pn)===1;", "return Math.abs(kgmKxOldR1108B(n2)-kgmKxOldR1108B(_pn))===1;", 1),
+    ("(k===m||Math.abs(k-m)===1)", "(k===m||Math.abs(kgmKxOldR1108B(k)-kgmKxOldR1108B(m))===1)", 2),
+    ("Math.abs(n0-n1)===1)?0:1", "Math.abs(kgmKxOldR1108B(n0)-kgmKxOldR1108B(n1))===1)?0:1", 1),
+    ("Math.abs(n0-n1)<=1?0:1000", "Math.abs(kgmKxOldR1108B(n0)-kgmKxOldR1108B(n1))<=1?0:1000", 1),
+    ("pair='KX'+(num(a.code)-1);", "pair='KX'+kgmKxAddR1108C(num(a.code),-1);", 1),
+    ("b=acftOfFlight('KX'+(num(c)-1),d)", "b=acftOfFlight('KX'+kgmKxAddR1108C(num(c),-1),d)", 1),
+    # r132 外站過站：第五航權續飛判斷（原本 KX(n−1) 剛好是別的經停班 → 布達佩斯回程冬季時刻會少推 5 分，跟時刻表 PDF 不同）
+    ("x.code==='KX'+(num132(o.code)-1))", "x.code==='KX'+kgmKxAddR1108C(num132(o.code),-1))", 2),
 ]
 
 MIG = r"""
-/* 1108B B6：班號規則的輔助函式（1～3 位數＝新班號：去程奇數、回程＝去程−1；4 位數照舊：去程偶數、回程＝去程−1）。
+/* 1108B B6／1108C：班號規則的輔助函式。1～3 位數＝新班號（1108C：去程奇數、回程＝去程＋1）；4 位數照舊（去程偶數、回程＝去程−1）。
+   全部用「換回舊班號 → 舊規則 → 換回新班號」算，所以任何找對號班／配對鍵／種子的結果都跟改號前一樣。
    kgmKxOldR1108B 新→舊班號；kgmKxHsR1108B 把字串裡的新班號換回舊班號，只放在雜湊函式的輸入（建置時自動加），
    所以機型、機身、登機門、模擬旅客、組員挑人等所有用班號當種子抽出來的結果都跟改號前一樣。
-   配對鍵／種子（kgmKxPk／Sd）一律用新班號，換回舊號只在雜湊入口做一次。 */
-window.kgmKxOldR1108B=function(n){n=+n||0;if(n<=0||n>999)return n;var I={171:172,170:171,173:174,172:173,175:176,174:175,177:170,176:169};return I[n]!=null?I[n]:n-1};
+   配對鍵／種子（kgmKxPk／Sd）一律回傳新班號，換回舊號只在雜湊入口做一次。 */
+window.kgmKxNewR1108B=function(n){n=+n||0;if(n<=0||n>=999)return n;var F={172:171,171:172,174:173,173:174,176:175,175:176,170:177,169:178};return F[n]!=null?F[n]:(n%2===0?n+1:n+3)};
+window.kgmKxOldR1108B=function(n){n=+n||0;if(n<=0||n>=999)return n;var I={171:172,172:171,173:174,174:173,175:176,176:175,177:170,178:169};if(I[n]!=null)return I[n];return n%2?n-1:(n>=4?n-3:n)};
+window.kgmKxAddR1108C=function(n,d){n=+n||0;if(n<=0||n>999)return n+d;return kgmKxNewR1108B(kgmKxOldR1108B(n)+d)};
 window.kgmKxHsR1108B=(function(){var re=/(^|[^A-Za-z])KX([1-9]\d{0,2})(?=\d{4}-\d\d-\d\d|[^0-9a-z]|$)/g;
   function f(_,a,d){return a+'KX'+kgmKxOldR1108B(+d)}
   return function(x){if(typeof x!=='string'||x.length>800||x.indexOf('KX')<0)return x;return x.replace(re,f)}})();
-window.kgmKxNewR1108B=function(n){n=+n||0;if(n<=0||n>999)return n;var F={172:171,171:170,174:173,173:172,176:175,175:174,170:177,169:176};return F[n]!=null?F[n]:n+1};
 window.kgmKxHasR1108B=function(k,code){k=String(k||'');code=String(code||'');if(!code)return false;var i=k.indexOf(code);while(i>=0){var a=i?k.charAt(i-1):'',b=k.charAt(i+code.length);if(!/[A-Za-z0-9]/.test(a)&&!/[0-9]/.test(b))return true;i=k.indexOf(code,i+1)}return false};
-window.kgmKxOutR1108B=function(n){n=+n||0;return (n>999?n%2===0:n%2===1)?1:0};
-window.kgmKxPairR1108B=function(n){n=+n||0;return kgmKxOutR1108B(n)?n-1:n+1};
-window.kgmKxPnR1108B=function(n){n=+n||0;return kgmKxOutR1108B(n)?n-1:n};
+window.kgmKxOutR1108B=function(n){n=+n||0;if(n>999)return n%2===0?1:0;return kgmKxOldR1108B(n)%2===0?1:0};
+window.kgmKxPairR1108B=function(n){n=+n||0;if(n>999)return n%2===0?n-1:n+1;var o=kgmKxOldR1108B(n);return kgmKxNewR1108B(o%2===0?o-1:o+1)};
+window.kgmKxPnR1108B=function(n){n=+n||0;if(n>999)return n%2?n:n-1;var o=kgmKxOldR1108B(n);return kgmKxNewR1108B(o%2?o:o-1)};
 window.kgmKxPkR1108B=function(n){return kgmKxPnR1108B(n)};
-window.kgmKxSdR1108B=function(n){n=+n||0;return kgmKxOutR1108B(n)?n:n+1};
-(function(){try{var F='kgm39_kxnum';if(localStorage.getItem(F)==='1')return;
-  var FUK={172:171,171:170,174:173,173:172,176:175,175:174,170:177,169:176},mp=function(n){return FUK[n]!=null?FUK[n]:n+1};
-  /* 「KX118/117」這種簡寫（輪轉標籤）後面不帶 KX 的號碼一起換 */
+window.kgmKxSdR1108B=function(n){n=+n||0;if(n>999)return n%2===0?n:n+1;var o=kgmKxOldR1108B(n);return kgmKxNewR1108B(o%2===0?o:o+1)};
+(function(){try{var F='kgm39_kxnum',st=localStorage.getItem(F);if(st==='2')return;
+  /* 舊資料遷移（只跑一次）：沒有旗標＝改號前的舊班號 → 1108C 新班號；旗標 1＝1108B 的班號（去程奇數、回程＝去程−1）→ 1108C（回程 +2）。
+     「KX118/117」這種簡寫（輪轉標籤）後面不帶 KX 的號碼一起換。 */
+  var mpO=function(n){return kgmKxNewR1108B(n)},mpB=function(n){n=+n;return (n>0&&n<997&&n%2===0)?n+2:n},mp=st==='1'?mpB:mpO;
   var re=/(^|[^A-Za-z0-9_])KX([1-9]\d{0,2})((?:[\/／][1-9]\d{0,2}(?![\d:.]))*)(?![0-9A-Za-z\\])/g,keys=[],n=0;for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k!==F)keys.push(k)}
   keys.forEach(function(k){try{var v=localStorage.getItem(k);if(typeof v!=='string'||v.indexOf('KX')<0)return;var w=v.replace(re,function(_,a,d,r){return a+'KX'+mp(+d)+(r?r.replace(/[1-9]\d{0,2}/g,function(x){return mp(+x)}):'')});if(w!==v){localStorage.setItem(k,w);n++}}catch(_){}});
-  /* 杭州回程：改號後是 KX316（跟重慶回程重複）→ 依航線改成 KX314（同一個物件裡 fr＝HGH 的才改） */
-  try{var H1=/("code"\s*:\s*")KX316("(?:[^{}]{0,400}?)"fr"\s*:\s*"HGH")/g,H2=/("fr"\s*:\s*"HGH"(?:[^{}]{0,400}?)"code"\s*:\s*")KX316"/g,H3=/KX316\|HGH\|/g;
-    keys.forEach(function(k){try{var v=localStorage.getItem(k);if(typeof v!=='string'||v.indexOf('KX316')<0||v.indexOf('HGH')<0)return;var w=v.replace(H1,'$1KX314$2').replace(H2,'$1KX314"').replace(H3,'KX314|HGH|');if(w!==v)localStorage.setItem(k,w)}catch(_){}})}catch(_){}
+  /* 杭州回程：改號前跟重慶回程同號 KX315，照一般規則換成 KX318（＝重慶回程）→ 同一個物件裡 fr＝HGH 的改成 KX316（1108B 的資料已經依航線分好，不用再改） */
+  if(st!=='1'){try{var H1=/("code"\s*:\s*")KX318("(?:[^{}]{0,400}?)"fr"\s*:\s*"HGH")/g,H2=/("fr"\s*:\s*"HGH"(?:[^{}]{0,400}?)"code"\s*:\s*")KX318"/g,H3=/KX318\|HGH\|/g;
+    keys.forEach(function(k){try{var v=localStorage.getItem(k);if(typeof v!=='string'||v.indexOf('KX318')<0||v.indexOf('HGH')<0)return;var w=v.replace(H1,'$1KX316$2').replace(H2,'$1KX316"').replace(H3,'KX316|HGH|');if(w!==v)localStorage.setItem(k,w)}catch(_){}})}catch(_){}}
   try{indexedDB.deleteDatabase('kgm25_crew')}catch(_){}
-  localStorage.setItem(F,'1');window.KGM_KXNUM_R1108B={keys:n,at:new Date().toISOString()}}catch(_){}})();
+  localStorage.setItem(F,'2');window.KGM_KXNUM_R1108B={from:st||'old',keys:n,at:new Date().toISOString()}}catch(_){}})();
 """
 ANCHOR = "window.__kgmLzR1019A=1;\n})();"
 
@@ -147,15 +179,15 @@ def main():
         return 'KX' + str(mp(int(m.group(1))))
     s = pat.sub(rep, s)
     # 規章條文「班號以 KX9 開頭者」說的是聯營 4 位數班號（KX9xxx）的前綴，不是 9 號班 → 還原
-    n9 = s.count('班號以 KX10 開頭者'); assert n9 == 1, ('KX9 prefix', n9); s = s.replace('班號以 KX10 開頭者', '班號以 KX9 開頭者')
-    # 杭州線跟全站統一（使用者：「OK」）：原本 KX314 去、KX315 回（KX315 同時也是重慶→台北，班號重複）→ 去程 KX315、回程 KX314（＝去程−1），
-    #   重慶→台北維持 KX316。只改指杭州回程的那幾處（班表、回程跟去程同機型、1018A 定案表、r79 稽核取樣、註解）。
-    #   雜湊入口把 KX314 換回舊 313（＝原本這一對的配對鍵），機型抽選不變；杭州回程自己的種子（登機門、天氣…）會跟改號前不同。
-    for a, b, c in [('["KX316","HGH","TPE"', '["KX314","HGH","TPE"', 1),
-                    ("if(code==='KX316'&&fr==='HGH'&&to==='TPE')", "if(code==='KX314'&&fr==='HGH'&&to==='TPE')", 1),
-                    ("sample:['KX315','KX316',", "sample:['KX315','KX314',", 1),
-                    ("KX315:'A339R',KX316:'A339R',", "KX315:'A339R',KX314:'A339R',", 1),
-                    ("/* 同一個班號兩條線：KX316 杭州→台北（定案）跟重慶→台北（原本 A21N，不動） */", "/* 1108B：杭州→台北改成 KX314（去程 KX315−1），KX316 只剩重慶→台北（原本 A21N，不動；這條保留無害） */", 1)]:
+    n9 = s.count('班號以 KX12 開頭者'); assert n9 == 1, ('KX9 prefix', n9); s = s.replace('班號以 KX12 開頭者', '班號以 KX9 開頭者')
+    # 杭州線跟全站統一（1108B 使用者：「OK」；1108C 回程＝去程＋1）：原本 KX314 去、KX315 回（KX315 同時也是重慶→台北，班號重複）
+    #   → 一般規則換完：杭州去程 KX315、兩條回程都是 KX318 → 只把指杭州回程的那幾處（班表、回程跟去程同機型、1018A 定案表、r79 稽核取樣、註解）改成 KX316；
+    #   重慶 KX317／318。雜湊入口把 KX316 換回舊 313（＝1108B 杭州回程的種子），機型、機身抽選跟 1108B 相同。
+    for a, b, c in [('["KX318","HGH","TPE"', '["KX316","HGH","TPE"', 1),
+                    ("if(code==='KX318'&&fr==='HGH'&&to==='TPE')", "if(code==='KX316'&&fr==='HGH'&&to==='TPE')", 1),
+                    ("sample:['KX315','KX318',", "sample:['KX315','KX316',", 1),
+                    ("KX315:'A339R',KX318:'A339R',", "KX315:'A339R',KX316:'A339R',", 1),
+                    ("/* 同一個班號兩條線：KX318 杭州→台北（定案）跟重慶→台北（原本 A21N，不動） */", "/* 1108C：杭州→台北改成 KX316（去程 KX315＋1），KX318 只剩重慶→台北（原本 A21N，不動；這條保留無害） */", 1)]:
         n = s.count(a); assert n == c, ('HGH', a, n); s = s.replace(a, b)
     s, nh, ni = seeds(s)
     assert s.count(ANCHOR) == 1, 'migration anchor'
