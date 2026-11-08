@@ -191,3 +191,45 @@
     '.k31c-go{height:40px;border:0;border-radius:10px;background:#a77d33;color:#fff;font-weight:800;cursor:pointer}.k31c-go:disabled{background:#cfc8b8;cursor:not-allowed}'
   ].join('');document.head.appendChild(css)}catch(_){}
 })();
+/* ══ 1108B B10（使用者：「前台 AI 太笨 我問他哪裡綁信用卡他跟我鬼打牆 不過這在上排哪裡我沒找到」）══
+   ① 上排「無限萬哩遊 → 帳戶管理 → 信用卡綁定」（gen kc31 menu）：打開 Member Portal「我的帳戶」並捲到「信用卡綁定」（k22 的綁卡區）。
+   ② 前台 AI：問「…在哪裡／怎麼…／入口／找不到」而且講到網站上的某個功能 → 直接回答上排選單的位置＋「帶我過去」按鈕
+      （位置從上排選單 .mega 現讀，不另寫一份）；原本只會依關鍵字貼同一條規章（CRD-020 第 18 條）。 */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  /* ① 信用卡綁定：profileTab='cards' → 我的帳戶＋捲到綁卡區 */
+  setInterval(function(){try{if(S.view!=='profile'||S.profileTab!=='cards')return;S.profileTab='account';try{render()}catch(_){}
+      var t0=Date.now();(function go(){var el=document.querySelector('.k22-cardb');if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('k39-flash');setTimeout(function(){el.classList.remove('k39-flash')},2200);return}if(Date.now()-t0<3000)setTimeout(go,150)})()}catch(_){}},200);
+  try{var cs=document.createElement('style');cs.textContent='.k22-cardb.k39-flash{box-shadow:0 0 0 3px #B08A3E;transition:box-shadow .4s}.k39-guide{display:flex;flex-direction:column;gap:6px}.k39-guide b{color:#0B3D2E}.k39-guide .k39-path{font-weight:700;color:#0B3D2E}.k39-guide button{align-self:flex-start;margin-top:4px;border:1px solid #0B3D2E;background:#0B3D2E;color:#fff;border-radius:999px;padding:6px 14px;font:700 12.5px inherit;font-family:inherit;cursor:pointer}';document.head.appendChild(cs)}catch(_){}
+  /* ② 網站導覽 */
+  var TOPZ={book:['優惠與訂票','Book'],trip:['行程管理','Trips'],prep:['飛行準備','Travel Info'],miles:['無限萬哩遊','KGM Miles'],cards31:['KGM Cards','KGM Cards']};
+  var SYN=[[/綁.{0,3}(信用)?卡|信用卡.{0,6}(綁|設定|新增|儲存)|(saved|bind|add|link).{0,12}card|card.{0,10}(bind|link)/i,'信用卡綁定'],[/聯名卡.{0,6}(帳單|消費|紀錄)|kgm cards?.{0,10}(bill|statement)/i,'帳單與消費'],[/機場接送/,'機場接送'],
+    [/我的團體|團體訂位.{0,4}(管理|名單|付款|尾款)/,'我的團體訂位'],[/團體/,'團體訂位'],[/寵物/,'寵物同行申請'],[/徽章|badge/i,'我的徽章'],[/票夾|wallet/i,'我的票夾'],[/bigdeal|競標/i,'BigDeal 競標升等'],[/(哩|里)程(明細|紀錄|記錄)/,'哩程明細'],
+    [/(哩|里)程.{0,2}轉讓|轉讓/,'里程轉讓'],[/補登/,'哩程補登'],[/案件|客訴|申訴/,'案件進度查詢'],[/退票|退款/,'退票申請'],[/改票|改期|改航班/,'改票'],[/選位|座位/,'選位'],[/選餐|特別餐|餐點/,'選餐'],[/報到|check.?in/i,'線上報到'],
+    [/登機證|boarding pass/i,'登機證'],[/航班動態|航班狀態|flight status/i,'航班動態'],[/個人資料|會員資料|改密碼|profile/i,'個人資料'],[/(買|購買).{0,2}(哩|里)程/,'購買里程'],[/酬賓/,'酬賓機票'],[/升等/,'艙位升等'],[/我的行程|my trips?/i,'我的行程'],[/訂位代號|pnr/i,'查詢訂位（PNR）']];
+  var WHERE=/哪裡|哪里|哪邊|在哪|去哪|那裡|入口|找不到|怎麼(綁|弄|用|找|申請|去|設定|進|改|查|辦|新增|加)|如何|要去|where|how (do|can|to)|how to/i;
+  function items(){var L=[];[].slice.call(document.querySelectorAll('.mega')).forEach(function(m){var k=String(m.id||'').replace(/^mega_/,''),top=TOPZ[k]||[k,k];
+      [].slice.call(m.querySelectorAll(':scope>div')).forEach(function(col,ci){var h=(col.querySelector('h4')||{}).textContent||'';[].slice.call(col.querySelectorAll('li')).forEach(function(li,j){L.push({mega:m.id,ci:ci,j:j,top:top,col:h,label:String(li.textContent||'').trim()})})})});return L}
+  window.kgmAiGuideR1108B=function(q){q=String(q||'');if(!WHERE.test(q))return null;var L=items();if(!L.length)return null;var want=null;
+    for(var i=0;i<SYN.length&&!want;i++)if(SYN[i][0].test(q))want=SYN[i][1];
+    var it=null;if(want)it=L.filter(function(x){return x.label===want})[0];
+    if(!it)it=L.filter(function(x){return x.label.length>=2&&q.indexOf(x.label)>=0}).sort(function(a,b){return b.label.length-a.label.length})[0];
+    if(!it)return null;var zh=z(),path=(zh?it.top[0]:it.top[1])+' → '+it.col+' → '+it.label,login=/信用卡綁定|個人資料|哩程明細|我的徽章|我的票夾|里程轉讓|哩程補登|帳單與消費|機場接送|我的團體訂位/.test(it.label)&&!S.user;
+    var extra=it.label==='信用卡綁定'?(zh?'綁定頁在 Member Portal 的「我的帳戶」：填卡號、卡別、持卡人英文姓名與有效期限後按「送出驗證」；本站只接受綁定 KGM 聯名卡（Star K／G／M），其他信用卡結帳時直接輸入即可。':'It is under Member Portal → My account.'):'';
+    var html='<div class="k39-guide"><span>'+(zh?'在上排選單：':'In the top menu: ')+'<span class="k39-path">'+E(path)+'</span></span>'+(extra?'<span>'+E(extra)+'</span>':'')+(login?'<span>'+(zh?'需要先登入會員。':'Please sign in first.')+'</span>':'')
+      +'<button type="button" onclick="kgmAiGoR1108B(\''+E(it.mega)+'\','+it.ci+','+it.j+')">'+(zh?'帶我過去 →':'Take me there →')+'</button></div>';
+    return {label:it.label,path:path,html:html,text:(zh?'在上排選單：':'Top menu: ')+path+(extra?'\n'+extra:'')}};
+  window.kgmAiGoR1108B=function(mega,ci,j){try{var m=document.getElementById(mega),col=m&&m.querySelectorAll(':scope>div')[ci],li=col&&col.querySelectorAll('li')[j];if(li){li.click();return true}}catch(_){}return false};
+  /* 包在最外層的送出：原本的回覆出來之後（450 ms 後 1006A 會換成規章／Claude），問「在哪裡」的就換成導覽答案 */
+  var MINE39=null;   /* 用函式本身判斷是不是最外層（別層包的時候會把 __g39 這種旗標一起抄過去） */
+  function hook(){var O=window.kgmSendAi0819I;if(typeof O!=='function'||O===MINE39)return;
+    var w=function(){var inp=document.getElementById('aiInput'),q=String(inp&&inp.value||'').trim(),c=S.aiConversation0819I,n0=(c&&c.messages||[]).length,gd=null;try{gd=q?window.kgmAiGuideR1108B(q):null}catch(_){}
+      var r=O.apply(this,arguments);if(!gd)return r;
+      var put=function(){try{var c2=S.aiConversation0819I;if(!c2||!c2.messages)return;var M=c2.messages,ui=-1,m=null;for(var i=M.length-1;i>=0;i--){if(M[i]&&M[i].role==='user'&&String(M[i].text||'').trim()===q){ui=i;break}}if(ui<0)return;   /* 只改「這一題」後面那一則回覆（到下一題之前） */
+          for(var k=ui+1;k<M.length;k++){if(!M[k])continue;if(M[k].role==='user')break;m=M[k]}if(!m)return;
+          if(m.guideR1108B&&m.text===gd.html)return;m.text=gd.html;m.html=true;m.guideR1108B=gd.label;m.fai1006A=1;try{save()}catch(_){}try{window.drawAi0819I&&window.drawAi0819I()}catch(_){}}catch(_){}};
+      var t0=Date.now();(function poll(){put();if(Date.now()-t0<12000)setTimeout(poll,200)})();return r};   /* 原本的回覆可能晚幾秒才出來（打字動畫／規章／Claude），12 秒內出現的都換成導覽答案 */
+    try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__g39=1;MINE39=w;window.kgmSendAi0819I=w;try{window.sendAI=w}catch(_){}}
+  hook();[0,3000,9000,20000].forEach(function(t){setTimeout(hook,t)});setInterval(function(){try{if(window.kgmSendAi0819I&&window.kgmSendAi0819I!==MINE39)hook()}catch(_){}},2000);
+})();

@@ -624,7 +624,7 @@ RW('ov31 kit',"window.kgmFdFilterR929=function(q){S.fdQR929=String(q||'');fdAppl
 EMB28.append('ov31.js')
 # L：KGM Cards（kc31.js）——上排「KGM Cards」只給綁定 KGM Cards 的會員；帳單、哩程回饋、機場接送、權益
 RW('kc31 menu','{zh:"哩程補登",en:"Retro Claim",nav:"profile"}]}\n    ]}\n  };',
-   '{zh:"哩程補登",en:"Retro Claim",nav:"profile"},{zh:"BigDeal 競標升等",en:"BigDeal",nav:"bigdeal31"},{zh:"我的徽章",en:"My Badges",nav:"badge31"},{zh:"我的票夾",en:"My Wallet",nav:"inv31"}]}\n    ]},\n    ...((window.kgmHasCardR1103A&&window.kgmHasCardR1103A())?{cards31:{zh:"KGM Cards",en:"KGM Cards",cols:[   /* 1103A：綁定 KGM Cards 的會員才有（kc31.js） */\n      {zh:"我的卡片",en:"My Card",items:[{zh:"帳單與消費",en:"Statement",nav:"card31"},{zh:"機場接送",en:"Airport Transfer",nav:"card31x"}]},\n      {zh:"卡片權益",en:"Benefits",items:[{zh:"卡別與權益",en:"Card Benefits",nav:"card31p"}]}\n    ]}}:{})\n  };')
+   '{zh:"哩程補登",en:"Retro Claim",nav:"profile"},{zh:"信用卡綁定",en:"Saved Cards",nav:"profile",tab:"cards"},{zh:"BigDeal 競標升等",en:"BigDeal",nav:"bigdeal31"},{zh:"我的徽章",en:"My Badges",nav:"badge31"},{zh:"我的票夾",en:"My Wallet",nav:"inv31"}]}\n    ]},\n    ...((window.kgmHasCardR1103A&&window.kgmHasCardR1103A())?{cards31:{zh:"KGM Cards",en:"KGM Cards",cols:[   /* 1103A：綁定 KGM Cards 的會員才有（kc31.js） */\n      {zh:"我的卡片",en:"My Card",items:[{zh:"帳單與消費",en:"Statement",nav:"card31"},{zh:"機場接送",en:"Airport Transfer",nav:"card31x"}]},\n      {zh:"卡片權益",en:"Benefits",items:[{zh:"卡別與權益",en:"Card Benefits",nav:"card31p"}]}\n    ]}}:{})\n  };')
 EMB28.append('kc31.js')
 # B：會籍積分（tp31.js）——卡等只看會籍積分＋自營航班會籍積分（KGM-FFP-011 Rev. D）；會員頁面板、卡級效期、AI 回答、權益說明、規章
 RW('tp31 eval',"window.kgmTierEvalR1006A=function(u){\n  var f=flownStats(u||{}),best='Bronze';",

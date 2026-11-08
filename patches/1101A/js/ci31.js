@@ -6,6 +6,11 @@
    · 「稍後列印」：放進待印清單（這次開站有效）；下一位報到完成時，待印的旅客列在下面，可以一起勾選列印。
    · 旅客資料讀航班資料名單同一份（manifest7：姓名、座位、艙等、會員等級），模擬名單旅客也印得出來；登機證用網站唯一版型 kgmBpCardR1012A。 */
 (function(){
+  /* 1108B B7：登機證印成 IATA ATB 卡（203.2×82.5 mm、橫式）：登機證本體縮到約 121 mm 寬、右邊接存根（Immigration），長說明不印；螢幕上照舊 */
+  window.kgmAtbCssR1108B=function(pre){pre=pre||'';return '@media print{@page kgmbp{size:203.2mm 82.5mm;margin:0}'+pre+'.k12bp-one{page:kgmbp;break-after:page;page-break-after:always;display:flex!important;flex-direction:row;align-items:stretch;width:203.2mm!important;height:82.5mm!important;max-width:none!important;margin:0!important;padding:0!important;overflow:hidden;box-shadow:none!important;zoom:1!important;background:#fff}'
+    +pre+'.k12bp-one .k12bp-info{display:none!important}'+pre+'.k12bp-one .k12bp-card{zoom:.56;width:820px;flex:0 0 auto;margin:0!important;border-radius:0!important;box-shadow:none!important}'
+    +pre+'.k12bp-one .k12bp-stub{zoom:.6;flex:1 1 auto;margin:0!important;border:0!important;border-left:1.5px dashed #9aa!important;border-radius:0!important;background:#fff!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:14px!important;padding:18px 22px!important}'+pre+'.k12bp-one .k12bp-stub dl{display:grid!important;grid-template-columns:auto 1fr;gap:5px 14px!important;font-size:15px!important}'+pre+'.k12bp-one .k12bp-imm{width:150px;height:70px}}'};
+
   if(window.__ci31)return;window.__ci31=1;
   function z(){try{return LANG!=='en'}catch(_){return true}}
   function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -88,7 +93,9 @@
   function pageHtml(j){var I=j.I,g=gateOf(I.f,true),now=new Date(),ts=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2)+' '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
     var who=(S.adminUser&&(S.adminUser.name||S.adminUser.empId))||'';
     var order=['bp','lg','rc'].filter(function(k){return j.ks.indexOf(k)>=0});
-    return '<div class="k31pr-page"><div class="k31pr-ph"><div><b>KGM <span>AIRWAYS</span></b><small>'+(z()?'機場報到文件 · AIRPORT CHECK-IN DOCUMENTS':'AIRPORT CHECK-IN DOCUMENTS')+'</small></div>'
+    /* 1108B B7（使用者：「登機證和貴賓室邀請卡要是正確的 size not full A4」）：登機證＝IATA ATB 卡 203.2×82.5 mm、貴賓室邀請卡＝148×105 mm，各自一頁；收據照舊 A4（含旅客抬頭） */
+    var own=order.filter(function(k){return k!=='rc'}).map(function(k){return '<div class="k31pr-page k31pr-pg-'+k+'"><section class="k31pr-sec k31pr-s-'+k+'">'+docHtml(I,k)+'</section></div>'}).join('');order=order.filter(function(k){return k==='rc'});if(!order.length)return own;
+    return own+'<div class="k31pr-page"><div class="k31pr-ph"><div><b>KGM <span>AIRWAYS</span></b><small>'+(z()?'機場報到文件 · AIRPORT CHECK-IN DOCUMENTS':'AIRPORT CHECK-IN DOCUMENTS')+'</small></div>'
       +'<dl><div><dt>'+(z()?'旅客':'Passenger')+'</dt><dd>'+E(I.name)+'</dd></div><div><dt>'+(z()?'航班':'Flight')+'</dt><dd>'+E(I.f.code)+' '+E(I.f.fr)+'→'+E(I.f.to)+'</dd></div><div><dt>'+(z()?'日期':'Date')+'</dt><dd>'+E(I.f.date)+' '+E(I.f.dep||'')+'</dd></div><div><dt>'+(z()?'登機門':'Gate')+'</dt><dd>'+E(g?g.gate:'—')+'</dd></div></dl></div>'
       +order.map(function(k,i){return (i?(k==='rc'&&order.length>1?'<div class="k31pr-brk"></div>':'<div class="k31pr-cut"><span>✂ '+(z()?'沿虛線剪下':'Cut here')+'</span></div>'):'')+'<section class="k31pr-sec k31pr-s-'+k+'"><h5><b>'+(z()?TT[k][0]:'')+'</b>'+TT[k][1]+'</h5>'+docHtml(I,k)+'</section>'}).join('')
       +'<div class="k31pr-pf">'+(z()?'列印：':'Printed ')+E(ts)+(who?' · '+E(who):'')+' · PNR '+E(I.d.pnr)+'</div></div>'}
@@ -157,6 +164,10 @@
     +'.k31pr-rc{max-width:none;border:.3mm solid #DDD}.k31pr-s-bp .k12bp-one{zoom:.8}.k31pr-brk{break-before:page;page-break-before:always;height:0}'
     +'@media print{html.k31-printing,html.k31-printing body{background:#fff!important}}'
     +'.k31-toast{position:fixed;right:22px;bottom:22px;z-index:99999;background:#14322A;color:#F4EFE2;padding:11px 16px;border-radius:12px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.18)}'
-    +'@media print{html.k31-printing body>*{display:none!important}html.k31-printing #k31pr{display:block!important}@page{size:A4;margin:10mm}html.k31-printing .k31pr-page{page-break-after:always;break-after:page;padding:0}html.k31-printing .k31pr-page:last-child{page-break-after:auto}}';
+    +window.kgmAtbCssR1108B('html.k31-printing .k31pr-s-bp ')+'@media print{@page kgmlg{size:148mm 105mm;margin:0}html.k31-printing .k31pr-pg-bp{page:kgmbp;break-after:page;page-break-after:always;padding:0!important;margin:0}html.k31-printing .k31pr-pg-lg{page:kgmlg;break-after:page;page-break-after:always;width:148mm;height:105mm;box-sizing:border-box;padding:6mm!important;overflow:hidden}html.k31-printing .k31pr-pg-lg .k31pr-lg{grid-template-columns:92mm 1fr;gap:4mm;font-size:7pt}html.k31-printing .k31pr-pg-lg .k31pr-lgtx h4{font-size:8.5pt;margin:0 0 1.5mm}html.k31-printing .k31pr-pg-lg .k31pr-lgtx dl{display:block!important;margin:0}html.k31-printing .k31pr-pg-lg .k31pr-lgtx dt{font-weight:700;color:#5E6863;margin:1.6mm 0 .3mm}html.k31-printing .k31pr-pg-lg .k31pr-lgtx dd{margin:0;line-height:1.35}html.k31-printing .k31pr-pg-lg .k31pr-lgtx p{font-size:6.5pt;margin-top:2mm}html.k31-printing .k31pr-pg-bp .k31pr-sec,html.k31-printing .k31pr-pg-lg .k31pr-sec{margin:0;padding:0;border:0}}'+'@media print{html.k31-printing body>*{display:none!important}html.k31-printing #k31pr{display:block!important}@page{size:A4;margin:10mm}html.k31-printing .k31pr-page{page-break-after:always;break-after:page;padding:0}html.k31-printing .k31pr-page:last-child{page-break-after:auto}}';
     document.head.appendChild(cs)}catch(_){}
+  /* 1108B B7：前台登機證「列印」與另開視窗的登機證文件，也印成 ATB 卡大小（每段一張） */
+  (function(){try{var st=document.createElement('style');st.textContent=window.kgmAtbCssR1108B('html.k12bp-printing ')+'@media print{html.k12bp-printing .k12bp-title,html.k12bp-printing .k12bp-sub,html.k12bp-printing .k12bp-print{display:none!important}html.k12bp-printing .k12bp-wrap{padding:0!important;margin:0!important;max-width:none!important}}';document.head.appendChild(st)}catch(_){}
+    function hk(){var O=window.kgmBpDocR1012A;if(typeof O!=='function'||O.__b39)return;var w=function(){var h=O.apply(this,arguments);try{if(h&&h.indexOf('</style>')>0)h=h.replace('</style>',window.kgmAtbCssR1108B('')+'@media print{body{padding:0!important;margin:0!important}.k12bp-title,.k12bp-sub{display:none!important}.k12bp-wrap{padding:0!important;margin:0!important;max-width:none!important}}</style>')}catch(_){}return h};w.__b39=1;try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}window.kgmBpDocR1012A=w}
+    hk();setTimeout(hk,0);setTimeout(hk,3000)})();
 })();
