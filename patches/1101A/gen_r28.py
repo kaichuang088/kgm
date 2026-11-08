@@ -767,6 +767,17 @@ RW('g38 pnr facts',"(z()?'開票前整團 PNR ':'Group PNR ')+E(g.pnr))","(z()?'
 RW('g38 pnr step',"'<p class=\"k25g-p\">'+(z()?planOf(g).zh+'（'+planOf(g).k+'）；PNR ':planOf(g).en+'; PNR ')+E(g.pnr)+(z()?'（開票前是整團一筆）。':'.')+'</p>'","'<p class=\"k25g-p\">'+(z()?planOf(g).zh+'（'+planOf(g).k+'）；開票前不提供訂位代號，團體的行程、座位、付款與名單都在這一頁管理；開票後每位旅客一個訂位代號。':planOf(g).en+'; PNRs are issued at ticketing.')+'</p>'")
 # JFK 線改 A35K（使用者：「JFK航線改A35K飛行」）：MAP18 定案機型（tf18 釘住 FLIGHTS／季節表的 acft）；西行輪擋定值在 js/bt26.js WB38
 RW('map38 jfk',"KX215:'A21N',KX216:'A21N',KX227:'A21N',KX228:'A21N'\n  };","KX215:'A21N',KX216:'A21N',KX227:'A21N',KX228:'A21N',\n    KX48:'A35K',KX47:'A35K'   /* 1108A：JFK 線 A35K（使用者） */\n  };")
+# ══ 1108B ══
+# B2（使用者：「回程的選法要和去程一樣」）：回程也逐艙加位，回程的艙等人數可以跟去程不同 → 付款後拆艙要能「去程一艙、回程另一艙」。
+#   kgmGrpCabinR1026C(id,i,cab[,cabIn])：多一個回程艙等（不給＝跟原本一樣兩段同艙）；檢查空位、差價、拆出訂位的 inbC、自動劃位都分段算。
+RW('g39 cab sig',"window.kgmGrpCabinR1026C=function(id,i,cab){","window.kgmGrpCabinR1026C=function(id,i,cab,cabIn){")
+RW('g39 cab nc',"if(g.pax<=1){return}var P=planOf(g),nc=gcode(cab,P.k);if(!nc){return}","if(g.pax<=1){return}var P=planOf(g),nc=gcode(cab,P.k);if(!nc){return}\n  var ncI=cabIn?gcode(cabIn,P.k):nc;if(!ncI){return}var inbS=function(s){return !!cabIn&&/^inb/.test(s.key)},sCab=function(s){return inbS(s)?cabIn:cab},sCode=function(s){return inbS(s)?ncI:nc};   /* 1108B：回程艙等可以不同 */")
+RW('g39 cab lack',"if(seatsLeft(Object.assign({},f,{date:s.date}),s.date,cab)<1)lack.push(s.code);diff+=priceOf(g,s,nc)});","if(seatsLeft(Object.assign({},f,{date:s.date}),s.date,sCab(s))<1)lack.push(s.code);diff+=priceOf(g,s,sCode(s))});")
+RW('g39 cab inbC',"if(c.outC)c.outC=nc;if(c.inbC)c.inbC=nc;","if(c.outC)c.outC=nc;if(c.inbC)c.inbC=ncI;")
+RW('g39 cab moved',"g.moved.push({pnr:np,name:r.last+'/'+r.first,type:chd?'CHD':'ADT',cab:cab,code:nc,","g.moved.push({pnr:np,name:r.last+'/'+r.first,type:chd?'CHD':'ADT',cab:cab,code:nc,cabInR1108B:cabIn&&cabIn!==cab?cabIn:null,codeInR1108B:cabIn&&cabIn!==cab?ncI:null,")
+RW('g39 cab seat',"try{seatOne(c,cab)}catch(_){}","try{seatOne(c,cab,cabIn)}catch(_){}")
+RW('g39 seatOne sig',"function seatOne(c,cab){segsOf(c).forEach(function(s){","function seatOne(c,cab,cabIn){segsOf(c).forEach(function(s){var cb=cabIn&&/^inb/.test(s.key)?cabIn:cab;")
+RW('g39 seatOne sec',"var sec=sectionsOf(t).filter(function(x){return x.name===cabName(cab)})[0];if(!sec)return;var pick=null;","var sec=sectionsOf(t).filter(function(x){return x.name===cabName(cb)})[0];if(!sec)return;var pick=null;")
 RW('srch31 inv idx',"var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  allBookings.forEach(function(b){known[b.pnr]=true;",
    "var allBookings=S.bookings||[],real=[],known={},fareCounts={},sim=[];\n  try{var ix31=window.kgmInvIdxR1102A?window.kgmInvIdxR1102A(allBookings):null;if(ix31){known=ix31.known;allBookings=ix31.by[f.code+'|'+f.fr+'|'+f.to+'|'+date]||[]}}catch(_){allBookings=S.bookings||[];known={}}   /* 1102A R2：只看這一班這一天的訂位（同一批建一次索引，gr28 kgmInvIdxR1102A） */\n  allBookings.forEach(function(b){known[b.pnr]=true;")
 RW('srch31 strip',"const _cc=findConnectionsFull(fr,to,d,3)||[];","const _cc=findConnectionsFull(fr,to,d,0)||[];   /* 1102A：只查當天出發的轉機（原本 3 天內，又當成當天報價） */")

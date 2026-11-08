@@ -56,7 +56,7 @@
     var w=function(){try{if(S.view!=='admin'){var c=[S.mtOnly,S.mtOpen&&S.mtOpen.pnr,S.mgResult&&S.mgResult.pnr,S.pnrBooking0812A&&S.pnrBooking0812A.pnr,S.mtPick&&S.mtPick.pnr],hid=null;
           for(var i=0;i<c.length;i++){if(c[i]&&hideB({pnr:c[i]})){hid=c[i];break}}
           if(hid){S.mtOnly=null;S.mtOpen=null;S.mtPick=null;S.mgResult=null;S.pnrBooking0812A=null;S.grpHideR1108A={pnr:hid,view:S.view}}else if(c.some(Boolean))S.grpHideR1108A=null}}catch(_){}   /* 改查別的訂位 → 提示收掉 */
-      var h=O.apply(this,arguments);try{var n=note();if(n&&typeof h==='string')h='<div class="k38gh-w">'+n+'</div>'+h;else if(S.grpHideR1108A&&S.grpHideR1108A.view!==S.view)S.grpHideR1108A=null}catch(_){}return h};
+      var h=O.apply(this,arguments);try{var n=note();if(n&&typeof h==='string'&&h.indexOf('class="k38gh"')<0)h='<div class="k38gh-w">'+n+'</div>'+h;   /* 1108B B3：行程管理裡面會再畫一次我的行程 → 只放一條 */else if(S.grpHideR1108A&&S.grpHideR1108A.view!==S.view)S.grpHideR1108A=null}catch(_){}return h};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__g38=1;window[name]=w;
     try{if(name==='myTripView')myTripView=w;else if(name==='manageView')manageView=w}catch(_){}}
   try{var cs=document.createElement('style');cs.textContent='.k38gh-w{max-width:1080px;margin:22px auto 0;padding:0 20px}.k38gh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;border:1px solid #d9cfa8;background:#fffaf0;border-radius:14px;padding:16px 18px}.k38gh b{font-size:15px;color:#5b4300;flex-basis:100%}.k38gh span{flex:1 1 360px;font-size:13px;color:#5d665f;line-height:1.55}.k38gh .btn{white-space:nowrap}';document.head.appendChild(cs)}catch(_){}
@@ -85,11 +85,31 @@
   function wrapPay(){var O=window.payView;if(typeof O!=='function'||O.__g38)return;
     var w=function(){var h=O.apply(this,arguments);try{if(gOn()&&typeof h==='string'&&h.indexOf('k25g-paynote')>=0&&h.indexOf('本次付清全額')<0&&h.indexOf('Paying in full')<0){var i=h.indexOf('</div>',h.indexOf('k25g-paynote'));if(i>0)h=h.slice(0,i+6)+apBox()+h.slice(i+6)}}catch(_){}return h};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__g38=1;window.payView=w;try{payView=w}catch(_){}}
-  var PEND=null;
+  var PEND=null,REC39=null;
+  /* ── 1108B B1（使用者：「訂購完團體機票應該是給案件而不是這頁吧 PNR是之後一個一個給啊」）──
+     團體票（G）的訂位一律不畫一般「訂購完成」頁（那頁有整團 PNR＋訂位確認單）：團體已成立 → 直接到那一團的我的團體訂位；
+     團體紀錄還沒建（原本 grp25 只等 15 秒、或建立時出錯）→ 用付款當下記住的團名／人數補建（kgmGrpFinishR1026C，跟原本同一支），建好再過去。 */
+  function grpOfB39(b){if(!b)return null;var id=b.groupR1025B&&(b.groupR1025B.id);if(id)return G(id);return (S.groupsR1023A||[]).filter(function(g){return g&&g.pnr===b.pnr})[0]||null}
+  function isGrpB39(b){return !!b&&(grpFare(b)||!!(b.groupR1025B&&b.groupR1025B.index==null&&!b.groupR1025B.cabinMove))}
+  function goGrp39(g){S.grpHideR1108A=null;S.mgResult=null;S.pnrBooking0812A=null;S.mtOpen=null;S.mtOnly=null;S.grpViewR1023A={id:g.id};S.grp25Tab='seats';S.view='group23';S.phase=null;try{render()}catch(_){}try{window.scrollTo(0,0)}catch(_){}}
+  function recover39(b){try{if(!b||grpOfB39(b)||typeof window.kgmGrpFinishR1026C!=='function')return null;var r=REC39&&REC39.uid===(S.user&&S.user.id)?REC39:null;
+      var d=r?r.d:{},pc=r?r.pc:null;if(!String(d.name||'').trim()){var a=(S.user&&S.user.groupAccountR1025B)||{},f=b.outF||{};d=Object.assign({},d,{name:String((a.company||'')+' '+(f.fr||'')+'-'+(f.to||'')+' '+String(f.date||'').slice(5).replace('-','/')+(z()?' 團':' Group')).trim()})}
+      if(!pc){var q=b.passengerCounts||{};pc={adults:+q.adults||0,children:+q.children||0,infants:+q.infants||0,seats:(+q.adults||0)+(+q.children||0)}}
+      window.kgmGrpFinishR1026C(b,d,pc);REC39=null;var g=grpOfB39(b);if(g)(g.history=g.history||[]).push({at:new Date().toISOString(),act:'團體紀錄由付款完成頁補建（1108B）',by:'system'});return g}catch(e){try{console.warn('g39 recover',e)}catch(_){}return null}}
+  function wrapSucc39(){var O=window.successView;if(typeof O!=='function'||O.__g39)return;
+    var w=function(){var b=null;try{b=(S.bookings||[]).filter(function(x){return x&&x.pnr===S.pnr})[0]||null}catch(_){}
+      if(!isGrpB39(b))return O.apply(this,arguments);var zh=z(),g=grpOfB39(b);
+      setTimeout(function(){var g2=grpOfB39(b)||recover39(b);if(g2&&S.view==='booking'&&S.phase==='success')goGrp39(g2)},g?0:600);
+      return '<div style="max-width:760px;margin:40px auto;padding:0 18px"><div class="card k39gs"><small>KGM AIRWAYS · GROUP BOOKING</small><h2>'+(zh?'團體訂位已成立':'Group booking created')+'</h2><p>'+(zh?'正在打開這一團的「我的團體訂位」（團體案件編號、付款、劃位、名單）；開票後每位旅客才會有自己的訂位代號（PNR）。':'Opening your group case. Each traveller gets a PNR at ticketing.')+'</p>'+(g?'<b class="mono">'+E(g.id)+'</b>':'')+'</div></div>'};
+    try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__g39=1;window.successView=w;try{successView=w}catch(_){}}
+  /* 15 秒後還是一般完成頁以外的地方（例：付款後立刻離開）也補建，最多等 10 分鐘 */
+  setInterval(function(){try{if(!REC39||Date.now()-REC39.t<16000)return;if(Date.now()-REC39.t>600000){REC39=null;return}
+      var L=(S.bookings||[]).slice(REC39.before);for(var i=L.length-1;i>=0;i--){var b=L[i];if(isGrpB39(b)&&!grpOfB39(b)){var g=recover39(b);if(g&&S.view==='booking'&&S.phase==='success')goGrp39(g);return}}if(Date.now()-REC39.t>60000)REC39=null}catch(_){}},1000);
   function wrapDoPay(){var O=window.doPay;if(typeof O!=='function'||O.__g38)return;
     var w=function(){try{if(gOn()){var c=S.grpBalCardR1108A||{mode:'same'},main=String((document.getElementById('cnum')||{}).value||''),mname=String((document.getElementById('cname')||{}).value||'');
           if(c.mode==='other'&&!okCard(c.num,c.exp)){alert(z()?'扣尾款的另一張信用卡：請填完整卡號與到期日（MM/YY）。':'Enter the balance card number and expiry (MM/YY).');return}
           PEND={t:Date.now(),uid:S.user&&S.user.id,ap:c.mode==='other'?{mode:'other',last4:lastOf(c.num),exp:c.exp,holder:String(c.name||mname).toUpperCase()}:{mode:'same',last4:lastOf(main),holder:mname.toUpperCase()}}}}catch(_){}
+      try{if(gOn()){var pc0=null;try{pc0=Object.assign({},passengerCounts())}catch(_){}REC39={t:Date.now(),uid:S.user&&S.user.id,before:(S.bookings||[]).length,d:Object.assign({},S.grpDraftR1025B||{}),pc:pc0}}}catch(_){}   /* 1108B B1：付款當下記住團名與人數，萬一原本的 15 秒等待沒接到就由這裡補建團體 */
       return O.apply(this,arguments)};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__g38=1;window.doPay=w;try{doPay=w}catch(_){}}
   function attach(){if(!PEND)return;if(Date.now()-PEND.t>30000){PEND=null;return}
@@ -97,6 +117,11 @@
     if(!g)return;if(g.status==='deposit_paid'&&g.balance&&!g.balance.paid){g.autoPayR1108A=Object.assign({at:new Date().toISOString()},PEND.ap);(g.history=g.history||[]).push({at:new Date().toISOString(),act:'尾款自動扣款：'+g.due.balance+' 以 •••• '+(PEND.ap.last4||'')+' 扣款',by:'customer'});try{save()}catch(_){}}
     PEND=null;S.grpBalCardR1108A=null}
   setInterval(attach,400);
+  /* 1108B B3（使用者圖二：「為什麼上面有這個啊好亂喔」）：付款流程會把整團訂位留在行程管理／我的行程的狀態（S.mgResult 等），
+     之後打開行程管理就被當成「查詢到團體代號」而跳提示。團體剛成立（30 秒內）時把這些殘留狀態清掉；只有旅客自己去查團體代號才提示。 */
+  var SEEN39=null;setInterval(function(){try{var L=S.groupsR1023A||[];if(!SEEN39){SEEN39={};L.forEach(function(g){if(g&&g.id)SEEN39[g.id]=1});return}
+      L.forEach(function(g){if(!g||!g.id||SEEN39[g.id])return;SEEN39[g.id]=1;if(!g.pnr||Date.now()-Date.parse(g.createdAt||0)>30000)return;var p=g.pnr,hit=function(x){return x&&(x===p||x.pnr===p)};
+        if(hit(S.mgResult))S.mgResult=null;if(hit(S.pnrBooking0812A))S.pnrBooking0812A=null;if(hit(S.mtOpen))S.mtOpen=null;if(hit(S.mtOnly))S.mtOnly=null;if(hit(S.mtPick))S.mtPick=null;if(S.grpHideR1108A&&S.grpHideR1108A.pnr===p)S.grpHideR1108A=null})}catch(_){}},500);
   function Tday(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
   function autoCharge(){var ch=0,td=Tday();(S.groupsR1023A||[]).forEach(function(g){try{if(!g||g.kind!=='v25'||!g.autoPayR1108A||g.autoPayR1108A.failed||/ticketed|cancelled/.test(g.status))return;
         if(!g.balance||g.balance.paid||!g.due||td<g.due.balance)return;var c=window.kgmChargeByTokenR45&&g.balance.token?window.kgmChargeByTokenR45(g.balance.token):null;if(!c||c.status!=='unpaid')return;
@@ -132,8 +157,23 @@
   var KZ={charter_existing:['包下現有航班（整班）','Charter a scheduled flight'],charter_extra:['加開包機（另加一架）','Extra charter aircraft'],custom:['自創航班','Custom flight']};
   var CRST={pending:['審核中','Under review','#8A5A00','#FFF4E0'],approved:['已核准','Approved','#0B6B48','#E9F5EF'],declined:['未核准','Declined','#9B1C1C','#FDECEC'],cancelled:['已撤回','Withdrawn','#6B6F6C','#F1F2F1']};
   function crChip(st){var x=CRST[st]||[st,st,'#555','#eee'];return '<span class="k38st" style="color:'+x[2]+';background:'+x[3]+'">'+E(z()?x[0]:x[1])+'</span>'}
+  /* 1108B B4（使用者：「我的團體訂位也要可以切到其他團體訂位頁面不能只有在這一個定位」）：
+     單一團體頁的頁首加「切換團體」：同一個帳號的其他團體（進行中在前、已結束在後）一鍵換過去，不用先回清單。 */
+  function myGroups39(){var u=S.user;if(!u)return [];return (S.groupsR1023A||[]).filter(function(g){return g&&g.kind==='v25'&&g.userId===u.id&&!g.mockR1108A})
+      .sort(function(a,b){var ea=/ticketed|cancelled/.test(a.status)?1:0,eb=/ticketed|cancelled/.test(b.status)?1:0;return ea-eb||String((a.segs&&a.segs[0]||{}).date||'').localeCompare(String((b.segs&&b.segs[0]||{}).date||''))})}
+  window.kgmGrpSwitchR1108B=function(id){if(!id)return;if(id==='__list'){S.grpViewR1023A=null}else{S.grpViewR1023A={id:id};S.grp25Tab=null}S.grpMsgR1025B='';S.grpNmDraftR1108A=null;try{render()}catch(_){}try{window.scrollTo(0,0)}catch(_){}};
+  function sw39(h){var cur=S.grpViewR1023A&&S.grpViewR1023A.id,L=myGroups39();if(L.length<2||h.indexOf('class="k25crumb"')<0)return h;var zh=z();
+    var stx=function(g){return /ticketed/.test(g.status)?(zh?'已開票':'Ticketed'):/cancelled/.test(g.status)?(zh?'已取消':'Cancelled'):/paid/.test(g.status)&&g.balance&&g.balance.paid?(zh?'已付清':'Paid'):(zh?'待尾款':'Balance due')};
+    var opts=L.map(function(g){var s0=(g.segs&&g.segs[0])||{};return '<option value="'+E(g.id)+'"'+(g.id===cur?' selected':'')+'>'+E(g.id)+'・'+E(g.name||'')+'・'+E(s0.fr||'')+'→'+E(s0.to||'')+' '+E(String(s0.date||'').slice(5).replace('-','/'))+'・'+(g.pax||0)+(zh?' 位・':' pax · ')+stx(g)+'</option>'}).join('');
+    var i=L.map(function(g){return g.id}).indexOf(cur),prev=i>0?L[i-1]:null,next=i>=0&&i<L.length-1?L[i+1]:null;
+    var bar='<div class="k39sw"><label>'+(zh?'切換團體（共 '+L.length+' 團）':'Switch group ('+L.length+')')+'</label><select class="inp" onchange="kgmGrpSwitchR1108B(this.value)">'+opts+'<option value="__list">'+(zh?'← 回到全部團體清單':'← All groups')+'</option></select>'
+      +'<button type="button" class="btn btn-o" '+(prev?'onclick="kgmGrpSwitchR1108B(\''+E(prev.id)+'\')"':'disabled')+'>‹ '+(zh?'上一團':'Prev')+'</button><button type="button" class="btn btn-o" '+(next?'onclick="kgmGrpSwitchR1108B(\''+E(next.id)+'\')"':'disabled')+'>'+(zh?'下一團':'Next')+' ›</button></div>';
+    var a=h.indexOf('class="k25crumb"'),e=h.indexOf('</div>',a);if(e<0)return h;return h.slice(0,e+6)+bar+h.slice(e+6)}
+  try{var cs39=document.createElement('style');cs39.textContent='.k39sw{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:10px 0 4px;padding:10px 14px;background:#F6F9F7;border:1px solid #E1E8E4;border-radius:12px}.k39sw label{font-size:12.5px;font-weight:800;color:#0B3D2E}.k39sw select{flex:1 1 360px;min-width:0;height:38px}.k39sw .btn{padding:8px 14px;font-size:13px}.k39sw .btn[disabled]{opacity:.4;cursor:not-allowed}'
+    +'.k39gs{text-align:center;padding:34px 28px}.k39gs small{font:800 10.5px system-ui,sans-serif;letter-spacing:.2em;color:#B08A3E}.k39gs h2{font:700 26px Georgia,"Noto Serif TC",serif;color:#0B3D2E;margin:8px 0}.k39gs p{color:#5E6863;font-size:14px;line-height:1.6}.k39gs b{display:inline-block;margin-top:6px;font-size:18px;color:#0B3D2E}';document.head.appendChild(cs39)}catch(_){}
   function wrapGV(){var O=window.kgmGroupViewR1023A;if(typeof O!=='function'||O.__g38)return;
-    var w=function(){var h=O.apply(this,arguments);try{if(S.view==='admin'||S.grpViewR1023A||typeof h!=='string'||h.indexOf('k25list')<0)return h;
+    var w=function(){var h=O.apply(this,arguments);try{if(S.view!=='admin'&&S.grpViewR1023A&&typeof h==='string')return sw39(h)}catch(e){try{console.warn('g39 sw',e)}catch(_){}}
+      try{if(S.view==='admin'||S.grpViewR1023A||typeof h!=='string'||h.indexOf('k25list')<0)return h;
         var zh=z(),box=document.createElement('div');box.innerHTML=h;var root=box.querySelector('.k25g')||box;
         var top=root.querySelector('.k25top'),msgs=[].slice.call(root.querySelectorAll('.k25g-msg')).filter(function(m){return !m.closest('article')}),form=root.querySelector('#k27cr-form');
         var cards=[].slice.call(root.querySelectorAll('.k25gc')),arts=[].slice.call(root.querySelectorAll('.k27cr-list article'));
@@ -207,7 +247,7 @@
     return n}
   function seedMock(){try{if(!S||!Array.isArray(S.bookings))return;var a=seedPets(),b=seedGroups();if(a||b){try{save()}catch(_){}}window.KGM_MOCK_R1108A={pets:a,groups:b}}catch(e){try{console.warn('g38 mock',e)}catch(_){}}}
   setTimeout(seedMock,9000);
-  function hook(){wrapGV();wrapCr();wrapSave();wrapPaste();wrapV('myTripView');wrapV('manageView');wrapN();wrapPay();wrapDoPay()}
+  function hook(){wrapGV();wrapCr();wrapSave();wrapPaste();wrapV('myTripView');wrapV('manageView');wrapN();wrapPay();wrapDoPay();wrapSucc39()}
   hook();[0,100,4600,6000,12000,30000].forEach(function(t){setTimeout(hook,t)});
-  setInterval(function(){try{if(!(window.myTripView&&window.myTripView.__g38)||!(window.manageView&&window.manageView.__g38)||!(window.kgmNotify&&window.kgmNotify.__g38))hook()}catch(_){}},5000);   /* 後面有層再包一次就再包回來 */
+  setInterval(function(){try{if(!(window.myTripView&&window.myTripView.__g38)||!(window.manageView&&window.manageView.__g38)||!(window.kgmNotify&&window.kgmNotify.__g38)||!(window.successView&&window.successView.__g39))hook()}catch(_){}},5000);   /* 後面有層再包一次就再包回來 */
 })();
