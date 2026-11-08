@@ -1,6 +1,6 @@
 # 1108C（pass 137）筆記
 
-建置跟 1108B 同一套：`cd patches/1101A && python3 gen_r28.py && bash build.sh <1004B.html> <out.html>`（版號 `p_h_ver*.js`＝1108C；build.sh 最後 `kx39.py` 改號）。比對基準：1108B 最終 `/tmp/j/kgm1108B_w16.html`（班號用 1108B→1108C 對照：偶數 +2、奇數不動）。最終檔 `/tmp/j/kgm1108C_w2.html`。
+建置跟 1108B 同一套：`cd patches/1101A && python3 gen_r28.py && bash build.sh <1004B.html> <out.html>`（版號 `p_h_ver*.js`＝1108C；build.sh 最後 `kx39.py` 改號）。比對基準：1108B 最終 `/tmp/j/kgm1108B_w16.html`（班號用 1108B→1108C 對照：偶數 +2、奇數不動）。最終檔 `/tmp/j/kgm1108C_w3.html`。
 
 ## 使用者
 - 「等一下回程是+1喔 eg KX129 tpe-kix, KX130 kix-tpe」「微調一下全部改成1108C給我 然後全部用zip給我這次這樣太亂我只有看航班pdf」
@@ -20,5 +20,11 @@
 - 時刻表 PDF `timetable/kx39tt.py`（改成 import kx39 的 mp）：771 格、0 錯；第 8 頁杭州兩格 KX 316＋時刻、重慶 KX 318；A35K 8 格。`/tmp/j/ttchk2.py`、`ttpix.py` 同步改。
 - 測試腳本：`kx39map.py --b2c`（1108B 號 → 1108C）改了 repo tests 與 /tmp/j 關卡腳本（備份 `/tmp/j/pre40/`）；vfy1 版號 /1108C/。
 
-## 關卡（w2）
-（見下方，跑完補）
+- 第二次漏：r179 稽核／r204 第五航權配對 `String(V.code).replace(/\d+$/,String((+m[1])-1))`（×2）→ reg2 kgmAuditR202「第五航權去回同機只有 0%」抓到，w3 修。之後 w3 機隊 9,757 段仍跟 1108B 完全相同。
+- reg2 偶發「報到櫃檯人力低於下限 1」（R1008A／R163／R194 同一件）：地勤排班每次開頁不同；`/tmp/j/ctrshort.js` 各開 3 次：1108B 1 次、1108C 0 次 → 原本就有、不是改號造成。
+- 機型快照差幾格（KX139 12-05、KX97 11-10）是自動換機紀錄產生時機，兩版同一架飛機；fix3（等更久）9,855 個航班日 0 不一致。
+- 遷移＋寄信：`/tmp/j/kxmig4.js`（1108B 資料 → w3，等 90 秒）只有 2 筆模擬 bigdeal.open（不寄）。
+
+## 關卡（w3 最終，一次只跑一支）
+- syn 248／0、241 層；vfy1 24／24；vfy2d 8／8；vfy3、vfy4 8／8；vfy5、vfy5d 只有 AA1（萬聖節）；vfy6 55／55；reg2 notOk 78 跟 1108B 基準相同（存 `baselines/reg_1108C.out`）、view errors 0、PAGE ERRORS 0；t_crewrule 0／0／0；t_sched922 60／60、maxLatency 4,129 ms；t_admlag ERR 0；tz8 missing 0；t_fl1 overlap 0／orphan 0；names34／g39／mixpay39／u39／bp39／m39／aib39／bd39／cs39／pdf38g／pdf38t 結束碼 0；a35t 成田 11／香港 15／仁川 8、ov 0、notif 0；fix3 9,855、0 不一致。
+- 交付：一個 ZIP `/tmp/j/KGM_Airways_1108C.zip`（說明、前後台、時刻表、Payload、寄信清單、規章 zip、Worker、參考_1108B說明）。
