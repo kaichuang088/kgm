@@ -66,6 +66,9 @@ window.kgmKxSdR1108B=function(n){n=+n||0;return kgmKxOutR1108B(n)?n:n+1};
   /* 「KX118/117」這種簡寫（輪轉標籤）後面不帶 KX 的號碼一起換 */
   var re=/(^|[^A-Za-z0-9_])KX([1-9]\d{0,2})((?:[\/／][1-9]\d{0,2}(?![\d:.]))*)(?![0-9A-Za-z\\])/g,keys=[],n=0;for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k!==F)keys.push(k)}
   keys.forEach(function(k){try{var v=localStorage.getItem(k);if(typeof v!=='string'||v.indexOf('KX')<0)return;var w=v.replace(re,function(_,a,d,r){return a+'KX'+mp(+d)+(r?r.replace(/[1-9]\d{0,2}/g,function(x){return mp(+x)}):'')});if(w!==v){localStorage.setItem(k,w);n++}}catch(_){}});
+  /* 杭州回程：改號後是 KX316（跟重慶回程重複）→ 依航線改成 KX314（同一個物件裡 fr＝HGH 的才改） */
+  try{var H1=/("code"\s*:\s*")KX316("(?:[^{}]{0,400}?)"fr"\s*:\s*"HGH")/g,H2=/("fr"\s*:\s*"HGH"(?:[^{}]{0,400}?)"code"\s*:\s*")KX316"/g,H3=/KX316\|HGH\|/g;
+    keys.forEach(function(k){try{var v=localStorage.getItem(k);if(typeof v!=='string'||v.indexOf('KX316')<0||v.indexOf('HGH')<0)return;var w=v.replace(H1,'$1KX314$2').replace(H2,'$1KX314"').replace(H3,'KX314|HGH|');if(w!==v)localStorage.setItem(k,w)}catch(_){}})}catch(_){}
   try{indexedDB.deleteDatabase('kgm25_crew')}catch(_){}
   localStorage.setItem(F,'1');window.KGM_KXNUM_R1108B={keys:n,at:new Date().toISOString()}}catch(_){}})();
 """
@@ -145,6 +148,15 @@ def main():
     s = pat.sub(rep, s)
     # 規章條文「班號以 KX9 開頭者」說的是聯營 4 位數班號（KX9xxx）的前綴，不是 9 號班 → 還原
     n9 = s.count('班號以 KX10 開頭者'); assert n9 == 1, ('KX9 prefix', n9); s = s.replace('班號以 KX10 開頭者', '班號以 KX9 開頭者')
+    # 杭州線跟全站統一（使用者：「OK」）：原本 KX314 去、KX315 回（KX315 同時也是重慶→台北，班號重複）→ 去程 KX315、回程 KX314（＝去程−1），
+    #   重慶→台北維持 KX316。只改指杭州回程的那幾處（班表、回程跟去程同機型、1018A 定案表、r79 稽核取樣、註解）。
+    #   雜湊入口把 KX314 換回舊 313（＝原本這一對的配對鍵），機型抽選不變；杭州回程自己的種子（登機門、天氣…）會跟改號前不同。
+    for a, b, c in [('["KX316","HGH","TPE"', '["KX314","HGH","TPE"', 1),
+                    ("if(code==='KX316'&&fr==='HGH'&&to==='TPE')", "if(code==='KX314'&&fr==='HGH'&&to==='TPE')", 1),
+                    ("sample:['KX315','KX316',", "sample:['KX315','KX314',", 1),
+                    ("KX315:'A339R',KX316:'A339R',", "KX315:'A339R',KX314:'A339R',", 1),
+                    ("/* 同一個班號兩條線：KX316 杭州→台北（定案）跟重慶→台北（原本 A21N，不動） */", "/* 1108B：杭州→台北改成 KX314（去程 KX315−1），KX316 只剩重慶→台北（原本 A21N，不動；這條保留無害） */", 1)]:
+        n = s.count(a); assert n == c, ('HGH', a, n); s = s.replace(a, b)
     s, nh, ni = seeds(s)
     assert s.count(ANCHOR) == 1, 'migration anchor'
     s = s.replace(ANCHOR, ANCHOR + MIG, 1)

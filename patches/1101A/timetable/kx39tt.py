@@ -63,6 +63,32 @@ for pg in d:
         nb = TJA.sub(subA, b)
         if nb != b: d.update_stream(x, nb)
 assert na == 8, ('A359/A35K cells', na)
+# ③ 杭州線統一（使用者：「OK」）：杭州→台北原本 KX315（改號後 KX316，跟重慶→台北同號）→ KX314。
+#    第 8 頁右欄 4 格 KX 316：杭州那 2 格在底稿是逐字畫的（深一層的表單物件），重慶那 2 格是之前寫上去的整串 TJ
+#    → 全文件逐字畫的 KX 316 應該剛好 2 格，改成 314；改完用文字層核對：KX 314 都在「杭州」標題與「重慶」標題之間。
+K316 = re.compile(rb'(BT/\S+ [\d.]+ Tf 1 0 0 -1 ([\d.]+) ([\d.]+) Tm <002e>Tj [\d.]+ -0 TD <003b>Tj [\d.]+ -0 TD <0003>Tj [\d.]+ -0 TD <0016>Tj [\d.]+ -0 TD <0014>Tj [\d.]+ -0 TD )<0019>(Tj\s*ET)')   # KX 316（3、1、6）
+nh = 0
+for x in X:
+    try: b = d.xref_stream(x)
+    except Exception: continue
+    if not b or b'<0019>Tj' not in b: continue
+    cols = {}
+    for m in K316.finditer(b): cols.setdefault(m.group(2), []).append(m)
+    pick = []
+    for L in cols.values():
+        if len(L) == 4: pick += sorted(L, key=lambda m: float(m.group(3)))[:2]   # 同一欄 4 格：上面兩格＝杭州
+    for m in sorted(pick, key=lambda m: -m.start()):
+        b = b[:m.start()] + m.group(1) + b'<0017>' + m.group(4) + b[m.end():]; nh += 1
+    if pick: d.update_stream(x, b)
+assert nh == 2, ('HGH return cells', nh)
+for pg in d:
+    sp = [x for b in pg.get_text('dict')['blocks'] for l in b.get('lines', []) for x in l['spans']]
+    got = sorted((x['origin'][1], x['text'].strip()) for x in sp if x['text'].strip() in ('KX 314', 'KX 316') and x['origin'][0] > 290)
+    if not any(t == 'KX 314' for _, t in got): continue
+    hz = [x['origin'][1] for x in sp if 'HANGZHOU' in x['text'] and x['origin'][0] > 290][0]; cq = [x['origin'][1] for x in sp if 'CHONGQING' in x['text'] and x['origin'][0] > 290][0]
+    assert all((t == 'KX 314') == (hz < y < cq) for y, t in got), ('HGH cells', got, hz, cq)
+    print('kx39tt: HGH page', pg.number + 1, [(round(y), t) for y, t in got])
+cnt['hgh'] = nh
 cnt['a35k'] = na
 d.save(OUT, garbage=3, deflate=True, clean=False)
 print('kx39tt:', dict(cnt), 'digit advance', {k.decode(): v.decode() for k, v in W.items()})

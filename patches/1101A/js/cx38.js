@@ -113,13 +113,14 @@
           if(clash)continue;if(prev&&prev.to!=='TPE')continue;if(next&&next.fr!=='TPE')continue;if(!prev)continue;   /* 一定要知道它停在台北 */
           pick=tl}
         if(!pick)continue;
-        [o,r].forEach(function(e){var src=TA[e.tail]||[],ix=src.indexOf(e.x);if(ix>=0)src.splice(ix,1);e.x.a35kR1108B=1;TA[pick].push(e.x);e.tail=pick;
+        [o,r].forEach(function(e){var src=TA[e.tail]||[],ix=src.indexOf(e.x);if(ix>=0)src.splice(ix,1);e.x.a35kR1108B=1;if(e.x.acft&&e.x.acft!=='A35K'){e.x.acftOrigR1108B=e.x.acft;e.x.acft='A35K'}TA[pick].push(e.x);e.tail=pick;
           var key=e.x.code+'_'+e.x.date,row=null;try{row=(FLIGHTS||[]).filter(function(f){return f&&f.code===e.x.code&&f.fr===e.x.fr&&f.to===e.x.to&&!f.via})[0]}catch(_){}
           var orig=null;try{orig=(S.acftSub[key]&&S.acftSub[key].orig)||(row&&row.acft!=='EQV'?row.acft:acftOfFlight(e.x.code,e.x.date))}catch(_){}
           S.acftSub=S.acftSub||{};S.acftSub[key]={code:e.x.code,date:e.x.date,route:e.x.route,orig:orig||'A359',sub:'A35K',tail:pick,seatsOrig:0,seatsSub:0,auto:1,plannedR1108B:1,notified:1,paxNotifiedR34:1,detectedAt:new Date().toISOString()};
           try{S.acftSub[key].seatsOrig=_seatOf(S.acftSub[key].orig);S.acftSub[key].seatsSub=_seatOf('A35K')}catch(_){}});
         TA[pick].sort(function(p,q){return (+p.depAbs||0)-(+q.depAbs||0)});moved++}}
     /* 換機紀錄被別層重寫時補回標記（不寄通知） */
+    try{tails.forEach(function(tl){(TA[tl]||[]).forEach(function(x){if(x&&x.a35kR1108B&&x.acft&&x.acft!=='A35K'){x.acftOrigR1108B=x.acft;x.acft='A35K'}})})}catch(_){}   /* 航段自己帶的機型欄位跟著改（機隊稽核比的是它） */
     try{IX=null;var I=idx();Object.keys(I).forEach(function(k){var e=S.acftSub&&S.acftSub[k];if(e){e.plannedR1108B=1;e.notified=1;e.paxNotifiedR34=1;e.sub='A35K';e.tail=I[k]}})}catch(_){}
     var st=window.KGM_A35K_SHORT_R1108B;st.moved+=moved;st.kept=kept;st.dropped=(st.dropped||0)+drop;st.runs++;st.at=new Date().toISOString();
     if(moved||drop){try{if(window.kgmClearRotationCacheR72)window.kgmClearRotationCacheR72()}catch(_){}try{save()}catch(_){}}
@@ -131,8 +132,15 @@
   function idx(){var tl=[];try{tl=tailsFor('A35K')||[]}catch(_){}var TA=S.tailAssign||{},sig=tl.map(function(t){return (TA[t]||[]).length}).join(',');if(IX&&sig===IXS)return IX;
     IX={};tl.forEach(function(t){(TA[t]||[]).forEach(function(x){if(x&&CODES[x.code])IX[x.code+'_'+x.date]=t})});IXS=sig;return IX}
   window.kgmA35kOnR1108B=function(code,date){if(!CODES[code])return '';try{return idx()[code+'_'+date]||''}catch(_){return ''}};
+  /* 1108B（使用者：自動換機紀錄網站仍顯示原機型（例 KX138 實派 B779、畫面 A339R）→「YES」修）：
+     0810J 那層本來就照「當天實際派的那架」，但外面的 1018A 定案表、A330 那層等又把它蓋回時刻表機型。
+     最外層只在「有換機紀錄、而且換成的機型就是現在實際派的那架」時回換機後的機型（紀錄過期、飛機已換回原型就照原本）；
+     A35K 短程輪流：那三組掛在 A35K 機身上就回 A35K。排機隊時（KGM_PLAN_R1010A）一律不看（不然換機永遠換不回來）。
+     不做「一律回實際機身」：修補輪轉／補空檔／換機巡檢這些不在排班旗標底下的程式也會問機型，實測會讓 1,605 段改派。 */
+  function actual(code,date){try{var f=[];(_taIndex0818()[code+'|'+date]||[]).forEach(function(e){var tp=_typeOfTail(e.tail);if(tp&&f.indexOf(tp)<0)f.push(tp)});return f.length===1?f[0]:null}catch(_){return null}}
   var MINE=null;function wrapAc(){var a0=window.acftOfFlight;if(typeof a0!=='function'||a0===MINE)return;var w=function(code,date){
-      try{var c=code&&typeof code==='object'?code.code:code;if(CODES[c]&&date&&window.kgmA35kOnR1108B(c,date))return 'A35K'}catch(_){}return a0.apply(this,arguments)};
+      try{var c=code&&typeof code==='object'?code.code:code;if(c&&date&&!window.KGM_PLAN_R1010A){if(CODES[c]&&window.kgmA35kOnR1108B(c,date))return 'A35K';
+        var m=(S.acftSub||{})[c+'_'+date];if(m&&m.sub&&!(m.manual&&!m.auto)&&actual(c,date)===m.sub)return m.sub}}catch(_){}return a0.apply(this,arguments)};
     MINE=w;try{acftOfFlight=window.acftOfFlight=w}catch(_){window.acftOfFlight=w}}
   /* 排定的輪流不是臨時換機：不寄機型異動通知 */
   var MINEN=null;function wrapN(){var n0=window.kgmNotifyAcftChangeR34;if(typeof n0!=='function'||n0===MINEN)return;var w=function(code,date,from,to){try{if(to==='A35K'&&window.kgmA35kOnR1108B(code,date))return 0}catch(_){}return n0.apply(this,arguments)};MINEN=w;window.kgmNotifyAcftChangeR34=w}
