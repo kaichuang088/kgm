@@ -213,3 +213,33 @@
     '.k31a .k920-t select{height:30px!important;padding:2px 8px!important;line-height:1.2!important;border-radius:7px;border:1px solid #ddd5c4;background:#fff;font-size:12px!important;min-width:96px}.k31a .k923-col>h2{font-size:15px!important;color:#0b3b30!important;display:flex;align-items:center;gap:8px;flex-wrap:wrap}'
   ].join('');document.head.appendChild(css)}catch(_){}
 })();
+/* ══ 1108B B9（使用者：「BigDeal 我希望是圖三那樣用拉的 有一張圖是現金 另一個是里程這樣」）══
+   出價列原本兩個數字框（現金／里程）→ 各自一個「儀表＋拉桿」：指針看出價強度（以這一列的起標價為準：偏低／普通／不錯／很好／極佳），
+   拉桿直接改原本那個數字框（id 不變），出價／加碼按鈕、出價引擎都照舊。我的行程與 BigDeal 頁同一張出價卡，兩邊一起換。 */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  var LV=[[0,'偏低','Poor','#D2524A'],[0.6,'普通','Fair','#E8834A'],[1,'不錯','Good','#E9C84A'],[1.4,'很好','Very good','#A9CF6A'],[1.9,'極佳','Excellent','#5FAE6A']];
+  function arc(cx,cy,r,a0,a1){var p=function(a){return [cx+r*Math.cos(a),cy-r*Math.sin(a)]},s=p(a0),e=p(a1);return 'M'+s[0].toFixed(1)+' '+s[1].toFixed(1)+' A'+r+' '+r+' 0 0 1 '+e[0].toFixed(1)+' '+e[1].toFixed(1)}
+  function svg(id){var cx=80,cy=78,r=58,segs='',n=LV.length;for(var i=0;i<n;i++){var a0=Math.PI-(i/n)*Math.PI,a1=Math.PI-((i+1)/n)*Math.PI+0.03;segs+='<path d="'+arc(cx,cy,r,a0,a1)+'" stroke="'+LV[i][3]+'" stroke-width="22" fill="none"/>'}
+    return '<svg viewBox="0 0 160 92" class="k39g-svg" aria-hidden="true">'+segs+'<g class="k39g-ndl" id="'+id+'_n" style="transform-origin:80px 78px;transform:rotate(-90deg)"><path d="M78 78 L80 24 L82 78 Z" fill="#14231D"/></g><circle cx="80" cy="78" r="7" fill="#14231D"/><circle cx="80" cy="78" r="3" fill="#fff"/></svg>'}
+  function lvl(x){var k=0;for(var i=0;i<LV.length;i++)if(x>=LV[i][0])k=i;return k}
+  window.kgmBdGaugeR1108B=function(inpId,v){var inp=document.getElementById(inpId);if(!inp)return;var w=inp.closest('label').querySelector('.k39g');if(!w)return;var base=+w.getAttribute('data-base')||1,max=+w.getAttribute('data-max')||1;
+    v=Math.max(0,Math.min(max,Math.round(+v||0)));inp.value=v?String(v):'';var x=v/base,k=lvl(x),hi=(k+1<LV.length?LV[k+1][0]:max/base),fr=Math.min(1,(k+Math.max(0,Math.min(1,(x-LV[k][0])/Math.max(0.01,hi-LV[k][0]))))/LV.length),deg=-90+fr*180;   /* 指針落在跟文字同一色段 */
+    var n=document.getElementById(inpId+'_n');if(n)n.style.transform='rotate('+deg.toFixed(1)+'deg)';var t=w.querySelector('.k39g-lv');if(t){t.textContent=v?(z()?LV[k][1]:LV[k][2]):(z()?'未出價':'No bid');t.style.color=v?LV[k][3]:'#8A938F'}
+    var a=w.querySelector('.k39g-amt');if(a)a.textContent=v?((w.getAttribute('data-u')==='c'?'NT$':'')+v.toLocaleString()+(w.getAttribute('data-u')==='m'?(z()?' 哩':' mi'):'')):'—';var r=w.querySelector('input[type=range]');if(r&&+r.value!==v)r.value=v};
+  function deco(){try{[].slice.call(document.querySelectorAll('.k929bd-in')).forEach(function(box){if(box.getAttribute('data-k39g'))return;var row=box.closest('.k929bd-row');if(!row)return;
+      var tx=String((row.querySelector('.k929bd-cab small')||{}).textContent||''),mc=/NT\$\s*([\d,]+)/.exec(tx),mm=/([\d,]+)\s*(哩|mi)/.exec(tx),oc=mc?+mc[1].replace(/,/g,''):0,om=mm?+mm[1].replace(/,/g,''):0;if(!oc&&!om)return;box.setAttribute('data-k39g','1');box.classList.add('k39g-box');
+      [].slice.call(box.querySelectorAll('label')).forEach(function(lb){var inp=lb.querySelector('input[type=number]');if(!inp||!inp.id)return;var u=/_c$/.test(inp.id)?'c':(/_m$/.test(inp.id)?'m':'');if(!u)return;
+        var base=u==='c'?(oc||1):(om||1),max=Math.ceil(base*2.6/(u==='c'?500:1000))*(u==='c'?500:1000),step=u==='c'?500:1000;inp.classList.add('k39g-hid');
+        var w=document.createElement('div');w.className='k39g';w.setAttribute('data-base',base);w.setAttribute('data-max',max);w.setAttribute('data-u',u);
+        w.innerHTML='<div class="k39g-hd"><b>'+(u==='c'?(z()?'現金':'Cash'):(z()?'里程':'Miles'))+'</b><span class="k39g-amt">—</span></div>'+svg(inp.id)+'<div class="k39g-lv">'+(z()?'未出價':'No bid')+'</div>'
+          +'<input type="range" min="0" max="'+max+'" step="'+step+'" value="0" aria-label="'+(u==='c'?'cash':'miles')+'" oninput="kgmBdGaugeR1108B(\''+inp.id+'\',this.value)">'
+          +'<div class="k39g-sc"><span>0</span><span>'+(z()?'起標 ':'Open ')+(u==='c'?'NT$'+base.toLocaleString():base.toLocaleString()+(z()?' 哩':' mi'))+'</span><span>'+(u==='c'?'NT$'+max.toLocaleString():max.toLocaleString())+'</span></div>';
+        lb.insertBefore(w,inp);inp.addEventListener('input',function(){window.kgmBdGaugeR1108B(inp.id,inp.value)});if(inp.value)window.kgmBdGaugeR1108B(inp.id,inp.value)})})}catch(e){try{console.warn('bd39 gauge',e)}catch(_){}}}
+  setInterval(deco,400);
+  try{var cs=document.createElement('style');cs.textContent='.k929bd-row:has(.k39g-box){grid-template-columns:minmax(150px,1fr) minmax(260px,1.4fr)!important}.k929bd-in.k39g-box{grid-column:1/-1;display:grid!important;grid-template-columns:repeat(2,minmax(210px,300px)) auto auto;justify-content:start;gap:14px;align-items:end;margin-top:6px}.k929bd-in.k39g-box>.btn{align-self:end;height:42px;white-space:nowrap}.k929bd-in.k39g-box>label{display:flex;flex-direction:column;gap:6px;font-size:0}'
+    +'.k39g{background:#fff;border:1px solid #E1E8E4;border-radius:16px;padding:12px 14px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px}.k39g-hd{width:100%;display:flex;justify-content:space-between;align-items:baseline}.k39g-hd b{color:#0B3D2E;font-size:13px}.k39g-amt{font:700 15px system-ui,sans-serif;color:#14231D}'
+    +'.k39g-svg{width:170px;height:98px}.k39g-ndl{transition:transform .25s ease}.k39g-lv{font:700 16px system-ui,sans-serif;margin:-2px 0 6px}'
+    +'.k39g input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:12px;border-radius:999px;background:#E3E1E2;outline:none;margin:4px 0}.k39g input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:34px;border-radius:9px;background:#4E7A68;cursor:pointer;border:0}.k39g input[type=range]::-moz-range-thumb{width:30px;height:34px;border-radius:9px;background:#4E7A68;cursor:pointer;border:0}'
+    +'.k39g-sc{width:100%;display:flex;justify-content:space-between;font-size:10.5px;color:#8A938F}.k39g-hid{display:none!important}@media(max-width:760px){.k929bd-in.k39g-box{grid-template-columns:1fr}}';document.head.appendChild(cs)}catch(_){}
+})();

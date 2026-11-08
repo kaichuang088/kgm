@@ -344,25 +344,40 @@
     return '<span class="k28-pettag" title="'+E((p.name||'')+' '+(p.species||'')+' '+(p.kg||'')+'kg')+'">🐾 '+(p.mode==='hold'?(z()?'寵物托運':'Pet-hold'):p.mode==='service'?(z()?'服務犬':'Service dog'):(z()?'寵物客艙':'Pet-cabin'))+'</span>'}catch(_){return ''}};
   /* ── 持續模擬：後台開著時，每隔幾分鐘有新案件進來、客服把進行中的模擬案件往下處理一步（使用者：「這也要隨時 simulate，包含客服處理案件」） ── */
   var CSN=[['investigating','客服專員已聯繫旅客，正在向站點／合作單位查證'],['awaiting_customer','已請旅客補充資料（收據、照片或證明文件）'],['investigating','旅客已補件，進入審核'],['closed','處理完成，已回覆旅客並結案']];
-  var tick=0;
+  /* 1108B B8（使用者：「你案件的要每一類都有好幾個 mock and mock 的要一直更新」）：
+     ① 每一類（行李延誤／遺失／損壞、遺失物品、客訴、特殊協助、航班異常、拒絕登機、非自願降艙、里程補登、退款、其他、寵物）至少 4 件模擬案件，狀態分散（受理／查證／待補件／送 CEO／結案）；
+     ② 後台開著且沒在打字：每 1 分鐘客服處理 2 件（3 分鐘沒動的就往下一步）、送 CEO 超過 10 分鐘的模擬案件由執行長（模擬）決定、大約每 3 分鐘進一件新案件。 */
+  var tick=0;function isSim(c){return c&&(c.simR1022A||c.simR1101A||c.mockR1108A)}
+  var SEED39=0;function seed39(){try{if(SEED39>=3||!S.adminAuthed||S.view!=='admin'||!window.kgmCaseSimR1022A)return;var L=S.staffCasesR1007A||[],by={};L.forEach(function(c){if(isSim(c))by[c.type]=(by[c.type]||0)+1});
+      var ks=Object.keys(by).filter(function(k){return k!=='pet'});if(ks.length>=6&&ks.every(function(k){return by[k]>=4}))return;SEED39++;var n0=L.length,r0=window.render,keep=S.adminTab;
+      try{window.render=function(){};window.kgmCaseSimR1022A(40)}finally{window.render=r0;S.adminTab=keep}
+      var L2=S.staffCasesR1007A||[],made=L2.length-n0,ST=[['received','案件成立',0],['investigating','客服專員已聯繫旅客，正在向站點／合作單位查證',1],['awaiting_customer','已請旅客補充資料（收據、照片或證明文件）',2],['closed','處理完成，已回覆旅客並結案',3]];
+      for(var i=0;i<made;i++){var c=L2[i];if(!c)continue;c.simR1101A=1;var st=ST[(i+SEED39)%ST.length];if(/refund/.test(c.type||'')&&st[0]==='closed')st=['ceo_review','客服初審完成（附件齊全），送執行長最後審核',3];
+        var t0=Date.parse(c.createdAt||new Date().toISOString());c.progress=[{at:new Date(t0).toISOString(),status:'received',label:(c.progress&&c.progress[0]&&c.progress[0].label)||'案件成立',by:(c.progress&&c.progress[0]&&c.progress[0].by)||'客服中心'}];
+        for(var k=1;k<=st[2];k++){var s2=ST[Math.min(k,ST.length-1)];if(k===st[2])s2=st;c.progress.push({at:new Date(t0+k*(40+i%50)*60000).toISOString(),status:s2[0],label:s2[1],by:'客服中心（模擬）'})}
+        c.status=st[0];c.updatedAt=c.progress[c.progress.length-1].at}
+      try{save()}catch(_){}if(S.adminTab==='cases0831B')try{(window.kgmSafeRenderR1026C||render)()}catch(_){}}catch(e){try{console.warn('cs39 seed',e)}catch(_){}}}
   function simTick(){try{
     if(!S.adminAuthed||S.view!=='admin')return;if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<8000)return;
     var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
-    tick++;var L=S.staffCasesR1007A||[],at=new Date().toISOString(),ch=0;
-    /* 客服處理：挑一件最久沒動的模擬案件往下一步（退款類送 CEO，不自己結案） */
-    var open=L.filter(function(c){return c&&(c.simR1022A||c.simR1101A)&&c.status!=='closed'&&c.status!=='ceo_review'}).sort(function(x,y){return String(x.updatedAt).localeCompare(String(y.updatedAt))});
-    var c=open[0];if(c&&Date.now()-Date.parse(c.updatedAt||0)>20*60e3){
+    seed39();tick++;var L=S.staffCasesR1007A||[],at=new Date().toISOString(),ch=0;
+    /* 客服處理：挑最久沒動的模擬案件往下一步（退款類、寵物送 CEO，不自己結案） */
+    var open=L.filter(function(c){return isSim(c)&&c.status!=='closed'&&c.status!=='ceo_review'}).sort(function(x,y){return String(x.updatedAt).localeCompare(String(y.updatedAt))});
+    open.slice(0,2).forEach(function(c){if(!(Date.now()-Date.parse(c.updatedAt||0)>3*60e3))return;
       var refund=/refund/.test(c.type||'');c.progress=c.progress||[];
       if(refund&&c.status!=='received'){c.status='ceo_review';c.progress.push({at:at,status:'ceo_review',label:'客服初審完成（附件齊全），送執行長最後審核',by:'客服中心（模擬）'})}
       else{var i=['received','investigating','awaiting_customer'].indexOf(c.status),nx=CSN[Math.min(CSN.length-1,i<0?0:i+(c.status==='awaiting_customer'?1:0))];
         if(c.type==='pet'&&nx[0]==='closed')nx=['ceo_review','客服確認文件齊全，送執行長核准'];c.status=nx[0];c.progress.push({at:at,status:nx[0],label:nx[1],by:'客服中心（模擬）'})}
-      c.updatedAt=at;ch++}
-    /* 新案件：大約每 3 次（約 6 分鐘）進一件 */
+      c.updatedAt=at;ch++});
+    /* 送 CEO 超過 10 分鐘的模擬案件：執行長（模擬）決定（大約 8 成同意） */
+    L.filter(function(c){return isSim(c)&&c.status==='ceo_review'&&Date.now()-Date.parse(c.updatedAt||0)>10*60e3}).slice(0,1).forEach(function(c){var h=0,k=String(c.caseNo);for(var j=0;j<k.length;j++)h=(h*31+k.charCodeAt(j))>>>0;var ok=h%5!==0;
+      c.status='closed';c.decisionR1101A={ok:ok,deny:!ok,by:'執行長（模擬）',at:at,why:ok?'':'文件不足（模擬）'};c.progress=c.progress||[];c.progress.push({at:at,status:'closed',label:ok?'執行長同意，結案':'執行長不同意，結案',by:'執行長（模擬）'});c.updatedAt=at;ch++});
+    /* 新案件：大約每 3 次（約 3 分鐘）進一件 */
     if(tick%3===0&&window.kgmCaseSimR1022A){var keep=S.adminTab;var n0=L.length;try{var r0=window.render;window.render=function(){};window.kgmCaseSimR1022A(1);window.render=r0}catch(_){}
       if((S.staffCasesR1007A||[]).length>n0){var nc=S.staffCasesR1007A[0];if(nc){nc.simR1101A=1;nc.createdAt=at;nc.updatedAt=at;nc.status='received';nc.progress=[{at:at,status:'received',label:(nc.progress&&nc.progress[0]&&nc.progress[0].label)||'案件成立',by:nc.progress&&nc.progress[0]&&nc.progress[0].by||'客服中心'}]}ch++}S.adminTab=keep}
     if(ch){try{save()}catch(_){}if(S.adminTab==='cases0831B')try{(window.kgmSafeRenderR1026C||render)()}catch(_){}}
   }catch(e){try{console.warn('cs28 sim',e)}catch(_){}}}
-  setInterval(simTick,120000);window.kgmCaseSimTickR1101A=simTick;
+  setInterval(simTick,60000);setTimeout(seed39,25000);window.kgmCaseSimTickR1101A=simTick;window.kgmCaseSeedR1108B=seed39;
   /* ── 樣式 ── */
   try{var cs=document.createElement('style');cs.id='k28cs-css';cs.textContent=
     '.k28pet{max-width:960px}.k28pet-rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 18px}'
