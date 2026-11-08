@@ -1,6 +1,6 @@
 # 1108B（pass 136）筆記
 
-建置跟 1101A～1108A 同一套：`cd patches/1101A && python3 gen_r28.py && bash build.sh <1004B.html> <out.html>`（版號 `p_h_ver*.js`＝1108B；新 RW 在 gen_r28.py `# ══ 1108B ══`，放在 `RW('srch31 inv idx',` 前；程式標 R1108B）。**build.sh 最後多一步 `python3 kx39.py "$OUT" "$OUT"`（班號改號，見下）**。比對基準仍是 w77。最終檔 `/tmp/j/kgm1108B_w14.html`。逐項清單與每一項的實測紀錄在 `notes/1108B-todo.md`；給使用者的說明在交付的 `1108B說明.md`。
+建置跟 1101A～1108A 同一套：`cd patches/1101A && python3 gen_r28.py && bash build.sh <1004B.html> <out.html>`（版號 `p_h_ver*.js`＝1108B；新 RW 在 gen_r28.py `# ══ 1108B ══`，放在 `RW('srch31 inv idx',` 前；程式標 R1108B）。**build.sh 最後多一步 `python3 kx39.py "$OUT" "$OUT"`（班號改號，見下）**。比對基準仍是 w77。最終檔 `/tmp/j/kgm1108B_w16.html`。逐項清單與每一項的實測紀錄在 `notes/1108B-todo.md`；給使用者的說明在交付的 `1108B說明.md`。
 
 ## 班號改號（B5／B6，`patches/1101A/kx39.py`）
 - 使用者：「FUK的航班號碼調整一下最早出發的先 然後所有航班號碼我想改成去程是奇數回程是偶數」。
@@ -35,5 +35,18 @@
 - 見 `notes/1108B-todo.md` 各項括號內的做法與實測（grp38 團體完成頁／行程管理提示／切換團體、grp28 回程逐艙加位與拆艙配對、ci31 登機證 ATB／貴賓室 148×105、cs28 案件模擬、bd31 拉桿、kc31 綁卡入口與前台 AI、gr28 地勤週班表切換、stx31／g39 候補前後席數、pdf38 CEO 完整版 9～15 節、st38 證明時刻）。
 - `tests/mixpay39.js`：B2 之後回程改逐艙加位，原本找回程確認視窗會卡住（改號前 w12 一樣卡）→ 改成回程 `kgmGrpAllocR1108A(…,'inb')`，去程經濟 12＋商務 3、回程經濟 13＋商務 2 一路付款到團體案件頁。`tests/inv39.js` 是 B2 之前的調查腳本，不再跑。
 
-## 關卡結果（w14，一次只跑一支）
+## 杭州回程時刻（w15 起，發現於 Payload 重新匯出）
+- 統一成一對（KX315／314）後，bt26 外站過站（廣體 ≥75 分）第一次套到杭州：去程抵達 19:00／20:00，回程原本 19:25／20:20（20～25 分過站）→ 網站變 20:15–21:55（夏）／21:15–22:55（冬）。w13／w14 用的是不成對的舊號，規則沒套到。
+- 時刻表 PDF：kx39tt.py ④ 把第 8 頁那兩格（之前寫上去的整串 TJ，全文件各 1 個）換成網站時刻；字數相同、數字等寬。
+- sc27 會對真實訂位寄既有的「班表調整通知」（>30 分＝major）；模擬訂位照舊不寄。寫在說明第一條，使用者要維持原時刻就得把這一對排除在過站規則外。
+- `S.flightOverrides` 的鍵是「班號_日期」（沒有航線）：舊版杭州／重慶回程同號 KX315，遷移後一律算 KX316（重慶）；訂位依航線分得開（`/tmp/j/kxmig2.js`，MIG2 PASS）。
+
+## vfy2d O1（原本就有，沒改）
+- 不是偶發：manage 頁每次 `render()` 先同步畫出舊版「MANAGE BOOKING」，0～300 ms 後才換成「MANAGE MY BOOKING」（`/tmp/j/mgflash.js`：1108A w23 與 1108B w16 都是 OON）。背景 DH 騰位 `rr7`（r7-admin-ops，每騰一次 setTimeout 40ms render）剛好在 O1 取樣前重畫就失敗。`/tmp/j/o1probe.js` 每 0.5 秒取樣可看到 N→O→N。
+- 沒修（render 包裝鏈很深、使用者規則「沒提及的不要調整」）；寫在說明「看到但沒改」。
+
+## 關卡結果（w16 最終，一次只跑一支）
+- syn 248／0、241 層；vfy1 24／24；vfy2d 7／8（O1 見上）；vfy3、vfy4 8／8；vfy5、vfy5d 只有 AA1（萬聖節，同前）；vfy6 55／55；reg2 notOk 78 跟 1108A 基準逐一相同（存成 `baselines/reg_1108B.out`）、view errors 0、PAGE ERRORS 0；t_crewrule 0／0／0；t_sched922 60／60、maxLatency 4,813 ms；t_admlag ERR 0；tz8 missing 0；t_fl1 overlap 0、orphan 0；names34／g39／mixpay39／u39／bp39／m39／aib39／bd39／cs39／pdf38g／pdf38t 結束碼 0；a35t 成田 11／香港 15／仁川 8、ov 0、notif 0；fix3 9,855、0 不一致。
+- 以前 w13 的紀錄：
+
 - 見交付說明；w13（改號、還沒加 A35K）全部跑過：syn 248／0、241 層；vfy1 24／24；vfy2d、vfy3、vfy4 各 8／8；vfy5d、vfy5 5／6（AA1 萬聖節同前）；vfy6 55／55；reg2 notOk 78 個跟 1108A 基準逐一相同、view errors 0、PAGE ERRORS 0；t_crewrule 0／0／0；t_sched922 60／60、maxLatency 3,310 ms；t_admlag ERR 0；tz8 missing 0；ai9t 同前；t_fl1 overlap 0、orphan 0。

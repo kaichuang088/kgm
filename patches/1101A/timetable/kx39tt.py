@@ -88,6 +88,22 @@ for pg in d:
     hz = [x['origin'][1] for x in sp if 'HANGZHOU' in x['text'] and x['origin'][0] > 290][0]; cq = [x['origin'][1] for x in sp if 'CHONGQING' in x['text'] and x['origin'][0] > 290][0]
     assert all((t == 'KX 314') == (hz < y < cq) for y, t in got), ('HGH cells', got, hz, cq)
     print('kx39tt: HGH page', pg.number + 1, [(round(y), t) for y, t in got])
+# ④ 杭州回程時刻：統一成一對後，網站的外站過站規則（廣體 ≥75 分，bt26）第一次套到這一對：
+#    去程 KX315 抵達杭州 19:00（夏）／20:00（冬），回程原本 19:25／20:20 只有 20～25 分 → 網站改成 20:15–21:55／21:15–22:55。
+#    PDF 這兩格（之前幾輪寫上去的整串 TJ，全文件各 1 格）照網站改；字數相同、數字等寬，位置不動。
+TG = {**{str(i): '%04X' % (0x13 + i) for i in range(10)}, ':': '001D', '-': '0010'}
+def tj(s): return ('[<' + ''.join(TG[c] for c in s) + '>]TJ').encode()
+nt = 0
+for a, b in (('19:25-21:05', '20:15-21:55'), ('20:20-22:00', '21:15-22:55')):
+    hit = [x for x in X if (d.xref_stream(x) or b'').count(tj(a)) == 1]
+    assert len(hit) == 1, ('HGH time', a, hit)
+    d.update_stream(hit[0], d.xref_stream(hit[0]).replace(tj(a), tj(b))); nt += 1
+for pg in d:
+    t = pg.get_text()
+    if 'HANGZHOU' in t and ('20:15-21:55' in t or '21:15-22:55' in t):
+        assert '20:15-21:55' in t and '21:15-22:55' in t and '19:25-21:05' not in t and '20:20-22:00' not in t
+        print('kx39tt: HGH times page', pg.number + 1)
+cnt['hghtime'] = nt
 cnt['hgh'] = nh
 cnt['a35k'] = na
 d.save(OUT, garbage=3, deflate=True, clean=False)
