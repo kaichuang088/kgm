@@ -72,6 +72,8 @@ FLIPS = [
     ("b=acftOfFlight('KX'+(num(c)-1),d)", "b=acftOfFlight('KX'+kgmKxAddR1108C(num(c),-1),d)", 1),
     # r132 外站過站：第五航權續飛判斷（原本 KX(n−1) 剛好是別的經停班 → 布達佩斯回程冬季時刻會少推 5 分，跟時刻表 PDF 不同）
     ("x.code==='KX'+(num132(o.code)-1))", "x.code==='KX'+kgmKxAddR1108C(num132(o.code),-1))", 2),
+    # r179 稽核／r204 第五航權去回配對（reg2 kgmAuditR202 抓到：配不到回程 → 0%）
+    ("var inCode=String(V.code).replace(/\\d+$/,String((+m[1])-1));", "var inCode=String(V.code).replace(/\\d+$/,String(kgmKxAddR1108C(+m[1],-1)));", 2),
 ]
 
 MIG = r"""
