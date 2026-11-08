@@ -23,3 +23,19 @@
 (function(){try{if(document.getElementById('k38-cal-css'))return;var cs=document.createElement('style');cs.id='k38-cal-css';
   cs.textContent='.k196-cal i.k196-dh{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.35;color:#5b4a1f}.k196-cal i.k196-pnr{white-space:normal!important}';
   (document.head||document.documentElement).appendChild(cs)}catch(_){}})();
+/* 1108B B14（使用者圖三、四：「你看圖三寫 11:33 arrive PDF report is not 11:33!」）：
+   航班證明原本讀 FLIGHTS 的原始表定（KX180＝07:50–11:55，連季節時刻都不是）＋只看人工改的時刻；前台航班動態讀季節時刻＋人工改＋航班資料的預估（EST）。
+   → 證明改讀跟前台航班動態卡片（fb20b info20＋gen est30 front）同一份：表定＝當天季節時刻（sortedFlights 同一列），實際＝人工改 → 預估（同樣只到隔天、起飛後 30 小時內）→ 表定。 */
+(function(){
+  function mn(t){var p=String(t||'0:0').split(':');return (+p[0])*60+(+p[1]||0)}
+  function clk(m){m=((m%1440)+1440)%1440;return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+(m%60)).slice(-2)}
+  window.kgmCertTimesR1108B=function(f0,code,date){var fs=f0;
+    try{var L=sortedFlights(f0.fr,f0.to,date)||[],hit=L.filter(function(x){return x&&x.code===code&&x.fr===f0.fr&&x.to===f0.to})[0];if(hit)fs=Object.assign({},f0,hit)
+      else if(window.kgmSeasonFlightR48){var sx=window.kgmSeasonFlightR48(f0,date);if(sx)fs=Object.assign({},f0,sx)}}catch(_){}
+    var O=S.flightOverrides||{},ov={};try{ov=O[_ovKey(fs,date)]||O[code+'_'+date]||{}}catch(_){ov=O[code+'_'+date]||{}}
+    var p=null;try{if(!ov.arr&&!fs.partner&&!fs.divertContR1101A&&window.kgmOpsPredR1026C){var depEp=(function(){try{if(typeof _utcOf==='function')return _utcOf(date,fs.dep,fs.fr)}catch(_){}var q=String(date).split('-');return Date.UTC(+q[0],+q[1]-1,+q[2])+(mn(fs.dep)-((typeof TZ!=='undefined'&&TZ[fs.fr]!=null)?TZ[fs.fr]:8)*60)*60000})();   /* 跟 fb20b utc20 同一算法 */var h=(depEp-Date.now())/36e5;
+        if(date<=addDays(todayISO(),1)&&h>-30){var q=window.kgmOpsPredR1026C(fs,date);if(q&&q.estArr)p=q}}}catch(_){}
+    var sDD=+fs.dd||0,aDep=ov.dep||(p&&p.estDep)||fs.dep,aArr=ov.arr||(p&&p.estArr)||fs.arr,aDD=sDD;
+    if(ov.arrDD!==undefined&&ov.arrDD!==null&&ov.arrDD!=='')aDD=+ov.arrDD;else if(p&&!ov.arr)aDD=sDD+Math.floor((mn(fs.arr)+(+p.arrDelta||0))/1440);
+    return {f:fs,ov:ov,schDep:fs.dep,schArr:fs.arr,schArrDD:sDD,actDep:aDep,actArr:aArr,actArrDD:aDD,predR1108B:!!p}};
+})();
