@@ -138,9 +138,12 @@
      A35K 短程輪流：那三組掛在 A35K 機身上就回 A35K。排機隊時（KGM_PLAN_R1010A）一律不看（不然換機永遠換不回來）。
      不做「一律回實際機身」：修補輪轉／補空檔／換機巡檢這些不在排班旗標底下的程式也會問機型，實測會讓 1,605 段改派。 */
   function actual(code,date){try{var f=[];(_taIndex0818()[code+'|'+date]||[]).forEach(function(e){var tp=_typeOfTail(e.tail);if(tp&&f.indexOf(tp)<0)f.push(tp)});return f.length===1?f[0]:null}catch(_){return null}}
+  /* 輪流機型（EQV）的航線本來就是「哪型飛就是哪型」，換機紀錄程式又跳過 EQV（沒有紀錄）→ 有實際派機就照那一架（例：香港 KX359 實派 B779、畫面原本 A339R） */
+  var EQ=null;function eqv(c){if(!EQ){EQ={};try{var all={};(FLIGHTS||[]).forEach(function(f){if(!f||f.via||f.partner||f.codeshare)return;(all[f.code]=all[f.code]||[]).push(f.acft)});Object.keys(all).forEach(function(k){if(all[k].every(function(a){return a==='EQV'}))EQ[k]=1})}catch(_){}}return !!EQ[c]}
   var MINE=null;function wrapAc(){var a0=window.acftOfFlight;if(typeof a0!=='function'||a0===MINE)return;var w=function(code,date){
       try{var c=code&&typeof code==='object'?code.code:code;if(c&&date&&!window.KGM_PLAN_R1010A){if(CODES[c]&&window.kgmA35kOnR1108B(c,date))return 'A35K';
-        var m=(S.acftSub||{})[c+'_'+date];if(m&&m.sub&&!(m.manual&&!m.auto)&&actual(c,date)===m.sub)return m.sub}}catch(_){}return a0.apply(this,arguments)};
+        var m=(S.acftSub||{})[c+'_'+date];if(m&&m.sub&&!(m.manual&&!m.auto)&&actual(c,date)===m.sub)return m.sub;
+        if(eqv(c)&&!(m&&m.manual&&!m.auto)){var t=actual(c,date);if(t)return t}}}catch(_){}return a0.apply(this,arguments)};
     MINE=w;try{acftOfFlight=window.acftOfFlight=w}catch(_){window.acftOfFlight=w}}
   /* 排定的輪流不是臨時換機：不寄機型異動通知 */
   var MINEN=null;function wrapN(){var n0=window.kgmNotifyAcftChangeR34;if(typeof n0!=='function'||n0===MINEN)return;var w=function(code,date,from,to){try{if(to==='A35K'&&window.kgmA35kOnR1108B(code,date))return 0}catch(_){}return n0.apply(this,arguments)};MINEN=w;window.kgmNotifyAcftChangeR34=w}
