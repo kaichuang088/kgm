@@ -3,12 +3,12 @@ const dl=[];p.on('dialog',d=>{dl.push(d.message().slice(0,100));d.accept()});con
 await p.goto('file://'+process.argv[2],{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(15000);
 const r=await p.evaluate(async()=>{const W=ms=>new Promise(r=>setTimeout(r,ms));const o=[];
  const src=S.bookings.find(x=>x.pnr==='B8LNQ2');const d0='2026-11-04',d1='2026-11-05';
- const f54=FLIGHTS.find(f=>f.code==='KX54'&&f.fr==='TPE');const nb=JSON.parse(JSON.stringify(src));nb.pnr='T22RX1';nb.outF=Object.assign({},f54);nb.outC='E-H';nb.search={type:'OW',fr:'TPE',to:'MEL',dep:d0,ret:null,pax:1};nb.paxList=nb.paxList.slice(0,1);delete nb.simR1010A;delete nb.csSimR1012A;S.bookings.push(nb);save();
+ const f54=FLIGHTS.find(f=>f.code==='KX55'&&f.fr==='TPE');const nb=JSON.parse(JSON.stringify(src));nb.pnr='T22RX1';nb.outF=Object.assign({},f54);nb.outC='E-H';nb.search={type:'OW',fr:'TPE',to:'MEL',dep:d0,ret:null,pax:1};nb.paxList=nb.paxList.slice(0,1);delete nb.simR1010A;delete nb.csSimR1012A;S.bookings.push(nb);save();
  S.view='admin';S.adminAuthed=true;S.adminUser={empId:'MASTER',name:'x',role:'ceo'};S.adminTab='desk';render();await W(300);
  kgmCabPnrR82('T22RX1');await W(200);const segs=[...document.querySelectorAll('select')].map(s=>s.getAttribute('onchange')||'').filter(x=>/kgmCab/.test(x)).join(' ; ');o.push('selects '+segs.slice(0,300));
  kgmCabSegR82('out');kgmCabIdentR82('agent');kgmCabFrR82('TPE');kgmCabToR82('SEA');kgmCabDateR82(d1);await W(200);
  const flights=sortedFlights('TPE','SEA',d1).filter(f=>!f.via).map(f=>f.code);o.push('TPE-SEA '+d1+': '+flights.join(','));
- kgmCabFlightR82(flights.includes('KX26')?'KX26':flights[0]);kgmCabTargetR82('Economy');await W(200);
+ kgmCabFlightR82(flights.includes('KX27')?'KX27':flights[0]);kgmCabTargetR82('Economy');await W(200);
  const q=kgmCabinQuoteR82('T22RX1','out','Economy','',S._cab82.flight,d1,'TPE','SEA');o.push('quote '+(q?(q.airportChanged+' '+q.newCode+' charge '+q.charge+' unavailable '+!!q.unavailable):'null'));
  if(q&&q.newCode)kgmCabFareR82(q.newCode);await W(300);
  kgmPolicySetAgreedR914('KGM-CHG-003',true);render();await W(300);

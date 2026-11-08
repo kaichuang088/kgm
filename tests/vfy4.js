@@ -77,8 +77,8 @@ const {chromium}=require('playwright');
     「里程升等」實際走的那條路。 */
  const w1=await p.evaluate(()=>{
    const d=new Date(Date.now()+86400000*30).toISOString().slice(0,10);
-   const f=[].concat(FLIGHTS||[]).find(x=>x.code==='KX76'&&x.via);
-   if(!f)return {err:'no KX76'};
+   const f=[].concat(FLIGHTS||[]).find(x=>x.code==='KX77'&&x.via);
+   if(!f)return {err:'no KX77'};
    const b={pnr:'W1TEST',outF:Object.assign({},f,{date:d}),cls:'Y',pax:[{name:'TEST ONE'}],trip:'ow'};
    let opt=[];try{opt=window.kgmUpgradeOptionsR920(b,'out')||[]}catch(e){return {err:e.message}}
    const prem=opt.filter(o=>o.to==='Premium');

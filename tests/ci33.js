@@ -4,7 +4,7 @@ const {chromium}=require('playwright');
 await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:240000});
 await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:240000});await p.waitForTimeout(15000);
 const r=await p.evaluate(async()=>{window.KGM_NOPRINT_R1103A=1;window.alert=()=>{};window.confirm=()=>true;
- const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX4'&&x.fr==='TPE'&&!x.via);const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';S.adminTab='flightdata';S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');render();
+ const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX5'&&x.fr==='TPE'&&!x.via);const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';S.adminTab='flightdata';S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');render();
  await new Promise(r=>setTimeout(r,2500));
  const rows=[...document.querySelectorAll('tr')].filter(tr=>tr.querySelector('input[type=checkbox][onchange*="physical"]'));
  const pick=(re)=>rows.find(tr=>re.test(tr.innerText)&&!tr.querySelector('input[onchange*="physical"]').checked);

@@ -6,7 +6,7 @@ const {chromium}=require('playwright');
  await p.waitForTimeout(12000);
  await p.evaluate(()=>{S.user=(S.users||[]).find(x=>x.id==='KGMDEMO0911');render();kgmToggleAi0819I()});await p.waitForTimeout(800);
  console.log(await p.evaluate(()=>JSON.stringify({open:S.aiOpen0819H,disp:getComputedStyle(document.getElementById('aiWindow')).display,len:document.getElementById('aiMessages').innerHTML.length,txt:document.getElementById('aiMessages').innerText.slice(0,120)})));
- await p.evaluate(()=>{document.getElementById('aiInput').value='KX4 2026-10-08 2位'});await p.evaluate(()=>kgmSendAi0819I());await p.waitForTimeout(800);
+ await p.evaluate(()=>{document.getElementById('aiInput').value='KX5 2026-10-08 2位'});await p.evaluate(()=>kgmSendAi0819I());await p.waitForTimeout(800);
  console.log(await p.evaluate(()=>JSON.stringify({len:document.getElementById('aiMessages').innerHTML.length,last:(document.querySelector('#aiMessages .kgm-i-thread')||{}).innerText?.slice(-160)})));
  await p.evaluate(()=>render());await p.waitForTimeout(500);
  console.log(await p.evaluate(()=>JSON.stringify({afterRender:document.getElementById('aiMessages').innerHTML.length,t:document.getElementById('aiMessages').innerText.slice(-200),disp:getComputedStyle(document.getElementById('aiWindow')).display})));

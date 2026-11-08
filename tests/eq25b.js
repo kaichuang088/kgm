@@ -5,6 +5,6 @@ const {chromium}=require('playwright');
  console.log(JSON.stringify(await p.evaluate(()=>{const tday=todayISO();const o={};
    const TT={};Object.keys(S.tailAssign).forEach(t=>(S.tailAssign[t]||[]).forEach(x=>{if(/^KX30[3-6]$/.test(x.code))(TT[x.code+'|'+x.date+'|'+x.route]=t)}));
    const fleetType=t=>{try{return (window.kgmTailTypeR913&&kgmTailTypeR913(t))||((S.fleet||[]).find(a=>a.reg===t)||{}).type||''}catch(_){return ''}};
-   ['KX304','KX306'].forEach(c=>{o[c]=[0,1,2,3,5,10,20,40,80].map(k=>{const d=addDays(tday,k);let a='';try{a=acftOfFlight(c,d)}catch(_){}const tl=Object.keys(TT).filter(q=>q.startsWith(c+'|'+d+'|')).map(q=>TT[q]);return d+' '+a+' '+tl.join(',')})});
+   ['KX305','KX307'].forEach(c=>{o[c]=[0,1,2,3,5,10,20,40,80].map(k=>{const d=addDays(tday,k);let a='';try{a=acftOfFlight(c,d)}catch(_){}const tl=Object.keys(TT).filter(q=>q.startsWith(c+'|'+d+'|')).map(q=>TT[q]);return d+' '+a+' '+tl.join(',')})});
    o.keep=window.KGM_KEEP72_1006A||null;return o}),null,1));
  await b.close()})();

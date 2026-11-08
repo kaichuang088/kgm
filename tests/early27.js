@@ -24,7 +24,7 @@ const r=await p.evaluate((LATEOK)=>{
    if(can<=0)return 0;MOVE[key]=(MOVE[key]||0)+can;LOGS.push([key,'-'+can,'need '+need]);return can}
  const SHORT=[];FLIGHTS.forEach(f=>{if(!f||f.via||f.partner||f.codeshare||!/^KX\d+$/.test(f.code))return;['s','w'].forEach(sea=>{const d=opd(f,sea);if(!flyOn(f,new Date(d+'T00:00:00')))return;let x=null;try{x=kgmSeasonFlightR48(f,d)}catch(e){}if(!x||!x.dep)return;
    const t=Math.ceil(kgmBlockTargetR1026B(f.fr,f.to,x.acft||f.acft,sea==='w',x.dep,d)/5)*5;let need=x.dur<t-15?t-x.dur:0;
-   const la=mn(x.arr),key=f.code+'|'+f.fr+'|'+f.to+'|'+sea;if(la<180&&!LATEOK[key]&&f.code+'|'+f.fr+'|'+f.to+'|'+sea!=='KX8|TPE|DTW|w')need=Math.max(need,la+5);
+   const la=mn(x.arr),key=f.code+'|'+f.fr+'|'+f.to+'|'+sea;if(la<180&&!LATEOK[key]&&f.code+'|'+f.fr+'|'+f.to+'|'+sea!=='KX9|TPE|DTW|w')need=Math.max(need,la+5);
    if(need>0)SHORT.push([f.code,f.fr,f.to,sea,need])})});
  SHORT.sort((a,b)=>b[4]-a[4]);
  SHORT.forEach(s=>pull(s[0],s[1],s[2],s[3],s[4],0));

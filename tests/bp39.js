@@ -4,7 +4,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
 (async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1300,height:1000},timezoneId:'Asia/Taipei'})).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('file://'+file,{waitUntil:'domcontentloaded',timeout:240000});await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:240000});await p.waitForTimeout(14000);
 const r=await p.evaluate(()=>{window.KGM_NOPRINT_R1103A=1;const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;
- const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX4'&&x.fr==='TPE'&&!x.via);const key=[f.code,d,f.fr,f.to].join('|');
+ const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX5'&&x.fr==='TPE'&&!x.via);const key=[f.code,d,f.fr,f.to].join('|');
  window.KGM_NODH_R1023A=1;const m=manifest7(Object.assign({},f,{date:d}),d);window.KGM_NODH_R1023A=0;
  const a=m.find(x=>x.cabin==='Business'&&!x.dhR929),c=m.find(x=>x.cabin==='Resident');
  const mk=(x,extra)=>Object.assign({key,id:x.id,pnr:x.pnr,cabR1103A:x.cabin,fareR1103A:x.fare},extra||{});

@@ -16,6 +16,6 @@ console.log('filled chunks',fill,JSON.stringify(await tot()));
 await p.goto('file://'+F2,{waitUntil:'domcontentloaded',timeout:300000});
 for(const s of [10,30,90]){await p.waitForTimeout(s===10?10000:s===30?20000:60000);console.log('phase2 '+s+'s',JSON.stringify(await tot()))}
 // a real edit after opening: price override + date override must be saved
-const chk=await p.evaluate(async()=>{S.priceOverrides=S.priceOverrides||{};S.priceOverrides['TPENRTEconomy']=1.07;S.flightDateOverride=S.flightDateOverride||{};S.flightDateOverride['KX20_2026-11-20']={note:'FULL15'};save();await new Promise(r=>setTimeout(r,2500));
+const chk=await p.evaluate(async()=>{S.priceOverrides=S.priceOverrides||{};S.priceOverrides['TPENRTEconomy']=1.07;S.flightDateOverride=S.flightDateOverride||{};S.flightDateOverride['KX21_2026-11-20']={note:'FULL15'};save();await new Promise(r=>setTimeout(r,2500));
   const po=JSON.parse(localStorage.getItem('kgm_priceov6')||'{}'),dv=localStorage.getItem('kgmdov4')||'';return {po:po['TPENRTEconomy'],dov:dv.indexOf('FULL15')>=0}});
 console.log('edit saved',JSON.stringify(chk),JSON.stringify(await tot()));await b.close()})();

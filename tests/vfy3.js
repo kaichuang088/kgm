@@ -78,16 +78,16 @@ const {chromium}=require('playwright');
 
  // S1 航班資料：mock 報到 + 配重
  /* 0921B：改成挑「今天已經起飛」的那一班來驗。模擬報到本來就只在
-    起飛前 2.5 小時才開始長，固定挑 KX20 會隨測試當下的時鐘時好時壞。 */
+    起飛前 2.5 小時才開始長，固定挑 KX21 會隨測試當下的時鐘時好時壞。 */
  const s1=await p.evaluate(()=>{
    const d=new Date().toISOString().slice(0,10);
    const cand=[].concat(FLIGHTS,S.customFlights||[])
-     .filter(f=>f&&!f.via&&!f.partner&&f.fr==='TPE'&&flyOn(f,new Date(d+'T12:00:00')))   /* 1012A：只挑今天真的有飛的班（台北深夜會挑到今天沒飛的 KX92，乘客 0） */
+     .filter(f=>f&&!f.via&&!f.partner&&f.fr==='TPE'&&flyOn(f,new Date(d+'T12:00:00')))   /* 1012A：只挑今天真的有飛的班（台北深夜會挑到今天沒飛的 KX93，乘客 0） */
      .map(f=>({code:f.code,h:window.kgmHoursToDepR920B(f,d)}))
      .filter(x=>isFinite(x.h)&&x.h<-0.6&&x.h>-14)
-     .filter(x=>![].concat(FLIGHTS,S.customFlights||[]).some(g=>g&&g.code!==x.code&&String(g.code).indexOf(x.code)===0))   /* 1012A：航班資料用班號前綴搜尋（KX22 會先找到 KX228），只挑沒有前綴撞號的班 */
+     .filter(x=>![].concat(FLIGHTS,S.customFlights||[]).some(g=>g&&g.code!==x.code&&String(g.code).indexOf(x.code)===0))   /* 1012A：航班資料用班號前綴搜尋（KX23 會先找到 KX229），只挑沒有前綴撞號的班 */
      .sort((a,b)=>b.h-a.h)[0];
-   S.adminTab='flightdata';S.opsQueryR7=(cand?cand.code:'KX20');
+   S.adminTab='flightdata';S.opsQueryR7=(cand?cand.code:'KX21');
    S.opsDateR7=d;S.opsSelectedR7='';render();
    return cand?cand.code+' h='+Math.round(cand.h*10)/10:'none';});
  await p.waitForTimeout(6000);

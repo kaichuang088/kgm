@@ -9,8 +9,8 @@ await p.waitForTimeout(800);const m1=await p.evaluate(()=>({modal:!!document.que
 await p.screenshot({path:'/tmp/j/g3.png'});
 await p.click('#k28g-host button:has-text("選團體優惠")');await p.waitForTimeout(500);
 const r1=await p.evaluate(async()=>{var D=addDays(todayISO(),14),R=addDays(D,5);Object.assign(S.search,{type:'RT',fr:'TPE',to:'NRT',dep:D,ret:R,adults:12,children:2,infants:0});passengerCounts();nav('booking');await new Promise(r=>setTimeout(r,2500));
-  var f=Object.assign({},FLIGHTS.find(x=>x.code==='KX180'),{date:D});var vc=validCodes(f);
-  return {plan:S.search.grpPlanR1101A,modal:!!document.querySelector('#k28g-host .k28g-dlg'),vc:vc,cab:CAB_CODES('Economy').slice(0,3),kx180:[...document.querySelectorAll('.award-shop-row,tr.fl-row')].map(r=>r.innerText.replace(/\s+/g,' ')).filter(t=>/KX180/.test(t)).map(t=>t.slice(0,140)),sellEQ:kgmGrpSellR1025B('E-Q',D,f),inv:kgmCabinInventory54(f,D,'Economy').left}});
+  var f=Object.assign({},FLIGHTS.find(x=>x.code==='KX181'),{date:D});var vc=validCodes(f);
+  return {plan:S.search.grpPlanR1101A,modal:!!document.querySelector('#k28g-host .k28g-dlg'),vc:vc,cab:CAB_CODES('Economy').slice(0,3),kx180:[...document.querySelectorAll('.award-shop-row,tr.fl-row')].map(r=>r.innerText.replace(/\s+/g,' ')).filter(t=>/KX181/.test(t)).map(t=>t.slice(0,140)),sellEQ:kgmGrpSellR1025B('E-Q',D,f),inv:kgmCabinInventory54(f,D,'Economy').left}});
 // 1101A ⑩：沒分艙時點矩陣格子就選那一艙
 const r1b=await p.evaluate(async()=>{var btn=document.querySelector('.k28m-shop .award-plan-btn:not([disabled])');if(!btn)return {none:true};var t=btn.innerText.replace(/\s+/g,' ');btn.click();await new Promise(r=>setTimeout(r,2000));var out={cell:t,phase:S.phase,outF:S.outF&&S.outF.code,outC:S.outC};S.phase='sel_out';S.outF=null;S.outC=null;S.grp28RetWarn=null;render();await new Promise(r=>setTimeout(r,1200));return out});
 // 去程選一班坐得下的 → 回程

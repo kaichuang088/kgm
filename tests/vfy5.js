@@ -78,7 +78,7 @@ const {chromium}=require('playwright');
    const hh=new Date(Date.now()+3600000*20).toISOString().slice(11,16);
    const u=(S.users||[]).find(x=>x.id==='KGMDEMO0911'); if(u)S.user=u;
    S.bookings=[{pnr:'NEAR01',userId:u.id,status:'confirmed',
-     outF:{code:'KX180',fr:'TPE',to:'NRT',date:d,dep:hh,arr:'11:05'},outC:'E-R',
+     outF:{code:'KX181',fr:'TPE',to:'NRT',date:d,dep:hh,arr:'11:05'},outC:'E-R',
      paxList:[{lastName:'A',firstName:'B',nat:'TW',passport:'X1',dob:'1990-01-01'}]}];
    let alerted='';const _a=window.alert;window.alert=function(m){alerted=String(m)};
    try{window.kgmCheckinSegR60('NEAR01','out')}catch(e){alerted='THREW '+e.message}

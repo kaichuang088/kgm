@@ -3,7 +3,7 @@ const {chromium}=require('playwright');
 await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:240000});
 await p.waitForFunction(()=>window.KGM_FULLDONE_1006A,null,{timeout:300000,polling:2000});await p.waitForTimeout(5000);
 const r=await p.evaluate(async()=>{window.KGM_NOPRINT_R1103A=1;window.alert=()=>{};const T={};const t=async(k,fn)=>{const a=performance.now();fn();T[k]=Math.round(performance.now()-a);await new Promise(r=>setTimeout(r,300))};
- const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX4'&&x.fr==='TPE'&&!x.via);const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';
+ const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX5'&&x.fr==='TPE'&&!x.via);const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';
  await t('openPage',()=>{S.adminTab='flightdata';S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');render()});
  await t('renderAgain',()=>render());
  const rows=[...document.querySelectorAll('tr')].filter(tr=>tr.querySelector('input[onchange*="physical"]')&&!tr.querySelector('input[onchange*="physical"]').checked);

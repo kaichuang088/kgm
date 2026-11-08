@@ -8,7 +8,7 @@ const r=await p.evaluate(async()=>{const o={};
  // 造一位新會員＋飛過的訂位：12 段台北—成田經濟超值＝240 分（全部自營）→ Silver
  const u={id:'KGMTP31',name:'TP TEST',email:'tp31@example.com',password:'x',miles:5000,level:'Bronze',milesLog:[]};S.users=S.users.filter(x=>x.id!=='KGMTP31');S.users.push(u);
  S.bookings=S.bookings.filter(x=>x.pnr.indexOf('TP31')!==0);const y=todayISO().slice(0,4);
- for(let i=0;i<6;i++){const d=y+'-0'+(i+1)+'-1'+i;S.bookings.push({pnr:'TP31'+i,userId:u.id,status:'confirmed',outF:{code:'KX100',fr:'TPE',to:'NRT',date:d,dep:'08:00',arr:'12:00'},outC:'E-E',inbF:{code:'KX101',fr:'NRT',to:'TPE',date:d,dep:'14:00',arr:'17:00'},inbC:'E-E',paxList:[{firstName:'TP',lastName:'TEST'}],total:12000,curr:'TWD'})}
+ for(let i=0;i<6;i++){const d=y+'-0'+(i+1)+'-1'+i;S.bookings.push({pnr:'TP31'+i,userId:u.id,status:'confirmed',outF:{code:'KX101',fr:'TPE',to:'NRT',date:d,dep:'08:00',arr:'12:00'},outC:'E-E',inbF:{code:'KX102',fr:'NRT',to:'TPE',date:d,dep:'14:00',arr:'17:00'},inbC:'E-E',paxList:[{firstName:'TP',lastName:'TEST'}],total:12000,curr:'TWD'})}
  const t1=kgmTpOfR1103A(u);o.u1={tp:t1.tp,own:t1.own,n:t1.fl.n,segs:t1.segs.slice(0,2)};o.eval1=kgmTierEvalR1006A(u);
  // 舊規則下 12 段也是 Silver；改成 11 段＋夥伴航班：不該升
  recomputeTier(u);o.level1=u.level;

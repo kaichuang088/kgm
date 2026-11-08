@@ -6,8 +6,8 @@ await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.
 await p.waitForTimeout(15000);
 const D=await p.evaluate(()=>{var u=S.users.find(x=>x.email==='demo@kgm.com')||S.users[0];S.user=u;var T=todayISO();
  function mk(pnr,code,D){var f0=FLIGHTS.filter(x=>x.code===code&&!x.via)[0];var f=Object.assign({},f0,kgmSeasonFlightR48(f0,D),{date:D});S.bookings.push({pnr:pnr,status:'confirmed',userId:u.id,email:u.email,contactEmail:u.email,outF:f,outC:'E-T',inbF:null,paxList:[{firstName:'DEMO',lastName:'EXPLORER',title:'MR'}],seats:{},total:9000,curr:'TWD',bookedAt:new Date().toISOString()})}
- var D=null,f0=FLIGHTS.find(x=>x.code==='KX180');for(var i=10;i<25;i++){var d=addDays(T,i);if(flyOn(f0,new Date(d+'T12:00:00'))){D=d;break}}
- mk('PET28A','KX180',D);var l=FLIGHTS.find(x=>x.to==='LHR'&&!x.partner&&!x.via);if(l)mk('PET28L',l.code,addDays(T,30));
+ var D=null,f0=FLIGHTS.find(x=>x.code==='KX181');for(var i=10;i<25;i++){var d=addDays(T,i);if(flyOn(f0,new Date(d+'T12:00:00'))){D=d;break}}
+ mk('PET28A','KX181',D);var l=FLIGHTS.find(x=>x.to==='LHR'&&!x.partner&&!x.via);if(l)mk('PET28L',l.code,addDays(T,30));
  nav('pet28');return {D,lhr:l&&l.code}});
 await p.waitForTimeout(1200);await p.screenshot({path:'/tmp/j/pet1.png'});
 // 用真的介面操作

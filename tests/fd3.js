@@ -2,7 +2,7 @@ const {chromium}=require('playwright');
 (async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();
  const errs=[];p.on('pageerror',e=>errs.push(String(e).slice(0,200)));p.on('console',m=>{if(m.type()==='warning'&&/fd25|map25|war25/.test(m.text()))errs.push(m.text().slice(0,200))});
  await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(20000);
- const code=process.argv[2]||'KX94';
+ const code=process.argv[2]||'KX95';
  const sel=await p.evaluate((code)=>{const f=FLIGHTS.find(f=>f.code===code&&!f.via);let d=todayISO();for(let i=0;i<10&&!flyOn(f,new Date(d+'T12:00:00'));i++)d=addDays(d,1);
    S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='flightdata';S.opsQueryR7=code;S.opsDateR7=d;S.opsSelectedR7=[code,d,f.fr,f.to].join('|');S.fdTabR1025B='ov';render();return S.opsSelectedR7},code);
  console.log('sel',sel);

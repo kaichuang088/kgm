@@ -5,7 +5,7 @@ await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.
 await p.waitForTimeout(15000);
 const r0=await p.evaluate(()=>{var u=S.users.find(x=>x.email==='demo@kgm.com')||S.users[0];S.user=u;var T=todayISO();
  function mk(pnr,code,D){var f0=FLIGHTS.filter(x=>x.code===code&&!x.via)[0]||FLIGHTS.filter(x=>x.code===code)[0];var f=Object.assign({},f0,kgmSeasonFlightR48(f0,D),{date:D});S.bookings.push({pnr:pnr,status:'confirmed',userId:u.id,outF:f,outC:'E-T',inbF:null,paxList:[{firstName:'DEMO',lastName:'EXPLORER'}],seats:{},total:9000,curr:'TWD'})}
- var f0=FLIGHTS.find(x=>x.code==='KX180'),D;for(var i=10;i<25;i++){var d=addDays(T,i);if(flyOn(f0,new Date(d+'T12:00:00'))){D=d;break}}mk('PETAI1','KX180',D);S.bookings.push({pnr:'PETLHR',status:'confirmed',userId:u.id,outF:Object.assign({},FLIGHTS.find(x=>x.code==='KX78'&&x.via),{date:addDays(T,30)}),outC:'E-T',paxList:[{firstName:'A',lastName:'B'}],seats:{}});
+ var f0=FLIGHTS.find(x=>x.code==='KX181'),D;for(var i=10;i<25;i++){var d=addDays(T,i);if(flyOn(f0,new Date(d+'T12:00:00'))){D=d;break}}mk('PETAI1','KX181',D);S.bookings.push({pnr:'PETLHR',status:'confirmed',userId:u.id,outF:Object.assign({},FLIGHTS.find(x=>x.code==='KX79'&&x.via),{date:addDays(T,30)}),outC:'E-T',paxList:[{firstName:'A',lastName:'B'}],seats:{}});
  var lhr=kgmPetCheckR1101A(S.bookings.find(x=>x.pnr==='PETLHR'),segsOfx=null||'out',{species:'cat',mode:'cabin',kg:4,docs:true});
  var cs=['KX9901','KX9921','KX9801'].map(c=>kgmCaseFlightR1101A(c,null,null,'2026-11-05'));
  return {lhr:lhr.why,cs}});

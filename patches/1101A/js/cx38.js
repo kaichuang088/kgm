@@ -75,3 +75,67 @@
   setInterval(function(){try{if(!(window.kgmCrewPlanR121&&window.kgmCrewPlanR121.__cx38)||!(window.kgmRosterR196&&window.kgmRosterR196.__cx38))hook()}catch(_){}},10000);
   setTimeout(tick,30000);setInterval(tick,90000);
 })();
+
+/* ══ 1108B（使用者：「短程有一些可以加入A35K…A35K不要完全只有長程」；使用者選「短程輪流機型加 A35K」、航線「台北—東京成田＋你幫我挑」）══
+   三組白天出發、當天回台北的短程，跟 A35K 輪流（依日期隔天輪流）：
+     台北—東京成田 KX184／KX183（原 A359）　台北—香港 KX356／KX355（原輪流機型）　台北—首爾仁川 KX104／KX103（原 A359）
+     （原始碼照全站慣例寫改號前的班號；建置最後一步 kx39.py 會跟全站一起改成新班號，網站上是去程奇數的新號）
+   機隊整年排好之後補一道：輪到 A35K 的那天，找一架 A35K 在這組來回的前後（各 90 分鐘）都停在台北、中間沒有任務 → 這組來回改由它飛，
+   並寫一筆換機紀錄（跟現有自動換機同一份 S.acftSub，售位／座位／Payload／組員換機長都照現有規則跟著走；排定的輪流不是臨時異動，不寄異動通知）。
+   找不到空著的 A35K 就照原本機型飛 —— 長程一班都不動。 */
+(function(){
+  if(window.__k39a35)return;window.__k39a35=1;
+  var PAIRS=[['KX184','KX183','NRT'],['KX356','KX355','HKG'],['KX104','KX103','ICN']],TURN=90,HORIZON=330;
+  function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
+  function AD(d,n){try{return addDays(d,n)}catch(_){var x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}}
+  function dayNo(d){return Math.round(Date.parse(d+'T00:00:00Z')/86400000)}
+  function want(i,d){return (dayNo(d)+i)%2===0}   /* 隔天輪流（三組錯開） */
+  var LAST=0;window.KGM_A35K_SHORT_R1108B={moved:0,kept:0,runs:0};
+  function pass(){
+    if(!window.KGM_FULLDONE_1006A)return;var TA=S.tailAssign;if(!TA)return;var tails=[];try{tails=tailsFor('A35K')||[]}catch(_){}if(!tails.length)return;
+    var t0=AD(T(),-1),t1=AD(T(),HORIZON),moved=0,kept=0;
+    /* 這三組來回目前在哪架飛機上（code|date → {tail,leg}） */
+    var at={};Object.keys(TA).forEach(function(tl){(TA[tl]||[]).forEach(function(x){if(!x||x.date<t0||x.date>t1)return;for(var i=0;i<PAIRS.length;i++){if(x.code===PAIRS[i][0]||x.code===PAIRS[i][1]){at[x.code+'|'+x.date+'|'+x.fr]={tail:tl,x:x};break}}})});
+    /* 之前排過的輪流：整年重排把那組來回放回原機型的飛機 → 換機紀錄一起拿掉（機型永遠跟實際飛的那架一致），下面再重新找 */
+    var byCD={};Object.keys(at).forEach(function(q){var v=at[q];byCD[v.x.code+'|'+v.x.date]=v});
+    var drop=0;Object.keys(S.acftSub||{}).forEach(function(k){var e=S.acftSub[k];if(!e||!e.plannedR1108B)return;var h=byCD[e.code+'|'+e.date];
+      if(!h||tails.indexOf(h.tail)<0){delete S.acftSub[k];drop++}});
+    for(var d=t0;d<=t1;d=AD(d,1)){
+      for(var i=0;i<PAIRS.length;i++){var P=PAIRS[i];if(!want(i,d))continue;
+        var o=at[P[0]+'|'+d+'|TPE'];if(!o)continue;var r=null;
+        /* 回程：同一架、出發 ≥ 去程抵達（可能隔天日期，這三組都是當天回） */
+        r=at[P[1]+'|'+d+'|'+P[2]];if(!r||r.tail!==o.tail||!(r.x.depAbs>o.x.arrAbs))continue;
+        if(tails.indexOf(o.tail)>=0){kept++;continue}   /* 已經是 A35K 飛 */
+        if((S.tailStatus||{})[o.tail]==='maintenance')continue;
+        var a=o.x.depAbs-TURN,b=r.x.arrAbs+TURN,pick=null;
+        for(var k=0;k<tails.length&&!pick;k++){var tl=tails[k];if((S.tailStatus||{})[tl]==='maintenance')continue;var L=(TA[tl]||[]).filter(Boolean),prev=null,next=null,clash=false;
+          for(var j=0;j<L.length;j++){var y=L[j];if(!(+y.depAbs>=0))continue;if(y.depAbs<b&&y.arrAbs>a){clash=true;break}if(y.arrAbs<=a&&(!prev||y.arrAbs>prev.arrAbs))prev=y;if(y.depAbs>=b&&(!next||y.depAbs<next.depAbs))next=y}
+          if(clash)continue;if(prev&&prev.to!=='TPE')continue;if(next&&next.fr!=='TPE')continue;if(!prev)continue;   /* 一定要知道它停在台北 */
+          pick=tl}
+        if(!pick)continue;
+        [o,r].forEach(function(e){var src=TA[e.tail]||[],ix=src.indexOf(e.x);if(ix>=0)src.splice(ix,1);e.x.a35kR1108B=1;TA[pick].push(e.x);e.tail=pick;
+          var key=e.x.code+'_'+e.x.date,row=null;try{row=(FLIGHTS||[]).filter(function(f){return f&&f.code===e.x.code&&f.fr===e.x.fr&&f.to===e.x.to&&!f.via})[0]}catch(_){}
+          var orig=null;try{orig=(S.acftSub[key]&&S.acftSub[key].orig)||(row&&row.acft!=='EQV'?row.acft:acftOfFlight(e.x.code,e.x.date))}catch(_){}
+          S.acftSub=S.acftSub||{};S.acftSub[key]={code:e.x.code,date:e.x.date,route:e.x.route,orig:orig||'A359',sub:'A35K',tail:pick,seatsOrig:0,seatsSub:0,auto:1,plannedR1108B:1,notified:1,paxNotifiedR34:1,detectedAt:new Date().toISOString()};
+          try{S.acftSub[key].seatsOrig=_seatOf(S.acftSub[key].orig);S.acftSub[key].seatsSub=_seatOf('A35K')}catch(_){}});
+        TA[pick].sort(function(p,q){return (+p.depAbs||0)-(+q.depAbs||0)});moved++}}
+    /* 換機紀錄被別層重寫時補回標記（不寄通知） */
+    try{IX=null;var I=idx();Object.keys(I).forEach(function(k){var e=S.acftSub&&S.acftSub[k];if(e){e.plannedR1108B=1;e.notified=1;e.paxNotifiedR34=1;e.sub='A35K';e.tail=I[k]}})}catch(_){}
+    var st=window.KGM_A35K_SHORT_R1108B;st.moved+=moved;st.kept=kept;st.dropped=(st.dropped||0)+drop;st.runs++;st.at=new Date().toISOString();
+    if(moved||drop){try{if(window.kgmClearRotationCacheR72)window.kgmClearRotationCacheR72()}catch(_){}try{save()}catch(_){}}
+  }
+  window.kgmA35kShortR1108B=pass;
+  /* 機型以「實際飛的那架」為準（唯一來源）：這三組班掛在 A35K 機身上 → A35K。
+     不靠換機紀錄的標記 —— 0810J 自動換機會把那筆紀錄整筆重寫、標記會掉；成田／仁川的機型又被 1018A 定案表釘住，換機紀錄蓋不過它 */
+  var CODES={};PAIRS.forEach(function(P){CODES[P[0]]=1;CODES[P[1]]=1});var IX=null,IXS='';
+  function idx(){var tl=[];try{tl=tailsFor('A35K')||[]}catch(_){}var TA=S.tailAssign||{},sig=tl.map(function(t){return (TA[t]||[]).length}).join(',');if(IX&&sig===IXS)return IX;
+    IX={};tl.forEach(function(t){(TA[t]||[]).forEach(function(x){if(x&&CODES[x.code])IX[x.code+'_'+x.date]=t})});IXS=sig;return IX}
+  window.kgmA35kOnR1108B=function(code,date){if(!CODES[code])return '';try{return idx()[code+'_'+date]||''}catch(_){return ''}};
+  var MINE=null;function wrapAc(){var a0=window.acftOfFlight;if(typeof a0!=='function'||a0===MINE)return;var w=function(code,date){
+      try{var c=code&&typeof code==='object'?code.code:code;if(CODES[c]&&date&&window.kgmA35kOnR1108B(c,date))return 'A35K'}catch(_){}return a0.apply(this,arguments)};
+    MINE=w;try{acftOfFlight=window.acftOfFlight=w}catch(_){window.acftOfFlight=w}}
+  /* 排定的輪流不是臨時換機：不寄機型異動通知 */
+  var MINEN=null;function wrapN(){var n0=window.kgmNotifyAcftChangeR34;if(typeof n0!=='function'||n0===MINEN)return;var w=function(code,date,from,to){try{if(to==='A35K'&&window.kgmA35kOnR1108B(code,date))return 0}catch(_){}return n0.apply(this,arguments)};MINEN=w;window.kgmNotifyAcftChangeR34=w}
+  function hk(){wrapAc();wrapN()}hk();setInterval(hk,5000);
+  setInterval(function(){try{pass()}catch(e){try{console.warn('a35k short',e)}catch(_){}}},20000);
+})();

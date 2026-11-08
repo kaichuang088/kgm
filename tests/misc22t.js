@@ -29,7 +29,7 @@ await p.waitForTimeout(300);await p.screenshot({path:SP+'chg_card.png',clip:{x:2
 console.log('CARD ground',await p.evaluate(async()=>{const g=S.staff.find(x=>x.role==='ground');S.adminUser={empId:g.empId,name:g.name,role:'ground'};render();await new Promise(r=>setTimeout(r,400));const c=document.querySelector('.k22-chg');return c?c.innerText.replace(/\s+/g,' ').slice(-40):'none'}));
 await p.evaluate(()=>{S.selfChgR1022A={off:false};save()});
 // 4 PDF
-await p.evaluate(()=>{const s=S.staff.find(x=>x.role==='pilot');S.adminUser={empId:'MASTER',name:'主控管理員',role:'ceo'};S.adminTab='flightdata';S.opsQueryR7='KX5';S.opsDateR7=addDays(todayISO(),1);S.opsSelectedR7='';render()});
+await p.evaluate(()=>{const s=S.staff.find(x=>x.role==='pilot');S.adminUser={empId:'MASTER',name:'主控管理員',role:'ceo'};S.adminTab='flightdata';S.opsQueryR7='KX6';S.opsDateR7=addDays(todayISO(),1);S.opsSelectedR7='';render()});
 await p.waitForTimeout(800);
 const pdf=await p.evaluate(async()=>{const d=S.opsDateR7;console.log('sel',S.opsSelectedR7);try{kgmCrewPlanR121(d)}catch(_){}let H='';const fake={document:{open(){},write(h){H+=h},close(){}},focus(){},print(){}};kgmOpsReportR1018A(fake);await new Promise(r=>setTimeout(r,300));return {rep:window.KGM_OPSREPORT_R1018A,html:H}});
 fs.writeFileSync(SP+'ops_pdf.html',pdf.html);const R=pdf.rep||{};console.log('PDF',JSON.stringify({doc:R.doc,special:R.special,neg:R.neg,lb:R.lb,fuel:R.fuel,capt:R.capt,ceo:R.ceo,byCab:R.byCab,len:pdf.html.length}),'sections:',(pdf.html.match(/<h2[^>]*>[^<]*/g)||[]).map(x=>x.replace(/<h2[^>]*>/,'')).join(' / '));

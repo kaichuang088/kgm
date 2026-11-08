@@ -4,7 +4,7 @@ const file=process.argv[2]||'/tmp/j/kgm.html';
 const errs=[];p.on('pageerror',e=>errs.push(String(e).slice(0,200)));
 await p.goto('file://'+file,{waitUntil:'domcontentloaded',timeout:240000});
 await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:240000});await p.waitForTimeout(12000);
-await p.evaluate(async()=>{const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX4'&&x.fr==='TPE'&&!x.via);const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';S.adminTab='flightdata';S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');render()});
+await p.evaluate(async()=>{const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX5'&&x.fr==='TPE'&&!x.via);const st=S.staff.find(x=>x.role==='ceo');S.adminAuthed=true;S.adminUser=st;S.view='admin';S.adminTab='flightdata';S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');render()});
 await p.waitForTimeout(2500);
 const R={};const tab=async re=>{await p.evaluate(src=>{const re=new RegExp(src);const e=[...document.querySelectorAll('#app button')].find(e=>re.test(e.innerText));if(e)e.click()},re);await p.waitForTimeout(800)};
 await tab('▦\\s*座位圖');

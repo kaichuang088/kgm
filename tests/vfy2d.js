@@ -27,7 +27,7 @@ const {chromium}=require('playwright');
    const D=n=>new Date(Date.now()+86400000*n).toISOString().slice(0,10);
    const d=D(1);
    S.bookings=[{pnr:'STF001',userId:(S.user||{}).id,status:'confirmed',stx:{empId:'K1',plan:'ID90'},
-     outF:{code:'KX180',fr:'TPE',to:'NRT',date:d,dep:new Date(Date.now()+3600000*20).toISOString().slice(11,16),arr:'11:05'},
+     outF:{code:'KX181',fr:'TPE',to:'NRT',date:d,dep:new Date(Date.now()+3600000*20).toISOString().slice(11,16),arr:'11:05'},
      outC:'E-R',paxList:[{lastName:'A',firstName:'B'}]}];
    let alerted='';const _a=window.alert;window.alert=function(m){alerted=String(m)};
    try{window.kgmCheckinSegR60('STF001','out')}catch(e){alerted='THREW '+e.message}
@@ -40,13 +40,13 @@ const {chromium}=require('playwright');
  const n1=await p.evaluate(()=>{
    const D=n=>new Date(Date.now()+86400000*n).toISOString().slice(0,10);
    let d1='',d2='';
-   for(let i=176;i<230&&!d1;i++){const x=D(i);if((sortedFlights('TPE','UKB',x)||[]).some(f=>f.code==='KX160'))d1=x}
-   for(let i=185;i<240&&!d2;i++){const x=D(i);if((sortedFlights('UKB','TPE',x)||[]).some(f=>f.code==='KX159'))d2=x}
+   for(let i=176;i<230&&!d1;i++){const x=D(i);if((sortedFlights('TPE','UKB',x)||[]).some(f=>f.code==='KX161'))d1=x}
+   for(let i=185;i<240&&!d2;i++){const x=D(i);if((sortedFlights('UKB','TPE',x)||[]).some(f=>f.code==='KX160'))d2=x}
    const u=(S.users||[]).find(x=>x.id==='KGMDEMO0911'); if(u)S.user=u;
    S.bookings=[];
    S.search={fr:'TPE',to:'UKB',dep:d1,ret:d2,type:'RT',pax:1,cabin:'Economy'};S.view='booking';
    const fo=sortedFlights('TPE','UKB',d1)||[],fi=sortedFlights('UKB','TPE',d2)||[];
-   const o=fo.find(f=>f.code==='KX160'),i2=fi.find(f=>f.code==='KX159');
+   const o=fo.find(f=>f.code==='KX161'),i2=fi.find(f=>f.code==='KX160');
    pickFare('out',fo.indexOf(o),(validCodes(Object.assign({},o,{date:d1}))||[])[0],true);
    pickFare('inb',fi.indexOf(i2),(validCodes(Object.assign({},i2,{date:d2}))||[])[0],true);
    S.paxList=[{title:'MR',lastName:'K',firstName:'C',dob:'1990-01-01',nat:'TW',passport:'X1',email:'t@g',countryCode:'+886',phone:'900'}];

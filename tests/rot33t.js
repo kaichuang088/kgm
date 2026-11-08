@@ -22,7 +22,7 @@ const r=await p.evaluate(async()=>{
  out.ops={ok,no,noop,why:Object.entries(msgs).sort((a,c)=>c[1]-a[1]).slice(0,8)};out.after=audit();
  // 舊資料：塞一段衝突的手排段
  const t0=tailsFor('B779')[3],L0=(S.tailAssign[t0]||[]).filter(x=>x.date>addDays(T,3)).sort((a,c)=>sp(a)[0]-sp(c)[0]);const v=L0[1];
- S.tailAssign[t0].push({date:v.date,code:'KX85',route:'BKK→TPE',dep:'09:40',arr:'14:25',dd:0,manualR69:1});
+ S.tailAssign[t0].push({date:v.date,code:'KX86',route:'BKK→TPE',dep:'09:40',arr:'14:25',dd:0,manualR69:1});
  out.injected=audit();out.sweepN=window.kgmRotSweepR1103A();await new Promise(r=>setTimeout(r,50));out.afterSweep=audit();out.log=(window.KGM_ROTFIX_R1103A||[]).slice(-2);
  return out});
 console.log(JSON.stringify(r,null,1));console.log('ERR',errs.slice(0,5));await b.close()})();

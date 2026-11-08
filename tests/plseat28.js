@@ -1,5 +1,5 @@
 // 1101A：Payload 鎖後排實測——node plseat28.js [code] [date]
-const {chromium}=require('playwright');const CODE=process.argv[2]||'KX98',D=process.argv[3]||'2027-01-15';
+const {chromium}=require('playwright');const CODE=process.argv[2]||'KX99',D=process.argv[3]||'2027-01-15';
 (async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1300,height:1000}})).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:240000});
 await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:240000});

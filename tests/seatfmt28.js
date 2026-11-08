@@ -3,7 +3,7 @@ const {chromium}=require('playwright');
 await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:240000});
 await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:240000});
 await p.waitForTimeout(18000);
-const r=await p.evaluate(()=>{const D='2027-07-14';const f0=FLIGHTS.filter(x=>x.code==='KX98'&&!x.via)[0];const f=Object.assign({},f0,kgmSeasonFlightR48(f0,D),{date:D});
+const r=await p.evaluate(()=>{const D='2027-07-14';const f0=FLIGHTS.filter(x=>x.code==='KX99'&&!x.via)[0];const f=Object.assign({},f0,kgmSeasonFlightR48(f0,D),{date:D});
  S.search=Object.assign({},S.search,{type:'OW',dep:D,fr:f.fr,to:f.to,adt:1,chd:0,inf:0,pax:1});S.outF=f;S.outC='E-T';S.inbF=null;S.view='booking';S.phase='seat';S.seatPhase='out';S.seats={};render();
  const rows=[...document.querySelectorAll('#app div')].filter(d=>{const sp=d.firstElementChild;return sp&&sp.tagName==='SPAN'&&/^\d+/.test((sp.textContent||'').trim())&&d.querySelector('.seat[onclick]')});
  const out=rows.map(d=>({label:(d.firstElementChild.textContent||'').trim(),sid:(/'(\d+[A-K])'/.exec((d.querySelector('.seat[onclick]')||{}).getAttribute?d.querySelector('.seat[onclick]').getAttribute('onclick'):'')||[])[1]}));

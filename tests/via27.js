@@ -4,7 +4,7 @@ const F=process.argv[2]||'/tmp/j/kgm.html';
 await p.goto('file://'+F,{waitUntil:'domcontentloaded',timeout:240000});
 await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:240000});
 await p.waitForTimeout(25000);
-const r=await p.evaluate(()=>{const o=[];const L=[['KX52','TPE','SYD','CHC'],['KX52','TPE','SYD','AKL'],['KX51','CHC','SYD','TPE'],['KX51','AKL','SYD','TPE'],['KX60','TPE','KUL','MEL']];
+const r=await p.evaluate(()=>{const o=[];const L=[['KX53','TPE','SYD','CHC'],['KX53','TPE','SYD','AKL'],['KX52','CHC','SYD','TPE'],['KX52','AKL','SYD','TPE'],['KX61','TPE','KUL','MEL']];
  for(const d of ['2026-07-15','2027-02-05','2026-11-20']) for(const [c,a,v,z] of L){
   const f=(FLIGHTS||[]).filter(x=>x.code===c&&x.fr===a&&x.to===z)[0];
   let t=null;try{t=f&&kgmViaTimesR205(f,d)}catch(e){t='ERR '+e.message}

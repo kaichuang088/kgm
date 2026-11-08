@@ -2,7 +2,7 @@ const {chromium}=require('playwright');
 (async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1300,height:1000}})).newPage();
  await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});
  for(let i=0;i<25;i++){await p.waitForTimeout(3000);if(await p.evaluate(()=>!!window.KGM_WAR_LAST_R1025B))break}
- const d=await p.evaluate(()=>{const x=(window.KGM_WAR_LAST_R1025B||[]).find(x=>x.code==='KX94')||window.KGM_WAR_LAST_R1025B[0];return x.code+'|'+x.date});console.log('target',d);
+ const d=await p.evaluate(()=>{const x=(window.KGM_WAR_LAST_R1025B||[]).find(x=>x.code==='KX95')||window.KGM_WAR_LAST_R1025B[0];return x.code+'|'+x.date});console.log('target',d);
  await p.evaluate(()=>{S.view='status';render()});await p.waitForTimeout(1500);
  await p.getByText('依航班號',{exact:true}).first().click();await p.waitForTimeout(1200);
  const inp=p.locator('input').filter({hasNot:p.locator('[type=date]')});

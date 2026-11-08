@@ -7,7 +7,7 @@ const {chromium}=require('playwright');
  const D1=await p.evaluate(()=>addDays(todayISO(),200)),D2=await p.evaluate(()=>addDays(todayISO(),100)),D3=await p.evaluate(()=>addDays(todayISO(),104));
  // ① 包下現有航班（太早→擋；再填正確）
  await p.evaluate(()=>kgmCharterOpenR1026C('charter'));await p.waitForTimeout(600);
- await p.fill('#k27c-name','2027 員工旅遊 東京');await p.fill('#k27c-code','KX180');await p.fill('#k27c-date',await p.evaluate(()=>addDays(todayISO(),120)));await p.fill('#k27c-pax','150');
+ await p.fill('#k27c-name','2027 員工旅遊 東京');await p.fill('#k27c-code','KX181');await p.fill('#k27c-date',await p.evaluate(()=>addDays(todayISO(),120)));await p.fill('#k27c-pax','150');
  await p.evaluate(()=>kgmCharterSubmitR1026C());await p.waitForTimeout(500);console.log('too early msg:',await p.evaluate(()=>S.k27cr&&S.k27cr.msg));
  await p.fill('#k27c-date',D1);await p.evaluate(()=>kgmCharterSubmitR1026C());await p.waitForTimeout(500);console.log('msg1',await p.evaluate(()=>S.k27crMsg+' | err '+(S.k27cr&&S.k27cr.msg)));
  // ② 自創航班

@@ -29,11 +29,11 @@ const {chromium}=require('playwright');
   });
 
   /* ── 第五航權／酬賓 ─────────────────────── */
-  T('C1','TPE-CHC 第五航權航線在（KX52 via SYD）',()=>{
+  T('C1','TPE-CHC 第五航權航線在（KX53 via SYD）',()=>{
     let hit=null;
     for(let i=60;i<200&&!hit;i++){const d=D(i);
       const fs=sortedFlights('TPE','CHC',d)||[];
-      const k=fs.find(f=>f.code==='KX52');
+      const k=fs.find(f=>f.code==='KX53');
       if(k)hit={d,code:k.code,via:k.via||null,
         award:awardStatus(k.code,d,'Economy',1,Object.assign({},k,{date:d})).ok};
     }
@@ -42,9 +42,9 @@ const {chromium}=require('playwright');
   /* 0921B：原本只挑「第一個有班的日子」一天來判定。酬賓名額本來就每天不同
      （C4 就是在驗這件事），挑到剛好 0 席的那一天就會誤判成壞掉。改成掃 50 天，
      要求每一班在多數可飛日都訂得到豪經酬賓。 */
-  T('C2','KX160/KX159 酬賓可訂豪經',()=>{
+  T('C2','KX161/KX160 酬賓可訂豪經',()=>{
     const r={},bad=[];
-    [['TPE','UKB','KX160'],['UKB','TPE','KX159'],['TPE','MLE','KX210'],['MLE','TPE','KX209']].forEach(([a,c,code])=>{
+    [['TPE','UKB','KX161'],['UKB','TPE','KX160'],['TPE','MLE','KX211'],['MLE','TPE','KX210']].forEach(([a,c,code])=>{
       let days=0,okDays=0;
       /* 1004B：神戶線冬季停飛（UKB_DAYS66 winter:'none'），固定看第 20–69 天在 10 月以後會整段落在停飛期（0/0）—— 改成往後找有飛的日子，取前 25 個班次日 */
       for(let i=20;i<400&&days<25;i++){
@@ -75,10 +75,10 @@ const {chromium}=require('playwright');
   });
   T('C5','第五航權里程升等逐航段計價',()=>{
     const d=D(30);
-    let f=null;try{f=([].concat(FLIGHTS)).find(x=>x.code==='KX76'&&x.via)}catch(e){}
-    if(!f)return {ok:false,info:'找不到 KX76 via'};
+    let f=null;try{f=([].concat(FLIGHTS)).find(x=>x.code==='KX77'&&x.via)}catch(e){}
+    if(!f)return {ok:false,info:'找不到 KX77 via'};
     if(typeof window.kgmUpgradeOptionsR920!=='function')return {ok:false,info:'kgmUpgradeOptionsR920 不存在'};
-    return {ok:true,info:'KX76 via='+f.via};
+    return {ok:true,info:'KX77 via='+f.via};
   });
 
   /* ── 聯營 ─────────────────────────── */
@@ -209,7 +209,7 @@ const {chromium}=require('playwright');
   T('M1','員工票不得線上報到',()=>{
     const d=D(1),hh=new Date(Date.now()+3600000*20).toISOString().slice(11,16);
     S.bookings=[{pnr:'STF9',userId:(S.user||{}).id,status:'confirmed',stx:{empId:'K1',plan:'ID90'},
-      outF:{code:'KX180',fr:'TPE',to:'NRT',date:d,dep:hh,arr:'11:05'},outC:'E-R',paxList:[{lastName:'A',firstName:'B'}]}];
+      outF:{code:'KX181',fr:'TPE',to:'NRT',date:d,dep:hh,arr:'11:05'},outC:'E-R',paxList:[{lastName:'A',firstName:'B'}]}];
     let al='';const _a=window.alert;window.alert=m=>{al=String(m)};
     try{window.kgmCheckinSegR60('STF9','out')}catch(e){al='THREW '+e.message}
     window.alert=_a;

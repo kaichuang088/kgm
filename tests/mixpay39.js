@@ -22,8 +22,11 @@ const r1=await p.evaluate(async()=>{const u={id:'KGMN38',name:'N TEST',email:'n3
  const ok=!document.querySelectorAll('.award-shop-row')[i].querySelector('.k38al-conf .btn').disabled;
  kgmGrpAllocPickR1108A(i,fc);await new Promise(r=>setTimeout(r,1500));
  window.__inb=[...document.querySelectorAll('.k28m-need')].map(x=>x.innerText).slice(0,4);
- const c2=[...document.querySelectorAll('.k28m-conf .btn')].find(x=>!x.disabled);if(c2)c2.click();await new Promise(r=>setTimeout(r,1200));if(S.grp28RetWarn){S.grp28RetWarn=null;render()}
- window.__btns=[...document.querySelectorAll('.award-plan-btn')].slice(0,8).map(x=>x.innerText.replace(/\s+/g,' ')+(x.disabled?'(dis)':''));if(S.grpDraftR1025B){S.grpDraftR1025B.name='混艙測試';render()}return {btns:window.__btns,phase:S.phase,out:S.outF&&S.outF.code,c:S.outC,inb:S.inbF&&S.inbF.code,inbC:S.inbC,mix:S.search.grpMixR1101A,need:window.__inb}});
+ /* 1108B B2：回程跟去程同一套逐艙加位（經濟 13＋商務 2，跟去程不同） */
+ const rf=sortedFlights('NRT','TPE',S.search.ret);const ri=rf.findIndex(f=>!f.partner);const rc=rf[ri].code;
+ kgmGrpAllocR1108A(ri,rc,'Economy','set',13,'inb');kgmGrpAllocR1108A(ri,rc,'Business','set',2,'inb');window.__inbAlloc=JSON.stringify(S.search.grpInbR1108B||S.grpAllocInbR1108B||null);
+ kgmGrpAllocPickR1108A(ri,rc,'inb');await new Promise(r=>setTimeout(r,1500));
+ window.__btns=[...document.querySelectorAll('.award-plan-btn')].slice(0,8).map(x=>x.innerText.replace(/\s+/g,' ')+(x.disabled?'(dis)':''));if(S.grpDraftR1025B){S.grpDraftR1025B.name='混艙測試';render()}return {btns:window.__btns,phase:S.phase,out:S.outF&&S.outF.code,c:S.outC,inb:S.inbF&&S.inbF.code,inbC:S.inbC,mix:S.search.grpMixR1101A,need:window.__inb,inbAlloc:window.__inbAlloc}});
 console.log(JSON.stringify(r1));
 
 await p.locator('button:has-text("下一步：確認訂位")').click({timeout:5000});await p.waitForTimeout(2000);

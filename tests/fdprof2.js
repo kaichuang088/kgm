@@ -4,7 +4,7 @@ const {chromium}=require('playwright');
  await p.evaluate(()=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='flightdata';render()});
  await p.waitForFunction(()=>window.KGM_FULLDONE_1006A,null,{timeout:300000,polling:2000});await p.waitForTimeout(5000);
  const c=await ctx.newCDPSession(p);await c.send('Profiler.enable');await c.send('Profiler.setSamplingInterval',{interval:200});await c.send('Profiler.start');
- const ms=await p.evaluate((code)=>{const f=FLIGHTS.find(f=>f.code===code);const t=performance.now();kgmFdOpenR1025B(code,todayISO(),f.fr,f.to);return Math.round(performance.now()-t)},process.env.C||'KX180');
+ const ms=await p.evaluate((code)=>{const f=FLIGHTS.find(f=>f.code===code);const t=performance.now();kgmFdOpenR1025B(code,todayISO(),f.fr,f.to);return Math.round(performance.now()-t)},process.env.C||'KX181');
  const {profile}=await c.send('Profiler.stop');
  const byId={};profile.nodes.forEach(n=>byId[n.id]=n);const parent={};profile.nodes.forEach(n=>(n.children||[]).forEach(ch=>parent[ch]=n.id));
  const dt={};for(let i=0;i<profile.samples.length;i++){dt[profile.samples[i]]=(dt[profile.samples[i]]||0)+(profile.timeDeltas[i]||0)}

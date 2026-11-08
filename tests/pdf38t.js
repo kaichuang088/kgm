@@ -5,7 +5,7 @@ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:2400
 await p.waitForFunction(()=>window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(addDays(todayISO(),1)),null,{timeout:400000}).catch(()=>{});await p.waitForTimeout(2000);
 const out={};
 for(const role of ['ceo','pilot','cabin','ground','backend']){
- const r=await p.evaluate(async(role)=>{const msgs=[];window.alert=m=>msgs.push(m);const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX4'&&x.fr==='TPE'&&!x.via);
+ const r=await p.evaluate(async(role)=>{const msgs=[];window.alert=m=>msgs.push(m);const d=addDays(todayISO(),1);const f=FLIGHTS.find(x=>x.code==='KX5'&&x.fr==='TPE'&&!x.via);
   const st=S.staff.find(x=>x.role===role);S.adminAuthed=true;S.adminUser=st;S.view='admin';S.adminTab='flightdata';S.opsQueryR7=f.code;S.opsDateR7=d;S.opsSelectedR7=[f.code,d,f.fr,f.to].join('|');render();await new Promise(r=>setTimeout(r,800));
   window.KGM_OPSREPORT_R1108A=null;window.__k38LastReport=null;kgmOpsReportR1018A('none');const t0=Date.now();while(!window.KGM_OPSREPORT_R1108A&&Date.now()-t0<15000&&!msgs.length)await new Promise(r=>setTimeout(r,200));
   const h=window.__k38LastReport||'';const bd=(h.match(/class="conf" style="background:#0f3d33;color:#fff">([^<]*)/)||[])[1]||'@@';return {msgs,info:window.KGM_OPSREPORT_R1108A,hasCEO:/給 CEO/.test(h),hasCapt:/給機長 Captain/.test(h),hasFuel:/燃油/.test(h.replace(bd,'')),hasManifest:/APPENDIX/.test(h),elite:(h.match(/PREMIUM &amp; ELITE/g)||[]).length,map:/<img src="data:image/.test(h),badge:(h.match(/class="conf" style="background:#0f3d33;color:#fff">([^<]*)/)||[])[1]}},role);
