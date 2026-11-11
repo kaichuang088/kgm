@@ -290,3 +290,42 @@
   if(!hook()){var n=0,t=setInterval(function(){if(hook()||++n>60)clearInterval(t)},500)}
   setTimeout(hook,3000);setTimeout(hook,12000);
 })();
+/* ══ 1112A C9（使用者：「Residence競標一樣要選擇若有競標上要付款的差價要用同一張卡還是額外」）══
+   Residence 現金出價視窗（訂位流程 k161）原本寫死「得標差額直接用這次訂位付款的同一張卡」→ 加一格選擇：
+   「同一張卡（這次訂位付款的卡）」／「另一張信用卡」；另一張卡用付款頁同一個卡片表單（卡號、有效期限、安全碼 CVV、持卡人），
+   缺一不能送出。存在出價紀錄 bid.diffCardR1112A（只存末四碼、有效期限、持卡人；安全碼只驗證不存，跟付款頁一樣）。 */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  var ST=window.__k40rc=window.__k40rc||{mode:'same',cvv:''};
+  var IDS={num:'k40rcNum',name:'k40rcName',expM:'k40rcM',expY:'k40rcY',exp:'k40rcExp',cvv:'k40rcCvv'};
+  function vals(){var v=function(k){return String((document.getElementById(IDS[k])||{}).value||'').trim()};var m=v('expM'),y=v('expY');return {num:v('num').replace(/\s/g,''),exp:(m&&y)?(m+'/'+y):v('exp'),cvv:v('cvv'),name:v('name')}}
+  function bad(c){var zh=z(),m=[];if(!/^\d{13,19}$/.test(c.num))m.push(zh?'卡號':'card number');if(!/^\d{2}\/\d{2}$/.test(c.exp))m.push(zh?'有效期限（月／年）':'expiry');if(!/^\d{3,4}$/.test(c.cvv))m.push(zh?'安全碼 CVV':'CVV');if(!c.name)m.push(zh?'持卡人姓名':'name on card');return m}
+  function boxHtml(){var zh=z(),o=ST.mode==='other',form='';
+    if(o){try{form=kgmCardFormR923({key:'resdiff',ids:IDS,contact:false,ssl:zh?'只在得標、需要補差額時扣款；安全碼只用來驗證，不會儲存。':'Charged only if you win; CVV is not stored.'})}catch(_){form=''}
+      form=form.replace('id="'+IDS.cvv+'"','id="'+IDS.cvv+'" value="'+E(ST.cvv||'')+'"')}
+    return '<div class="k40rc"><b>'+(zh?'得標後要補的差額，用哪一張卡扣款？':'If you win, charge the difference to')+'</b>'
+      +'<div class="k40rc-opt"><label><input type="radio" name="k40rc" value="same"'+(o?'':' checked')+' onchange="kgmResDiffModeR1112A(\'same\')"> '+(zh?'同一張卡（這次訂位付款的卡）':'The card used for this booking')+'</label>'
+      +'<label><input type="radio" name="k40rc" value="other"'+(o?' checked':'')+' onchange="kgmResDiffModeR1112A(\'other\')"> '+(zh?'另一張信用卡':'Another card')+'</label></div>'
+      +(o?'<div class="k40rc-card">'+form+'</div>':'')+'</div>'}
+  function inject(force){try{var amt=document.getElementById('k161amt');if(!amt)return;var old=document.querySelector('.k40rc');if(old&&!force)return;
+      var p=document.querySelector('.k923-rescard');if(p&&!p.getAttribute('data-k40')){p.setAttribute('data-k40','1');p.innerHTML=p.innerHTML.replace(/並且<b>直接用這次訂位付款的同一張卡<\/b>，不需要另外輸入卡片資料。/,'差額依下面選的卡扣款（同一張卡或另一張卡）。').replace(/on the same card[^.]*\./,'on the card you choose below.')}
+      var d=document.createElement('div');d.innerHTML=boxHtml();var nb=d.firstChild;
+      if(old)old.parentNode.replaceChild(nb,old);else if(p&&p.parentNode)p.parentNode.insertBefore(nb,p.nextSibling);else{var sec=amt.closest('section')||amt.parentNode;sec.appendChild(nb)}
+      try{if(ST.mode==='other'&&window.kgmCardLiveR923)window.kgmCardLiveR923('resdiff')}catch(_){}}catch(_){}}
+  window.kgmResDiffModeR1112A=function(m){ST.mode=m==='other'?'other':'same';inject(true)};
+  document.addEventListener('input',function(e){var t=e.target;if(t&&t.id===IDS.cvv)ST.cvv=t.value},true);
+  setInterval(function(){inject(false)},400);
+  function hook(){var O=window.kgmResCashSubmitR161;if(typeof O!=='function')return false;if(O.__c940)return true;
+    var w=function(){var zh=z(),m=null;try{m=S.resModalR161}catch(_){}var card=null;
+      if(ST.mode==='other'&&document.getElementById('k161amt')){var c=vals(),b=bad(c);if(b.length){alert((zh?'得標差額要扣的另一張信用卡還差：':'Card for the difference is missing: ')+b.join(zh?'、':', '));return}
+        card={mode:'other',last4:c.num.slice(-4),exp:c.exp,holder:c.name.toUpperCase(),cvvOkR1112A:1}}else card={mode:'same'};
+      var seg=m&&m.seg==='inb'?'inb':'out',before=(S.resBidSegR923||{})[seg];
+      var A0=window.alert;if(card.mode==='other')window.alert=function(t){return A0.call(window,String(t).replace('，使用本次訂位付款的同一張卡','，使用另一張信用卡（末四碼 '+card.last4+'）').replace(' on the same card',' on card ••'+card.last4))};
+      var r;try{r=O.apply(this,arguments)}finally{window.alert=A0}
+      try{var id=(S.resBidSegR923||{})[seg];if(id&&id!==before){var bd=(S.residenceBidsR83||[]).filter(function(x){return x&&x.id===id})[0];if(bd){bd.diffCardR1112A=card;ST.cvv='';try{window.__kgmCardDraft928&&(window.__kgmCardDraft928.resdiff={})}catch(_){}try{save()}catch(_){}}}}catch(_){}
+      return r};w.__c940=1;window.kgmResCashSubmitR161=w;return true}
+  if(!hook()){var n=0,t=setInterval(function(){if(hook()||++n>60)clearInterval(t)},500)}setTimeout(hook,3000);setTimeout(hook,12000);
+  window.kgmResDiffCardTxtR1112A=function(b){var c=b&&b.diffCardR1112A,zh=z();if(!c)return zh?'同一張卡（訂位付款卡）':'Booking card';return c.mode==='other'?((zh?'另一張卡 •••• ':'Card •••• ')+c.last4+(c.exp?' · '+c.exp:'')):(zh?'同一張卡（訂位付款卡）':'Booking card')};
+  try{var cs=document.createElement('style');cs.textContent='.k40rc{margin:12px 0;padding:12px 14px;border:1px solid #E1D6BC;background:#FFFCF4;border-radius:12px}.k40rc>b{display:block;font-size:13px;color:#4A3B12;margin-bottom:8px}.k40rc-opt{display:flex;gap:18px;flex-wrap:wrap}.k40rc-opt label{display:flex!important;flex-direction:row!important;gap:8px;align-items:center!important;font-size:13px;color:#14231D;cursor:pointer;margin:0!important}.k40rc-opt input[type=radio]{width:16px!important;height:16px!important;margin:0!important;flex:none}.k40rc-card{margin-top:10px}';document.head.appendChild(cs)}catch(_){}
+})();
