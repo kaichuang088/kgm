@@ -510,3 +510,99 @@ try{var cs38p=document.createElement('style');cs38p.textContent='.k38pets{margin
    +'.k30pd-q td{vertical-align:middle}.k30pd-bar{display:inline-block;width:64px;height:6px;border-radius:9px;background:#EEF1EF;margin-right:8px;vertical-align:middle;overflow:hidden}.k30pd-bar i{display:block;height:100%;background:#2F7D5B}.k30pd-bar.full i{background:#C0562F}.k30pd-q b{font:700 12px ui-monospace,monospace}'
    +'.k30pd-empty{padding:26px;text-align:center;color:#7A857F;font-size:13px}';document.head.appendChild(cs)}catch(_){}
 })();
+/* ══ 1112A C8（使用者：「如果案件是有關退款的那第一關同意要往CEO審核的時候要變成退款類別案件會顯示退款多少錢啊那些的
+     所有案件都一樣 過了第一關都會自動對應正確類別每個類別都有不同的東西」）══
+   ① 過了第一關（客服送 CEO／客服第一次處理把狀態從「已受理」往下推／模擬客服處理）→ 依案件內容自動改成正確類別：
+      內容提到退款／退費／退票 → 「退款申請」（不管原本選什麼）；原本是籠統類別（其他／客訴／航班異常／特殊協助）而內容明顯是
+      行李遺失／延誤／損壞、遺失物品、非自願降艙、拒絕登機、里程補登 → 改成那一類（寵物申請有自己的資料，不從其他類改過去）。處理紀錄寫「依案件內容改列…（原：…）」。
+   ② 每一類有自己的欄位（kgmCaseCatR1112A）：退款＝已付金額、退票手續費／是否免收、應退金額、退款方式、預計入帳；
+      行李＝行李條、暫用品補助／賠償上限；降艙＝原艙／實際艙、應退差額、補償；拒絕登機＝距離、補償；航班異常＝延誤時數、補償；
+      里程補登＝航段、距離、應補里程；客訴＝補償建議；特殊協助＝協助類型；遺失物品＝物品、位置。案件明細與 CEO 審核都顯示，
+      CEO 核准時可改金額（退款／補償），核准紀錄寫金額。金額是依訂位（沒有訂位就依航段票價）估算，畫面註明「估算」。 */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function N(n){return Math.round(+n||0).toLocaleString()}
+  function rec(no){return (S.staffCasesR1007A||[]).filter(function(x){return x&&x.caseNo===no})[0]||null}
+  var LB={refund_req:['退款申請','Refund request'],bag_lost:['行李遺失','Lost baggage'],bag_delayed:['行李延誤','Delayed baggage'],bag_damaged:['行李損壞','Damaged baggage'],item_lost:['遺失物品','Lost property'],
+    complaint:['服務客訴','Service complaint'],assistance:['特殊協助','Special assistance'],disruption:['航班延誤／取消','Delay / cancellation'],other:['其他','Other'],invol_downgrade:['非自願降艙','Involuntary downgrade'],
+    denied_boarding:['拒絕登機／超賣','Denied boarding'],miles_claim:['里程補登','Missing miles claim'],pet:['寵物同行申請','Pet travel application']};
+  function lb(t){var p=LB[t];return p?(z()?p[0]:p[1]):t}
+  function txt(c){return [c.detail,c.description,c.external,c.reason,(c.notes||[]).map(function(n){return n.text}).join(' '),(c.progress||[]).map(function(p){return (p.label||'')+' '+(p.note||'')}).join(' ')].join(' ')}
+  var GEN={other:1,complaint:1,disruption:1,assistance:1};
+  function classify(c){var t=c.type||'other',s=txt(c);if(t==='pet'||t==='group_account')return t;
+    /* 退「機票」才算退款類（退 Wi-Fi 費用、降艙退差額各有自己的類別，不改） */
+    if((GEN[t])&&/退票|票款|機票.{0,6}(退款|退費|退錢)|(退款|退費|退錢).{0,6}機票|refund (the |my )?ticket/i.test(s))return 'refund_req';
+    if(!GEN[t])return t;
+    if(/行李/.test(s)){if(/遺失|找不到|未找到|lost/i.test(s))return 'bag_lost';if(/損壞|斷裂|破損|damage/i.test(s))return 'bag_damaged';if(/延誤|未出現|沒到|PIR|delay/i.test(s))return 'bag_delayed'}
+    if(/降艙|降為|downgrade/i.test(s))return 'invol_downgrade';
+    if(/超賣|拒絕登機|讓位|denied boarding/i.test(s))return 'denied_boarding';
+    if(/(里程|哩程).{0,8}(補登|未入帳|沒有入帳|未自動入帳)/.test(s))return 'miles_claim';
+    if(/(遺留|遺失|忘在|掉在).{0,12}(座位|置物袋|機上|客艙)|(座位|置物袋|機上).{0,12}(遺留|遺失)/.test(s))return 'item_lost';
+    return t}
+  /* ── 欄位 ── */
+  function bkOf(c){return c&&c.pnr?(S.bookings||[]).filter(function(b){return b&&b.pnr===c.pnr})[0]||null:null}
+  function seg(c){return c.segment||(c.segments&&c.segments[0])||{}}
+  function fl(sg){try{return [].concat(FLIGHTS,S.customFlights||[]).filter(function(f){return f&&f.code===sg.code&&(!sg.fr||f.fr===sg.fr)})[0]||null}catch(_){return null}}
+  function dist(sg){try{return Math.round(+distOf(sg.fr,sg.to)||0)}catch(_){return 0}}
+  function price(sg,code){try{var f=fl(sg);if(!f)return 0;return Math.round(+owPrice(Object.assign({},f,{fr:sg.fr||f.fr,to:sg.to||f.to,date:sg.date}),code,1)||0)}catch(_){return 0}}
+  function cabCode(cab){try{var k=Object.keys(FARES).filter(function(k){var f=FARES[k];return f&&f.cabin===cab&&!f.groupPlanR1026C&&FARE_CHAIN.indexOf(k)>=0});return k[Math.min(1,k.length-1)]||'B'}catch(_){return 'B'}}
+  function card(b){try{var p=b&&(b.payment||b.pay||b.card||{});var l4=p.last4||p.cardLast4||(b&&b.cardLast4)||'';return l4?(z()?'原付款信用卡（末四碼 '+l4+'）':'Original card ••'+l4):(z()?'原付款方式':'Original form of payment')}catch(_){return z()?'原付款方式':'Original form of payment'}}
+  function usd(){try{return +((window.KGM_FX_R1022A||{}).USD)||31.5}catch(_){return 31.5}}
+  function cabZh(k){return {Economy:'經濟艙',Premium:'豪華經濟艙',Business:'商務艙',First:'頭等艙',Resident:'Residence'}[k]||k}
+  function compute(c,t){var zh=z(),sg=seg(c),b=bkOf(c),s=txt(c),F=[],amt=null,amtLbl='',note='';
+    var route=sg.code?(sg.code+' '+(sg.fr||'')+'→'+(sg.to||'')+(sg.date?' '+String(sg.date).slice(5):'')):'';
+    if(t==='refund_req'||t==='refund'||t==='customer_refund'){
+      var code=b?(b.outC||''):'',paid=b?Math.round(+((b.price&&b.price.total)||b.total||0)):0,est=false;if(!paid){paid=price(sg,code||cabCode('Economy'));est=true;code=code||cabCode('Economy')}
+      var pol={allowed:true,fee:0};try{pol=refundPolicyOf(code)||pol}catch(_){}
+      var waive=/拒簽|簽證.{0,4}(被拒|遭拒)|死亡|過世|住院|重病|航班取消|取消航班|延誤.{0,6}(小時|h)|非自願|我方|班機異常/.test(s)||/disruption|denied_boarding|invol_downgrade/.test(c.typeWasR1112A||'');
+      var fee=waive?0:(pol.allowed?(+pol.fee||0):paid),net=Math.max(0,paid-fee);amt=net;amtLbl=zh?'應退金額':'Refund due';
+      F=[[zh?'已付票款':'Amount paid','TWD '+N(paid)+(est?(zh?'（依航段票價估算）':' (estimated)'):'')],[zh?'票種':'Fare',code?((FARES[code]||{})[zh?'zh':'en']||code):'—'],
+        [zh?'退票手續費':'Refund fee',waive?(zh?'免收（'+(/簽/.test(s)?'拒簽':/取消|延誤|異常|非自願/.test(s)?'非自願／航班異常':'特殊情況')+'）':'Waived'):(!pol.allowed?(zh?'票價不可退（只退未使用稅金）':'Non-refundable fare'):'TWD '+N(fee))],
+        [zh?'退款方式':'Refund to',card(b)],[zh?'預計入帳':'Expected',zh?'核准後 7～14 個工作天':'7–14 business days after approval']]}
+    else if(/^bag_/.test(t)){var tag=(c.bag&&c.bag.tag)||((/KX\d{6}/.exec(s)||[])[0])||'—';
+      F=[[zh?'行李條':'Bag tag',tag],[zh?'航段':'Flight',route||'—']];
+      if(t==='bag_delayed'){amt=Math.round(50*3*usd());amtLbl=zh?'暫用品補助上限':'Interim expenses cap';F.push([zh?'補助規則':'Rule',zh?'USD 50／天，最多 3 天（憑收據）':'USD 50/day, max 3 days'])}
+      if(t==='bag_lost'){amt=Math.round(1288*1.33*usd());amtLbl=zh?'賠償上限':'Liability cap';F.push([zh?'依據':'Basis',zh?'蒙特婁公約 1,288 SDR（依申報內容與收據核定）':'Montreal Convention 1,288 SDR'])}
+      if(t==='bag_damaged'){amt=Math.round(150*usd());amtLbl=zh?'建議賠償':'Suggested settlement';F.push([zh?'處理方式':'Handling',zh?'送修（附估價單）或依折舊後價值賠償':'Repair or depreciated value'])}}
+    else if(t==='invol_downgrade'){var m=/由(.{1,6}艙)非自願降為(.{1,8}艙)/.exec(s),from=m?m[1]:'商務艙',to=m?m[2]:'豪華經濟艙',ck={'商務艙':'Business','頭等艙':'First','豪華經濟艙':'Premium','經濟艙':'Economy'};
+      var p1=price(sg,cabCode(ck[from]||'Business')),p2=price(sg,cabCode(ck[to]||'Premium')),d=dist(sg),pct=d<=1500?0.3:d<=3500?0.5:0.75;amt=Math.max(0,p1-p2)+Math.round(p1*pct);amtLbl=zh?'應退差額＋補償':'Fare difference + compensation';
+      F=[[zh?'原訂艙等':'Booked',from],[zh?'實際艙等':'Flown',to],[zh?'票價差額（估算）':'Fare difference (est.)','TWD '+N(Math.max(0,p1-p2))],[zh?'補償':'Compensation',(zh?'原票價 ':'')+Math.round(pct*100)+'%（'+(d?N(d)+' km':'')+'）']]}
+    else if(t==='denied_boarding'){var d2=dist(sg),u=d2<=1500?300:d2<=3500?480:720;amt=Math.round(u*usd());amtLbl=zh?'拒絕登機補償':'DB compensation';F=[[zh?'航段':'Flight',route||'—'],[zh?'距離':'Distance',d2?N(d2)+' km':'—'],[zh?'補償標準':'Rule','USD '+u+(zh?'（自願讓位另送 5,000 哩）':'')],[zh?'改搭':'Rebooked',(/下一班/.test(s)?(zh?'下一班':'Next flight'):'—')]]}
+    else if(t==='disruption'){var h=/延誤\s*(\d+)\s*小時/.exec(s),hh=h?+h[1]:0;amt=hh>=5?null:(hh>=3?Math.round(100*usd()):0);amtLbl=zh?'補償':'Compensation';
+      F=[[zh?'航段':'Flight',route||'—'],[zh?'延誤':'Delay',hh?hh+(zh?' 小時以上':'h+'):'—'],[zh?'處理':'Care',hh>=5?(zh?'可選全額退票（轉退款）或改搭':'Full refund or rebooking'):hh>=3?(zh?'餐券＋USD 100 抵用券；錯過轉機 → 免費改搭、必要時住宿':'Meal + USD 100 voucher'):(zh?'餐券':'Meal voucher')]];if(amt==null){amt=0;note=zh?'延誤 5 小時以上：旅客要退票請轉退款類別':''}}
+    else if(t==='miles_claim'){var d3=dist(sg),mi=Math.round(d3*0.621);amt=null;F=[[zh?'航段':'Flight',route||'—'],[zh?'飛行距離':'Distance',d3?N(d3)+' km':'—'],[zh?'應補里程（估算）':'Miles to credit (est.)',d3?N(mi)+(zh?' 哩（依票種累積比例另計）':' mi'):'—']]}
+    else if(t==='complaint'){amt=null;F=[[zh?'航段':'Flight',route||'—'],[zh?'補償建議':'Goodwill',/Wi-?Fi|方案/.test(s)?(zh?'退 Wi-Fi 費用＋1,000 哩':'Refund Wi-Fi + 1,000 mi'):(/餐/.test(s)?(zh?'1,500 哩':'1,500 mi'):(zh?'1,000～3,000 哩或 USD 50 抵用券':'1,000–3,000 mi or USD 50 voucher'))]]}
+    else if(t==='assistance'){F=[[zh?'協助類型':'Type',/UM|無成人陪伴/.test(s)?(zh?'無成人陪伴兒童（UM）':'UM'):/WCH/.test(s)?(zh?'輪椅（'+((/WCH[RSC]/.exec(s)||['WCH'])[0])+'）':'Wheelchair'):/懷孕/.test(s)?(zh?'孕婦':'Pregnancy'):(zh?'其他協助':'Other')],[zh?'航段':'Flight',route||'—']]}
+    else if(t==='item_lost'){var it=(/(iPad|手機|錢包|護照|眼鏡|耳機|筆電|相機|外套)[^，。]*/.exec(s)||[])[0]||'—';F=[[zh?'物品':'Item',it],[zh?'位置':'Where',/置物袋/.test(s)?(zh?'座位前方置物袋':'Seat pocket'):(zh?'客艙':'Cabin')],[zh?'航段':'Flight',route||'—']]}
+    return {type:t,fields:F,amount:amt,amountLabel:amtLbl,note:note,at:new Date().toISOString()}}
+  window.kgmCaseCatR1112A=function(c){if(!c)return null;if(c.type==='pet'||c.type==='group_account'||c.type==='other')return null;var t=c.type;if(!c.catR1112A||c.catR1112A.type!==t)c.catR1112A=compute(c,t);return c.catR1112A};
+  function recat(c,by){if(!c||c.recatR1112A)return false;c.recatR1112A=1;var nt=classify(c);if(nt&&nt!==c.type){var was=c.type;c.typeWasR1112A=was;c.type=nt;c.typeLabelR1101A&&(c.typeLabelR1101A=lb(nt));
+      (c.progress=c.progress||[]).push({at:new Date().toISOString(),status:c.status,label:(z()?'依案件內容改列「':'Re-categorised as "')+lb(nt)+(z()?'」（原：':'" (was: ')+lb(was)+(z()?'）':')'),by:by||(z()?'系統':'System')})}
+    try{c.catR1112A=null;window.kgmCaseCatR1112A(c)}catch(_){}return true}
+  window.kgmCaseRecatR1112A=recat;
+  /* 第一關：送 CEO、客服第一次往下推、模擬客服處理 → 掃描 */
+  function sweep(){var ch=false;(S.staffCasesR1007A||[]).forEach(function(c){if(c&&!c.recatR1112A&&c.status&&c.status!=='received'){recat(c);ch=true}});return ch}
+  function hook(){var ok=0;
+    var O=window.kgmCase28ToCeo;if(typeof O==='function'){if(!O.__c840){var w=function(no){var c=rec(no);if(c){c.recatR1112A=0;recat(c)}return O.apply(this,arguments)};w.__c840=1;window.kgmCase28ToCeo=w}ok++}
+    var U=window.kgmCase7Update;if(typeof U==='function'){if(!U.__c840){var u=function(no){var r=U.apply(this,arguments);try{var c=rec(no);if(c&&c.status!=='received'&&!c.recatR1112A){recat(c);try{save()}catch(_){}try{render()}catch(_){}}}catch(_){}return r};u.__c840=1;window.kgmCase7Update=u}ok++}
+    var C=window.kgmCase28Ceo;if(typeof C==='function'){if(!C.__c840){var cw=function(no,ok2){var c=rec(no),k=c&&c.catR1112A,inp=document.getElementById('k40CatAmt'),v=inp?Math.round(+String(inp.value).replace(/[^\d.]/g,'')||0):null;
+        var st0=c&&c.status,r=C.apply(this,arguments);
+        try{if(c&&k&&ok2===true&&c.status==='closed'&&st0!=='closed'){var a=v!=null?v:k.amount;k.approved=a;k.approvedAt=new Date().toISOString();var last=(c.progress||[])[c.progress.length-1];
+          if(last&&a!=null)last.label+=(z()?'・核准'+(k.amountLabel||'金額')+' TWD ':' · approved TWD ')+N(a);try{save()}catch(_){}try{render()}catch(_){}}}catch(_){}return r};cw.__c840=1;window.kgmCase28Ceo=cw}ok++}
+    var H=window.kgmCaseFilesHtmlR1101A;if(typeof H==='function'){if(!H.__c840){var hw=function(raw){var h='';try{var c=raw&&raw.caseNo?rec(raw.caseNo):null;if(c&&c.status!=='received')h=box(c,false)}catch(_){}return h+H.apply(this,arguments)};hw.__c840=1;window.kgmCaseFilesHtmlR1101A=hw}ok++}
+    var A0=window.kgmCase28CeoActsR1101A;if(typeof A0==='function'){if(!A0.__c840){var aw=function(r){var h=A0.apply(this,arguments);try{var c=rec(r.no),k=c&&window.kgmCaseCatR1112A(c);if(k&&k.amount!=null&&/k28CeoMsg/.test(h)){h=h.replace('<label class="k7c-full">','<label class="k7c-full k40-amt">'+E((z()?'核准':'Approve ')+(k.amountLabel||''))+'（TWD）<input class="inp" id="k40CatAmt" inputmode="numeric" value="'+Math.round(k.amount)+'"></label><label class="k7c-full">')}}catch(_){}return h};aw.__c840=1;window.kgmCase28CeoActsR1101A=aw}ok++}
+    return ok===5}
+  function box(c,ceo){var k=window.kgmCaseCatR1112A(c);if(!k||!k.fields.length&&k.amount==null)return '';var zh=z();
+    return '<div class="k40cat"><div class="k40cat-h"><b>'+E(lb(k.type))+'</b>'+(c.typeWasR1112A?'<small>'+(zh?'由「'+lb(c.typeWasR1112A)+'」自動改列':'was '+lb(c.typeWasR1112A))+'</small>':'')+'</div>'
+      +'<dl>'+k.fields.map(function(f){return '<div><dt>'+E(f[0])+'</dt><dd>'+E(f[1])+'</dd></div>'}).join('')+'</dl>'
+      +(k.amount!=null?'<div class="k40cat-amt"><span>'+E(k.amountLabel)+'</span><b>TWD '+N(k.approved!=null?k.approved:k.amount)+'</b>'+(k.approved!=null?'<em>'+(zh?'CEO 已核准':'Approved')+'</em>':'<em>'+(zh?'估算・待 CEO 核准':'Estimate')+'</em>')+'</div>':'')
+      +(k.note?'<p>'+E(k.note)+'</p>':'')+'</div>'}
+  if(!hook()){var n=0,t=setInterval(function(){if(hook()||++n>60)clearInterval(t)},500)}
+  setTimeout(hook,3000);setTimeout(hook,12000);
+  setTimeout(function(){try{if(sweep())save()}catch(_){}},8000);setInterval(function(){try{if(sweep()){try{save()}catch(_){}if(S.view==='admin'&&/case/.test(String(S.adminTab||'')))(window.kgmSafeRenderR1026C||render)()}}catch(_){}},15000);
+  try{var cs=document.createElement('style');cs.textContent='.k40cat{border:1px solid #DCE6E1;background:#F7FAF8;border-radius:12px;padding:12px 14px;margin:10px 0}.k40cat-h{display:flex;gap:10px;align-items:baseline;margin-bottom:6px}.k40cat-h b{color:#0B3D2E;font-size:14px}.k40cat-h small{color:#8A6A2A;font-size:11.5px}'
+    +'.k40cat dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px 14px;margin:0}.k40cat dt{font-size:11px;color:#6B7A72}.k40cat dd{margin:0;font-size:13px;color:#14231D;font-weight:600}'
+    +'.k40cat-amt{display:flex;gap:10px;align-items:baseline;margin-top:10px;padding-top:8px;border-top:1px dashed #CFDCD5}.k40cat-amt span{font-size:12px;color:#4E6A5E}.k40cat-amt b{font:800 18px system-ui,sans-serif;color:#0B3D2E}.k40cat-amt em{font-style:normal;font-size:11px;color:#8A6A2A}.k40cat p{margin:6px 0 0;font-size:12px;color:#8A6A2A}'
+    +'.k40-amt input{max-width:220px}';document.head.appendChild(cs)}catch(_){}
+})();
