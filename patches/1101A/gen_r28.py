@@ -808,6 +808,8 @@ RW('r81 pdf title R1112A',"(z()?'飛行資料 PDF 只開放飛行員與 CEO。':
 
 # C3（使用者：「所以不用圖五喔」）：我的團體訂位名單頁，拆到其他艙等的旅客接在同一張名單表（grp28 kgmGrpMovedRowsR1112A），不再另外一張表
 RW('grp names moved rows R1112A',"<tbody>'+rows+'</tbody></table></div>'+mv","<tbody>'+rows+(window.kgmGrpMovedRowsR1112A?window.kgmGrpMovedRowsR1112A(g):'')+'</tbody></table></div>'+(window.kgmGrpMovedRowsR1112A?'':mv)")
+# 1112A C7：0819I 把搜尋整個換成 originalSearchI，0913A「不開放販售」（noSaleR913）只寫在被取代的舊函式裡 → 包機空機段、不開放販售的臨時航班一直搜得到、訂得到
+RW('search nosale R1112A',"    if(f.published===false)return false;\n    var ov=((S.flightOverrides||{})[f.code+'_'+date])||{};if(ov.status==='Cancelled')return false;","    if(f.published===false)return false;\n    if(f.noSaleR913)return false;   /* 1112A：不開放販售（包機空機段、只排班不賣票的臨時航班）搜尋與訂位都看不到 */\n    var ov=((S.flightOverrides||{})[f.code+'_'+date])||{};if(ov.status==='Cancelled')return false;")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()

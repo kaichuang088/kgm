@@ -66,7 +66,9 @@
         g.names=nm.list.map(function(n,i){return {last:n.last,first:n.first,gender:'',dob:'',passport:'',type:'ADT',member:n.member}});
         (b.paxList||[]).forEach(function(p,i){var n=nm.list[i];if(n){p.lastName=n.last;p.firstName=n.first;p.groupNameTbaR1023A=false;if(n.member)p.kgmMemberR1101A=n.member}});
         (g.history=g.history||[]).push({at:new Date().toISOString(),act:(zh?'接受報價 ':'Quote accepted ')+M(Q.amount)+(zh?'，名單 '+nm.list.length+' 位；開票日 '+g.ticketFromR1101A:''),by:'customer'});
-        if(Q.openFerry){(S.customFlights||[]).forEach(function(f){if(f&&f.charterR1026C===r.id&&f.ferryR1026C){f.ferryR1026C=false;f.noSaleR913=false;f.publicReturnR1101A=true;(r.history=r.history||[]).push({at:new Date().toISOString(),act:(zh?'空機回程開放一般旅客訂購：':'Open for sale: ')+f.code+' '+f.fr+'→'+f.to,by:'system'})}})}
+        /* 1112A C7（使用者：「包團的空機回程開放訂位那個是要等正式開團確定成功才可以開放訂位喔」）：接受報價時還沒付款、團還沒成立 → 先不開放，
+           只記下「付清後開放」；全額付清（tick 看 g.deposit.paid）才把空機回程改成可訂。 */
+        if(Q.openFerry){r.openFerryPendingR1112A=true;(r.history=r.history||[]).push({at:new Date().toISOString(),act:zh?'空機回程：全額付清、正式成團後才開放一般旅客訂購':'Empty return opens for sale after full payment',by:'system'})}
         r.quote=Q.amount;r.acceptedAt=new Date().toISOString();(r.history=r.history||[]).push({at:r.acceptedAt,act:zh?'申請人接受報價':'Quote accepted',by:'customer'});
         mail('group.charter_approved',r,(zh?'已接受報價 '+M(Q.amount)+'，航班 '+(r.flights||[]).map(function(m){return m.code+' '+m.fr+'→'+m.to+' '+m.date}).join('；')+'；請立即付清。名單起飛前 14 天（'+g.ticketFromR1101A+'）前可修改，之後自動開票。':'Accepted'));
         save1();try{render()}catch(_){}if(g.deposit.token&&window.kgmOpenPayR45)setTimeout(function(){try{window.kgmOpenPayR45(g.deposit.token)}catch(_){}},200)}}catch(e){try{console.warn('cr28 accept',e)}catch(_){}}};
@@ -88,7 +90,20 @@
       if(g&&g.ticketFromR1101A&&T()>=g.ticketFromR1101A){S.grpMsgR1025B=z()?'起飛前 14 天之後名單不能再改（已依確認的名單開票）。':'Names are locked 14 days before departure.';try{render()}catch(_){}return}return O.apply(this,arguments)};w.__cr28=1;window.kgmGrpNamesR1025B=w}
   nw();setTimeout(nw,0);setTimeout(nw,5000);
   /* 全額付清 → 尾款視同已付；過期報價 */
+  /* 1112A C7：空機回程開放訂購只在團體全額付清（正式成團）之後；付清前已經被舊版開放、又還沒有人訂的，先關回去等付清 */
+  function grpOfR(r){return r&&r.groupId?(S.groupsR1023A||[]).filter(function(x){return x&&x.id===r.groupId})[0]:null}
+  function paidR(r){var g=grpOfR(r);return !!(g&&g.deposit&&g.deposit.paid&&!/cancel/.test(String(g.status||''))&&!/cancel|reject|expired/.test(String(r.status||'')))}
+  function sold(f){try{return (S.bookings||[]).some(function(b){return b&&b.status!=='cancelled'&&[b.outF,b.inbF].concat(b.mcFlights||[]).some(function(x){return x&&x.code===f.code&&x.fr===f.fr&&x.to===f.to})})}catch(_){return true}}
+  function ferry40(){var ch=false;R().forEach(function(r){if(!r)return;var want=!!(r.openFerryPendingR1112A||(r.quoteR1101A&&r.quoteR1101A.openFerry&&r.acceptedAt));if(!want)return;var ok=paidR(r);
+      (S.customFlights||[]).forEach(function(f){if(!f||f.charterR1026C!==r.id)return;
+        if(ok&&f.ferryR1026C){f.ferryR1026C=false;f.noSaleR913=false;f.publicReturnR1101A=true;f.ferryWasR1112A=true;(r.history=r.history||[]).push({at:new Date().toISOString(),act:(z()?'正式成團（全額付清），空機回程開放一般旅客訂購：':'Charter confirmed; empty return open for sale: ')+f.code+' '+f.fr+'→'+f.to,by:'system'});ch=true}
+        else if(!ok&&f.publicReturnR1101A&&!f.ferryR1026C&&!sold(f)){f.ferryR1026C=true;f.noSaleR913=true;f.publicReturnR1101A=false;f.ferryWasR1112A=true;ch=true}});
+      if(ok&&r.openFerryPendingR1112A){r.openFerryPendingR1112A=false;ch=true}});
+    if(ch){try{window.kgmClearScheduleCache0819J&&window.kgmClearScheduleCache0819J()}catch(_){}try{window.kgmClearPerfCacheR44&&window.kgmClearPerfCacheR44()}catch(_){}}   /* 搜尋快取的鍵不含「開不開放販售」→ 改了要清 */
+    return ch}
+  window.kgmCharterFerryTickR1112A=function(){var c=ferry40();if(c)save1();return c};
   function tick(){var ch=false,td=T();(S.groupsR1023A||[]).forEach(function(g){if(g&&g.fullPayR1101A&&g.deposit&&g.deposit.paid&&!g.balance.paid){g.balance.paid=true;g.balance.amountPaid=0;g.status='paid';ch=true}});
+    try{if(ferry40())ch=true}catch(_){}
     R().forEach(function(r){if(r&&r.status==='quoted'&&r.quoteR1101A&&td>r.quoteR1101A.until){r.status='expired';(r.history=r.history||[]).push({at:new Date().toISOString(),act:z()?'報價逾期未回覆':'Quote expired',by:'system'});ch=true}});
     if(ch)save1();return ch}
   setInterval(function(){try{if(tick())(window.kgmSafeRenderR1026C||render)()}catch(_){}},20000);setTimeout(tick,9000);
@@ -100,11 +115,11 @@
       var box=document.createElement('div');box.className='k28q-desk';
       box.innerHTML='<label>'+(zh?'報價金額（不二價，可改）':'Quote (editable)')+'<input id="k28q-amt-'+E(id)+'" class="inp" data-base="'+base+'" value="'+(base?base+fer:'')+'"></label>'
         +'<small>'+(zh?('系統試算 '+M(base)+(one?' ＋ 空機回程分攤 40% '+M(fer)+'（單程自創航班）':'')+'；客戶 '+until(r)+' 前要回覆'):'')+'</small>'
-        +(r.kind!=='charter_existing'?'<label class="ck"><input type="checkbox" id="k28q-open-'+E(id)+'"> '+(zh?'空機回程開放一般旅客訂購（例：TPE-NRT 包機，當天 NRT-TPE 回程開放販售）':'Open the empty return for public sale')+'</label>':'');
+        +(r.kind!=='charter_existing'?'<label class="ck"><input type="checkbox" id="k28q-open-'+E(id)+'"> '+(zh?'空機回程開放一般旅客訂購（例：TPE-NRT 包機，當天 NRT-TPE 回程開放販售；客戶全額付清、正式成團後才開放）':'Open the empty return for public sale')+'</label>':'');
       bt.parentNode.insertBefore(box,bt)});
     R().forEach(function(r){if(!r||(r.status!=='quoted'&&!(r.upsizeR1101A&&r.upsizeR1101A.status==='requested')))return;var card=[].filter.call(document.querySelectorAll('article.k27cd'),function(a){return (a.textContent||'').indexOf(r.id)>=0})[0];if(!card||card.querySelector('.k28q-st'))return;
       var d=document.createElement('div');d.className='k28q-st';var Q=r.quoteR1101A||{};
-      d.innerHTML=(r.status==='quoted'?'<b>'+(zh?'已報價 ':'Quoted ')+M(Q.amount)+'</b>'+(zh?'・等待客戶回覆（'+E(Q.until)+' 前）'+(Q.openFerry?'・空機回程將開放販售':''):''):'')
+      d.innerHTML=(r.status==='quoted'?'<b>'+(zh?'已報價 ':'Quoted ')+M(Q.amount)+'</b>'+(zh?'・等待客戶回覆（'+E(Q.until)+' 前）'+(Q.openFerry?'・空機回程於全額付清、正式成團後開放販售':''):''):'')
         +(r.upsizeR1101A&&r.upsizeR1101A.status==='requested'?'<div>'+(zh?'客戶申請換大機型：':'Upsize request: ')+'<b>'+E(r.upsizeR1101A.from)+' → '+E(r.upsizeR1101A.type)+'</b>'+(zh?'（起飛前 21 天 '+E(r.upsizeR1101A.confirmBy)+' 前確認）':'')+' <button type="button" class="k25g-btn sm" onclick="kgmCharterUpsizeOkR1101A(\''+E(r.id)+'\',true)">'+(zh?'核准換機型':'Approve')+'</button> <button type="button" class="k25g-btn ghost sm" onclick="kgmCharterUpsizeOkR1101A(\''+E(r.id)+'\',false)">'+(zh?'不核准':'Decline')+'</button></div>':'');
       card.appendChild(d)})}
   function frontDecor(){if(S.view==='admin')return;var zh=z();
