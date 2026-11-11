@@ -799,6 +799,13 @@ RW('irr29 art',irr_doc29.ANCHOR,irr_doc29.ANCHOR+irr_doc29.ART.replace('"','\\"'
 RW('irr29 ver','"KGM-IRR-013":{"t":"航班異常處理及旅客權益辦法","en":"Irregular Operations and Passenger Rights","ver":"2026.09（Rev. A）","eff":"2026-09-14","owner":"聯合管制中心\u3000會同旅客服務處","arts":16,',
    '"KGM-IRR-013":{"t":"航班異常處理及旅客權益辦法","en":"Irregular Operations and Passenger Rights","ver":"2026.11（Rev. B）","eff":"2026-11-08","owner":"聯合管制中心\u3000會同旅客服務處","arts":17,')
 
+# ══ 1112A ══
+# C6（使用者：「航班資料PDF report一樣只有餐點啊之前叫你加入你沒加入啊」）：r81 會把航班資料頁每個「PDF」按鈕的 onclick 換成它自己的舊報表（只有餐點），
+#   1108A／1108B 的航班作業報告（CEO 完整版／機師版／客艙版）從按鈕根本到不了 → 按鈕改成開真正的報告；能不能按跟報告本身的職位規則一樣（CEO／機師／客艙／地勤／客服）。
+RW('r81 pdf to ops report R1112A',"window.kgmOpsPdfR81=function(){\n  if(!canPdf81()){","window.kgmOpsPdfR81=function(){\n  /* 1112A：一律開航班作業報告（依職位分版本），不再用這裡只有餐點的舊報表 */\n  if(typeof window.kgmOpsReportR1018A==='function')return window.kgmOpsReportR1018A();\n  if(!canPdf81()){")
+RW('r81 pdf roles R1112A',"function canPdf81(){var r=role81();return r==='pilot'||r==='ceo'}","function canPdf81(){var r=role81();try{if((S.adminUser||{}).empId==='MASTER')return true}catch(_){}return /^(pilot|ceo|cabin|ground|service)$/.test(String(r||''))}   /* 1112A：跟航班作業報告的職位版本一致 */")
+RW('r81 pdf title R1112A',"(z()?'飛行資料 PDF 只開放飛行員與 CEO。':'Pilots and the CEO only.');","(z()?'航班作業報告只開放 CEO、機師、客艙組員／地勤／客服匯出。':'CEO, pilots and cabin / ground / service staff only.');")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
