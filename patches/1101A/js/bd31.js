@@ -174,9 +174,9 @@
     try{var rows=window.kgmAuctionRowsR920('')||[],z0=z(),c={res:0,bd:0,lead:0,won:0,val:0},fl={};rows.forEach(function(r){var k=r.code+'|'+r.date+'|'+r.kind;if(!fl[k]){fl[k]=1;if(r.kind==='bigdeal')c.bd++;else c.res++}if(r.status==='leading')c.lead++;if(r.status==='won')c.won++;c.val+=(+r.combined||((+r.ticket||0)+(+r.amount||0)))});
       var v=S.aucViewR1103A||'all';
       var head='<header class="k31a-h"><div><small>AUCTIONS</small><h2>'+(z0?'競標管理':'Auctions')+'</h2><div class="k31a-seg">'+[['all',z0?'全部':'All'],['res','Residence'],['bd','BigDeal']].map(function(t){return '<button class="'+(v===t[0]?'on':'')+'" onclick="S.aucViewR1103A=\''+t[0]+'\';render()">'+t[1]+'</button>'}).join('')+'</div></div>'
-        +'<div class="k31a-k"><div><small>'+(z0?'Residence 競標組':'Residence groups')+'</small><b>'+N(c.res)+'</b></div><div><small>'+(z0?'BigDeal 競標組':'BigDeal groups')+'</small><b>'+N(c.bd)+'</b></div><div><small>'+(z0?'目前領先出價':'Leading bids')+'</small><b>'+N(c.lead)+'</b></div><div><small>'+(z0?'已得標':'Won')+'</small><b>'+N(c.won)+'</b></div><div><small>'+(z0?'出價總價值':'Total bid value')+'</small><b>NT$'+N(c.val)+'</b></div></div>'
+        +'<div class="k31a-k"><div><small>'+(z0?'Residence 競標組':'Residence groups')+'</small><b>'+N(c.res)+'</b></div><div><small>'+(z0?'BigDeal 競標組':'BigDeal groups')+'</small><b>'+N(c.bd)+'</b></div><div><small>'+(z0?'進行中出價':'Live bids')+'</small><b>'+N(window.kgmAucLiveCountR1112A?window.kgmAucLiveCountR1112A():c.lead)+'</b></div><div><small>'+(z0?'已得標':'Won')+'</small><b>'+N(c.won)+'</b></div><div><small>'+(z0?'出價總價值':'Total bid value')+'</small><b>NT$'+N(c.val)+'</b></div></div>'
         +'<details class="k31a-r"><summary>'+(z0?'競標規則':'Rules')+'</summary>';
-      h=h.replace(/<header><small>AUCTIONS · 競標管理<\/small><b>[\s\S]*?<\/b><p>/,head+'<p>').replace(/<\/p><\/header>/,'</p></details></header>');
+      h=h.replace(/<header><small>AUCTIONS · 競標管理<\/small><b>[\s\S]*?<\/b><p>/,head+'<p>').replace(/<\/p><\/header>/,'</p></details></header>'+(window.kgmAucLiveR1112A?window.kgmAucLiveR1112A(v):''));
       h=h.replace('<section class="k920-auc">','<section class="k920-auc k31a v-'+v+'">');
       if(!srch)h=h.replace(/<article class="k920-grp( k22c)?" data-k22="([^"]*)">/g,function(m,cl,k){var st=(S._aucColR1022A||{});var col=(k in st)?!!st[k]:true;return '<article class="k920-grp'+(col?' k22c':'')+'" data-k22="'+k+'">'});
       h=h.replace(/onclick="kgmAucColR1022A\(this\.closest\('\.k920-grp'\)\.getAttribute\('data-k22'\)\)"/g,'onclick="kgmAucToggleR1103A(this.closest(\'.k920-grp\').getAttribute(\'data-k22\'))"')}catch(e){try{console.warn('bd31 auc',e)}catch(_){}}
@@ -328,4 +328,56 @@
   if(!hook()){var n=0,t=setInterval(function(){if(hook()||++n>60)clearInterval(t)},500)}setTimeout(hook,3000);setTimeout(hook,12000);
   window.kgmResDiffCardTxtR1112A=function(b){var c=b&&b.diffCardR1112A,zh=z();if(!c)return zh?'同一張卡（訂位付款卡）':'Booking card';return c.mode==='other'?((zh?'另一張卡 •••• ':'Card •••• ')+c.last4+(c.exp?' · '+c.exp:'')):(zh?'同一張卡（訂位付款卡）':'Booking card')};
   try{var cs=document.createElement('style');cs.textContent='.k40rc{margin:12px 0;padding:12px 14px;border:1px solid #E1D6BC;background:#FFFCF4;border-radius:12px}.k40rc>b{display:block;font-size:13px;color:#4A3B12;margin-bottom:8px}.k40rc-opt{display:flex;gap:18px;flex-wrap:wrap}.k40rc-opt label{display:flex!important;flex-direction:row!important;gap:8px;align-items:center!important;font-size:13px;color:#14231D;cursor:pointer;margin:0!important}.k40rc-opt input[type=radio]{width:16px!important;height:16px!important;margin:0!important;flex:none}.k40rc-card{margin-top:10px}';document.head.appendChild(cs)}catch(_){}
+})();
+
+/* ══ 1112A C10（使用者：「後台進行中的競標也要看得到喔」）══
+   競標管理原本依日期由舊到新列組、每頁 12 組 → 第一頁全是已結標／已公布，進行中的出價（BigDeal 領先／Out of Bid、Residence 現金／里程開放中）
+   要按好幾次「顯示更多」才看得到；頂部「目前領先出價」也一直是 0。→ 頂部加「進行中的競標」一張表（依航班日期、艙等，每位出價者一列：
+   旅客、PNR、現金、里程、總價值、名次、狀態、出價時間；Residence 另列得標差額扣款卡），跟著上方「全部／Residence／BigDeal」切換；
+   頂部數字改成「進行中出價」。 */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function N(n){return Math.round(+n||0).toLocaleString()}
+  function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
+  var CZ={Economy:['經濟艙','Economy'],Premium:['豪華經濟艙','Premium'],Business:['商務艙','Business'],First:['頭等艙','First'],Resident:['Residence','Residence']};
+  function cz(k){var p=CZ[k];return p?(z()?p[0]:p[1]):(k||'')}
+  function live(){var out=[],td=T(),FM={},WO={};
+    function fOf(c,fr,to){var k=c+fr+to;if(!(k in FM)){FM[k]=null;try{FM[k]=[].concat(FLIGHTS,S.customFlights||[]).filter(function(f){return f&&f.code===c&&f.fr===fr&&f.to===to})[0]||null}catch(_){}}return FM[k]}
+    function open(b){var k=b.code+b.fr+b.to+b.date;if(!(k in WO)){var f=fOf(b.code,b.fr,b.to);WO[k]=!f||!window.kgmBigDealWindowR929||!!window.kgmBigDealWindowR929(f,b.date).open}return WO[k]}   /* 已過起飛前 48 小時（等結標）不算進行中 */
+    (S.bigDeals||[]).forEach(function(b){if(!b||!/^(open|leading|outbid|pending)$/.test(String(b.status||''))||String(b.date||'')<td||!open(b))return;var v=0;try{v=window.kgmBigDealValueR929(b)}catch(_){v=+b.amount||0}
+      out.push({ref:b,k:'bd',code:b.code,date:b.date,fr:b.fr,to:b.to,cab:b.toCabin||b.cabin,from:b.cabin,who:b.who||b.userId||'',pnr:b.pnr||'',cash:+b.amount||0,miles:+b.miles||0,val:v,pax:+b.pax||1,rank:+b.rankR929||0,st:b.status,at:b.at||b.placedAt||'',mock:!!b.demoR922})});
+    (S.residenceBidsR83||[]).forEach(function(b){if(!b||b.status!=='open'||String(b.date||'')<td)return;out.push({k:'rc',code:b.code,date:b.date,fr:b.fr,to:b.to,cab:'Resident',who:b.who||b.userId||'',pnr:b.pnr||'',cash:+b.amount||0,miles:0,val:+b.amount||0,pax:+b.pax||1,st:'open',at:b.placedAt||'',mock:!!b.demoR922,card:window.kgmResDiffCardTxtR1112A?window.kgmResDiffCardTxtR1112A(b):''})});
+    (S.resMileBidsR161||[]).forEach(function(b){if(!b||b.status!=='open'||String(b.date||'')<td)return;var v=0;try{v=window.kgmResCombinedR920?window.kgmResCombinedR920(b):0}catch(_){}out.push({k:'rm',code:b.code,date:b.date,fr:b.fr,to:b.to,cab:'Resident',who:b.who||b.userId||'',pnr:b.pnr||'',cash:0,miles:+b.miles||0,val:v,pax:1,st:'open',at:b.placedAt||'',mock:!!b.demoR922})});
+    /* 同一組（航班＋日期＋航段＋艙等＋種類）依總價值排名 */
+    var g={};out.forEach(function(r){var k=[r.k==='bd'?'bd':'res',r.code,r.date,r.fr,r.to,r.cab].join('|');(g[k]=g[k]||[]).push(r)});
+    Object.keys(g).forEach(function(k){var L=g[k];if(L[0].k!=='bd'){L.sort(function(a,b){return (a.k==='rc'?0:1)-(b.k==='rc'?0:1)||b.val-a.val});L.forEach(function(r,i){r.rank=i+1;r.st=i===0?'leading':'open'})}});
+    return {rows:out,groups:g}}
+  /* Available Seats 要扣掉 Payload 限制：1023A 的 Payload 層會把超過可載重量的出價改成 Out of Bid，但畫面仍寫原本的空位數（例：KX14 ONT→TPE 豪經
+     Available Seats 6、9 位全部 Out of Bid）。→ 排名結果的 seats＝min(空位, 剩餘 Payload ÷ 每位升等多出的行李重量)；原本的空位數留在 seatsRawR1112A。
+     只改顯示的數字，誰得標照舊（Payload 層決定）。 */
+  function effWrap(){var O=window.kgmBigDealRankR929;if(typeof O!=='function'||O.__c1040)return;var w=function(code,date,fr,to,cab){var r=O.apply(this,arguments);
+      try{if(r&&r.list&&r.list.length&&r.seatsRawR1112A==null){var left=r.payloadKg;if(left==null&&window.kgmPayloadR1023A){var pl=window.kgmPayloadR1023A(code,date,fr,to);left=pl&&isFinite(pl.left)?pl.left:null}
+        r.seatsRawR1112A=r.seats;if(left!=null){var need=0,n=0;r.list.forEach(function(b){try{need+=window.kgmBigDealBagKgR1023A(b);n+=Math.max(1,+b.pax||1)}catch(_){}});var per=n?Math.max(1,need/n):23;
+          var used=r.list.filter(function(b){return b.status==='leading'}).reduce(function(a,b){return a+Math.max(1,+b.pax||1)},0);r.seats=Math.min(r.seats,used+Math.max(0,Math.floor((left-(r.payloadUsed||0))/per)));r.payloadLimitedR1112A=r.seats<r.seatsRawR1112A}}}catch(_){}
+      return r};try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__c1040=1;window.kgmBigDealRankR929=w}
+  [0,3000,16000,30000].forEach(function(ms){setTimeout(effWrap,ms)});
+  window.kgmAucLiveCountR1112A=function(){try{return live().rows.length}catch(_){return 0}};
+  window.kgmAucLiveR1112A=function(v){var zh=z(),L=live(),keys=Object.keys(L.groups).filter(function(k){return v==='res'?/^res\|/.test(k):v==='bd'?/^bd\|/.test(k):true});
+    keys.sort(function(a,b){var x=L.groups[a][0],y=L.groups[b][0];return String(x.date).localeCompare(String(y.date))||String(x.code).localeCompare(String(y.code))});
+    var all=!!S.aucLiveAllR1112A,shown=all?keys:keys.slice(0,8),n=keys.reduce(function(a,k){return a+L.groups[k].length},0);
+    var ST={leading:zh?'領先（座位內）':'Leading',outbid:'Out of Bid',open:zh?'出價中':'Open',pending:zh?'出價中':'Open'};
+    var body=shown.map(function(k){var R=L.groups[k],r0=R[0],seats='';if(r0.k==='bd'){try{var rk=window.kgmBigDealRankR929(r0.code,r0.date,r0.fr,r0.to,r0.cab,false);seats=(zh?'Available Seats ':'Seats ')+rk.seats+(rk.payloadLimitedR1112A?(zh?'（空位 '+rk.seatsRawR1112A+'，Payload 限制）':' (payload-limited)'):'')+(zh?'・競標人數 ':' · bidders ')+rk.bidders;
+          R.forEach(function(r){if(r.ref){r.st=r.ref.status;r.rank=+r.ref.rankR929||0}})}catch(_){}}else seats=(zh?'出價人數 ':'Bidders ')+R.length;   /* 排名後再讀狀態（原本先抄狀態、再排名 → 座位 6 個卻 9 位全部 Out of Bid） */
+      R=R.slice().sort(function(a,b){return (a.rank||999)-(b.rank||999)});
+      return '<div class="k40lv-g"><div class="k40lv-gh"><b>'+E(r0.code+' '+r0.fr+'→'+r0.to)+'</b><span>'+E(r0.date)+'</span><em class="'+(r0.k==='bd'?'bd':'res')+'">'+(r0.k==='bd'?'BigDeal → '+E(cz(r0.cab)):'Residence')+'</em><small>'+E(seats)+'</small></div>'
+        +'<table class="k40lv-t"><thead><tr><th>#</th><th>'+(zh?'旅客':'Bidder')+'</th><th>PNR</th><th class="r">'+(zh?'現金':'Cash')+'</th><th class="r">'+(zh?'里程':'Miles')+'</th><th class="r">'+(zh?'總價值':'Value')+'</th><th>'+(zh?'狀態':'Status')+'</th><th>'+(zh?'出價時間':'Placed')+'</th>'+(r0.k!=='bd'?'<th>'+(zh?'得標差額扣款':'Difference charged to')+'</th>':'')+'</tr></thead><tbody>'
+        +R.map(function(r){return '<tr'+(r.mock?'':' class="real"')+'><td>'+(r.rank||'—')+'</td><td>'+E(r.who)+(r.mock?'':'<i>'+(zh?'會員':'member')+'</i>')+(r.pax>1?'<small>×'+r.pax+'</small>':'')+'</td><td class="mono">'+E(r.pnr)+'</td><td class="r">'+(r.cash?'NT$'+N(r.cash):'—')+'</td><td class="r">'+(r.miles?N(r.miles):'—')+'</td><td class="r"><b>NT$'+N(r.val)+'</b></td><td><span class="k40lv-st '+E(r.st)+'">'+E(r.k==='rm'?(zh?'里程出價中':'Miles bid'):(ST[r.st]||r.st))+(r.ref&&r.ref.payloadR1023A?(zh?'・Payload':' · payload'):'')+'</span></td><td>'+E(String(r.at||'').replace('T',' ').slice(5,16))+'</td>'+(r.k!=='bd'?'<td>'+E(r.k==='rc'?(r.card||''):'—')+'</td>':'')+'</tr>'}).join('')+'</tbody></table></div>'}).join('');
+    return '<section class="k40lv"><div class="k40lv-h"><div><small>LIVE</small><h3>'+(zh?'進行中的競標':'Live auctions')+'</h3></div><span>'+(zh?(keys.length+' 組・'+n+' 筆出價（還沒結標，依起飛日排序）'):(keys.length+' groups · '+n+' bids'))+'</span></div>'
+      +(keys.length?body:'<p class="k40lv-n">'+(zh?'目前沒有進行中的競標。':'No live auctions.')+'</p>')
+      +(keys.length>8?'<button class="btn k40lv-more" onclick="S.aucLiveAllR1112A='+(all?'false':'true')+';render()">'+(all?(zh?'只看前 8 組':'Show fewer'):(zh?'顯示全部 '+keys.length+' 組':'Show all '+keys.length))+'</button>':'')+'</section>'};
+  try{var cs=document.createElement('style');cs.textContent='.k40lv{margin:14px 0 16px;background:#fff;border:1px solid #d9e6df;border-radius:14px;padding:14px 16px}.k40lv-h{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:8px}.k40lv-h small{font-size:10.5px;letter-spacing:.18em;color:#1f6f4a;font-weight:800}.k40lv-h h3{margin:2px 0 0;font-size:17px;color:#0b3b30}.k40lv-h>span{font-size:12px;color:#6b645a}'
+    +'.k40lv-g{border-top:1px solid #eef2ef;padding:10px 0 6px}.k40lv-gh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}.k40lv-gh b{font-size:13.5px;color:#0b3b30}.k40lv-gh span{font-size:12px;color:#6b645a}.k40lv-gh em{font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:2px 9px}.k40lv-gh em.bd{background:#fff1e6;color:#9a3412}.k40lv-gh em.res{background:#f3ecff;color:#5b21b6}.k40lv-gh small{margin-left:auto;font-size:11.5px;color:#4e6a5e}'
+    +'.k40lv-t{width:100%;border-collapse:collapse;font-size:12px}.k40lv-t th{text-align:left;font-size:10.5px;color:#8a8175;background:#faf8f3;padding:6px 8px;font-weight:800}.k40lv-t td{padding:6px 8px;border-top:1px solid #f1ede4}.k40lv-t .r{text-align:right}.k40lv-t .mono{font-family:ui-monospace,monospace}.k40lv-t td i{font-style:normal;font-size:10px;font-weight:800;color:#1f6f4a;background:#e7f4ec;border-radius:999px;padding:1px 6px;margin-left:6px}.k40lv-t td small{color:#8a8175;margin-left:4px}.k40lv-t tr.real td{background:#fbfffc}'
+    +'.k40lv-st{font-size:11px;font-weight:800;border-radius:999px;padding:2px 8px;background:#eef2f0;color:#3c5a50;white-space:nowrap}.k40lv-st.leading{background:#e7f4ec;color:#1f6f4a}.k40lv-st.outbid{background:#fbe6e0;color:#9b2d17}.k40lv-n{font-size:12.5px;color:#7a7266}.k40lv-more{margin-top:8px}';document.head.appendChild(cs)}catch(_){}
 })();
