@@ -79,7 +79,16 @@
     return '<div class="k38ap-pay"><b>'+(zh?'尾款自動扣款':'Balance auto-charge')+'</b><span>'+(zh?'尾款期限當天自動扣款，不用再另外付款；名單齊全後自動開票。':'The balance is charged automatically on the due date.')+'</span>'
       +'<label><input type="radio" name="k38ap" '+(oth?'':'checked')+' onchange="S.grpBalCardR1108A.mode=\'same\';render()"> '+(zh?'用這次付訂金的同一張卡':'Same card as this payment')+'</label>'
       +'<label><input type="radio" name="k38ap" '+(oth?'checked':'')+' onchange="S.grpBalCardR1108A.mode=\'other\';render()"> '+(zh?'用另一張信用卡扣尾款':'Use a different card for the balance')+'</label>'
-      +(oth?'<div class="k38ap-f"><input id="k38apNum" class="inp" inputmode="numeric" placeholder="'+(zh?'卡號':'Card number')+'" value="'+E(c.num||'')+'" oninput="S.grpBalCardR1108A.num=this.value"><input id="k38apExp" class="inp" placeholder="MM/YY" value="'+E(c.exp||'')+'" oninput="S.grpBalCardR1108A.exp=this.value"><input id="k38apName" class="inp" placeholder="'+(zh?'持卡人姓名':'Cardholder')+'" value="'+E(c.name||'')+'" oninput="S.grpBalCardR1108A.name=this.value"></div>':'')+'</div>'}
+      +(oth?cardForm('grpbal',{num:'k38apNum',name:'k38apName',expM:'k38apExpM',expY:'k38apExpY',exp:'k38apExp',cvv:'k38apCvv'},zh?'尾款期限當天才從這張卡扣款，現在不扣。':'This card is charged on the balance due date, not now.'):'')+'</div>'}
+  /* 1112A C1／C2（使用者：「尾款需要安全碼吧 然後我希望可以是圖二的格式」）：扣尾款的另一張卡＝付款頁同一個信用卡元件（卡片預覽、卡號、有效期限月／年、安全碼 CVV、持卡人姓名），
+     安全碼只用來驗證、不存（跟付款頁一樣）；重畫時已填的安全碼保留在畫面草稿 CVV38（不存檔）。 */
+  var CVV38={};
+  function cardForm(key,ids,note){var h='';try{h=kgmCardFormR923({key:key,ids:ids,contact:false,ssl:note})}catch(_){return ''}
+    return '<div class="k38ap-card">'+h.replace('id="'+ids.cvv+'"','id="'+ids.cvv+'" value="'+E(CVV38[key]||'')+'"')+'</div>'}
+  document.addEventListener('input',function(e){var t=e.target;if(!t||!t.id)return;if(t.id==='k38apCvv')CVV38.grpbal=t.value;if(t.id==='k38apCvv2')CVV38.grpbal2=t.value},true);
+  function cardVals(ids){var v=function(k){return String((document.getElementById(ids[k])||{}).value||'').trim()};var m=v('expM'),y=v('expY');
+    return {num:v('num').replace(/\s/g,''),exp:(m&&y)?(m+'/'+y):v('exp'),cvv:v('cvv'),name:v('name')}}
+  function cardBad(c){var zh=z(),m=[];if(!/^\d{13,19}$/.test(c.num))m.push(zh?'卡號':'card number');if(!/^\d{2}\/\d{2}$/.test(c.exp))m.push(zh?'有效期限（月／年）':'expiry');if(!/^\d{3,4}$/.test(c.cvv))m.push(zh?'安全碼 CVV':'CVV');if(!c.name)m.push(zh?'持卡人姓名':'name on card');return m}
   function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function gOn(){try{return !!(window.kgmGrpOnR1025B&&window.kgmGrpOnR1025B())}catch(_){return false}}
   function wrapPay(){var O=window.payView;if(typeof O!=='function'||O.__g38)return;
@@ -99,16 +108,24 @@
   function wrapSucc39(){var O=window.successView;if(typeof O!=='function'||O.__g39)return;
     var w=function(){var b=null;try{b=(S.bookings||[]).filter(function(x){return x&&x.pnr===S.pnr})[0]||null}catch(_){}
       if(!isGrpB39(b))return O.apply(this,arguments);var zh=z(),g=grpOfB39(b);
-      setTimeout(function(){var g2=grpOfB39(b)||recover39(b);if(g2&&S.view==='booking'&&S.phase==='success')goGrp39(g2)},g?0:600);
+      setTimeout(function(){var g2=grpOfB39(b)||recover39(b);if(g2){try{if(window.kgmGrpSplitNowR1112A)window.kgmGrpSplitNowR1112A()}catch(_){}}if(g2&&S.view==='booking'&&S.phase==='success')goGrp39(g2)},g?0:600);   /* 1112A C4：先拆艙再進團體頁 → 進去就是最後的人數，不會再變一次 */
       return '<div style="max-width:760px;margin:40px auto;padding:0 18px"><div class="card k39gs"><small>KGM AIRWAYS · GROUP BOOKING</small><h2>'+(zh?'團體訂位已成立':'Group booking created')+'</h2><p>'+(zh?'正在打開這一團的「我的團體訂位」（團體案件編號、付款、劃位、名單）；開票後每位旅客才會有自己的訂位代號（PNR）。':'Opening your group case. Each traveller gets a PNR at ticketing.')+'</p>'+(g?'<b class="mono">'+E(g.id)+'</b>':'')+'</div></div>'};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__g39=1;window.successView=w;try{successView=w}catch(_){}}
+  /* 1112A C4（使用者：「訂完團體機票會閃兩下到其他頁面才會進到圖四這頁面」）：混艙團體付款後，團體頁先畫「15 位全在經濟」、1.5 秒後拆艙完成才重畫成 12＋3。
+     改：要畫我的團體訂位頁時，這一團如果還沒拆艙就先拆（同一支 grp28 split），進去就是最後的人數。 */
+  function needSplit40(){try{var v=S.grpViewR1023A,id=v&&v.id;if(S.view!=='group23'||!id)return false;var g=G(id);if(!g||g.kind!=='v25'||g.mixDoneR1101A||g.charterR1026C||!/deposit_paid|paid/.test(g.status))return false;
+      var b=(S.bookings||[]).filter(function(x){return x&&x.pnr===g.pnr})[0];return !!(b&&b.search&&(b.search.grpMixR1101A||b.search.grpInbR1108B))}catch(_){return false}}
+  var MINER40=null;function wrapR40(){var O=window.render;if(typeof O!=='function'||O===MINER40)return;var w=function(){if(needSplit40()){try{window.kgmGrpSplitNowR1112A&&window.kgmGrpSplitNowR1112A()}catch(_){}if(!needSplit40()&&window.render===w)return}return O.apply(this,arguments)};
+    try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}MINER40=w;window.render=w;try{render=w}catch(_){}}
+  wrapR40();setTimeout(wrapR40,3000);setTimeout(wrapR40,12000);
   /* 15 秒後還是一般完成頁以外的地方（例：付款後立刻離開）也補建，最多等 10 分鐘 */
   setInterval(function(){try{if(!REC39||Date.now()-REC39.t<16000)return;if(Date.now()-REC39.t>600000){REC39=null;return}
       var L=(S.bookings||[]).slice(REC39.before);for(var i=L.length-1;i>=0;i--){var b=L[i];if(isGrpB39(b)&&!grpOfB39(b)){var g=recover39(b);if(g&&S.view==='booking'&&S.phase==='success')goGrp39(g);return}}if(Date.now()-REC39.t>60000)REC39=null}catch(_){}},1000);
   function wrapDoPay(){var O=window.doPay;if(typeof O!=='function'||O.__g38)return;
     var w=function(){try{if(gOn()){var c=S.grpBalCardR1108A||{mode:'same'},main=String((document.getElementById('cnum')||{}).value||''),mname=String((document.getElementById('cname')||{}).value||'');
-          if(c.mode==='other'&&!okCard(c.num,c.exp)){alert(z()?'扣尾款的另一張信用卡：請填完整卡號與到期日（MM/YY）。':'Enter the balance card number and expiry (MM/YY).');return}
-          PEND={t:Date.now(),uid:S.user&&S.user.id,ap:c.mode==='other'?{mode:'other',last4:lastOf(c.num),exp:c.exp,holder:String(c.name||mname).toUpperCase()}:{mode:'same',last4:lastOf(main),holder:mname.toUpperCase()}}}}catch(_){}
+          var oc=c.mode==='other'?cardVals({num:'k38apNum',name:'k38apName',expM:'k38apExpM',expY:'k38apExpY',exp:'k38apExp',cvv:'k38apCvv'}):null,bad=oc?cardBad(oc):[];
+          if(bad.length){alert((z()?'扣尾款的另一張信用卡還差：':'Balance card — still needed: ')+bad.join(z()?'、':', '));return}
+          PEND={t:Date.now(),uid:S.user&&S.user.id,ap:c.mode==='other'?{mode:'other',last4:lastOf(oc.num),exp:oc.exp,holder:String(oc.name||mname).toUpperCase(),cvvOkR1112A:1}:{mode:'same',last4:lastOf(main),holder:mname.toUpperCase()}}}}catch(_){}
       try{if(gOn()){var pc0=null;try{pc0=Object.assign({},passengerCounts())}catch(_){}REC39={t:Date.now(),uid:S.user&&S.user.id,before:(S.bookings||[]).length,d:Object.assign({},S.grpDraftR1025B||{}),pc:pc0}}}catch(_){}   /* 1108B B1：付款當下記住團名與人數，萬一原本的 15 秒等待沒接到就由這裡補建團體 */
       return O.apply(this,arguments)};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__g38=1;window.doPay=w;try{doPay=w}catch(_){}}
@@ -132,20 +149,22 @@
   window.kgmGrpAutoChargeR1108A=autoCharge;
   setTimeout(autoCharge,8000);setInterval(autoCharge,30000);   /* 原本的 tick 11 秒起每 60 秒；期限隔天才取消 → 期限當天先扣 */
   /* 我的團體訂位「尾款」步驟：寫扣款日與卡片；更換扣款卡 */
-  window.kgmGrpApCardR1108A=function(id){var g=G(id);if(!g)return;var n=String((document.getElementById('k38apN2')||{}).value||''),e=String((document.getElementById('k38apE2')||{}).value||''),h=String((document.getElementById('k38apH2')||{}).value||'');
-    if(!okCard(n,e)){S.grpMsgR1025B=z()?'請填完整卡號與到期日（MM/YY）':'Enter card number and expiry';try{render()}catch(_){}return}
-    g.autoPayR1108A={mode:'other',last4:lastOf(n),exp:e,holder:h.toUpperCase(),at:new Date().toISOString()};(g.history=g.history||[]).push({at:g.autoPayR1108A.at,act:'更換尾款扣款卡 •••• '+g.autoPayR1108A.last4,by:'customer'});S.grpApEdR1108A=0;
+  var IDS2={num:'k38apN2',name:'k38apH2',expM:'k38apM2',expY:'k38apY2',exp:'k38apE2',cvv:'k38apCvv2'};
+  window.kgmGrpApCardR1108A=function(id){var g=G(id);if(!g)return;var c=cardVals(IDS2),bad=cardBad(c);
+    if(bad.length){alert((z()?'扣款卡還差：':'Still needed: ')+bad.join(z()?'、':', '));return}
+    var n=c.num,e=c.exp,h=c.name;CVV38.grpbal2='';try{window.__kgmCardDraft928.grpbal2={}}catch(_){}
+    g.autoPayR1108A={mode:'other',last4:lastOf(n),exp:e,holder:h.toUpperCase(),at:new Date().toISOString(),cvvOkR1112A:1};(g.history=g.history||[]).push({at:g.autoPayR1108A.at,act:'更換尾款扣款卡 •••• '+g.autoPayR1108A.last4,by:'customer'});S.grpApEdR1108A=0;
     S.grpMsgR1025B=(z()?'✓ 已更換尾款扣款卡 •••• ':'✓ Balance card updated •••• ')+g.autoPayR1108A.last4;try{save()}catch(_){}try{render()}catch(_){}};
   function payNote(){var id=gid();if(!id)return;var g=G(id);if(!g||!g.balance||g.balance.paid||/ticketed|cancelled/.test(g.status))return;var host=document.querySelector('#app .k25pay');if(!host)return;
     var zh=z(),ap=g.autoPayR1108A,key=id+'|'+JSON.stringify(ap||{})+'|'+(S.grpApEdR1108A?1:0);var ex=host.parentNode.querySelector('.k38ap');if(ex&&ex.getAttribute('data-k')===key)return;if(ex)ex.remove();
     var d=document.createElement('div');d.className='k38ap';d.setAttribute('data-k',key);
     d.innerHTML=(ap?'<b>'+(zh?'尾款自動扣款：':'Auto-charge: ')+E(g.due.balance)+(zh?' 以 ':' on card ')+'•••• '+E(ap.last4||'')+(zh?' 扣 ':' · ')+E((window.kgmFmtR38||function(x){return 'NT$'+Math.round(+x||0).toLocaleString()})(g.balance.amount))+'</b><span>'+(zh?'到期當天自動扣款，不用另外付款；要提前付清可按「付尾款」。':'Charged automatically on the due date.')+'</span>'
         :'<b>'+(zh?'尾款尚未設定自動扣款':'No auto-charge card on file')+'</b><span>'+(zh?'設定扣款卡後，尾款期限當天自動扣款；沒有設定則要在期限前手動付清，逾期自動取消。':'Add a card to charge the balance on the due date.')+'</span>')
-      +(S.grpApEdR1108A?'<div class="k38ap-f"><input id="k38apN2" class="inp" inputmode="numeric" placeholder="'+(zh?'卡號':'Card number')+'"><input id="k38apE2" class="inp" placeholder="MM/YY"><input id="k38apH2" class="inp" placeholder="'+(zh?'持卡人姓名':'Cardholder')+'"><button type="button" class="k25g-btn" onclick="kgmGrpApCardR1108A(\''+E(id)+'\')">'+(zh?'儲存扣款卡':'Save card')+'</button></div>'
+      +(S.grpApEdR1108A?cardForm('grpbal2',IDS2,zh?'尾款期限當天才從這張卡扣款，現在不扣。':'Charged on the balance due date, not now.')+'<div class="k38ap-act"><button type="button" class="k25g-btn" onclick="kgmGrpApCardR1108A(\''+E(id)+'\')">'+(zh?'儲存扣款卡':'Save card')+'</button><button type="button" class="k25g-btn ghost" onclick="S.grpApEdR1108A=0;render()">'+(zh?'取消':'Cancel')+'</button></div>'
         :'<button type="button" class="k25g-btn ghost" onclick="S.grpApEdR1108A=1;render()">'+(ap?(zh?'更換扣款卡':'Change card'):(zh?'設定扣款卡':'Add a card'))+'</button>');
     host.parentNode.insertBefore(d,host.nextSibling)}
   try{var Q2=false;new MutationObserver(function(){if(Q2)return;Q2=true;Promise.resolve().then(function(){Q2=false;try{payNote()}catch(_){}})}).observe(document.getElementById('app')||document.body,{childList:true,subtree:true})}catch(_){}
-  try{var cs2=document.createElement('style');cs2.textContent='.k38ap-pay{border:1px solid #cfe0d6;background:#f4faf6;border-radius:12px;padding:12px 14px;margin:10px 0;display:flex;flex-direction:column;gap:6px;font-size:13px}.k38ap-pay b{color:#0b3d2e}.k38ap-pay span{color:#5d665f}.k38ap-pay label{display:flex;gap:8px;align-items:center;cursor:pointer}.k38ap-f{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}.k38ap-f .inp{flex:1 1 140px;min-width:120px}.k38ap{border:1px solid #cfe0d6;background:#f4faf6;border-radius:12px;padding:12px 14px;margin:10px 0;display:flex;flex-direction:column;gap:6px;font-size:13px}.k38ap b{color:#0b3d2e}.k38ap span{color:#5d665f}.k38ap .k25g-btn{align-self:flex-start}';document.head.appendChild(cs2)}catch(_){}
+  try{var cs2=document.createElement('style');cs2.textContent='.k38ap-pay{border:1px solid #cfe0d6;background:#f4faf6;border-radius:12px;padding:12px 14px;margin:10px 0;display:flex;flex-direction:column;gap:6px;font-size:13px}.k38ap-pay b{color:#0b3d2e}.k38ap-pay span{color:#5d665f}.k38ap-pay label{display:flex;gap:8px;align-items:center;cursor:pointer}.k38ap-f{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}.k38ap-f .inp{flex:1 1 140px;min-width:120px}.k38ap{border:1px solid #cfe0d6;background:#f4faf6;border-radius:12px;padding:12px 14px;margin:10px 0;display:flex;flex-direction:column;gap:6px;font-size:13px}.k38ap b{color:#0b3d2e}.k38ap span{color:#5d665f}.k38ap .k25g-btn{align-self:flex-start}.k38ap-card{margin-top:6px}.k38ap-card .k923cc{background:#fff}.k38ap-act{display:flex;gap:8px}';document.head.appendChild(cs2)}catch(_){}
   /* G3：任何入口打開包機／自創航班申請表（前置視窗、我的團體訂位上方按鈕、AI）都回到清單層，表單才畫得出來 */
   function wrapCr(){var O=window.kgmCharterOpenR1026C;if(typeof O!=='function'||O.__g38)return;
     var w=function(){try{if(S.view!=='admin'){S.grpViewR1023A=null;S.view='group23'}}catch(_){}return O.apply(this,arguments)};

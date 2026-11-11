@@ -806,6 +806,9 @@ RW('r81 pdf to ops report R1112A',"window.kgmOpsPdfR81=function(){\n  if(!canPdf
 RW('r81 pdf roles R1112A',"function canPdf81(){var r=role81();return r==='pilot'||r==='ceo'}","function canPdf81(){var r=role81();try{if((S.adminUser||{}).empId==='MASTER')return true}catch(_){}return /^(pilot|ceo|cabin|ground|service)$/.test(String(r||''))}   /* 1112A：跟航班作業報告的職位版本一致 */")
 RW('r81 pdf title R1112A',"(z()?'飛行資料 PDF 只開放飛行員與 CEO。':'Pilots and the CEO only.');","(z()?'航班作業報告只開放 CEO、機師、客艙組員／地勤／客服匯出。':'CEO, pilots and cabin / ground / service staff only.');")
 
+# C3（使用者：「所以不用圖五喔」）：我的團體訂位名單頁，拆到其他艙等的旅客接在同一張名單表（grp28 kgmGrpMovedRowsR1112A），不再另外一張表
+RW('grp names moved rows R1112A',"<tbody>'+rows+'</tbody></table></div>'+mv","<tbody>'+rows+(window.kgmGrpMovedRowsR1112A?window.kgmGrpMovedRowsR1112A(g):'')+'</tbody></table></div>'+(window.kgmGrpMovedRowsR1112A?'':mv)")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
