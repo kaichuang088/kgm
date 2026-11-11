@@ -810,6 +810,8 @@ RW('r81 pdf title R1112A',"(z()?'飛行資料 PDF 只開放飛行員與 CEO。':
 RW('grp names moved rows R1112A',"<tbody>'+rows+'</tbody></table></div>'+mv","<tbody>'+rows+(window.kgmGrpMovedRowsR1112A?window.kgmGrpMovedRowsR1112A(g):'')+'</tbody></table></div>'+(window.kgmGrpMovedRowsR1112A?'':mv)")
 # 1112A C7：0819I 把搜尋整個換成 originalSearchI，0913A「不開放販售」（noSaleR913）只寫在被取代的舊函式裡 → 包機空機段、不開放販售的臨時航班一直搜得到、訂得到
 RW('search nosale R1112A',"    if(f.published===false)return false;\n    var ov=((S.flightOverrides||{})[f.code+'_'+date])||{};if(ov.status==='Cancelled')return false;","    if(f.published===false)return false;\n    if(f.noSaleR913)return false;   /* 1112A：不開放販售（包機空機段、只排班不賣票的臨時航班）搜尋與訂位都看不到 */\n    var ov=((S.flightOverrides||{})[f.code+'_'+date])||{};if(ov.status==='Cancelled')return false;")
+# 1112A C12：赫爾辛基回程（原始碼舊號 KX97＝網站 KX100）01:50 起飛，營運日要是「去程落地的隔天」（一二四六），r77 定值表原本寫成跟去程同一組（一三五日）→ 飛機在赫爾辛基等 27 小時；bt26 也寫同一份定值（季節表、訂位搬移）
+RW('r77 hel days R1112A',"'KX97|HEL|TPE':{summer:['01:15','15:20',0,[1,3,5,7],'B779'],winter:['01:50','16:40',0,[1,3,5,7],'B779']},","'KX97|HEL|TPE':{summer:['01:15','15:20',0,[1,2,4,6],'B779'],winter:['01:50','16:40',0,[1,2,4,6],'B779']},   /* 1112A：一二四六（去程週一 22:50 落地、週二 01:50 飛回） */")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()

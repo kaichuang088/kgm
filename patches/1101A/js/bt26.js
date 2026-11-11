@@ -304,3 +304,31 @@
       out.push({code:f.code,fr:f.fr,to:f.to,sea:o[0],dep0:r.dep,arr0:r.arr,dd0:+r.dd||0,blk0:b0,dep:x.dep,arr:x.arr,dd:+x.dd||0,blk:b1,shift:mn(x.dep)!==mn(r.dep)?(((mn(x.dep)-mn(r.dep))%1440+1440)%1440):0})})});
     return out};
 })();
+/* ══ 1112A C12（使用者看飛機排班：「KX99 TPE→HEL 11-16 18:00–22:50、11-17 備勤／當日無勤務、11-18 KX100 HEL→TPE 01:50–17:15 這排班是啥？」）══
+   原因：回程的營運日跟去程寫成同一組星期，但回程是半夜（01:50）起飛 → 當天的回程比去程還早飛，飛機只能在外站等到下一個營運日（27 小時）。
+   整年排班量到同樣情況只有兩條：赫爾辛基（網站 KX99／KX100，60 天 25 次）、蘇黎世（網站 KX97／KX98，去程改成 02:00 起飛後回程營運日沒跟著改，60 天 33 次）。
+   改：回程營運日寫定值＝「去程落地那一天」（原始碼舊班號：KX97＝網站 KX100、KX95＝網站 KX98）：
+     KX100 赫爾辛基→台北 一三五日 → 一二四六（週一 22:50 落地、週二 01:50 飛回，過站 3 小時）；
+     KX98 蘇黎世→台北 一三五六 → 二四五日（落地 08:25、當天 11:55 飛回）。去程、時刻、機型都不動。
+   已訂在拿掉的那幾天的回程 → 改到隔天同一班（網站通知一則；模擬訂位不通知、不寄信）。 */
+(function(){
+  var DAYS40={'KX97|HEL|TPE':[1,2,4,6],'KX95|ZRH|TPE':[2,4,5,7]};
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function dow(d){var x=new Date(d+'T12:00:00');return x.getDay()||7}
+  function apply(){try{
+    [].concat(FLIGHTS,S.customFlights||[]).forEach(function(f){if(!f||f.via||f.partner)return;var k=f.code+'|'+f.fr+'|'+f.to;if(DAYS40[k])f.days=DAYS40[k].slice()});
+    var SS=S.seasonSchedulesR48||{};Object.keys(DAYS40).forEach(function(k){var o=SS[k];if(!o)return;['summer','winter'].forEach(function(se){if(o[se]&&Array.isArray(o[se].days))o[se].days=DAYS40[k].slice()})});
+  }catch(_){}}
+  function moveBookings(){var n=0;try{(S.bookings||[]).forEach(function(b){if(!b||b.status==='cancelled')return;var moved=[];
+      var segs=[['outF',b.outF],['inbF',b.inbF]];(b.mcFlights||[]).forEach(function(m,i){segs.push(['mc'+i,m&&(m.f||m)])});
+      segs.forEach(function(sg){var f=sg[1];if(!f||!f.date)return;var k=f.code+'|'+f.fr+'|'+f.to,D=DAYS40[k];if(!D||D.indexOf(dow(f.date))>=0)return;if(f.date<(typeof todayISO==='function'?todayISO():''))return;
+        var nd=addDays(f.date,1);if(D.indexOf(dow(nd))<0)return;var old=f.date;f.date=nd;try{if(b.seats&&b.seats[f.code+'|'+old]){b.seats[f.code+'|'+nd]=b.seats[f.code+'|'+old];delete b.seats[f.code+'|'+old]}}catch(_){}moved.push(f.code+' '+f.fr+'→'+f.to+' '+old+' → '+nd)});
+      if(moved.length){n++;(b.dayShiftR1112A=b.dayShiftR1112A||[]).push({at:new Date().toISOString(),moves:moved});
+        var sim=b.simR1022A||b.mockR1108A||b.simR1101A||b.demoR922||b.simulated||b.sim||!b.userId;
+        if(!sim){try{S.notifs=S.notifs||[];S.notifs.unshift({title:(z()?'航班營運日調整 ':'Schedule change ')+b.pnr,message:(z()?'因營運日調整，您的回程改為隔天同一班：':'Your return moves to the next day: ')+moved.join('；'),date:(typeof todayISO==='function'?todayISO():''),read:false,userId:b.userId,pnr:b.pnr})}catch(_){}}}})}catch(_){}
+    return n}
+  apply();
+  setTimeout(function(){apply();if(moveBookings()){try{save()}catch(_){}}},0);
+  setTimeout(function(){apply();if(moveBookings()){try{save()}catch(_){}}},6000);
+  window.kgmDaysFixR1112A=function(){apply();return moveBookings()};
+})();
