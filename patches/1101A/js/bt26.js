@@ -235,11 +235,16 @@
       function(y){var s0=rawCall(o,y,date);if(!s0)return null;var k=ddx+(mn(s0.dep)<ax?1:0);return k?rawCall(o,y,addDays(date,k)):s0},date);
     var add=null;if(p&&(p.dep!==x.dep||p.arr!==x.arr||p.dd!==(+x.dd||0)||p.dur!==x.dur)){add={dep:p.dep,arr:p.arr,dd:p.dd,dur:p.dur,blockR1026B:{pad:p.pad,shift:p.shift}};try{add.durStr=durStr(p.dur)}catch(_){}}
     if(!add){var wd=withDur(f,date,x);if(wd!==x)add={dur:wd.dur,durStr:wd.durStr}}
+    /* 1112B C11：逐日推算那條路（例：2027-03-28 慕尼黑開始夏令那天）也要守第五航權中停 75 分 → 跟前段實際抵達隔不到 75 分就整段往後挪 */
+    try{var r40=add?Object.assign({},x,add):x,g40=gap40(f,date,r40.dep);if(g40!=null&&g40<75){var s40=Math.ceil((75-g40)/5)*5,dm40=mn(r40.dep)+s40,am40=mn(r40.arr)+s40,de40=Math.floor(dm40/1440),ae40=Math.floor(am40/1440);
+      if(!de40){add=Object.assign({},add||{},{dep:hm40(dm40),arr:hm40(am40),dd:(+r40.dd||0)+ae40,dur:r40.dur,fifth40R1112B:s40});var bk40=(add.blockR1026B&&typeof add.blockR1026B==='object')?add.blockR1026B:{pad:0,shift:0};add.blockR1026B={pad:bk40.pad,shift:(+bk40.shift||0)+s40}}}}catch(_){}
     k.r=add;cset(SMW,f,date,k);
     return add?Object.assign({},x,add):x}
   /* 1112B C11：夏季捷徑（直接用航班表那一份推算）在第五航權第二段會用到「前一段加輪擋彈性之前」的抵達 →
      網站 KX73 夏季台北→曼谷實際 12:20 到、曼谷→慕尼黑還是 12:45 走（中停 25 分，第五航權最少 75 分）→ 機隊接不上，整個夏季每天拆成兩架、後段隔天才飛。
      捷徑結果跟前一段實際抵達隔不到 75 分時改走完整推算（全網只有這一班；其他班照舊走捷徑，時刻不變） */
+  function gap40(f,date,dep){try{var P=pred(f,date);if(!P||P.k!=='fifth')return null;var q=wrap(P.f,date);if(!q||!q.arr)return null;return ((mn(dep)-mn(q.arr))%1440+1440)%1440}catch(_){return null}}
+  function hm40(m){m=((m%1440)+1440)%1440;var h=Math.floor(m/60),n=m%60;return (h<10?'0':'')+h+':'+(n<10?'0':'')+n}
   function short40(f,date,bp){try{var P=pred(f,date);if(!P||P.k!=='fifth')return false;var q=wrap(P.f,date);if(!q||!q.arr)return false;var g=((mn(bp.dep)-mn(q.arr))%1440+1440)%1440;return g<75}catch(_){return false}}
   var INNER=null,MINE=null,NW=0,ACT=0;
   function wrap(f,date){try{return window.kgmSeasonFlightR48(f,date)}catch(_){return null}}

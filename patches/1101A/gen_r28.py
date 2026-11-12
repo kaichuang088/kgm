@@ -829,6 +829,8 @@ RW('r121 bkk lh elig R1112B',"if(p.nat22==='TH'&&f.fr!=='BKK'&&f.to!=='BKK'&&!th
 RW('r121 bkk lh cap R1112B',"cap22=n22?Math.floor((n22[role]||0)/2):n","cap22=n22?((window.kgmBkkLhR1112B&&window.kgmBkkLhR1112B(f))?n:Math.floor((n22[role]||0)/2)):n")
 RW('r121 bkk lh thl R1112B',"var thL22=function(L){var nn=used.__n22;if(!nn)return n;","var thL22=function(L){var nn=used.__n22;if(!nn||(window.kgmBkkLhR1112B&&window.kgmBkkLhR1112B(f)))return n;")
 # C15（使用者：「後台非常卡頓」）：開頁機隊收尾 heal12 原本三個補救（拆機／補位／接縫）連在同一個工作裡（實測一次 7.6 秒）→ 拆成三段，中間讓出畫面、使用者正在操作就延後
+# 1112B（bd40 抓到）：BigDeal 升等的旅客本來就在飛機上，只多出行李額度；1025B k25 把「計畫貨載」先塞滿剩餘載重（left＝扣掉貨之後）→ 長程班幾乎都剩 0，全網一半的 BigDeal 出價者全部 Out of Bid。升等旅客的行李優先於計畫貨載（貨先卸）；員工票候補照舊用扣掉貨載的 left
+RW('k23 bd payload cargo R1112B',"var pl=window.kgmPayloadR1023A(code,date,fr,to),left=pl&&isFinite(pl.left)?pl.left:Infinity,used=0;","var pl=window.kgmPayloadR1023A(code,date,fr,to),left=pl&&isFinite(pl.left)?pl.left+(+pl.cargoKg||0):Infinity,used=0;   /* 1112B：升等旅客的行李優先於計畫貨載 */")
 # 1112B C16：客艙組員依「本艙」挑人（cx38 kgmCabHomeR1112B／kgmCabCqR1112B）；在外站、當天來回、被指定的照舊優先；本艙不缺人的先放一邊，不夠再補
 RW('r121 cab home cq R1112B',"cabN=f.positioning?0:cabinFor929(f),used={},","cabN=f.positioning?0:cabinFor929(f),used={},_cq40=(cabN>0&&window.kgmCabCqR1112B)?(used.__cq40=window.kgmCabCqR1112B(f,cabN)):null,")
 RW('r121 cab home pick R1112B',"for(q22=0;q22<list.length&&pick22.length<n;q22++){var c22=list[q22];if(c22.nat22==='TH'&&th22[role]>=cap22){skip22.push(c22);continue}if(c22.nat22==='TH')th22[role]++;pick22.push(c22)}\n    for(q22=0;q22<skip22.length&&pick22.length<n;q22++){th22[role]++;pick22.push(skip22[q22])}",
