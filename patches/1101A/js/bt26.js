@@ -226,7 +226,7 @@
     /* 前一班（同一架飛機）那幾天的時差跟代表值不同（例：台北→雪梨在澳洲夏令時間晚 1 小時到）→ 這一班也要逐日算，不能用整季共用的結果 */
     if(sameOff){var P0=pred(f,date);if(P0){var pq=P0.f,dm=addDays(date,-1);if(offAt(pq.fr,pq.to,date,0)!==offSea(pq.fr,pq.to,win)||offAt(pq.fr,pq.to,dm,0)!==offSea(pq.fr,pq.to,win))sameOff=false}}
     /* 夏季用的就是航班表的基本時刻 → 直接用航班表那一份（同一個結果，不會因為季節表的機型欄位不同而差 5 分） */
-    if(sameOff&&!win&&x.dep===f.dep&&x.arr===f.arr&&(+x.dd||0)===(+f.dd||0)){var bp=baseProj(f);if(bp){var add0=(bp.dep!==x.dep||bp.arr!==x.arr||bp.dd!==(+x.dd||0)||bp.dur!==x.dur)?{dep:bp.dep,arr:bp.arr,dd:bp.dd,dur:bp.dur,blockR1026B:{pad:bp.pad,shift:bp.shift}}:null;if(add0){try{add0.durStr=durStr(bp.dur)}catch(_){}}
+    if(sameOff&&!win&&x.dep===f.dep&&x.arr===f.arr&&(+x.dd||0)===(+f.dd||0)){var bp=baseProj(f);if(bp&&!short40(f,date,bp)){var add0=(bp.dep!==x.dep||bp.arr!==x.arr||bp.dd!==(+x.dd||0)||bp.dur!==x.dur)?{dep:bp.dep,arr:bp.arr,dd:bp.dd,dur:bp.dur,blockR1026B:{pad:bp.pad,shift:bp.shift}}:null;if(add0){try{add0.durStr=durStr(bp.dur)}catch(_){}}
       k.r=add0;cset(SMW,f,date,k);return add0?Object.assign({},x,add0):x}}
     /* 前一班／後一班要用它自己出發的那一天去問（跨夜的前段、隔天走的回程；換季那幾天兩邊季節不同） */
     var dx=mn(x.dep),ax=mn(x.arr),ddx=+x.dd||0;
@@ -237,6 +237,10 @@
     if(!add){var wd=withDur(f,date,x);if(wd!==x)add={dur:wd.dur,durStr:wd.durStr}}
     k.r=add;cset(SMW,f,date,k);
     return add?Object.assign({},x,add):x}
+  /* 1112B C11：夏季捷徑（直接用航班表那一份推算）在第五航權第二段會用到「前一段加輪擋彈性之前」的抵達 →
+     網站 KX73 夏季台北→曼谷實際 12:20 到、曼谷→慕尼黑還是 12:45 走（中停 25 分，第五航權最少 75 分）→ 機隊接不上，整個夏季每天拆成兩架、後段隔天才飛。
+     捷徑結果跟前一段實際抵達隔不到 75 分時改走完整推算（全網只有這一班；其他班照舊走捷徑，時刻不變） */
+  function short40(f,date,bp){try{var P=pred(f,date);if(!P||P.k!=='fifth')return false;var q=wrap(P.f,date);if(!q||!q.arr)return false;var g=((mn(bp.dep)-mn(q.arr))%1440+1440)%1440;return g<75}catch(_){return false}}
   var INNER=null,MINE=null,NW=0,ACT=0;
   function wrap(f,date){try{return window.kgmSeasonFlightR48(f,date)}catch(_){return null}}
   /* 原本那串的結果（整個物件存一份複本；給外面的一律再複製一次，呼叫端改了也不會污染快取）—— 外層包裝與前／後一班的查詢共用，同一班同一天只算一次 */

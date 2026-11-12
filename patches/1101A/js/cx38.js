@@ -150,3 +150,60 @@
   function hk(){wrapAc();wrapN()}hk();setInterval(hk,5000);
   setInterval(function(){try{pass()}catch(e){try{console.warn('a35k short',e)}catch(_){}}},20000);
 })();
+/* ══ 1112B C14：曼谷長程段（一端 BKK、另一端不是台北／松山、航程 ≥4 小時）—— r121 只派曼谷基地組員 ══ */
+window.kgmBkkLhR1112B=function(f){try{if(!f)return false;var a=f.fr,b=f.to;if(a!=='BKK'&&b!=='BKK')return false;var o=a==='BKK'?b:a;if(o==='TPE'||o==='TSA'||o==='BKK')return false;return (+f.block||0)>=240}catch(_){return false}};
+/* ══ 1112B C15（使用者：「後台非常卡頓」）══
+   組員引擎一天要算 0.7～1.9 秒、拆不開；背景補算有 9 個呼叫點，只有 2 個看「使用者正在操作」。大部分是用 requestIdleCallback 排的
+   → 全站的 requestIdleCallback：使用者 1.5 秒內有點擊／按鍵／捲動／輸入，就先不跑、等停手再跑（最多延 20 次，之後照常），
+   使用者在操作時不會剛好撞上一段背景計算。算出來的結果一樣，只是時間往後挪。 */
+(function(){try{var R=window.requestIdleCallback;if(typeof R!=='function'||R.__k40)return;
+  var w=function(cb,opt){var n=0;var run=function(dl){var q=Date.now()-(window.KGM_LAST_INPUT_R1025B||0);if(q<1500&&n<20){n++;setTimeout(function(){R.call(window,run,opt)},1500-q+30);return}cb(dl)};return R.call(window,run,opt)};
+  w.__k40=1;window.requestIdleCallback=w}catch(_){}})();
+/* 1112B C16（使用者：「越資深服務越高艙等；同一人盡量統一服務艙等」）：
+   每位客艙組員有一個「本艙」——依年資在全體客艙組員的百分位決定（最資深那一段＝頭等、再來商務、豪經、經濟），
+   各段大小＝全網航班各艙需要的組員比例。排班引擎挑人時先挑本艙還缺人的（在外站、當天來回、被指定的照舊優先），
+   每班分艙時先放本艙。同年資用員工編號雜湊排順序（固定，不會每次開頁不同）。 */
+(function(){
+  var CABS=[['suite','頭等艙',2],['first','頭等艙',2],['biz','商務艙',8],['prem','豪華經濟艙',20],['econ','經濟艙',40]];
+  function cabsOf(f){var ac=(typeof AC!=='undefined'&&(AC[f.type]||AC[f.acft]))||{},cb=ac.cabins||{};
+    var sellP=true;try{if(window.kgmSellsPremiumR71)sellP=!!window.kgmSellsPremiumR71(f)}catch(_){}
+    var cabs=[],seen={};
+    CABS.forEach(function(c){var x=cb[c[0]];if(!x||!(+x.seats))return;var nm=(c[0]==='prem'&&!sellP)?'經濟艙':c[1];
+      if(seen[nm]){seen[nm].d+=(+x.seats)/c[2];return}var o={nm:nm,d:(+x.seats)/c[2]};seen[nm]=o;cabs.push(o)});
+    if(!cabs.length)cabs=[{nm:'經濟艙',d:1}];return cabs}
+  /* 跟 r196 kgmCabinPositionsR1006A 同一套算法（那邊改讀這裡，只有一份） */
+  window.kgmCabQuotaR1112B=function(f,n){try{
+    var cabs=cabsOf(f),tot=cabs.reduce(function(a,c){return a+c.d},0);
+    cabs.forEach(function(c){c.n=(n>=cabs.length)?1:0});
+    var left=n-cabs.reduce(function(a,c){return a+c.n},0);
+    if(left>0){var share=cabs.map(function(c){var e=left*c.d/tot;return {c:c,f:Math.floor(e),r:e-Math.floor(e)}});
+      share.forEach(function(s){s.c.n+=s.f;left-=s.f});
+      share.sort(function(a,b){return b.r-a.r});for(var i=0;left>0;i=(i+1)%share.length){share[i].c.n++;left--}}
+    return cabs}catch(_){return null}};
+  window.kgmCabCqR1112B=function(f,n){var q={};(window.kgmCabQuotaR1112B(f,n)||[]).forEach(function(c){q[c.nm]=(q[c.nm]||0)+c.n});return {q:q,g:{}}};
+  function hs(s){s=String(s);var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)%1000000}
+  function key(p){return (+p.seniority||0)*1e6+hs(p.empId)}
+  function rk(p){var r=p.rankCode||p.rank;return (r==='PU'||r==='DPU')?r:'FA'}
+  var ORD=['頭等艙','商務艙','豪華經濟艙','經濟艙'];
+  var MEMO=null,MEMOP=null,HOME={};
+  /* 本艙比例要分職級算：每班 1 位座艙長＋依人數的副座艙長一定是那班最資深的，高艙的位子他們先坐，
+     剩下的才輪到空服員（不分職級的話，空服員幾乎全是經濟艙本艙，班上高艙不夠人只好讓最資淺的去坐）。
+     做法：每個自營航班照「座艙長→副座艙長→空服員」由高艙往低艙排一次，數各職級坐到各艙幾次，就是各職級的本艙比例。 */
+  function build(){
+    var P=null;try{P=window.kgmCrewPoolR121&&window.kgmCrewPoolR121()}catch(_){}
+    var C=P&&P.cabin;if(!C||!C.length)return null;if(MEMO&&MEMOP===C)return MEMO;
+    var w={PU:{},DPU:{},FA:{}};
+    try{(typeof FLIGHTS!=='undefined'?FLIGHTS:[]).forEach(function(f){if(!f||f.partner||f.via)return;var t=String(f.type||f.acft||'').toUpperCase();if(typeof AC==='undefined'||!AC[t])return;
+      var cabN=0;try{cabN=window.kgmCabinForR929({type:t,block:999})}catch(_){}if(!(cabN>0))return;
+      var nD=cabN>=20?4:cabN>=14?3:cabN>=10?2:cabN>=5?1:0,q=window.kgmCabQuotaR1112B({type:t,acft:t,code:f.code,fr:f.fr,to:f.to},cabN)||[],sl=[];
+      q.forEach(function(c){for(var j=0;j<c.n;j++)sl.push(c.nm)});
+      sl.forEach(function(nm,i){var r=i===0?'PU':(i<=nD?'DPU':'FA');w[r][nm]=(w[r][nm]||0)+1})})}catch(_){}
+    var cut={};['PU','DPU','FA'].forEach(function(r){
+      var ks=C.filter(function(p){return rk(p)===r}).map(key).sort(function(a,b){return b-a});
+      var W=ORD.reduce(function(a,nm){return a+(w[r][nm]||0)},0),acc=0;cut[r]=[];
+      if(!W||!ks.length)return;
+      ORD.slice(0,3).forEach(function(nm){var x=w[r][nm]||0;if(!x)return;acc+=x/W;cut[r].push({nm:nm,k:ks[Math.min(ks.length-1,Math.max(0,Math.round(acc*ks.length)-1))]})})});
+    MEMO={cut:cut,w:w,n:C.length};MEMOP=C;HOME={};window.KGM_CABHOME_R1112B=MEMO;return MEMO}
+  window.kgmCabHomeR1112B=function(p){try{if(!p||!p.empId)return '經濟艙';var h=HOME[p.empId];if(h&&MEMOP)return h;var m=build();if(!m)return '經濟艙';
+    var k=key(p),cs=m.cut[rk(p)]||[];h='經濟艙';for(var i=0;i<cs.length;i++){if(k>=cs[i].k){h=cs[i].nm;break}}HOME[p.empId]=h;return h}catch(_){return '經濟艙'}};
+})();
