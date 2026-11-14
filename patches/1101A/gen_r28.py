@@ -848,6 +848,10 @@ RW('heal12 split R1112B',"""  try{var sp=window.kgmLiveSplitR929();h.split0=sp.n
   function fin40(){
   window.KGM_HEAL_R1012A=h;window.KGM_ROT_SETTLED_R1012A=Date.now();window.__heal12=0;""")
 RW('heal12 split2 R1112B',"""  try{if(S.view==='admin'&&/fleetsched/.test(String(S.adminTab||'')))render()}catch(_){}}""","""  try{if(S.view==='admin'&&/fleetsched/.test(String(S.adminTab||'')))render()}catch(_){}}}""")
+# ══ 1115A ══
+# 1115A D6（使用者：「怎麼都是里程」）：Residence 模擬出價「四班留一班只有里程」用 seed%4 決定，但 H9 用浮點乘法（h*16777619 超過 2^53）→ 低位元幾乎都是 0 → 約 7 成的班沒有現金出價。改用高位元
+RW('res mock cash gate R1115A',"if(!has9(S.residenceBidsR83,code,date,f.fr,f.to)&&seed%4!==0){","if(!has9(S.residenceBidsR83,code,date,f.fr,f.to)&&(seed>>>13)%4!==0){   /* 1115A：低位元偏 0，改用高位元 */")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))

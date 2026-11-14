@@ -342,7 +342,7 @@
   function T(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
   var CZ={Economy:['經濟艙','Economy'],Premium:['豪華經濟艙','Premium'],Business:['商務艙','Business'],First:['頭等艙','First'],Resident:['Residence','Residence']};
   function cz(k){var p=CZ[k];return p?(z()?p[0]:p[1]):(k||'')}
-  function live(){var out=[],td=T(),FM={},WO={};
+  function live(){try{if(window.kgmMockAucFixR1115A)window.kgmMockAucFixR1115A()}catch(_){}var out=[],td=T(),FM={},WO={};
     function fOf(c,fr,to){var k=c+fr+to;if(!(k in FM)){FM[k]=null;try{FM[k]=[].concat(FLIGHTS,S.customFlights||[]).filter(function(f){return f&&f.code===c&&f.fr===fr&&f.to===to})[0]||null}catch(_){}}return FM[k]}
     function open(b){var k=b.code+b.fr+b.to+b.date;if(!(k in WO)){var f=fOf(b.code,b.fr,b.to);WO[k]=!f||!window.kgmBigDealWindowR929||!!window.kgmBigDealWindowR929(f,b.date).open}return WO[k]}   /* 已過起飛前 48 小時（等結標）不算進行中 */
     (S.bigDeals||[]).forEach(function(b){if(!b||!/^(open|leading|outbid|pending)$/.test(String(b.status||''))||String(b.date||'')<td||!open(b))return;var v=0;try{v=window.kgmBigDealValueR929(b)}catch(_){v=+b.amount||0}
@@ -380,4 +380,38 @@
     +'.k40lv-g{border-top:1px solid #eef2ef;padding:10px 0 6px}.k40lv-gh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}.k40lv-gh b{font-size:13.5px;color:#0b3b30}.k40lv-gh span{font-size:12px;color:#6b645a}.k40lv-gh em{font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:2px 9px}.k40lv-gh em.bd{background:#fff1e6;color:#9a3412}.k40lv-gh em.res{background:#f3ecff;color:#5b21b6}.k40lv-gh small{margin-left:auto;font-size:11.5px;color:#4e6a5e}'
     +'.k40lv-t{width:100%;border-collapse:collapse;font-size:12px}.k40lv-t th{text-align:left;font-size:10.5px;color:#8a8175;background:#faf8f3;padding:6px 8px;font-weight:800}.k40lv-t td{padding:6px 8px;border-top:1px solid #f1ede4}.k40lv-t .r{text-align:right}.k40lv-t .mono{font-family:ui-monospace,monospace}.k40lv-t td i{font-style:normal;font-size:10px;font-weight:800;color:#1f6f4a;background:#e7f4ec;border-radius:999px;padding:1px 6px;margin-left:6px}.k40lv-t td small{color:#8a8175;margin-left:4px}.k40lv-t tr.real td{background:#fbfffc}'
     +'.k40lv-st{font-size:11px;font-weight:800;border-radius:999px;padding:2px 8px;background:#eef2f0;color:#3c5a50;white-space:nowrap}.k40lv-st.leading{background:#e7f4ec;color:#1f6f4a}.k40lv-st.outbid{background:#fbe6e0;color:#9b2d17}.k40lv-n{font-size:12.5px;color:#7a7266}.k40lv-more{margin-top:8px}';document.head.appendChild(cs)}catch(_){}
+})();
+
+/* ══ 1115A D4／D6（使用者：「競標的Mock要是不同人名吧怎麼可能同名」「怎麼都是里程然後KX3/KX6只有其中一個是A388啊」）══
+   D4：模擬出價者的名字原本從 30 個名字用雜湊抽 → 同一場競標常抽到同一個人（KX14 ONT→TPE 豪經 11 筆裡 DAVIS OLIVIA 5 筆）。
+       改：姓×名組合（約 2,000 個），依出價編號決定（每次開頁一樣），同一場競標（航班＋日期＋航段＋升等艙／Residence）裡不重複。真的會員出價不動。
+   D6：Residence 只有 A380。模擬出價所屬的那一班當天不是 A388、或那個班號根本不飛那條航線（例：改班號以前存在瀏覽器裡、用舊班號的 KX3 LAX→TPE），
+       一律作廢（status void，不列、不排名）。真的會員出價不動。 */
+(function(){
+  var LN=['CHEN','LIN','HUANG','CHANG','LEE','WANG','WU','LIU','TSAI','YANG','HSU','CHENG','HSIEH','KUO','HUNG','TANAKA','SATO','SUZUKI','TAKAHASHI','WATANABE','YAMAMOTO','NAKAMURA','KIM','PARK','CHOI','JUNG','NGUYEN','TRAN','SMITH','JOHNSON','WILLIAMS','BROWN','DAVIS','MILLER','WILSON','TAYLOR','MULLER','SCHMIDT','DUBOIS','MARTIN','ROSSI','SILVA','GARCIA','LOPEZ','TAN','LIM','ONG','SINGH','PATEL','WONG','CHAN','HO'];
+  var FN=['YU-TING','TZU-WEI','CHIA-HAO','SHU-FEN','MING-HSUAN','YI-CHEN','PEI-SHAN','CHIH-WEI','HSIN-YI','KUAN-TING','REN','HARUTO','YUI','SAKURA','KENJI','AOI','MIN-JUN','SEO-YEON','JI-HOO','HA-EUN','MINH','LAN','OLIVIA','JAMES','EMMA','NOAH','SOPHIA','LIAM','ANNA','LUKAS','CLAIRE','LOUIS','GIULIA','MARCO','CARLOS','LUCIA','DIEGO','WEI LING','JUN HAO','PRIYA','ARJUN','KA YAN','CHI HO'];
+  function h(s){s=String(s);var x=2166136261;for(var i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,16777619)}return x>>>0}
+  function grpKey(b,k){return [k,b.code,b.date,b.fr,b.to,b.toCabin||b.cabin||''].join('|')}
+  var SIG='',AC={};
+  function a388(b){var k=b.code+'|'+b.date+'|'+b.fr+'|'+b.to;if(k in AC)return AC[k];var ok=true;
+    try{var all=[].concat(FLIGHTS,S.customFlights||[]).filter(function(f){return f&&!f.via&&!f.partner&&f.code===b.code&&f.fr===b.fr&&f.to===b.to});
+      if(!all.length)ok=false;
+      else{var dt=new Date(b.date+'T12:00:00'),fly=all.some(function(f){try{return flyOn(f,dt)}catch(_){return true}});
+        if(!fly)ok=false;else{var t='';try{t=acftOfFlight(b.code,b.date,b.fr,b.to)||''}catch(_){}if(t&&t!=='A388')ok=false}}}catch(_){}
+    AC[k]=ok;return ok}
+  window.kgmMockAucFixR1115A=function(){
+    var L=[['bd',S.bigDeals||[]],['rc',S.residenceBidsR83||[]],['rm',S.resMileBidsR161||[]]];
+    var sig=L.map(function(x){return x[1].length}).join(',');if(sig===SIG)return 0;SIG=sig;
+    var td='';try{td=todayISO()}catch(_){}var n=0,g={};
+    L.forEach(function(x){var k=x[0]==='bd'?'bd':'res';x[1].forEach(function(b){if(!b||!b.demoR922)return;
+      if(k==='res'&&String(b.date||'')>=td&&b.status!=='void'&&!a388(b)){b.voidR1115A=b.status;b.status='void';n++}
+      if(b.status==='void')return;(g[grpKey(b,k)]=g[grpKey(b,k)]||[]).push(b)})});
+    Object.keys(g).forEach(function(gk){var used={};g[gk].sort(function(a,b){return String(a.id).localeCompare(String(b.id))}).forEach(function(b){
+      if(b.nameR1115A&&!used[b.who]){used[b.who]=1;return}
+      var x=h(b.id||b.pnr),nm='',t=0;do{nm=LN[(x+t*7)%LN.length]+' '+FN[((x>>>8)+t*13)%FN.length];t++}while(used[nm]&&t<60);
+      used[nm]=1;if(b.who!==nm){b.who=nm;n++}b.nameR1115A=1})});
+    if(n){try{save()}catch(_){}}return n};
+  function wrap(){var O=window.kgmEnsureAuctionsR922;if(typeof O!=='function'||O.__m1115)return;var w=function(){var r=O.apply(this,arguments);if(r)SIG='';return r};
+    try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__m1115=1;window.kgmEnsureAuctionsR922=w}
+  [0,3000,16000].forEach(function(ms){setTimeout(wrap,ms)});
 })();
