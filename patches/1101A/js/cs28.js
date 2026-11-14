@@ -226,7 +226,7 @@
   var PCT=['refund_req','bag_delayed','bag_lost','bag_damaged','item_lost','complaint','assistance','miles_claim','group_change','other'];
   function cf(){S.case28=S.case28||{pnr:'',last:'',type:'complaint',detail:'',key:'',err:'',done:null};return S.case28}
   window.kgmCaseSetR1101A=function(k,v,re){var F=cf();F[k]=v;if(re)render()};
-  var PCL={refund_req:['退款申請','Refund request'],bag_delayed:['行李延誤','Delayed baggage'],bag_lost:['行李遺失','Lost baggage'],bag_damaged:['行李損壞','Damaged baggage'],item_lost:['遺失物品','Lost property'],
+  var PCL={refund_req:['退款申請','Refund request'],bag_delayed:['行李延誤／未送達','Delayed baggage'],bag_lost:['行李遺失','Lost baggage'],bag_damaged:['行李損壞','Damaged baggage'],item_lost:['遺失物品','Lost property'],
     complaint:['服務客訴','Service complaint'],assistance:['特殊協助','Special assistance'],miles_claim:['里程補登','Missing miles'],group_change:['團體改名／名單異動','Group name change'],other:['其他','Other'],pet:['寵物同行申請','Pet travel']};
   function caseLabel(k){var p=PCL[k];return p?(z()?p[0]:p[1]):k}
   /* 1103A：航班資料的作業動作套用到旅客（移出、升等、超賣補償、自願讓位、非自願／自願降等）→ 自動成立案件（使用者：「後台可能在航班資料表格按下任意一個action有套用到旅客那旅客就會自動收到案件成立」）。
@@ -524,9 +524,9 @@ try{var cs38p=document.createElement('style');cs38p.textContent='.k38pets{margin
   function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function N(n){return Math.round(+n||0).toLocaleString()}
   function rec(no){return (S.staffCasesR1007A||[]).filter(function(x){return x&&x.caseNo===no})[0]||null}
-  var LB={refund_req:['退款申請','Refund request'],bag_lost:['行李遺失','Lost baggage'],bag_delayed:['行李延誤','Delayed baggage'],bag_damaged:['行李損壞','Damaged baggage'],item_lost:['遺失物品','Lost property'],
+  var LB={refund_req:['退款申請','Refund request'],bag_lost:['行李遺失','Lost baggage'],bag_delayed:['行李延誤／未送達','Delayed baggage'],bag_damaged:['行李損壞','Damaged baggage'],item_lost:['遺失物品','Lost property'],
     complaint:['服務客訴','Service complaint'],assistance:['特殊協助','Special assistance'],disruption:['航班延誤／取消','Delay / cancellation'],other:['其他','Other'],invol_downgrade:['非自願降艙','Involuntary downgrade'],
-    denied_boarding:['拒絕登機／超賣','Denied boarding'],miles_claim:['里程補登','Missing miles claim'],pet:['寵物同行申請','Pet travel application']};
+    denied_boarding:['拒絕登機／超賣','Denied boarding'],miles_claim:['里程補登','Missing miles claim'],pet:['寵物同行申請','Pet travel application'],seat_dup:['座位重複／超賣（機上）','Duplicate seat / oversold (on board)'],onboard_service:['機上服務事件','In-flight service incident'],medical:['旅客受傷／身體不適','Injury / medical']};   /* 1115A D9 */
   function lb(t){var p=LB[t];return p?(z()?p[0]:p[1]):t}
   function txt(c){return [c.detail,c.description,c.external,c.reason,(c.notes||[]).map(function(n){return n.text}).join(' '),(c.progress||[]).map(function(p){return (p.label||'')+' '+(p.note||'')}).join(' ')].join(' ')}
   var GEN={other:1,complaint:1,disruption:1,assistance:1};

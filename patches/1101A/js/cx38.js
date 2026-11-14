@@ -228,12 +228,12 @@ window.kgmBkkLhR1112B=function(f){try{if(!f)return false;var a=f.fr,b=f.to;if(a!
   window.kgmCrewWishDestsR1115A=dests;
   var WC={},WCs='';
   window.kgmCrewWishOfR1115A=function(id,base,mo){var W=S.crewWishR1115A||{},a=W[id]&&W[id][mo];if(a&&a.length)return {list:a,mine:true};
-    var k=id+'|'+mo+'|'+(base||'');if(WC[k])return WC[k];var L=dests(base).slice().sort(function(x,y){return h(id+'|'+mo+'|'+x)-h(id+'|'+mo+'|'+y)});return WC[k]={list:L.slice(0,5),mine:false}};
+    var k=id+'|'+mo+'|'+(base||'');if(WC[k])return WC[k];var L=dests(base).map(function(x){return [h(id+'|'+mo+'|'+x),x]}).sort(function(x,y){return x[0]-y[0]}).map(function(x){return x[1]});   /* 1115A D5：每個航點的雜湊只算一次（結果相同） */return WC[k]={list:L.slice(0,5),mine:false}};
   /* 引擎排序用：0＝這一班是他許願的航點（從基地飛出去），1＝不是／不適用 */
-  var SC={};
+  var SC={},SCn=0;
   window.kgmCrewWishScoreR1115A=function(p,f,date){try{if(!p||!f)return 1;var base=p.base||(p.nat22==='TH'?'BKK':'TPE');
       var out=base==='BKK'?f.fr==='BKK':!!BASE[f.fr];if(!out)return 0;var mo=String(date||'').slice(0,7),k=p.empId+'|'+mo,set=SC[k];
-      if(!set){var w=window.kgmCrewWishOfR1115A(p.empId,base,mo).list,o={};w.forEach(function(x){o[x]=1});set=SC[k]=o;if(Object.keys(SC).length>60000)SC={}}
+      if(!set){var w=window.kgmCrewWishOfR1115A(p.empId,base,mo).list,o={};w.forEach(function(x){o[x]=1});set=SC[k]=o;if(++SCn>60000){SC={};SCn=0}}   /* 1115A D5：原本每次沒命中都 Object.keys(SC)（上萬個鍵）→ 平方成長，60 秒吃掉 5 秒主執行緒 */
       return set[f.to]||set[f.via]?0:1}catch(_){return 1}};
   window.kgmCrewWishSaveR1115A=function(id,mo){var me=S.adminUser||{},ceo=me.role==='ceo'||me.role==='admin'||me.empId==='MASTER';
     if(!(ceo||me.empId===id)){alert(z()?'只能改自己的許願。':'You can only change your own wishes.');return}
