@@ -852,6 +852,11 @@ RW('heal12 split2 R1112B',"""  try{if(S.view==='admin'&&/fleetsched/.test(String
 # 1115A D6（使用者：「怎麼都是里程」）：Residence 模擬出價「四班留一班只有里程」用 seed%4 決定，但 H9 用浮點乘法（h*16777619 超過 2^53）→ 低位元幾乎都是 0 → 約 7 成的班沒有現金出價。改用高位元
 RW('res mock cash gate R1115A',"if(!has9(S.residenceBidsR83,code,date,f.fr,f.to)&&seed%4!==0){","if(!has9(S.residenceBidsR83,code,date,f.fr,f.to)&&(seed>>>13)%4!==0){   /* 1115A：低位元偏 0，改用高位元 */")
 
+# 1115A D3：後台可以「提議改用機型」（cf31 kgmCharterProposeHtmlR1115A）→ 排機、報價、核准都照提議的機型
+RW('cr27 plan propose R1115A',"P=Object.assign(P,{kind:'temp',date:leg.date,type:r.type||'',time:pref,round:true,sale:false,at:Date.now()});","P=Object.assign(P,{kind:'temp',date:leg.date,type:(r.typeProposeR1115A||r.type)||'',time:pref,round:true,sale:false,at:Date.now()});")
+RW('cr27 plan key R1115A',"var key=r.id+'|'+(r.type||'')+'|'+((S.customFlights||[]).length)","var key=r.id+'|'+(r.type||'')+'|'+(r.typeProposeR1115A||'')+'|'+((S.customFlights||[]).length)")
+RW('cr27 head propose R1115A',"(r.type?' · '+(z()?'希望機型 ':'Type ')+E(r.type):'')","(r.type?' · '+(z()?'希望機型 ':'Type ')+E(r.type):'')+(r.typeProposeR1115A&&r.typeProposeR1115A!==r.type?' → '+(z()?'提議 ':'proposed ')+'<b>'+E(r.typeProposeR1115A)+'</b>':'')+(window.kgmCharterProposeHtmlR1115A?window.kgmCharterProposeHtmlR1115A(r):'')")
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
