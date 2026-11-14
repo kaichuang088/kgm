@@ -444,8 +444,8 @@ RW('pet30 order',"var ORDER7=['status','flightdata','groundops','bookings','grou
 #   ② 卡片改成固定欄寬的格線（勾勾／訂位代號／航線／出發／旅客／狀態），分隔線與各欄每一列對齊；旅客寫總數＋成人／兒童／嬰兒
 RW('trip30 mine',"  return all.filter(function(b){return !b.userId||b.userId===S.user.id});",
    "  var lk30=((S.tripLookR1102A||{})[S.user.id])||[];return all.filter(function(b){return (b.userId===S.user.id||lk30.indexOf(b.pnr)>=0)&&!(window.kgmGrpHideR1108A&&window.kgmGrpHideR1108A(b))});   /* 1102A：只列自己的＋查詢過的（組員 DH 等沒有會員的訂位不算） */   /* 1108A：團體開票前的整團／改艙訂位不列（使用者 G1） */")
-RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),tripLookR1102A:LS.get("kgm30_triplook",{}),crewSwapR1108A:LS.get("kgm38_cswap",{recs:{}}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),badgeR1103A:LS.get("kgm31_badge",{}),invR1103A:LS.get("kgm31_inv",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
-RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm38_cswap",S.crewSwapR1108A||{recs:{}});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});LS.set("kgm31_badge",S.badgeR1103A||{});LS.set("kgm31_inv",S.invR1103A||{});')
+RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),crewWishR1115A:LS.get("kgm40_crewwish",{}),tripLookR1102A:LS.get("kgm30_triplook",{}),crewSwapR1108A:LS.get("kgm38_cswap",{recs:{}}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),badgeR1103A:LS.get("kgm31_badge",{}),invR1103A:LS.get("kgm31_inv",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
+RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm40_crewwish",S.crewWishR1115A||{});LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm38_cswap",S.crewSwapR1108A||{recs:{}});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});LS.set("kgm31_badge",S.badgeR1103A||{});LS.set("kgm31_inv",S.invR1103A||{});')
 RW('trip30 card',"""    var pax=(b.paxList||[]).length||1;""",
    """    var pl30=b.paxList||[],pax=pl30.length||1,pc30={ADT:0,CHD:0,INF:0};pl30.forEach(function(p){var t=String(p.passengerType||'ADT').toUpperCase();pc30[pc30[t]!=null?t:'ADT']++});   /* 1102A：旅客＝成人＋兒童＋嬰兒 */
     var pxs30=[pc30.ADT?(z()?'成人 ':'Adult ')+pc30.ADT:'',pc30.CHD?(z()?'兒童 ':'Child ')+pc30.CHD:'',pc30.INF?(z()?'嬰兒 ':'Infant ')+pc30.INF:''].filter(Boolean).join(z()?'・':' · ');
@@ -856,6 +856,11 @@ RW('res mock cash gate R1115A',"if(!has9(S.residenceBidsR83,code,date,f.fr,f.to)
 RW('cr27 plan propose R1115A',"P=Object.assign(P,{kind:'temp',date:leg.date,type:r.type||'',time:pref,round:true,sale:false,at:Date.now()});","P=Object.assign(P,{kind:'temp',date:leg.date,type:(r.typeProposeR1115A||r.type)||'',time:pref,round:true,sale:false,at:Date.now()});")
 RW('cr27 plan key R1115A',"var key=r.id+'|'+(r.type||'')+'|'+((S.customFlights||[]).length)","var key=r.id+'|'+(r.type||'')+'|'+(r.typeProposeR1115A||'')+'|'+((S.customFlights||[]).length)")
 RW('cr27 head propose R1115A',"(r.type?' · '+(z()?'希望機型 ':'Type ')+E(r.type):'')","(r.type?' · '+(z()?'希望機型 ':'Type ')+E(r.type):'')+(r.typeProposeR1115A&&r.typeProposeR1115A!==r.type?' → '+(z()?'提議 ':'proposed ')+'<b>'+E(r.typeProposeR1115A)+'</b>':'')+(window.kgmCharterProposeHtmlR1115A?window.kgmCharterProposeHtmlR1115A(r):'')")
+
+# 1115A D7：組員許願航點（cx38 kgmCrewWish*R1115A）——引擎排序在月工時之前多一個鍵；班表頁加許願面板；組員引擎輸入指紋含許願
+RW('r121 wish sort R1115A',"||(ka.n||1)-(kb.n||1)||monthLoads[a.empId]-monthLoads[b.empId]","||(ka.n||1)-(kb.n||1)||(window.kgmCrewWishScoreR1115A?window.kgmCrewWishScoreR1115A(a,f,date)-window.kgmCrewWishScoreR1115A(b,f,date):0)||monthLoads[a.empId]-monthLoads[b.empId]")
+RW('r196 wish panel R1115A',"+'<small>'+(z()?'一日兩趟（違規）':'2 DUTIES/DAY')+'</small><b>'+two+'</b></div>'\n    +'</div>';","+'<small>'+(z()?'一日兩趟（違規）':'2 DUTIES/DAY')+'</small><b>'+two+'</b></div>'\n    +'</div>'+(window.kgmCrewWishHtmlR1115A?window.kgmCrewWishHtmlR1115A(id,ros):'');")
+RW('sig25 wish R1115A',"S.crewSwapR167||null,S.leave||[]]","S.crewSwapR167||null,S.leave||[],S.crewWishR1115A||{}]")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()

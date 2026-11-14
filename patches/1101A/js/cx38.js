@@ -207,3 +207,51 @@ window.kgmBkkLhR1112B=function(f){try{if(!f)return false;var a=f.fr,b=f.to;if(a!
   window.kgmCabHomeR1112B=function(p){try{if(!p||!p.empId)return '經濟艙';var h=HOME[p.empId];if(h&&MEMOP)return h;var m=build();if(!m)return '經濟艙';
     var k=key(p),cs=m.cut[rk(p)]||[];h='經濟艙';for(var i=0;i<cs.length;i++){if(k>=cs[i].k){h=cs[i].nm;break}}HOME[p.empId]=h;return h}catch(_){return '經濟艙'}};
 })();
+/* ══ 1115A D7（使用者：「組員要可以預先Bid/許願接下來一個月想飛的五個航點 當然不一定要有完全符合許願地點但盡量符合」）══
+   · 每位組員（機師、客艙）可以許願下個月最想飛的 5 個航點（自己的班表頁「許願航點」）：S.crewWishR1115A[員工編號][YYYY-MM]＝[5 個機場]，存檔 kgm40_crewwish。
+   · 還沒許願的組員用固定的模擬許願（員工編號＋月份雜湊，從他基地出發的航點挑 5 個；每次開頁一樣），只拿來排序，不寫進存檔。
+   · 排班引擎挑人（r121 choose）在所有既有規則（指定、當天來回、外站先回、泰籍、日韓本國、虛擬組員…）都一樣時，
+     先挑「這一班從基地飛出去、目的地是他許願航點」的人，再看月工時。只是排序，不會讓任何人違規，所以是「盡量符合」。
+   · 組員班表的輸入指紋（sig25）含許願 → 改了許願，下一次算班表（下次開頁）就照新的許願；已公布凍結的班表不變。 */
+(function(){
+  function z(){try{return LANG!=='en'}catch(_){return true}}
+  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function h(s){s=String(s);var x=2166136261;for(var i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,16777619)}return x>>>0}
+  var BASE={TPE:1,TSA:1};
+  function td(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
+  window.kgmCrewWishMonthR1115A=function(){var d=td(),y=+d.slice(0,4),m=+d.slice(5,7)+1;if(m>12){m=1;y++}return y+'-'+(m<10?'0':'')+m};
+  var DST={};
+  function dests(base){base=base==='BKK'?'BKK':'TPE';if(DST[base])return DST[base];var o={};
+    try{(typeof FLIGHTS!=='undefined'?FLIGHTS:[]).forEach(function(f){if(!f||f.partner||f.codeshare||!/^KX\d{1,3}$/.test(String(f.code||'')))return;var fr=f.fr,to=f.via||f.to;
+      if(base==='TPE'?(BASE[fr]&&!BASE[to]):(fr==='BKK'&&!BASE[to]))o[to]=1;if(base==='TPE'&&BASE[fr]&&f.via&&!BASE[f.to])o[f.to]=1})}catch(_){}
+    return DST[base]=Object.keys(o).sort()}
+  window.kgmCrewWishDestsR1115A=dests;
+  var WC={},WCs='';
+  window.kgmCrewWishOfR1115A=function(id,base,mo){var W=S.crewWishR1115A||{},a=W[id]&&W[id][mo];if(a&&a.length)return {list:a,mine:true};
+    var k=id+'|'+mo+'|'+(base||'');if(WC[k])return WC[k];var L=dests(base).slice().sort(function(x,y){return h(id+'|'+mo+'|'+x)-h(id+'|'+mo+'|'+y)});return WC[k]={list:L.slice(0,5),mine:false}};
+  /* 引擎排序用：0＝這一班是他許願的航點（從基地飛出去），1＝不是／不適用 */
+  var SC={};
+  window.kgmCrewWishScoreR1115A=function(p,f,date){try{if(!p||!f)return 1;var base=p.base||(p.nat22==='TH'?'BKK':'TPE');
+      var out=base==='BKK'?f.fr==='BKK':!!BASE[f.fr];if(!out)return 0;var mo=String(date||'').slice(0,7),k=p.empId+'|'+mo,set=SC[k];
+      if(!set){var w=window.kgmCrewWishOfR1115A(p.empId,base,mo).list,o={};w.forEach(function(x){o[x]=1});set=SC[k]=o;if(Object.keys(SC).length>60000)SC={}}
+      return set[f.to]||set[f.via]?0:1}catch(_){return 1}};
+  window.kgmCrewWishSaveR1115A=function(id,mo){var me=S.adminUser||{},ceo=me.role==='ceo'||me.role==='admin'||me.empId==='MASTER';
+    if(!(ceo||me.empId===id)){alert(z()?'只能改自己的許願。':'You can only change your own wishes.');return}
+    var v=[];for(var i=0;i<5;i++){var el=document.getElementById('k115w-'+i);if(el&&el.value&&v.indexOf(el.value)<0)v.push(el.value)}
+    S.crewWishR1115A=S.crewWishR1115A||{};S.crewWishR1115A[id]=S.crewWishR1115A[id]||{};S.crewWishR1115A[id][mo]=v;
+    Object.keys(SC).forEach(function(k){if(k.indexOf(id+'|')===0)delete SC[k]});
+    S.k115wMsg=(z()?'✓ 已送出 '+mo+' 的許願（'+v.length+' 個航點）。下次排班（下次開頁）會盡量照這個排；已公布的班表不會變。':'Saved.');try{save()}catch(_){}try{render()}catch(_){}};
+  /* 班表頁的許願面板：ros＝這位組員的班表（r196），算目前符合幾段 */
+  window.kgmCrewWishHtmlR1115A=function(id,ros){try{var P=null;try{var pl=window.kgmCrewPoolR121&&window.kgmCrewPoolR121();P=(pl&&pl.pilots||[]).concat(pl&&pl.cabin||[]).filter(function(x){return x.empId===id})[0]}catch(_){}
+    var base=(P&&P.base)||((P&&P.nat22==='TH')?'BKK':'TPE'),mo=window.kgmCrewWishMonthR1115A(),cur=td().slice(0,7),D=dests(base),w=window.kgmCrewWishOfR1115A(id,base,mo),wc=window.kgmCrewWishOfR1115A(id,base,cur);
+    var me=S.adminUser||{},can=me.role==='ceo'||me.role==='admin'||me.empId==='MASTER'||me.empId===id;
+    function cnt(month,list){var o={},n=0,hit=0;list.forEach(function(x){o[x]=1});(ros||[]).forEach(function(x){if(String(x.date).slice(0,7)!==month)return;(x.legs||[]).forEach(function(l){if(!l||l.deadhead||l.dh)return;var fr=l.fr||String(l.route||'').split('→')[0],to=l.to||String(l.route||'').split('→')[1];if(base==='BKK'?fr!=='BKK':!BASE[fr])return;n++;if(o[to])hit++})});return {n:n,hit:hit}}
+    var c1=cnt(cur,wc.list),c2=cnt(mo,w.list);
+    var sel=function(i){var v=w.mine?(w.list[i]||''):'';return '<select id="k115w-'+i+'"'+(can?'':' disabled')+'><option value="">'+(z()?'第 '+(i+1)+' 志願':'Choice '+(i+1))+'</option>'+D.map(function(a){var c='';try{c=(typeof CITY==='function'?CITY(a):'')||''}catch(_){}return '<option value="'+a+'"'+(a===v?' selected':'')+'>'+a+(c&&c!==a?' '+E(c):'')+'</option>'}).join('')+'</select>'};
+    return '<div class="k115w"><div class="k115w-h"><b>'+(z()?'許願航點 · '+mo:'Destination bids · '+mo)+'</b><small>'+(z()?'下個月最想飛的 5 個航點（從 '+base+' 出發的航點）。排班會在不違反任何規定的前提下盡量照許願排，不保證全部符合。':'')+'</small></div>'
+      +'<div class="k115w-s">'+[0,1,2,3,4].map(sel).join('')+(can?'<button type="button" class="btn btn-g" onclick="kgmCrewWishSaveR1115A(\''+E(id)+'\',\''+mo+'\')">'+(z()?'送出許願':'Submit')+'</button>':'')+'</div>'
+      +(w.mine?'':'<div class="k115w-n">'+(z()?'還沒許願（目前排班用系統預設：'+E(w.list.join('、'))+'）':'Not submitted yet')+'</div>')
+      +(S.k115wMsg?'<div class="k115w-ok">'+E(S.k115wMsg)+'</div>':'')
+      +'<div class="k115w-st">'+(z()?cur+' 從基地出發的航段 '+c1.n+' 段，其中 '+c1.hit+' 段是許願的航點'+(wc.mine?'':'（系統預設許願）')+(c2.n?'；'+mo+' 已排 '+c2.n+' 段，符合 '+c2.hit+' 段':''):'')+'</div></div>'}catch(_){return ''}};
+  try{var cs=document.createElement('style');cs.textContent='.k115w{margin:12px 0 4px;padding:14px 16px;border:1px solid #d9e4dd;border-radius:14px;background:#f8fbf9}.k115w-h b{display:block;font-size:14px;color:#0B3D2E}.k115w-h small{display:block;margin-top:3px;color:#5f6b65;font-size:12px;line-height:1.5}.k115w-s{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}.k115w-s select{padding:7px 10px;border:1px solid #cfd8d3;border-radius:10px;font-size:13px;min-width:140px}.k115w-n,.k115w-st{margin-top:8px;font-size:12.5px;color:#55605B}.k115w-ok{margin-top:8px;font-size:12.5px;color:#0B6B48;font-weight:700}';document.head.appendChild(cs)}catch(_){}
+})();
