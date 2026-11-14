@@ -1,0 +1,18 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:1400,height:900}});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message.slice(0,120)));
+const st=()=>p.evaluate(()=>{const raw=window.kgmLsRawGetR1019A||(k=>localStorage.getItem(k));let t=0,z=0;const a=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=raw(k)||'';t+=k.length+v.length;if(v.charCodeAt(0)===1)z++;a.push([k,v.length])}a.sort((x,y)=>y[1]-x[1]);
+ const h=s=>{let x=0;for(let i=0;i<s.length;i++)x=(x*31+s.charCodeAt(i))|0;return x};
+ const U=(S.users||[]),ST=(S.staff||[]);
+ return {t,z,top:a.slice(0,6),users:U.length,staff:ST.length,hu:h(JSON.stringify(U.map(u=>[u.id,u.name,u.email,u.miles,u.level,(u.milesLog||[]).length]))),hs:h(JSON.stringify(ST.map(x=>[x.id||x.empId,x.name,(x.famOnFile||[]).length]))),lz:window.KGM_LZ_R1019A||null,fail:window.KGM_LS_FAIL_R1012A?Object.keys(window.KGM_LS_FAIL_R1012A.keys||{}):null,panel:!!document.getElementById('k12-lsclean'),flag:localStorage.getItem('kgm19_lz')}});
+await p.goto('file:///tmp/j/kgm1018A_w26.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(15000);
+await p.evaluate(()=>{window.kgmSimFitR1018A=function(){return {ok:true}};S._simStaff=6000;S._simCust=6000;S._simBk=100;doGenSimPax()});await p.waitForTimeout(30000);
+await p.goto('file:///tmp/j/kgm1019A_w22.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(40000);
+const a=await st();console.log('w22',JSON.stringify(a));
+const fill=await p.evaluate(()=>{let t=0;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);t+=k.length+(localStorage.getItem(k)||'').length}const n=5242880-t-40000;try{localStorage.setItem('zz_fill19','x'.repeat(n));return n}catch(e){return 'ERR '+e.name}});console.log('filler',fill);
+await p.goto('file:///tmp/j/kgm1019A_w24.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(45000);
+await p.evaluate(()=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='staff';render()});await p.waitForTimeout(15000);
+const c=await st();console.log('w24',JSON.stringify(c));
+await p.reload({waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(45000);
+const d=await st();console.log('w24 reload',JSON.stringify(d));
+console.log('same users',a.hu===c.hu&&c.hu===d.hu,'same staff',a.hs===c.hs&&c.hs===d.hs,'errs',JSON.stringify(errs.slice(0,4)));
+await b.close()})();

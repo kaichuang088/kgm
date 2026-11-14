@@ -1,0 +1,33 @@
+// 1112A C8：案件過了第一關（客服送 CEO）依內容自動改類別（退款相關 → 退款申請），每類有自己的欄位；CEO 核准可改金額
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message.slice(0,200)));
+await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:240000});await p.waitForTimeout(25000);
+const r1=await p.evaluate(async()=>{const now=new Date().toISOString();const bk=(S.bookings||[]).find(x=>x&&x.outF&&x.status==='confirmed'&&!x.staff&&+x.total>0&&x.outC&&x.outC.length<=3);
+ const seg=bk?{code:bk.outF.code,fr:bk.outF.fr,to:bk.outF.to,date:bk.outF.date}:{code:'KX129',fr:'TPE',to:'KIX',date:addDays(todayISO(),10)};
+ S.staffCasesR1007A=(S.staffCasesR1007A||[]).filter(c=>!/^KG400[12]/.test(c.caseNo));
+ S.staffCasesR1007A.push({caseNo:'KG4001111126M',pnr:bk?bk.pnr:'',type:'complaint',status:'received',priority:'normal',paxIndex:0,paxName:'TEST / ONE',segment:seg,detail:'班機延誤 4 小時，旅客不想搭了，要求退票並退回票款。',bag:null,createdAt:now,updatedAt:now,by:{empId:'K1',name:'客服'},assignee:{empId:'',name:''},userId:null,email:'',progress:[{at:now,status:'received',label:'旅客來電',by:'客服中心'}],notes:[]});
+ S.staffCasesR1007A.push({caseNo:'KG4002111126M',pnr:'',type:'other',status:'received',priority:'normal',paxIndex:0,paxName:'TEST / TWO',segment:{code:'KX129',fr:'TPE',to:'KIX',date:addDays(todayISO(),-2)},detail:'抵達後行李未出現在轉盤，已登記 PIR，行李條 KX123456。',bag:null,createdAt:now,updatedAt:now,by:{empId:'K1',name:'客服'},assignee:{empId:'',name:''},userId:null,email:'',progress:[{at:now,status:'received',label:'旅客來電',by:'客服中心'}],notes:[]});
+ const sv=(S.staff||[]).find(x=>x&&x.role==='service'&&x.empId)||{name:'客服',empId:'MASTER',role:'ceo'};S.adminAuthed=true;S.adminUser=Object.assign({},sv);S.view='admin';S.adminTab='cases0831B';S.case28Cat='other';S.caseTabR913='open';S.case7Sel='KG4001111126M';render();await new Promise(r=>setTimeout(r,1500));
+ const typeTab0=window.kgmCaseIsRefundR1101A({typeKey:'complaint'});
+ const btn=[...document.querySelectorAll('.k7c-btns button')].find(x=>/送 CEO/.test(x.textContent)&&/KG4001111126M/.test(x.getAttribute('onclick')||''));const shown=((document.querySelector('.k7c-detail h3')||{}).textContent||'');if(!btn)return {nobtn:true,shown,list:[...document.querySelectorAll('.k7c-detail h3')].map(x=>x.textContent)};
+ document.getElementById('k7cNote').value='旅客要退票';btn.click();await new Promise(r=>setTimeout(r,800));
+ const c=S.staffCasesR1007A.find(x=>x.caseNo==='KG4001111126M');
+ // 第二件：客服第一次處理（受理→處理中）
+ S.case7Sel='KG4002111126M';render();await new Promise(r=>setTimeout(r,800));const sel=document.getElementById('k7cSt');sel.value='investigating';const up=[...document.querySelectorAll('.k7c-btns button')].find(x=>/儲存並更新/.test(x.textContent)&&/KG4002111126M/.test(x.getAttribute('onclick')||''));up.click();await new Promise(r=>setTimeout(r,800));
+ const c2=S.staffCasesR1007A.find(x=>x.caseNo==='KG4002111126M');
+ S.case28Cat='refund';S.case7Sel='KG4001111126M';render();await new Promise(r=>setTimeout(r,800));
+ const inRefundTab=[...document.querySelectorAll('.k7c-list *')].some(e=>/KG4001111126M/.test(e.textContent))||!!document.querySelector('.k7c-detail')&&/KG4001111126M/.test(document.querySelector('.k7c-detail').innerText);
+ const card=(document.querySelector('.k40cat')||{}).innerText||'';
+ return {who:S.adminUser.empId+' '+S.adminUser.role,c1:{type:c.type,was:c.typeWasR1112A,status:c.status,lab:c.progress.slice(-2).map(x=>x.label),cat:c.catR1112A},c2:{type:c2.type,was:c2.typeWasR1112A,status:c2.status,cat:c2.catR1112A&&{f:c2.catR1112A.fields,amt:c2.catR1112A.amount}},inRefundTab,card,typeTab0}});
+console.log(JSON.stringify(r1,null,1));
+await p.evaluate(()=>{const e=document.querySelector('.k40cat');if(e)e.scrollIntoView({block:'center'})});await p.waitForTimeout(400);await p.screenshot({path:'/tmp/j/s40/case40_svc.png'});
+const r2=await p.evaluate(async()=>{S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.case28Cat='refund';S.case7Sel='KG4001111126M';render();await new Promise(r=>setTimeout(r,1000));
+ const inp=document.getElementById('k40CatAmt');const before=inp&&inp.value;if(inp)inp.value='12345';const m=document.getElementById('k28CeoMsg');if(m)m.value='同意全額退票';
+ const ok=[...document.querySelectorAll('.k7c-btns button')].find(x=>/同意並結案/.test(x.textContent)&&/KG4001111126M/.test(x.getAttribute('onclick')||''));if(ok)ok.click();await new Promise(r=>setTimeout(r,800));
+ const c=S.staffCasesR1007A.find(x=>x.caseNo==='KG4001111126M');
+ const types={};(S.staffCasesR1007A||[]).forEach(x=>{if(x.typeWasR1112A)types[x.caseNo]=x.typeWasR1112A+'→'+x.type});
+ const cats={};(S.staffCasesR1007A||[]).forEach(x=>{if(x.catR1112A)cats[x.type]=(x.catR1112A.fields||[]).map(f=>f[0]+':'+f[1]).join(' | ')+(x.catR1112A.amount!=null?' || '+x.catR1112A.amountLabel+' '+x.catR1112A.amount:'')});
+ const k19=(S.staffCasesR1007A||[]).filter(x=>x.typeWasR1112A==='complaint'&&x.type==='refund_req').map(x=>[x.caseNo,x.detail,(x.notes||[]).map(n=>n.text).join('/'),(x.progress||[]).map(p=>p.label+' '+(p.note||'')).join('/')]);return {k19,amtInput:before,status:c.status,last:c.progress.slice(-1)[0].label,approved:c.catR1112A&&c.catR1112A.approved,recatOthers:types,cats}});
+console.log(JSON.stringify(r2,null,1));
+await p.evaluate(()=>{const e=document.querySelector('.k40cat');if(e)e.scrollIntoView({block:'center'})});await p.waitForTimeout(400);await p.screenshot({path:'/tmp/j/s40/case40_ceo.png'});
+console.log('ERR',errs.slice(0,5));await b.close();process.exit(r1.c1&&r1.c1.type==='refund_req'&&r1.c2.type==='bag_delayed'&&r2.approved===12345&&!errs.length?0:1)})();

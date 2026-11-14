@@ -1,0 +1,71 @@
+// ===== 1115A：KGM Airways Worker 新增「/ai/messages」路由（後台 AI 工具迴圈＋自動監測用）=====
+// 這一段是「新增」，原本的 /ai/admin、/ai/front、寄信路由全部照舊保留、不要刪。
+//
+// 怎麼貼（兩步）：
+//  1. 把下面「function kgmCors1115A …」到「async function handleAiMessages1115A …」整段，貼在 Worker 檔案最上面
+//     （或任何一個函式外面的地方都可以）。
+//  2. 在 export default { async fetch(request, env) { ... } } 的最前面加這兩行（如果已經有 const url = new URL(request.url); 就只加第二行）：
+//        const url = new URL(request.url);
+//        if (url.pathname === "/ai/messages") return handleAiMessages1115A(request, env);
+//
+// 需要的 Secret：ANTHROPIC_API_KEY（Cloudflare 後台 → Workers → 你的 Worker → Settings → Variables and Secrets，類型選 Secret）。
+// 選用：ALLOWED_ORIGIN（直接用檔案打開網站時網址是 null，設了就會被擋；不確定就不要設）。
+//
+// 為什麼要這條：1115A 起後台 AI 是「工具迴圈」——Claude 呼叫工具 → 網站執行 → 結果交回 Claude → Claude 再決定下一步，
+// 一則需求可能來回好幾次；工具都在網站裡執行，所以 Worker 只負責把請求轉給 Anthropic（金鑰留在 Worker，不進瀏覽器）。
+// 自動監測（突發事件）也走這條，會用到 Claude 的網路搜尋（web_search）。
+// 沒有更新 Worker 也能用：網站會退回原本的 /ai/admin（一次性，看不到工具結果），或在後台 AI「連線」貼金鑰直接連線。
+
+function kgmCors1115A(request, env) {
+  const origin = request.headers.get("Origin") || "*";
+  return {
+    "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json; charset=utf-8"
+  };
+}
+
+async function handleAiMessages1115A(request, env) {
+  const cors = kgmCors1115A(request, env), origin = request.headers.get("Origin") || "*";
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  if (request.method !== "POST") return new Response(JSON.stringify({ error: "POST only" }), { status: 405, headers: cors });
+  if (env.ALLOWED_ORIGIN && origin !== env.ALLOWED_ORIGIN) return new Response(JSON.stringify({ error: "origin" }), { status: 403, headers: cors });
+  if (!env.ANTHROPIC_API_KEY) return new Response(JSON.stringify({ error: "no key" }), { status: 500, headers: cors });
+
+  let b;
+  try { b = await request.json(); } catch (e) { return new Response(JSON.stringify({ error: "bad json" }), { status: 400, headers: cors }); }
+  if (!b || !Array.isArray(b.messages) || !b.messages.length) return new Response(JSON.stringify({ error: "no messages" }), { status: 400, headers: cors });
+
+  // 只允許這幾個模型、最多 32000 tokens；工具只收網站自己的工具（custom）和網路搜尋
+  const MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
+  const body = {
+    model: MODELS.includes(b.model) ? b.model : "claude-opus-5-5",
+    max_tokens: Math.min(Math.max(+b.max_tokens || 16000, 1000), 32000),
+    messages: b.messages,
+    fallbacks: "default"
+  };
+  if (b.system) body.system = b.system;
+  if (Array.isArray(b.tools) && b.tools.length) {
+    body.tools = b.tools.filter(t => t && (!t.type || t.type === "custom" || t.type === "web_search_20260209"));
+  }
+  if (b.output_config && b.output_config.effort) body.output_config = { effort: String(b.output_config.effort) };
+
+  let r;
+  try {
+    r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "server-side-fallback-2026-07-01",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: "upstream " + String(e && e.message || e) }), { status: 502, headers: cors });
+  }
+  // Anthropic 的回應原樣交回網站（網站自己處理 tool_use、pause_turn、refusal）
+  return new Response(await r.text(), { status: r.status, headers: cors });
+}

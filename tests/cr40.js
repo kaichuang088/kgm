@@ -1,0 +1,28 @@
+// 1112A C7：空機回程「開放一般旅客訂購」要等全額付清、正式成團才開放（接受報價時還不開）
+// 底稿 cr28t.js（1101A 包機／自創航班報價流程）
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:240000});
+await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:240000});
+await p.waitForFunction(()=>window.KGM_FULLDONE_1006A,null,{timeout:200000}).catch(()=>{});await p.waitForTimeout(2000);
+const r1=await p.evaluate(async()=>{window.alert=()=>{};var u=S.users.find(x=>x.email==='demo@kgm.com')||S.users[0];u.groupAccountR1025B={status:'active',company:'KK TRIP',type:'agency',taxId:'22099131',license:'乙1235',contact:{name:'Admin',phone:'0912345765',email:'t@g.com'},caseNo:'KGTEST'};S.user=u;
+ S.view='group23';render();kgmCharterOpenR1026C('custom');await new Promise(r=>setTimeout(r,600));
+ var set=(id,v)=>{var e=document.getElementById(id);if(e){e.value=v}};var D=addDays(todayISO(),100);set('k27c-name','員工旅遊 關西');set('k27c-fr','TPE');set('k27c-to','KIX');set('k27c-date',D);set('k27c-pax','12');set('k27c-time','09:00');
+ kgmCharterSubmitR1026C();await new Promise(r=>setTimeout(r,800));var q=(S.charterReqsR1026C||[])[0];return {n:(S.charterReqsR1026C||[]).length,id:q&&q.id,st:q&&q.status,msg:S.k27cr&&S.k27cr.msg,m2:S.k27crMsg,D}});
+console.log(JSON.stringify(r1));
+const r2=await p.evaluate(async(id)=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='groups23';S.k27gdTab='charter';try{render()}catch(e){return {err:String(e.stack).slice(0,600)}}for(var w=0;w<20&&!document.getElementById('k28q-amt-'+id);w++)await new Promise(r=>setTimeout(r,500));
+ var inp=document.getElementById('k28q-amt-'+id),btn=[...document.querySelectorAll('button')].find(b=>/送出報價/.test(b.textContent));var base=inp&&inp.getAttribute('data-base'),val=inp&&inp.value;if(inp)inp.value=String(Math.round(+val*1.05));var ck=document.getElementById('k28q-open-'+id);if(ck)ck.checked=true;
+ if(btn)btn.click();await new Promise(r=>setTimeout(r,800));var q=S.charterReqsR1026C.find(x=>x.id===id);if(!q)return {ids:(S.charterReqsR1026C||[]).map(x=>x.id+':'+x.status),btn:!!btn,inp:!!inp};return {base,val,btn:!!btn,st:q.status,quote:q.quoteR1101A&&{amount:q.quoteR1101A.amount,until:q.quoteR1101A.until,open:q.quoteR1101A.openFerry},msg:S.k27cdMsg}},r1.id);
+await p.screenshot({path:'/tmp/j/cr1.png'});
+const r3=await p.evaluate(async(id)=>{S.adminAuthed=false;S.view='group23';render();for(var w=0;w<16&&!document.getElementById('k28q-names-'+id);w++)await new Promise(r=>setTimeout(r,500));var ta=document.getElementById('k28q-names-'+id);var shown=!!ta;
+ var L=[];for(var i=0;i<12;i++)L.push('WANG/PAX'+String.fromCharCode(65+i)+(i===0?'/KGM100000':''));if(ta)ta.value=L.join('\n');window.confirm=()=>true;var op=0;var o=window.kgmOpenPayR45;window.kgmOpenPayR45=function(){op++};
+ kgmCharterAcceptR1101A(id);await new Promise(r=>setTimeout(r,1500));window.kgmOpenPayR45=o;
+ var q=S.charterReqsR1026C.find(x=>x.id===id),g=(S.groupsR1023A||[]).find(x=>x.id===q.groupId),bk=g&&S.bookings.find(x=>x.pnr===g.pnr);
+ var ferry=(S.customFlights||[]).filter(f=>f.charterR1026C===id).map(f=>f.code+' '+f.fr+'-'+f.to+' sale:'+!f.noSaleR913+' ferry:'+!!f.ferryR1026C);var fr=(S.customFlights||[]).find(f=>f.charterR1026C===id&&f.ferryR1026C);var srch=fr?(sortedFlights(fr.fr,fr.to,fr.date||q.flights[0].date)||[]).some(x=>x.code===fr.code):null;window.__fr40=fr&&{code:fr.code,fr:fr.fr,to:fr.to,date:fr.date||q.flights[0].date};
+ return {shown,st:q.status,flights:(q.flights||[]).map(f=>f.code+' '+f.fr+'-'+f.to+' '+f.date+' '+f.type),ferry,g:g&&{total:g.total,dep:g.deposit.amount,depDue:g.deposit.due,bal:g.balance.amount,ticketFrom:g.ticketFromR1101A,names:(g.names||[]).length,st:g.status},pax0:bk&&bk.paxList[0],pay:op,msg:S.k27crMsg,searchBeforePay:srch,hist:(q.history||[]).slice(-2).map(h=>h.act)}},r1.id);
+await p.screenshot({path:'/tmp/j/cr2.png',fullPage:false});console.log(JSON.stringify({r2,r3},null,1));if(!r3.g){await b.close();return}
+const r4=await p.evaluate(async(id)=>{var q=S.charterReqsR1026C.find(x=>x.id===id),g=(S.groupsR1023A||[]).find(x=>x.id===q.groupId);var c=(S.chargesR45||[]).find(x=>x.id===g.deposit.chargeId);if(c){c.status='paid';c.paidAt=new Date().toISOString()}
+ kgmCharterTickR1026C();await new Promise(r=>setTimeout(r,21000));kgmGrpTickR1025B();var F=window.__fr40,f=F&&(S.customFlights||[]).find(x=>x.code===F.code&&x.fr===F.fr&&x.to===F.to);var srch=F?(sortedFlights(F.fr,F.to,F.date)||[]).some(x=>x.code===F.code):null;return {st:g.status,balPaid:g.balance.paid,ticketed:g.status==='ticketed',dep:g.deposit.paid,ferryAfterPay:f&&{sale:!f.noSaleR913,ferry:!!f.ferryR1026C,pub:!!f.publicReturnR1101A},searchAfterPay:srch,hist:(q.history||[]).slice(-2).map(h=>h.act)}},r1.id);
+const r5=await p.evaluate(async(id)=>{render();for(var w=0;w<16&&!document.getElementById('k28q-up-'+id);w++)await new Promise(r=>setTimeout(r,500));var sel=document.getElementById('k28q-up-'+id);var opts=sel?[...sel.options].map(o=>o.value):[];if(sel){sel.value=opts[0];kgmCharterUpsizeR1101A(id)}
+ var q=S.charterReqsR1026C.find(x=>x.id===id);return {opts,up:q.upsizeR1101A}},r1.id);
+console.log(JSON.stringify({r1,r2,r3,r4,r5,errs:errs.slice(0,3)},null,1));const ok=r3.searchBeforePay===false&&r4.searchAfterPay===true&&r4.ferryAfterPay&&r4.ferryAfterPay.sale;console.log('C7',ok?'PASS':'FAIL');await b.close();process.exit(ok&&!errs.length?0:1)})();

@@ -1,0 +1,10 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();
+await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:240000});
+await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:240000});
+await p.waitForTimeout(25000);
+await p.evaluate(()=>{S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='flightadjust';render()});await p.waitForTimeout(2000);
+const t0=Date.now();await p.fill('#k57q','KX67');await p.click('.k57-search button');await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>r())));const t1=Date.now()-t0;
+await p.waitForTimeout(2000);
+const info=await p.evaluate(()=>{var m=document.querySelector('#app main')||document.body;return [...new Set([...m.querySelectorAll('[class]')].map(e=>e.className).filter(c=>/k6|fa|adj|k12|k22/.test(c)))].slice(0,40)});
+await p.evaluate(()=>{var e=document.querySelector('.k57-flight');if(e)window.scrollTo(0,e.getBoundingClientRect().top+scrollY-60)});await p.waitForTimeout(400);await p.screenshot({path:'/tmp/j/fa2.png',fullPage:false});console.log(t1,JSON.stringify(info));await b.close()})();

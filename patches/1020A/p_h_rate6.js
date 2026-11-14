@@ -1,0 +1,2 @@
+/* 1006A · 組員評分座位圖不再閃舊格子 */
+RL("rate modal paint map sync","kgm-0907A-r195","    else document.body.appendChild(d.firstElementChild);\n    return 1;\n  }catch(e){try{console.warn('r195 modal',e)}catch(_){}return 0}","    else document.body.appendChild(d.firstElementChild);\n    try{if(window.kgmPaintSeatMapR210)window.kgmPaintSeatMapR210()}catch(_){}   /* 1006A #12：同一步就換成座位圖，不再先閃一秒舊格子 */\n    return 1;\n  }catch(e){try{console.warn('r195 modal',e)}catch(_){}return 0}",1);

@@ -1,0 +1,16 @@
+      /* ── BigDeal：起飛前 48–120 小時 ── */
+      if(hrs>=48&&hrs<=120){
+        S.bigDeals=S.bigDeals||[];
+        if(!has9(S.bigDeals,code,date,f.fr,f.to)){
+          var nB=1+(seed%3);
+          for(var k=0;k<nB;k++){
+            var h3=H9(seed+'b'+k);
+            S.bigDeals.push({id:'BD922'+(seed%99999)+k,code:code,date:date,fr:f.fr,to:f.to,
+              pnr:pnr9(seed+'b'+k),userId:'KGM'+(400000+(h3%99999)),
+              who:NAMES[(h3+2)%NAMES.length],cabin:'Business',toCabin:'Business',
+              amount:18000+((h3>>>5)%15)*2600+(h3%11)*450,status:(k?'pending':'approved'),
+              at:new Date(Date.now()-(h3%48)*3600000).toISOString(),demoR922:true});
+          }
+          made++;
+        }
+      }
