@@ -122,7 +122,7 @@
     /* 換機紀錄被別層重寫時補回標記（不寄通知） */
     try{tails.forEach(function(tl){(TA[tl]||[]).forEach(function(x){if(x&&x.a35kR1108B&&x.acft&&x.acft!=='A35K'){x.acftOrigR1108B=x.acft;x.acft='A35K'}})})}catch(_){}   /* 航段自己帶的機型欄位跟著改（機隊稽核比的是它） */
     try{IX=null;var I=idx();Object.keys(I).forEach(function(k){var e=S.acftSub&&S.acftSub[k];if(e){e.plannedR1108B=1;e.notified=1;e.paxNotifiedR34=1;e.sub='A35K';e.tail=I[k]}})}catch(_){}
-    var st=window.KGM_A35K_SHORT_R1108B;st.moved+=moved;st.kept=kept;st.dropped=(st.dropped||0)+drop;st.runs++;st.at=new Date().toISOString();
+    var st=window.KGM_A35K_SHORT_R1108B;st.moved+=moved;st.kept=kept;st.dropped=(st.dropped||0)+drop;st.runs++;st.at=new Date().toISOString();window.KGM_A35_FD_R1115B=window.KGM_FULLDONE_1006A;   /* 1115B：這次整年重排之後的 A35K 輪替已經跑過＝機隊最終版（組員引擎等這個才開始、才讀存檔） */
     if(moved||drop){try{if(window.kgmClearRotationCacheR72)window.kgmClearRotationCacheR72()}catch(_){}try{save()}catch(_){}}
   }
   window.kgmA35kShortR1108B=pass;
@@ -149,6 +149,8 @@
   var MINEN=null;function wrapN(){var n0=window.kgmNotifyAcftChangeR34;if(typeof n0!=='function'||n0===MINEN)return;var w=function(code,date,from,to){try{if(to==='A35K'&&window.kgmA35kOnR1108B(code,date))return 0}catch(_){}return n0.apply(this,arguments)};MINEN=w;window.kgmNotifyAcftChangeR34=w}
   function hk(){wrapAc();wrapN()}hk();setInterval(hk,5000);
   setInterval(function(){try{pass()}catch(e){try{console.warn('a35k short',e)}catch(_){}}},20000);
+  /* 1115B：整年重排一做完就馬上跑一次（原本要等 0～20 秒的計時器，組員引擎在這之間開始算 → 機隊又變 → 整份作廢重算，存檔指紋也對不上） */
+  setInterval(function(){var fd=window.KGM_FULLDONE_1006A;if(fd&&window.KGM_A35_FD_R1115B!==fd){try{pass()}catch(e){try{console.warn('a35k short',e)}catch(_){}}if(window.KGM_A35_FD_R1115B!==fd)window.KGM_A35_FD_R1115B=fd}},500);
 })();
 /* ══ 1112B C14：曼谷長程段（一端 BKK、另一端不是台北／松山、航程 ≥4 小時）—— r121 只派曼谷基地組員 ══ */
 window.kgmBkkLhR1112B=function(f){try{if(!f)return false;var a=f.fr,b=f.to;if(a!=='BKK'&&b!=='BKK')return false;var o=a==='BKK'?b:a;if(o==='TPE'||o==='TSA'||o==='BKK')return false;return (+f.block||0)>=240}catch(_){return false}};
@@ -219,7 +221,7 @@ window.kgmBkkLhR1112B=function(f){try{if(!f)return false;var a=f.fr,b=f.to;if(a!
   function h(s){s=String(s);var x=2166136261;for(var i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,16777619)}return x>>>0}
   var BASE={TPE:1,TSA:1};
   function td(){try{return todayISO()}catch(_){return new Date().toISOString().slice(0,10)}}
-  window.kgmCrewWishMonthR1115A=function(){var d=td(),y=+d.slice(0,4),m=+d.slice(5,7)+1;if(m>12){m=1;y++}return y+'-'+(m<10?'0':'')+m};
+  window.kgmCrewWishMonthR1115A=function(){return window.kgmCrewWishOpenR1115B?window.kgmCrewWishOpenR1115B():(function(){var d=td(),y=+d.slice(0,4),m=+d.slice(5,7)+1;if(m>12){m=1;y++}return y+'-'+(m<10?'0':'')+m})()};   /* 1115B：開放許願的月份（下個月截止了就換下下個月） */
   var DST={};
   function dests(base){base=base==='BKK'?'BKK':'TPE';if(DST[base])return DST[base];var o={};
     try{(typeof FLIGHTS!=='undefined'?FLIGHTS:[]).forEach(function(f){if(!f||f.partner||f.codeshare||!/^KX\d{1,3}$/.test(String(f.code||'')))return;var fr=f.fr,to=f.via||f.to;
@@ -227,7 +229,13 @@ window.kgmBkkLhR1112B=function(f){try{if(!f)return false;var a=f.fr,b=f.to;if(a!
     return DST[base]=Object.keys(o).sort()}
   window.kgmCrewWishDestsR1115A=dests;
   var WC={},WCs='';
-  window.kgmCrewWishOfR1115A=function(id,base,mo){var W=S.crewWishR1115A||{},a=W[id]&&W[id][mo];if(a&&a.length)return {list:a,mine:true};
+  /* 1115B E3（使用者：「空服員要在一個deadline前上傳心願地點沒有就是隨機」）：每月 15 日 23:59（台北）截止「下個月」的許願；
+     截止後誰都不能改；截止前沒送出（或截止後才送）的人＝系統隨機（依員工編號＋月份固定，每次開頁一樣，組員班表存檔才對得上）。 */
+  var DLDAY15=15;
+  window.kgmCrewWishDeadlineR1115B=function(mo){var y=+String(mo).slice(0,4),m=+String(mo).slice(5,7);return Date.UTC(y,m-2,DLDAY15,15,59,59)};   /* 前一個月 15 日 23:59:59（UTC+8） */
+  function addMo(mo,n){var y=+mo.slice(0,4),m=+mo.slice(5,7)+n;while(m>12){m-=12;y++}return y+'-'+(m<10?'0':'')+m}
+  window.kgmCrewWishOpenR1115B=function(){var cur=td().slice(0,7),nx=addMo(cur,1);return Date.now()<=window.kgmCrewWishDeadlineR1115B(nx)?nx:addMo(cur,2)};
+  window.kgmCrewWishOfR1115A=function(id,base,mo){var W=S.crewWishR1115A||{},a=W[id]&&W[id][mo],at=W[id]&&W[id]['@'+mo];if(a&&a.length&&!(at&&at>window.kgmCrewWishDeadlineR1115B(mo)))return {list:a,mine:true,at:at||null};   /* 1115B：截止後才送的不算 */
     var k=id+'|'+mo+'|'+(base||'');if(WC[k])return WC[k];var L=dests(base).map(function(x){return [h(id+'|'+mo+'|'+x),x]}).sort(function(x,y){return x[0]-y[0]}).map(function(x){return x[1]});   /* 1115A D5：每個航點的雜湊只算一次（結果相同） */return WC[k]={list:L.slice(0,5),mine:false}};
   /* 引擎排序用：0＝這一班是他許願的航點（從基地飛出去），1＝不是／不適用 */
   var SC={},SCn=0;
@@ -235,23 +243,30 @@ window.kgmBkkLhR1112B=function(f){try{if(!f)return false;var a=f.fr,b=f.to;if(a!
       var out=base==='BKK'?f.fr==='BKK':!!BASE[f.fr];if(!out)return 0;var mo=String(date||'').slice(0,7),k=p.empId+'|'+mo,set=SC[k];
       if(!set){var w=window.kgmCrewWishOfR1115A(p.empId,base,mo).list,o={};w.forEach(function(x){o[x]=1});set=SC[k]=o;if(++SCn>60000){SC={};SCn=0}}   /* 1115A D5：原本每次沒命中都 Object.keys(SC)（上萬個鍵）→ 平方成長，60 秒吃掉 5 秒主執行緒 */
       return set[f.to]||set[f.via]?0:1}catch(_){return 1}};
+  function dlTxt(mo){var x=new Date(window.kgmCrewWishDeadlineR1115B(mo)+8*3600000);return (x.getUTCMonth()+1)+'/'+x.getUTCDate()+' 23:59'}
+  function left(mo){var ms=window.kgmCrewWishDeadlineR1115B(mo)-Date.now();if(ms<=0)return z()?'已截止':'closed';var h2=Math.floor(ms/3600000),d2=Math.floor(h2/24);return z()?(d2>=1?'剩 '+d2+' 天 '+(h2%24)+' 小時':'剩 '+h2+' 小時 '+Math.floor(ms%3600000/60000)+' 分'):(d2>=1?d2+'d '+(h2%24)+'h left':h2+'h left')}
+  window.kgmCrewWishDraftR1115B=function(id,mo){var v=[];for(var i=0;i<5;i++){var el=document.getElementById('k115w-'+i);v.push(el?el.value:'')}S.k115wDraftR1115B=S.k115wDraftR1115B||{};S.k115wDraftR1115B[id+'|'+mo]=v};
   window.kgmCrewWishSaveR1115A=function(id,mo){var me=S.adminUser||{},ceo=me.role==='ceo'||me.role==='admin'||me.empId==='MASTER';
     if(!(ceo||me.empId===id)){alert(z()?'只能改自己的許願。':'You can only change your own wishes.');return}
+    if(Date.now()>window.kgmCrewWishDeadlineR1115B(mo)){alert(z()?mo+' 的許願已在 '+dlTxt(mo)+' 截止，不能再改；沒送出的由系統隨機分配。':'The bidding window for '+mo+' closed at '+dlTxt(mo)+'.');try{render()}catch(_){}return}   /* 1115B：截止後誰都不能改 */
     var v=[];for(var i=0;i<5;i++){var el=document.getElementById('k115w-'+i);if(el&&el.value&&v.indexOf(el.value)<0)v.push(el.value)}
-    S.crewWishR1115A=S.crewWishR1115A||{};S.crewWishR1115A[id]=S.crewWishR1115A[id]||{};S.crewWishR1115A[id][mo]=v;
+    S.crewWishR1115A=S.crewWishR1115A||{};S.crewWishR1115A[id]=S.crewWishR1115A[id]||{};S.crewWishR1115A[id][mo]=v;S.crewWishR1115A[id]['@'+mo]=Date.now();try{delete (S.k115wDraftR1115B||{})[id+'|'+mo]}catch(_){}   /* 1115B：送出時間（截止後才送的不算） */
     Object.keys(SC).forEach(function(k){if(k.indexOf(id+'|')===0)delete SC[k]});
-    S.k115wMsg=(z()?'✓ 已送出 '+mo+' 的許願（'+v.length+' 個航點）。下次排班（下次開頁）會盡量照這個排；已公布的班表不會變。':'Saved.');try{save()}catch(_){}try{render()}catch(_){}};
+    S.k115wMsg=(z()?'✓ 已送出 '+mo+' 的許願（'+v.length+' 個航點）。'+dlTxt(mo)+' 截止前都可以再改；排班會盡量照這個排，已公布的班表不會變。':'Saved.');try{save()}catch(_){}try{render()}catch(_){}};
   /* 班表頁的許願面板：ros＝這位組員的班表（r196），算目前符合幾段 */
   window.kgmCrewWishHtmlR1115A=function(id,ros){try{var P=null;try{var pl=window.kgmCrewPoolR121&&window.kgmCrewPoolR121();P=(pl&&pl.pilots||[]).concat(pl&&pl.cabin||[]).filter(function(x){return x.empId===id})[0]}catch(_){}
     var base=(P&&P.base)||((P&&P.nat22==='TH')?'BKK':'TPE'),mo=window.kgmCrewWishMonthR1115A(),cur=td().slice(0,7),D=dests(base),w=window.kgmCrewWishOfR1115A(id,base,mo),wc=window.kgmCrewWishOfR1115A(id,base,cur);
     var me=S.adminUser||{},can=me.role==='ceo'||me.role==='admin'||me.empId==='MASTER'||me.empId===id;
     function cnt(month,list){var o={},n=0,hit=0;list.forEach(function(x){o[x]=1});(ros||[]).forEach(function(x){if(String(x.date).slice(0,7)!==month)return;(x.legs||[]).forEach(function(l){if(!l||l.deadhead||l.dh)return;var fr=l.fr||String(l.route||'').split('→')[0],to=l.to||String(l.route||'').split('→')[1];if(base==='BKK'?fr!=='BKK':!BASE[fr])return;n++;if(o[to])hit++})});return {n:n,hit:hit}}
     var c1=cnt(cur,wc.list),c2=cnt(mo,w.list);
-    var sel=function(i){var v=w.mine?(w.list[i]||''):'';return '<select id="k115w-'+i+'"'+(can?'':' disabled')+'><option value="">'+(z()?'第 '+(i+1)+' 志願':'Choice '+(i+1))+'</option>'+D.map(function(a){var c='';try{c=(typeof CITY==='function'?CITY(a):'')||''}catch(_){}return '<option value="'+a+'"'+(a===v?' selected':'')+'>'+a+(c&&c!==a?' '+E(c):'')+'</option>'}).join('')+'</select>'};
-    return '<div class="k115w"><div class="k115w-h"><b>'+(z()?'許願航點 · '+mo:'Destination bids · '+mo)+'</b><small>'+(z()?'下個月最想飛的 5 個航點（從 '+base+' 出發的航點）。排班會在不違反任何規定的前提下盡量照許願排，不保證全部符合。':'')+'</small></div>'
+    var dr=(S.k115wDraftR1115B&&S.k115wDraftR1115B[id+'|'+mo])||null;   /* 1115B：還沒送出的選擇存草稿（背景重畫不會洗掉） */
+    var sel=function(i){var v=dr?(dr[i]||''):(w.mine?(w.list[i]||''):'');return '<select id="k115w-'+i+'"'+(can?'':' disabled')+' onchange="kgmCrewWishDraftR1115B(\''+E(id)+'\',\''+mo+'\')"><option value="">'+(z()?'第 '+(i+1)+' 志願':'Choice '+(i+1))+'</option>'+D.map(function(a){var c='';try{c=(typeof CITY==='function'?CITY(a):'')||''}catch(_){}return '<option value="'+a+'"'+(a===v?' selected':'')+'>'+a+(c&&c!==a?' '+E(c):'')+'</option>'}).join('')+'</select>'};
+    var nx1=(function(){var y=+cur.slice(0,4),m=+cur.slice(5,7)+1;if(m>12){m=1;y++}return y+'-'+(m<10?'0':'')+m})(),lk=mo!==nx1?nx1:'',wl=lk?window.kgmCrewWishOfR1115A(id,base,lk):null;   /* 1115B：下個月已截止 → 那個月顯示結果，開放的是下下個月 */
+    return '<div class="k115w"><div class="k115w-h"><b>'+(z()?'許願航點 · '+mo:'Destination bids · '+mo)+'<span class="k115w-dl">'+(z()?'截止 '+dlTxt(mo)+'（台北時間）· '+left(mo):'Closes '+dlTxt(mo)+' (Taipei) · '+left(mo))+'</span></b><small>'+(z()?mo+' 最想飛的 5 個航點（從 '+base+' 出發的航點），請在每月 15 日 23:59 前送出下個月的許願；截止後不能再改，沒有送出的由系統隨機分配 5 個航點。排班會在不違反任何規定的前提下盡量照許願排，不保證全部符合。':'Submit 5 destinations for '+mo+' before the 15th 23:59 of the month before. After the deadline it is locked; crew who did not submit get 5 random destinations.')+'</small></div>'
+      +(lk?'<div class="k115w-lk">'+(z()?'<b>'+lk+' 已截止（'+dlTxt(lk)+'）</b> · '+(wl.mine?'你的許願：':'沒有在截止前送出 → 系統隨機：')+E(wl.list.join('、')):'<b>'+lk+' closed</b> · '+(wl.mine?'Your bids: ':'Not submitted → random: ')+E(wl.list.join(', ')))+'</div>':'')
       +'<div class="k115w-s">'+[0,1,2,3,4].map(sel).join('')+(can?'<button type="button" class="btn btn-g" onclick="kgmCrewWishSaveR1115A(\''+E(id)+'\',\''+mo+'\')">'+(z()?'送出許願':'Submit')+'</button>':'')+'</div>'
-      +(w.mine?'':'<div class="k115w-n">'+(z()?'還沒許願（目前排班用系統預設：'+E(w.list.join('、'))+'）':'Not submitted yet')+'</div>')
+      +(w.mine?'<div class="k115w-n">'+(z()?'已送出'+(w.at?'（'+new Date(w.at+8*3600000).toISOString().slice(5,16).replace('T',' ')+'）':'')+'，截止前都可以再改。':'Submitted.')+'</div>':'<div class="k115w-n">'+(z()?'還沒送出 · 截止前沒送出就由系統隨機分配（目前隨機會是：'+E(w.list.join('、'))+'）':'Not submitted · random if not submitted by the deadline')+'</div>')
       +(S.k115wMsg?'<div class="k115w-ok">'+E(S.k115wMsg)+'</div>':'')
-      +'<div class="k115w-st">'+(z()?cur+' 從基地出發的航段 '+c1.n+' 段，其中 '+c1.hit+' 段是許願的航點'+(wc.mine?'':'（系統預設許願）')+(c2.n?'；'+mo+' 已排 '+c2.n+' 段，符合 '+c2.hit+' 段':''):'')+'</div></div>'}catch(_){return ''}};
-  try{var cs=document.createElement('style');cs.textContent='.k115w{margin:12px 0 4px;padding:14px 16px;border:1px solid #d9e4dd;border-radius:14px;background:#f8fbf9}.k115w-h b{display:block;font-size:14px;color:#0B3D2E}.k115w-h small{display:block;margin-top:3px;color:#5f6b65;font-size:12px;line-height:1.5}.k115w-s{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}.k115w-s select{padding:7px 10px;border:1px solid #cfd8d3;border-radius:10px;font-size:13px;min-width:140px}.k115w-n,.k115w-st{margin-top:8px;font-size:12.5px;color:#55605B}.k115w-ok{margin-top:8px;font-size:12.5px;color:#0B6B48;font-weight:700}';document.head.appendChild(cs)}catch(_){}
+      +'<div class="k115w-st">'+(z()?cur+' 從基地出發的航段 '+c1.n+' 段，其中 '+c1.hit+' 段是許願的航點'+(wc.mine?'':'（系統隨機）')+(c2.n?'；'+mo+' 已排 '+c2.n+' 段，符合 '+c2.hit+' 段':''):'')+'</div></div>'}catch(_){return ''}};
+  try{var cs=document.createElement('style');cs.textContent='.k115w{margin:12px 0 4px;padding:14px 16px;border:1px solid #d9e4dd;border-radius:14px;background:#f8fbf9}.k115w-h b{display:block;font-size:14px;color:#0B3D2E}.k115w-h small{display:block;margin-top:3px;color:#5f6b65;font-size:12px;line-height:1.5}.k115w-s{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}.k115w-s select{padding:7px 10px;border:1px solid #cfd8d3;border-radius:10px;font-size:13px;min-width:140px}.k115w-n,.k115w-st{margin-top:8px;font-size:12.5px;color:#55605B}.k115w-ok{margin-top:8px;font-size:12.5px;color:#0B6B48;font-weight:700}.k115w-dl{display:inline-block;margin-left:10px;padding:2px 9px;border-radius:999px;background:#FFF4DC;color:#8A5A00;font-size:11.5px;font-weight:700;vertical-align:1px}.k115w-lk{margin-top:9px;padding:8px 11px;border-radius:10px;background:#EEF3F0;font-size:12.5px;color:#33413A}';document.head.appendChild(cs)}catch(_){}
 })();

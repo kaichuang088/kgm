@@ -46,15 +46,43 @@ function picker(){var f=S.case7New,fl=f.flR1115A,n=paxOf(fl).length;
     +'<input class="inp" placeholder="'+(z()?'例：32K、CHEN、ABC123':'e.g. 32K, CHEN')+'" value="'+E(S.case115Q||'')+'" oninput="kgmCaseQR1115A(this.value)">'
     +'<div class="k115c-list" id="k115cl">'+list()+'</div>'
     +(f.simR1115A?'<div class="k115c-sim">'+(z()?'這位是系統模擬旅客（沒有真的訂位）：案件照樣成立，但不寄信、不發通知。':'Simulated passenger: no email or notice will be sent.')+'</div>':'')
+    +'<div class="k115c-tip">'+(z()?'要換別班：關掉這個視窗，在航班資料左邊選你的另一班再按「＋ 為這班旅客建立案件」。'+((function(){try{return window.kgmPermR123&&window.kgmPermR123('cases0831B')}catch(_){return false}})()?'旅客不在你的航班上：到「案件處理中心」用訂位代號建立。':''):'To switch flights, close this and pick another flight on the left.')+'</div>'
     +'<div class="k115c-who">'+(z()?'申請者：':'Opened by: ')+'<b>'+E(({ground:z()?'機場地勤':'Airport staff',cabin:z()?'客艙組員':'Cabin crew',crew:z()?'客艙組員':'Cabin crew',service:z()?'客服中心':'Customer service'}[role()])||(z()?'客服中心':'Customer service'))+'</b> '+E(((S.adminUser||{}).name||'')+' '+((S.adminUser||{}).empId||''))+'</div></div>'}
-function bar(){var fl=selFl();if(!fl)return '';
+function bar(){var fl=selFl();if(!fl)return S.case115Msg&&S.adminTab==='flightdata'?'<div class="k115c-bar" id="k115cbar"><em>'+E(S.case115Msg)+'</em></div>':'';
   return '<div class="k115c-bar" id="k115cbar"><button type="button" class="k115c-btn" onclick="kgmCaseFlightOpenR1115A()">＋ '+(z()?'為這班旅客建立案件':'Open a case for a passenger')+'</button><span>'+(z()?'行李沒有送達、座位重複／超賣、機上服務、旅客受傷…（'+E(fl.code+' '+fl.date)+'）':'Delayed bags, duplicate seats, in-flight incidents…')+'</span>'
     +(S.case115Msg?'<em>'+E(S.case115Msg)+'</em>':'')+'</div>'}
+/* 1115B E4（使用者：「哪裡可以提出案件for地勤and空服 也要清楚喔」）：地勤、空服員的後台側欄最上面一顆「＋ 提出案件」，
+   按了就到航班資料（自己的班，預設最近一班）並直接打開「為這班旅客建立案件」；旁邊寫可以建哪些事、去哪裡看。 */
+function navRole(){var r=role();return r==='ground'||r==='cabin'||r==='crew'}
+/* 側欄常被背景重畫整個換掉 → 按下（pointerdown）就動作，click 再來一次 600 毫秒內不重複 */
+var GO15=0;function once15(){var n=Date.now();if(n-GO15<600)return false;GO15=n;return true}
+window.kgmCaseGoR1115B=function(){if(!canOpen()||!once15())return;S.case7New=null;S.case115Q='';S.case115Auto=Date.now();S.case115Msg='';S.adminTab='flightdata';try{render()}catch(_){}waitSel()};
+/* 地勤／組員的「自己的班」是背景算的（地勤班表第一次要幾秒）→ 最多等 20 秒找到就打開，找不到才說沒有航班 */
+var WS=0;function waitSel(){clearTimeout(WS);WS=setTimeout(function(){if(!S.case115Auto)return;if(S.adminTab!=='flightdata'){S.case115Auto=0;return}try{render()}catch(_){}paint();if(S.case115Auto)waitSel()},1000)}
+/* 1115B E3：空服員、機師側欄提醒許願截止（哪個月、哪天截止、送了沒），按「去許願」到自己的班表 */
+function wishRole(){var r=role();return r==='cabin'||r==='crew'||r==='pilot'}
+window.kgmWishGoR1115B=function(){var u=S.adminUser||{};if(!u.empId||!once15())return;S.adminTab='sched';S.crewSelR196=u.empId;try{render()}catch(_){}
+  var n=0;(function f(){var w=document.querySelector('.k115w');if(w){try{w.scrollIntoView({behavior:'smooth',block:'center'})}catch(_){}return}if(++n<40)setTimeout(f,500)})()};
+function wishBox(){if(!wishRole()||!window.kgmCrewWishMonthR1115A||!window.kgmCrewWishDeadlineR1115B)return '';var u=S.adminUser||{},mo=window.kgmCrewWishMonthR1115A(),w=null;
+  try{var me=(S.staff||[]).filter(function(x){return x&&x.empId===u.empId})[0];w=window.kgmCrewWishOfR1115A(u.empId,(me&&me.base)||((me&&me.nationality==='TH')?'BKK':'TPE'),mo)}catch(_){}   /* 員工檔的基地（不碰組員池，重畫時不花時間） */
+  var dl=new Date(window.kgmCrewWishDeadlineR1115B(mo)+8*3600000),dt=(dl.getUTCMonth()+1)+'/'+dl.getUTCDate()+' 23:59',ms=window.kgmCrewWishDeadlineR1115B(mo)-Date.now(),hh=Math.max(0,Math.floor(ms/3600000));
+  return '<div class="k115c-wish'+(w&&w.mine?' ok':'')+'"><b>'+(z()?'許願航點 · '+mo:'Bids · '+mo)+'</b><small>'+(z()?'截止 '+dt+'（剩 '+(hh>=24?Math.floor(hh/24)+' 天 '+(hh%24)+' 小時':hh+' 小時')+'）· '+(w&&w.mine?'已送出':'還沒送出，截止前沒送就隨機'):'Closes '+dt+(w&&w.mine?' · submitted':' · not submitted'))+'</small><button type="button" onpointerdown="kgmWishGoR1115B()" onclick="kgmWishGoR1115B()">'+(z()?(w&&w.mine?'查看／修改':'去許願'):'Open')+'</button></div>'}
+function nav(){var side=document.querySelector('.p-admin-side');if(!side)return;var old=document.getElementById('k115cnav');
+  var showCase=navRole()&&canOpen(),wb=wishBox();
+  if(!showCase&&!wb){if(old)old.remove();return}
+  var casesOk=false;try{casesOk=!!(window.kgmPermR123&&window.kgmPermR123('cases0831B'))}catch(_){}
+  var html='<div id="k115cnav" class="k115c-nav">'+(showCase?'<button type="button" onpointerdown="kgmCaseGoR1115B()" onclick="kgmCaseGoR1115B()">＋ '+(z()?'提出案件':'Open a case')+'</button><small>'+(z()?'行李沒有送達、座位重複／超賣、機上服務、旅客受傷…從你的航班旅客名單挑人建立。'+(casesOk?'建好的案件在「案件處理中心」。':'建好會顯示案件編號，後台客服接手處理。'):'Bags, seats, in-flight incidents — pick the passenger from your flight.')+'</small>':'')+wb+'</div>';
+  if(old&&old.parentElement===side&&old.getAttribute('data-h')===html)return;if(old)old.remove();
+  side.insertAdjacentHTML('afterbegin',html.replace('id="k115cnav"','id="k115cnav" data-h="'+E(html)+'"'))}
 function paint(){try{
   if(S.view!=='admin'||!S.adminAuthed){var h0=document.getElementById('k115cm');if(h0)h0.remove();return}
+  nav();
+  if(S.case115Auto&&S.adminTab==='flightdata'){if(selFl()){S.case115Auto=0;S.case115Msg='';if(!S.case7New){window.kgmCaseFlightOpenR1115A();return}}
+    else if(Date.now()-S.case115Auto>20000){S.case115Auto=0;S.case115Msg=z()?'你接下來 7 天沒有排到航班，所以沒有可以選的旅客名單。地勤可以到「案件處理中心」用訂位代號建立。':'No flights in your next 7 days.'}
+    else S.case115Msg=z()?'正在找你這 7 天的航班…':'Finding your flights…'}
   /* 航班資料頁：入口按鈕 */
   if(S.adminTab==='flightdata'&&canOpen()){var root=document.querySelector('.r7-admin')||document.querySelector('.p-admin-main');
-    if(root&&selFl()){var old=document.getElementById('k115cbar'),nb=bar();if(old){if(old.getAttribute('data-h')!==nb){old.outerHTML=nb.replace('id="k115cbar"','id="k115cbar" data-h="'+E(nb)+'"')}}else root.insertAdjacentHTML('afterbegin',nb.replace('id="k115cbar"','id="k115cbar" data-h="'+E(nb)+'"'))}}   /* 內容沒變就不重畫（背景一直重畫會讓按鈕在點下去的瞬間被換掉） */
+    if(root&&(selFl()||S.case115Msg)){var old=document.getElementById('k115cbar'),nb=bar();if(old){if(old.getAttribute('data-h')!==nb){old.outerHTML=nb.replace('id="k115cbar"','id="k115cbar" data-h="'+E(nb)+'"')}}else root.insertAdjacentHTML('afterbegin',nb.replace('id="k115cbar"','id="k115cbar" data-h="'+E(nb)+'"'))}}   /* 內容沒變就不重畫（背景一直重畫會讓按鈕在點下去的瞬間被換掉） */
   /* 表單：案件處理中心以外的頁面也要畫得出來（空服員沒有案件處理中心） */
   var host=document.getElementById('k115cm'),f=S.case7New;
   var onCases=S.adminTab==='cases0831B'&&document.querySelector('.k7c-modal:not(#k115cm .k7c-modal)');
@@ -77,6 +105,8 @@ try{var cs=document.createElement('style');cs.id='k115c-css';cs.textContent=
  +'.k115c-pick .inp{width:100%;margin-bottom:6px}.k115c-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;max-height:210px;overflow:auto}'
  +'.k115c-list button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:1px solid #DDE4E0;background:#fff;border-radius:10px;padding:6px 9px;cursor:pointer;font:12px inherit;color:#14231D}'
  +'.k115c-list button b{font-size:12.5px;color:#0B3D2E}.k115c-list button small{color:#8A948F;font-size:10.5px}.k115c-list button.on{border-color:#0B3D2E;background:#EAF3EE;box-shadow:0 0 0 1px #0B3D2E inset}'
+ +'.k115c-nav{margin:0 0 12px;padding:12px;border-radius:14px;background:#0B3D2E;color:#E8F1EC}.k115c-nav button{display:block;width:100%;border:0;border-radius:10px;background:#C9A24A;color:#0B2A20;font:800 14px inherit;padding:10px 12px;cursor:pointer;text-align:left}.k115c-nav button:hover{background:#D8B45E}.k115c-nav small{display:block;margin-top:7px;font-size:11.5px;line-height:1.5;color:#CFE0D7}.k115c-tip{margin-top:6px;font-size:11.5px;color:#6A756F}'
+ +'.k115c-wish{margin-top:10px;padding:10px 11px;border-radius:11px;background:#FFF4DC;color:#5C3D00}.k115c-wish.ok{background:#E6F2EC;color:#14402F}.k115c-nav>.k115c-wish:first-child{margin-top:0}.k115c-wish b{display:block;font-size:13px}.k115c-wish small{display:block;margin-top:3px;font-size:11.5px;line-height:1.45;color:inherit;opacity:.9}.k115c-nav .k115c-wish button{margin-top:7px;width:auto;padding:6px 12px;font-size:12px;background:#0B3D2E;color:#fff;border-radius:999px}'
  +'.k115c-none{color:#8A948F;font-size:12px;padding:6px}.k115c-sim{margin-top:6px;font-size:11.5px;color:#8A5A12;background:#FFF6E5;border-radius:8px;padding:5px 8px}.k115c-who{margin-top:6px;font-size:12px;color:#5F6B66}.k115c-who b{color:#0B3D2E}';
   (document.head||document.documentElement).appendChild(cs)}catch(_){}
 })();

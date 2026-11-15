@@ -33,13 +33,15 @@ async function call(o,body){
     var j=null;try{j=await res.json()}catch(_){}
     if(!res.ok){var em=String((j&&j.error&&(j.error.message||j.error))||'').slice(0,160);
       if(!k&&(res.status===404||res.status===405)){LOOP.noWorker=1;return {err:z()?'Worker 還沒有 /ai/messages（舊版 Worker）':'Worker lacks /ai/messages',old:1,via:via}}
-      return {via:via,status:res.status,err:res.status===401?(z()?'API 金鑰無效（請到後台 AI「連線」重新貼上）':'Invalid API key')
+      return {via:via,status:res.status,err:/Workers AI/.test(em)?em   /* 1115B：免費 Workers AI 的錯誤（額度用完、沒有綁定）原文顯示 */
+        :res.status===401?(z()?'API 金鑰無效（請到後台 AI「連線」重新貼上）':'Invalid API key')
         :res.status===429?(z()?'用量達到上限，請稍後再試':'Rate limited')
         :(res.status===529||res.status>=500)?(z()?'Anthropic 服務忙碌（'+res.status+'）':'Service busy')
         :/no key/i.test(em)?(z()?'Worker 沒有設定 ANTHROPIC_API_KEY':'Worker has no key')
         :/origin/i.test(em)?(z()?'Worker 的 ALLOWED_ORIGIN 跟目前網址不一樣':'ALLOWED_ORIGIN mismatch')
         :('HTTP '+res.status+(em?'：'+em:''))}}
     if(!k)LOOP.okWorker++;
+    try{if(j&&j.model)LOOP.model=String(j.model)}catch(_){}   /* 1115B：@cf/… ＝ Worker 走免費 Workers AI */
     return {j:j,via:via};
   }catch(e){clearTimeout(tm);
     if(!k){LOOP.noWorker=1;return {err:z()?'連不到 Worker /ai/messages':'Worker unreachable',old:1,via:via}}
@@ -284,7 +286,7 @@ window.kgmDisrPendApplyR1115A=function(id){var D=st(),ev=D.events.filter(functio
 window.kgmDisrDismissR1115A=function(id){var D=st();D.events.forEach(function(x){if(x.id===id&&x.status==='pending')x.status='dismissed'});try{save()}catch(_){}paint()};
 window.kgmDisrHtmlR1115A=function(){
   try{
-  var D=st(),on=window.kgmAiOnR1115A(),k=!!key(),conn=k?(z()?'直接連線（這台電腦的金鑰）':'Direct'):(LOOP.okWorker?'Worker':(LOOP.noWorker?(z()?'Worker 還沒更新 /ai/messages':'Worker not updated'):(z()?'未確認（沒有金鑰，會試 Worker）':'Unverified')));
+  var D=st(),on=window.kgmAiOnR1115A(),k=!!key(),conn=k?(z()?'直接連線（這台電腦的金鑰）':'Direct'):(LOOP.okWorker?(/^@cf\//.test(LOOP.model||'')?(z()?'Worker · 免費 Workers AI（'+LOOP.model.replace('@cf/','')+'）':'Worker · free Workers AI'):'Worker'):(LOOP.noWorker?(z()?'Worker 還沒更新 /ai/messages':'Worker not updated'):(z()?'未確認（沒有金鑰，會試 Worker）':'Unverified')));
   var ev=D.events.slice(0,12).map(function(x){
     var res=(x.results||[]),n12=res.filter(function(r){return r.act==='delay12'}).length,n24=res.filter(function(r){return r.act==='delay24'}).length,nc=res.filter(function(r){return r.act==='cancel'}).length;
     return '<div class="k115d-ev '+E(x.status||'')+'"><div class="k115d-evh"><b>'+E(x.title||evText(x))+'</b><span class="k115d-tag">'+E({applied:z()?'已處置':'Applied',pending:z()?'待確認':'Pending',done:z()?'已處置':'Done',dismissed:z()?'不處理':'Dismissed'}[x.status]||x.status||'')+'</span></div>'
@@ -294,8 +296,8 @@ window.kgmDisrHtmlR1115A=function(){
         +(res.length?'<table><tbody>'+res.slice(0,30).map(function(r){return '<tr><td>'+E(r.code)+'</td><td>'+E(r.fr+'→'+r.to)+'</td><td>'+E(r.date)+' '+E(r.was||'')+'</td><td>'+(r.act==='cancel'?'<em>'+(z()?'取消':'Cancelled')+'</em>'+(r.move?(z()?' → 改搭 ':' → ')+E(r.move):(z()?' → 退費':' → refund')):(z()?'延後 ':'+')+E(r.act.replace('delay',''))+(z()?' 小時':'h'))+(r.ok===false?' ✕':'')+'</td></tr>'}).join('')+'</tbody></table>':'<div class="k115d-none">'+(z()?'時段內沒有受影響的自營航班':'No KGM flights affected')+'</div>')+'</div>':'')
       +(x.status==='pending'?'<div class="k115d-act"><button class="k27pc-b" onclick="kgmDisrPendApplyR1115A(\''+E(x.id)+'\')">'+(z()?'照規則處置':'Apply')+'</button><button class="k27pc-b ghost" onclick="kgmDisrDismissR1115A(\''+E(x.id)+'\')">'+(z()?'不處理':'Dismiss')+'</button></div>':'')+'</div>'}).join('');
   return '<section class="k27pc k115d" id="k115d"><header><small>DISRUPTIONS · AI</small><h2>'+(z()?'突發事件・AI 自動處置':'Disruptions · AI handling')+'</h2>'
-    +'<p>'+(z()?'禁飛令、地面停止（ground stop）、機場或空域關閉：時段內從那裡起飛（或降落那裡）的自營航班逐班決定——恢復時間在 12 小時內延後 12 小時、24 小時內延後 24 小時（同一個當地時刻），更久就取消並改搭恢復後同航線第一班（沒有就退費）；延後與取消都通知旅客、組員，同一架下一班過站不足會連鎖延誤。自動監測要接上 Claude（後台 AI「連線」貼金鑰，或 Worker 加 /ai/messages），每隔一段時間用網路搜尋查官方公告：時間明確、可信度高的事件直接處置，其他列「待確認」。':'Ground stops, airport or airspace closures: each affected flight is delayed 12 h / 24 h or cancelled and rebooked depending on when operations resume.')+'</p></header>'
-    +'<div class="k115d-bar"><span>'+(z()?'Claude 連線：':'Claude: ')+'<b class="'+(on?'ok':'')+'">'+E(conn)+'</b></span>'
+    +'<p>'+(z()?'禁飛令、地面停止（ground stop）、機場或空域關閉：時段內從那裡起飛（或降落那裡）的自營航班逐班決定——恢復時間在 12 小時內延後 12 小時、24 小時內延後 24 小時（同一個當地時刻），更久就取消並改搭恢復後同航線第一班（沒有就退費）；延後與取消都通知旅客、組員，同一架下一班過站不足會連鎖延誤。自動監測要接上 AI：免費＝Worker 綁 Cloudflare Workers AI（不用金鑰、不用付費，Worker 會抓 FAA 航管狀態與新聞標題給 AI 判斷，見 Worker_ai_1115B.txt）；付費＝Claude（Worker 設 ANTHROPIC_API_KEY 或後台 AI「連線」貼金鑰，會用網路搜尋查官方公告）。每隔一段時間查一次：時間明確、可信度高的事件直接處置，其他列「待確認」。':'Ground stops, airport or airspace closures: each affected flight is delayed 12 h / 24 h or cancelled and rebooked depending on when operations resume.')+'</p></header>'
+    +'<div class="k115d-bar"><span>'+(z()?'AI 連線：':'AI: ')+'<b class="'+(on?'ok':'')+'">'+E(conn)+'</b></span>'
       +'<label><input type="checkbox" '+(D.auto?'checked':'')+' onchange="kgmDisrSetR1115A(\'auto\',this.checked)"> '+(z()?'自動監測':'Monitor')+'</label>'
       +'<label>'+(z()?'每':'Every')+' <select onchange="kgmDisrSetR1115A(\'every\',+this.value)">'+[60,180,360].map(function(m){return '<option value="'+m+'"'+(+D.every===m?' selected':'')+'>'+(m/60)+(z()?' 小時':' h')+'</option>'}).join('')+'</select></label>'
       +'<label><input type="checkbox" '+(D.autoApply?'checked':'')+' onchange="kgmDisrSetR1115A(\'autoApply\',this.checked)"> '+(z()?'高可信度自動執行':'Auto-apply high confidence')+'</label>'

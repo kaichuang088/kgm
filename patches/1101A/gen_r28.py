@@ -914,8 +914,56 @@ RW('c7 create mark R1115A',"  S.staffCasesR1007A=S.staffCasesR1007A||[];S.staffC
 RW('c7 notify sim R1115A',"  if(f.notify!==false){","  if(f.notify!==false&&!b.simR1115A){")
 RW('c7 form export R1115A',"window.kgmCase7Create=function(){","window.kgmCase7FormR1115A=function(){return newForm7()};   /* 1115A D9：航班資料頁也畫得出這張表單 */\nwindow.kgmCase7Create=function(){")
 RW('c7 bag label R1115A',"bag_delayed:['行李延誤','Delayed baggage']","bag_delayed:['行李延誤／未送達','Delayed baggage']")   # 使用者「行李沒有送達」
-RW('r197 case skip R1115A',"if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')))return;","if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')||el.closest('.k115c-bar')||el.closest('#k115cm')))return;   /* 1115A D9：為旅客建立案件不是改航班資料，不用送審 */")
+RW('r197 case skip R1115A',"if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')))return;","if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')||el.closest('.k115c-bar')||el.closest('#k115cm')||el.closest('.k115w')))return;   /* 1115A D9：為旅客建立案件不是改航班資料，不用送審；1115B：組員許願面板也不用送審 */")
 EMB28.append('cs42.js')   # 1115A D9
+
+# ══ 1115B ══
+# E1（使用者：「後台過於卡頓我完全無法用」）根因之一：舊補班 _subPass 寫的換機紀錄沒有 auto 旗標，planSub10 當成人工換機餵給整年機隊重排；
+# 紀錄是依開頁當下的排班產生、帶時間戳記 → 每次開頁輸入都不同 → 整年排班每次不同 → 組員引擎指紋每次不同、IndexedDB 存檔永遠讀不回 → 每次開頁重算 60 天組員班表。
+# planSub10 只收人工換機／維修改派（manual／maint／mx）或有 auto 類旗標以外、且不是 _subPass 形狀（有 at＋tail、沒有任何旗標）的紀錄。紀錄本身照樣保留（畫面、通知不變）。
+RW('planSub10 no subPass R1115B',"if((x.auto||x.auto0810J||x.coverageR830)&&!x.manual&&!x.maint&&!x.mx)return;o[k]=x});","if((x.auto||x.auto0810J||x.coverageR830)&&!x.manual&&!x.maint&&!x.mx)return;if(!x.manual&&!x.maint&&!x.mx&&x.tail&&typeof x.at==='string')return;   /* 1115B：_subPass 自動補班紀錄（沒旗標、有 at＋tail）不算人工換機 */\n    o[k]=x});")
+
+# 1115B：組員引擎讀檔失敗時把當下指紋與存檔指紋一起記下（診斷用，不改行為）
+RW('crew restore diag R1115B',"window.KGM_CREW_RESTORE_R1025B={ok:false,why:!r?'none':(r.sig!==sg?'sig':'ahead'),cur:CURSOR121}","window.KGM_CREW_RESTORE_R1025B={ok:false,why:!r?'none':(r.sig!==sg?'sig':'ahead'),cur:CURSOR121,sigR1115B:sg,savedR1115B:r&&r.sig,rcur:r&&r.cur,at:Date.now()}")
+
+# 1115B：組員引擎與人力需求等「機隊最終版」（整年重排＋A35K 輪替，cx38 KGM_A35_FD_R1115B）才開始；最多等 60 秒
+RW('crew wait a35 R1115B',"  if(!window.KGM_FULLDONE_1006A)return;   /* 1025B：機隊排完才算 */","  if(!window.KGM_FULLDONE_1006A)return;   /* 1025B：機隊排完才算 */\n  if(window.KGM_A35_FD_R1115B!==window.KGM_FULLDONE_1006A&&Date.now()-window.KGM_FULLDONE_1006A<60000)return;   /* 1115B：等 A35K 輪替跑完（機隊最終版）才算，不然算到一半機隊又變、整份作廢 */")
+RW('crew demand a35 R1115B',"  demand121.full=!!window.KGM_FULLDONE_1006A;demand121.at=Date.now();","  demand121.full=!!window.KGM_FULLDONE_1006A&&(window.KGM_A35_FD_R1115B===window.KGM_FULLDONE_1006A||Date.now()-window.KGM_FULLDONE_1006A>60000);demand121.at=Date.now();   /* 1115B：機隊最終版才定案 */")
+
+# 1115B E1 重畫成本（tests：/tmp/j/rprof43b.js 每頁 profile）：
+# ① 後台每次重畫都 reconcileAcftSubs（掃全機隊十幾萬段，每頁 10～57 ms）→ 機隊沒變（段數、機身數、換機紀錄數、航班數、今天）就 30 秒內不重掃；結果只是補登「機型異動」紀錄
+RW('adminView reconcile memo R1115B',"  try{if(S.tailAssign&&Object.keys(S.tailAssign).length)reconcileAcftSubs(todayISO(),14);}catch(e){}","  try{if(S.tailAssign&&Object.keys(S.tailAssign).length){var TA15=S.tailAssign,nl15=0,ks15=Object.keys(TA15);for(var i15=0;i15<ks15.length;i15++)nl15+=(TA15[ks15[i15]]||[]).length;var k15=todayISO()+'|'+ks15.length+'|'+nl15+'|'+Object.keys(S.acftSub||{}).length+'|'+FLIGHTS.length+'|'+(S.customFlights||[]).length,M15=window.__kgmRecon1115B||{};   /* 1115B：機隊沒變就不重掃（每次重畫 10～57 ms） */\n    if(!(M15.k===k15&&M15.ta===TA15&&Date.now()-M15.t<30000)){reconcileAcftSubs(todayISO(),14);window.__kgmRecon1115B={k:todayISO()+'|'+ks15.length+'|'+nl15+'|'+Object.keys(S.acftSub||{}).length+'|'+FLIGHTS.length+'|'+(S.customFlights||[]).length,ta:TA15,t:Date.now()}}}}catch(e){}   /* 鍵記「跑完之後」的狀態（reconcile 自己會增刪換機紀錄） */")
+# ② 每次重畫後把整頁所有元素掃一遍找「Email / Cloudflare」→ 改用 XPath 只找葉節點（同樣的條件：沒有子元素、文字含這串）
+# （1115B：每次重畫後找「Email / Cloudflare」那段試過 XPath（35 ms）與 body.textContent 預查（65 ms）都比原本 querySelectorAll（約 10 ms）慢 → 維持原樣）
+# ③ 松山地勤名單：每問一位就把全部員工過濾一次（地勤頁一次問幾百位）→ 員工名單沒變就用上一次的（5 秒內）
+RW('tsa team memo R1115B',"  try{var G=(S.staff||[]).filter(function(x){return x&&x.role===\"ground\"&&x.active!==false});var k=G.length+\"|\"+(G[0]&&G[0].empId);","  try{if(TSAT1006A.ids&&TSAT1006A.ref===S.staff&&TSAT1006A.len===(S.staff||[]).length&&Date.now()-(TSAT1006A.t||0)<5000)return !!TSAT1006A.ids[empId];   /* 1115B：同一批員工 5 秒內不重算（地勤頁原本每位都重過濾全部員工） */\n    var G=(S.staff||[]).filter(function(x){return x&&x.role===\"ground\"&&x.active!==false});var k=G.length+\"|\"+(G[0]&&G[0].empId);")
+RW('tsa team memo stamp R1115B',"TSAT1006A={k:k,ids:ids}}   /* 1012A：松山 20 → 48 位（1～2 班的櫃檯 5 人、3 班 7 人、換班別那天排休） */\n    return !!TSAT1006A.ids[empId]}","TSAT1006A={k:k,ids:ids}}   /* 1012A：松山 20 → 48 位（1～2 班的櫃檯 5 人、3 班 7 人、換班別那天排休） */\n    TSAT1006A.ref=S.staff;TSAT1006A.len=(S.staff||[]).length;TSAT1006A.t=Date.now();\n    return !!TSAT1006A.ids[empId]}")
+# ④ 競標頁每次重畫都把未來 10 天每一班問一次「競標建了沒」→ 同一個查詢、上次沒有新增、也沒有排隊中的，60 秒內不再問
+RW('auc ensure memo R1115B',"window.kgmEnsureAuctionsForQueryR922=function(q){","window.kgmEnsureAuctionsForQueryR922=function(q){var mk15=String(q||'')+'|'+T9(),M15=window.__kgmEnsQ1115B||{};if(M15.k===mk15&&M15.n===0&&Date.now()-M15.t<60000&&!(window.__kgmBdPendR929&&window.__kgmBdPendR929.length))return 0;var r15=ensQ1115B(q);window.__kgmEnsQ1115B={k:mk15,n:r15,t:Date.now()};return r15};   /* 1115B：競標頁重畫不要每次都補 */\n  function ensQ1115B(q){")
+
+# 1115B E2（使用者：「我沒有要買API你可以去用網路上免費的或是其他方法」）：連線說明把免費的 Workers AI 放第一個（Worker_ai_1115B.txt）
+RW('ai cfg title R1115B',"'<div class=\"k9ai-cfg\"><b>'+(z()?'Claude 連線方式':'Claude connection')+'</b>'","'<div class=\"k9ai-cfg\"><b>'+(z()?'AI 連線方式':'AI connection')+'</b>'")
+RW('ai cfg free R1115B',"'① 直接連線：在這裡貼上 Anthropic API 金鑰（console.anthropic.com → API Keys），只存在這台電腦的瀏覽器，不會同步到前台、不會寫進存檔。② Worker：沒有金鑰時改走 Cloudflare Worker 的 /ai/admin。兩條都不通才用站內規則引擎。'","'⓪ 免費（不用買 API）：Cloudflare Workers AI——在你的 Worker 後台 Settings → Bindings 加一個 Workers AI（名稱 AI），再貼上 Worker_ai_1115B.txt；不用金鑰、不用付費（每天免費額度約 90 次後台 AI 對話，用完當天自動停、不扣錢）。這裡的金鑰欄留空就會走這條。① 直接連線（付費）：在這裡貼上 Anthropic API 金鑰（console.anthropic.com → API Keys），只存在這台電腦的瀏覽器，不會同步到前台、不會寫進存檔。② 舊版 Worker：沒有 /ai/messages 時改走 /ai/admin。都不通才用站內規則引擎。'")
+
+# 1115B：組員存檔讀回時機——原本只在開頁初期試 4 次（機隊還沒到最終版、指紋一定不同）；改成指紋有變就再試（最多 40 次），機隊穩定後就讀得回來，不必重算 60 天
+RW('crew restore retry R1115B',"if((tick.tried|0)<4&&!(window.KGM_CREW_RESTORE_R1025B&&window.KGM_CREW_RESTORE_R1025B.ok)){tick.tried=(tick.tried|0)+1;BUSY25=true;restore25(function(){BUSY25=false});return}","if(!(window.KGM_CREW_RESTORE_R1025B&&window.KGM_CREW_RESTORE_R1025B.ok)&&(tick.tried|0)<40){var sg15=sig25();if((tick.tried|0)<4||sg15!==tick.sg15){tick.tried=(tick.tried|0)+1;tick.sg15=sg15;BUSY25=true;restore25(function(){BUSY25=false});return}}   /* 1115B：指紋變了就再讀一次存檔 */")
+
+# 1115B：競標頁重畫 → BigDeal 結標 → Payload → 艙單 DH 列 → kgmCrewLegsR929 也查「隔天」→ 隔天組員班表沒算好就在畫面上同步算（一次 1 秒以上）→ 隔天沒算好也交給背景
+RW('dh next day bg R1115B',"&&!window.kgmCrewHasDayR121(date)){dhLater929(date);return []}   /* 1026C：那天的組員班表還沒算好 → 背景算，不在畫面上同步算 */","&&!window.kgmCrewHasDayR121(date)){dhLater929(date);return []}   /* 1026C：那天的組員班表還沒算好 → 背景算，不在畫面上同步算 */\n    var d15=addDays(date,1);if(!(o[key]&&o[key].length)&&!DHDATE929[date]&&!(ws7&&date<ws7)&&window.kgmCrewHasDayR121&&window.kgmCrewStepR121&&!window.kgmCrewHasDayR121(d15)){dhLater929(d15);return []}   /* 1115B：第五航權後段要查隔天，隔天沒算好也交給背景 */")
+
+# 1115B：自動換機紀錄清理（kgmSubCleanR1010A）每次都掃全機隊建索引，競標頁重畫時也被同步叫到 → 機隊、換機紀錄都沒變就 30 秒內不重掃（鍵記清理「之後」的狀態）
+RW('subclean memo R1115B',"    window.kgmSubCleanR1010A=function(){\n      var o={del:0,fix:0,keep:0};","    function sck15(){var TA=S.tailAssign||{},ks=Object.keys(TA),n=0;for(var i=0;i<ks.length;i++)n+=(TA[ks[i]]||[]).length;return todayISO()+'|'+ks.length+'|'+n+'|'+Object.keys(S.acftSub||{}).length}\n    window.kgmSubCleanR1010A=function(){var M=window.__kgmSubC1115B;if(M&&M.ta===S.tailAssign&&M.sub===S.acftSub&&Date.now()-M.t<30000&&M.k===sck15())return M.o;var r=sc1115B();window.__kgmSubC1115B={k:sck15(),ta:S.tailAssign,sub:S.acftSub,t:Date.now(),o:r};return r};   /* 1115B：機隊沒變就不重掃 */\n    function sc1115B(){\n      var o={del:0,fix:0,keep:0};")
+
+# 1115B：組員班表分頁上引擎算完一天只讓出 30 毫秒（一天 1.5～2.4 秒）→ 頁面兩分鐘幾乎動不了（截圖都拍不到）→ 讓出 700 毫秒（使用者 1104A 選畫面順）
+RW('crew sched pace R1115B',"function pace27(){try{return (S.view==='admin'&&S.adminTab==='sched')?30:900}catch(_){return 900}}","function pace27(){try{return (S.view==='admin'&&S.adminTab==='sched')?700:900}catch(_){return 900}}   /* 1115B：30→700（組員班表頁原本全速算、頁面卡住） */")
+
+# 1115B：組員班表「查看班表」背景補班表的迴圈每天之間讓出 700 毫秒
+RW('r196 warm pace R1115B',"      var next=function(f){\n        if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:400});\n        else setTimeout(f,30);\n      };\n      next(slice);","      var next=function(f){setTimeout(function(){   /* 1115B：每算完一天先讓出 700 毫秒（原本緊接著算，組員班表頁整頁卡住） */\n        if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(f,{timeout:400});\n        else f();},700);\n      };\n      next(slice);")
+
+# 1115B：組員班表頁（rosterHtml196）只讀已算好的日子：r211 外層原本同步把 60 天鏈算完、r196 索引也會同步補（實測整頁卡 70 秒）
+RW('roster ui chain R1115B',"      try{chain=window.kgmCrewChainR210(empId,start,n)||[]}catch(_){}\n      if(!chain.length)return base;","      var nr15=n;if(window.__kgmRosUI1115B&&window.kgmCrewHasDayR121){nr15=0;while(nr15<n&&window.kgmCrewHasDayR121(D(start,nr15)))nr15++}   /* 1115B：組員班表頁畫面只用已經算好的日子（原本同步算滿 60 天，組員快取一作廢就整頁卡 60 秒以上），其餘背景算好再補 */\n      try{chain=nr15?(window.kgmCrewChainR210(empId,start,nr15)||[]):[]}catch(_){}\n      if(!chain.length)return base;")
+RW('roster ui flag R1115B',"  var ros=window.kgmRosterR196(id,DAYS196);","  var ros;window.__kgmRosUI1115B=1;try{ros=window.kgmRosterR196(id,DAYS196)}finally{window.__kgmRosUI1115B=0}   /* 1115B：畫面路徑（只讀算好的日子） */")
+RW('roster ui base R1115B',"    var d=D(T(),i),ix=null;\n    try{ix=indexDay196(d)}catch(_){ix=IDX196[d]}","    var d=D(T(),i),ix=null;\n    if(window.__kgmRosUI1115B&&window.kgmCrewHasDayR121&&!window.kgmCrewHasDayR121(d))break;   /* 1115B：畫面路徑不在這裡同步算還沒算好的一天 */\n    try{ix=indexDay196(d)}catch(_){ix=IDX196[d]}")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
