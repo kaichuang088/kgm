@@ -20,6 +20,21 @@ gen 新 RW 都在 `# ══ 1115B ══`（`# ══ 新長程式嵌入 ══`
 - 松山地勤名單 `kgmTsaTeamR1006A` 每問一位就過濾全部員工 → 同一批員工 5 秒內用上次的（gen `tsa team memo *`）。
 - 競標頁每次重畫補未來 10 天的競標 → 同查詢、上次沒新增、沒有排隊的 60 秒內不再補（gen `auc ensure memo R1115B`）。
 
+## E1 根因 ③：畫面上同步算組員班表（違反 1015A 規則）
+- 組員班表頁（`rosterHtml196`）：r211 外層 `kgmRosterR196` 刻意同步算滿 60 天鏈（`kgmCrewChainR210(start,60)`），r196 索引也會同步補 → 組員快取一作廢（機隊一變）整頁卡 70 秒（`/tmp/j/sch43.js` 量到）。改：畫面路徑（`window.__kgmRosUI1115B`）只用已算好的日子（gen `roster ui flag／chain／base R1115B`），其他呼叫者照舊拿 60 天。實測最長長任務 70 秒 → 1.8 秒。
+- 組員班表分頁上引擎算完一天只讓出 30 毫秒 → 700 毫秒（gen `crew sched pace R1115B`）；r196「查看班表」補班表迴圈每天之間讓出 700 毫秒（gen `r196 warm pace R1115B`）。
+- 競標頁重畫 → BigDeal 結標 → Payload → 艙單 DH 列 → `kgmCrewLegsR929` 查「隔天」→ 隔天沒算好就同步算（一次 1 秒以上、整頁 1.86 秒）→ `dhList929` 隔天沒算好也交給 `dhLater929`（gen `dh next day bg R1115B`）。
+- `kgmSubCleanR1010A`（自動換機紀錄清理）每次掃全機隊，競標頁重畫時被同步叫到 → 機隊沒變 30 秒內不重掃（gen `subclean memo R1115B`）。
+- 試過但更慢、已改回：每次重畫找「Email / Cloudflare」改 XPath（35 ms）、body.textContent 預查（65 ms），原本 querySelectorAll 約 10 ms。
+- 實際操作量測（`ux43.js`，w6 時）點擊中位數 184→208 ms、p90 608→584 ms：重畫優化對「一般頁點擊」幫助很小；真正的大卡頓是上面這些同步算組員班表。
+- 機隊排班頁第二次之後重畫 1115A 約 39 ms → 1115B 約 160 ms（`IDX69` 等快取每次重建，原因沒查完）。
+- 組員引擎算一天約 1 秒，1112B／1115A／1115B 相同（`/tmp/j/day43.js`）。
+
+## E4 補充
+- 側欄按鈕被背景重畫整個換掉 → 按下（pointerdown）就動作，600 毫秒內不重複。
+- 許願面板 `.k115w` 加進 r197「可註解」頁面不攔截的清單（空服員的送出鈕原本可能被當成送審）。
+- 許願選擇存草稿 `S.k115wDraftR1115B`（背景重畫不洗掉）；面板的下拉選單會被 ap25 換成機場選擇器（裡面也有 button），測試要點 `.k115w button.btn-g`。
+
 ## E2 免費 AI（不買 API）
 - `patches/1101A/worker_ai_1115B.txt`（純文字）：同一個 `/ai/messages` 路由；Worker 有 `ANTHROPIC_API_KEY` 照舊走 Claude，沒有金鑰但有 Workers AI 綁定（名稱 `AI`）就走免費 Workers AI（預設 `@cf/google/gemma-4-26b-a4b-it`，`KGM_FREE_MODEL` 可換）。請求從 Claude 格式翻成 Workers AI（OpenAI 式 tools；歷史裡的 tool_use／tool_result 攤平成文字），回應（`choices[].message.tool_calls` 或 `response`＋`tool_calls`）翻回 Claude 格式 → 網站工具迴圈不用改。
 - 免費額度（Cloudflare 文件 pricing.mdx）：每天 10,000 Neurons，免費方案超過當天失敗、不扣錢，00:00 UTC 重置；gemma-4 每 M 輸入 9,091／輸出 27,273 Neurons → 一次約 1 萬 token 的後台 AI 呼叫約 100 Neurons。
