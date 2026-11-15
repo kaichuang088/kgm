@@ -33,13 +33,13 @@ const {chromium}=require('playwright');const F=process.argv[2]||'/tmp/j/kgm.html
  const nav=await p.evaluate(()=>{const n=document.getElementById('k115cnav');if(!n)return null;const r=n.getBoundingClientRect(),side=document.querySelector('.p-admin-side').getBoundingClientRect();return {txt:n.innerText.replace(/\s+/g,' '),top:Math.round(r.top-side.top),first:n.parentElement.firstElementChild===n}});
  console.log('E4 空服員側欄：',JSON.stringify(nav));await p.screenshot({path:'/tmp/j/e43_nav_cabin.png',clip:{x:0,y:0,width:520,height:700}});
  {const bb=await p.evaluate(()=>{const el=document.querySelector('#k115cnav button');el.scrollIntoView({block:'center'});const r=el.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]});await p.mouse.click(bb[0],bb[1]);}
- for(let i=0;i<30;i++){await p.waitForTimeout(2000);if(await p.evaluate(()=>!!document.querySelector('#k115cm .k115c-pick')||!!(S.case115Msg&&!/正在找/.test(S.case115Msg))))break}
+ for(let i=0;i<30;i++){await p.waitForTimeout(2000);if(await p.evaluate(()=>!!document.querySelector("#k115cm .k115c-pick")||!!(S.case115Msg&&!/正在找/.test(S.case115Msg))))break}
  const m1=await p.evaluate(()=>({tab:S.adminTab,sel:S.opsSelectedR7,modal:!!document.querySelector('#k115cm .k115c-pick'),head:(document.querySelector('.k115c-h')||{}).innerText,tip:(document.querySelector('.k115c-tip')||{}).innerText,msg:S.case115Msg,n:document.querySelectorAll('.k115c-list button').length}));
  console.log('E4 空服員按了之後：',JSON.stringify(m1));await p.screenshot({path:'/tmp/j/e43_case_cabin.png'});
  // 地勤
  await p.evaluate(u=>{S.case7New=null;S.case115Msg='';S.adminUser=u;S.adminTab='groundroster12';render()},U.g);await p.waitForTimeout(1500);
  console.log('E4 地勤側欄：',JSON.stringify(await p.evaluate(()=>{const n=document.getElementById('k115cnav');return n?n.innerText.replace(/\s+/g,' '):null})));
- {const bb=await p.evaluate(()=>{const el=document.querySelector('#k115cnav button');el.scrollIntoView({block:'center'});const r=el.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]});await p.mouse.click(bb[0],bb[1]);}for(let i=0;i<30;i++){await p.waitForTimeout(2000);if(await p.evaluate(()=>!!document.querySelector('#k115cm .k115c-pick')||!!(S.case115Msg&&!/正在找/.test(S.case115Msg))))break}
+ {const bb=await p.evaluate(()=>{const el=document.querySelector('#k115cnav button');el.scrollIntoView({block:'center'});const r=el.getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]});await p.mouse.click(bb[0],bb[1]);}for(let i=0;i<30;i++){await p.waitForTimeout(2000);if(await p.evaluate(()=>!!document.querySelector("#k115cm .k115c-pick")||!!(S.case115Msg&&!/正在找/.test(S.case115Msg))))break}
  console.log('E4 地勤按了之後：',JSON.stringify(await p.evaluate(()=>({tab:S.adminTab,modal:!!document.querySelector('#k115cm .k115c-pick'),head:(document.querySelector('.k115c-h')||{}).innerText,tip:(document.querySelector('.k115c-tip')||{}).innerText,msg:S.case115Msg}))));
  await p.screenshot({path:'/tmp/j/e43_case_ground.png'});
  // CEO 不出現

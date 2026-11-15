@@ -57,7 +57,7 @@ function navRole(){var r=role();return r==='ground'||r==='cabin'||r==='crew'}
 /* 側欄常被背景重畫整個換掉 → 按下（pointerdown）就動作，click 再來一次 600 毫秒內不重複 */
 var GO15=0;function once15(){var n=Date.now();if(n-GO15<600)return false;GO15=n;return true}
 window.kgmCaseGoR1115B=function(){if(!canOpen()||!once15())return;S.case7New=null;S.case115Q='';S.case115Auto=Date.now();S.case115Msg='';S.adminTab='flightdata';try{render()}catch(_){}waitSel()};
-/* 地勤／組員的「自己的班」是背景算的（地勤班表第一次要幾秒）→ 最多等 20 秒找到就打開，找不到才說沒有航班 */
+/* 地勤／組員的「自己的班」是背景算的（地勤班表第一次要幾秒）→ 最多等 45 秒找到就打開，找不到才提示稍後再按 */
 var WS=0;function waitSel(){clearTimeout(WS);WS=setTimeout(function(){if(!S.case115Auto)return;if(S.adminTab!=='flightdata'){S.case115Auto=0;return}try{render()}catch(_){}paint();if(S.case115Auto)waitSel()},1000)}
 /* 1115B E3：空服員、機師側欄提醒許願截止（哪個月、哪天截止、送了沒），按「去許願」到自己的班表 */
 function wishRole(){var r=role();return r==='cabin'||r==='crew'||r==='pilot'}
@@ -78,7 +78,7 @@ function paint(){try{
   if(S.view!=='admin'||!S.adminAuthed){var h0=document.getElementById('k115cm');if(h0)h0.remove();return}
   nav();
   if(S.case115Auto&&S.adminTab==='flightdata'){if(selFl()){S.case115Auto=0;S.case115Msg='';if(!S.case7New){window.kgmCaseFlightOpenR1115A();return}}
-    else if(Date.now()-S.case115Auto>20000){S.case115Auto=0;S.case115Msg=z()?'你接下來 7 天沒有排到航班，所以沒有可以選的旅客名單。地勤可以到「案件處理中心」用訂位代號建立。':'No flights in your next 7 days.'}
+    else if(Date.now()-S.case115Auto>45000){S.case115Auto=0;S.case115Msg=z()?'還找不到你這 7 天的航班：可能真的沒有排班，也可能地勤／組員班表還在背景排（剛開頁時要等一下）。請稍後再按一次「＋ 提出案件」；旅客不在你的航班上，到「案件處理中心」用訂位代號建立。':'Could not find your flights yet — try again shortly.'}
     else S.case115Msg=z()?'正在找你這 7 天的航班…':'Finding your flights…'}
   /* 航班資料頁：入口按鈕 */
   if(S.adminTab==='flightdata'&&canOpen()){var root=document.querySelector('.r7-admin')||document.querySelector('.p-admin-main');
