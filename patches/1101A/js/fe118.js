@@ -29,24 +29,50 @@
       ['pet',zh?'寵物同行':'Travelling with pets',zh?'申請攜帶寵物搭機':'Apply to bring your pet',"S.view='pet28';render()"]];   /* 團體訂位只有團體帳號看得到（menuHide 會藏），這裡放人人都能用的 */
     return '<section class="fe118-quick" aria-label="'+(zh?'快速服務':'Quick services')+'"><div class="fe118-wrap"><div class="fe118-qh"><span>'+(zh?'快速服務':'Quick services')+'</span></div><div class="fe118-qgrid">'
       +T.map(function(t){return '<button type="button" class="fe118-q" onclick="'+t[3]+'"><i>'+ic(t[0])+'</i><b>'+E(t[1])+'</b><small>'+E(t[2])+'</small></button>'}).join('')+'</div></div></section>'}
-  /* ── 首頁：原本的 homeView 產生字串後，重排主視覺、標記訂位面板、加快速服務 ── */
+  /* ── 首頁（1118A 第二輪：使用者「主畫面記得要改喔 我看還是長得一樣」→ 整個換掉）：
+       淺色主視覺（不再是深綠色整條）、右邊「今日桃園出發」看板（讀航班動態機場看板同一份 kgmTpeBoardRowsR1019A，不另算）、
+       訂位主控台獨立一張、快速服務一條。mo12 動畫要找的 h1／金色 span／svg[viewBox="0 0 1200 340"] 照舊在 hero 裡；
+       看板不放在最後一格（mo12 會把最後一格裡的數字從 0 數上來，最後一格留給統計數字）。 ── */
+  function tpeNow(){var d=new Date(Date.now()+8*3600000);return {date:d.toISOString().slice(0,10),min:d.getUTCHours()*60+d.getUTCMinutes(),hm:d.toISOString().slice(11,16)}}
+  function mnOf(t){var m=/^(\d{1,2}):(\d{2})/.exec(String(t||''));return m?(+m[1])*60+(+m[2]):-1}
+  function cityOf(a){try{return (typeof CITY==='function'&&CITY(a))||a}catch(_){return a}}
+  var BDC={k:'',h:''};
+  function boardRows(){var R=window.kgmTpeBoardRowsR1019A;if(typeof R!=='function')return [];var n=tpeNow(),out=[];
+    try{R('dep',n.date).forEach(function(r){if(r.al!=='KGM')return;var m=mnOf(r.act);if(m<0)m=r.schMin;if(m>=n.min&&out.length<5)out.push({r:r,tm:0})})}catch(_){}
+    if(out.length<5){try{var t=new Date(n.date+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+1);R('dep',t.toISOString().slice(0,10)).forEach(function(r){if(r.al==='KGM'&&out.length<5)out.push({r:r,tm:1})})}catch(_){}}
+    return out}
+  function board(){var zh=z(),n=tpeNow(),k=n.date+'|'+n.hm+'|'+zh+'|'+Object.keys(S.flightOverrides||{}).length;if(BDC.k===k)return BDC.h;
+    var L=boardRows();if(!L.length){BDC={k:k,h:''};return ''}
+    var rows=L.map(function(x){var r=x.r,cx=(r.ov&&r.ov.status)==='Cancelled',ch=r.act&&r.sch&&r.act!==r.sch;
+      return '<li class="fe118-br'+(cx?' cx':'')+'"><span class="fe118-bt">'+E(r.act||r.sch)+(ch?'<s>'+E(r.sch)+'</s>':'')+(x.tm?'<em>'+(zh?'明天':'Tmrw')+'</em>':'')+'</span>'
+        +'<span class="fe118-bd"><b>'+E(cityOf(r.other))+'</b><small>'+E(r.other)+(r.via?' · '+(zh?'續飛 ':'then ')+E(cityOf(r.via)):'')+'</small></span>'
+        +'<span class="fe118-bc">'+E(r.code)+(cx?'<i>'+(zh?'取消':'Cancelled')+'</i>':'')+'</span></li>'}).join('');
+    var h='<aside class="fe118-board" aria-label="'+(zh?'今日桃園出發':'Departures from Taipei today')+'"><div class="fe118-bh"><div><small>'+(zh?'出發 · DEPARTURES':'DEPARTURES')+'</small><b>'+(zh?'桃園國際機場':'Taipei Taoyuan')+' <span>TPE</span></b></div>'
+      +'<div class="fe118-clock"><small>'+(zh?'台北時間':'Taipei time')+'</small><b data-fe118clock>'+n.hm+'</b></div></div><ul>'+rows+'</ul>'
+      +'<button type="button" class="fe118-bmore" onclick="nav(\'status\')">'+(zh?'完整機場看板與航班動態':'Full departures board & flight status')+' <span aria-hidden="true">→</span></button></aside>';
+    BDC={k:k,h:h};return h}
+  setInterval(function(){try{var c=document.querySelector('[data-fe118clock]');if(c){var hm=tpeNow().hm;if(c.textContent!==hm)c.textContent=hm}}catch(_){}},15000);
+  function phone(){try{return window.matchMedia('(max-width:640px)').matches}catch(_){return false}}
+  try{window.matchMedia('(max-width:640px)').addEventListener('change',function(){try{if(S.view==='home')render()}catch(_){}})}catch(_){}
   function reshape(html){
     var d=document.createElement('div');d.innerHTML=html;var root=d.firstElementChild;if(!root)return html;
     var hero=root.firstElementChild,searchWrap=hero&&hero.nextElementSibling;if(!hero||!searchWrap)return html;
     hero.classList.add('fe118-hero');searchWrap.classList.add('fe118-searchwrap');var card=searchWrap.querySelector('.card');if(card)card.classList.add('fe118-console');
-    var inner=hero.lastElementChild;if(!inner||!inner.querySelector('h1'))return html;inner.classList.add('fe118-hero-in');
-    var chip=inner.children[0],h1=inner.querySelector('h1'),p=inner.querySelector('p'),stats=inner.children[inner.children.length-1];
-    var zh=z(),promoTitle=h1.innerHTML,promoText=p?p.innerHTML:'',chipTxt=chip?chip.textContent.trim():'';
+    var inner=hero.lastElementChild;if(!inner||!inner.querySelector('h1'))return html;
+    var chip=inner.children[0],h1=inner.querySelector('h1'),stats=inner.children[inner.children.length-1];
+    var zh=z(),promoTitle=h1.innerHTML.replace(/<span[^>]*>/g,'<em>').replace(/<\/span>/g,'</em>').replace(/\s+/g,' ').trim(),chipTxt=chip?chip.textContent.trim():'';
+    inner.removeAttribute('style');inner.className='fe118-hero-in';
     var left=document.createElement('div');left.className='fe118-hl';
     left.innerHTML='<div class="fe118-eyebrow"><span></span>KGM AIRWAYS<em> · '+(zh?'寰宇一家 oneworld 成員':'A oneworld member')+'</em></div>'
-      +'<h1>'+(zh?'從台北出發，<br>飛往<span>世界</span>的每一段旅程':'From Taipei to <span>everywhere</span> worth going')+'</h1>'
-      +'<p class="fe118-lede">'+(zh?'訂位、報到、行程管理，一個地方全部完成。':'Book, check in and manage your trip in one place.')+'</p>';
-    if(stats){stats.classList.add('fe118-stats');left.appendChild(stats)}
-    var promo=document.createElement('aside');promo.className='fe118-promo';
-    promo.innerHTML='<div class="fe118-pchip">'+E(chipTxt||(zh?'全新機隊':'New aircraft'))+'</div><div class="fe118-ptitle">'+promoTitle.replace(/<span[^>]*>/g,'<em>').replace(/<\/span>/g,'</em>')+'</div><div class="fe118-ptext">'+promoText+'</div>'
-      +'<div class="fe118-pfoot"><span>'+(zh?'寬體客艙 · 平躺式商務艙 · 全機 Wi-Fi':'Widebody cabins · Flat-bed business · Wi-Fi')+'</span></div>';
-    while(inner.firstChild)inner.removeChild(inner.firstChild);inner.appendChild(left);inner.appendChild(promo);
+      +'<h1>'+(zh?'把<span>世界</span>，<br>排進你的行程':'Put the <span>world</span><br>on your itinerary')+'</h1>'
+      +'<p class="fe118-lede">'+(zh?'訂位、報到、航班動態與里程，一次整理好。':'Booking, check-in, flight status and miles, all in one organised place.')+'</p>'
+      +'<div class="fe118-promo"><span class="fe118-pchip">'+E(chipTxt||(zh?'全新機隊':'New aircraft'))+'</span><span class="fe118-ptitle">'+promoTitle+'</span></div>';
+    while(inner.firstChild)inner.removeChild(inner.firstChild);inner.appendChild(left);
+    /* 手機：看板放在訂位主控台下面（不然一進首頁看不到搜尋）；平板以上放主視覺右邊 */
+    var bh=board(),ph=phone();if(bh&&!ph)inner.insertAdjacentHTML('beforeend',bh);else inner.classList.add('fe118-noboard');
+    if(stats&&stats!==chip&&!stats.querySelector('h1')){stats.removeAttribute('style');stats.className='fe118-stats';inner.appendChild(stats)}
     searchWrap.insertAdjacentHTML('afterend',tiles());
+    if(bh&&ph)searchWrap.insertAdjacentHTML('afterend','<div class="fe118-wrap fe118-bwrap">'+bh+'</div>');
     return d.innerHTML}
   function hookHome(){var H=window.homeView;if(typeof H!=='function'||H.__fe118)return;
     var w=function(){var h=H.apply(this,arguments);try{if(S.view==='home'||!S.view)return reshape(String(h))}catch(e){try{console.warn('fe118 home',e)}catch(_){}}return h};
@@ -72,24 +98,47 @@
   hookRender();[0,1500,4000,12000].forEach(function(t){setTimeout(hookRender,t)});setTimeout(paint,300);
   /* ── 樣式 ── */
   var C=[
-  /* 首頁：主視覺 */
-  'html.fe118-home .fe118-hero{min-height:440px}',
-  'html.fe118-home .fe118-hero-in{display:grid!important;grid-template-columns:minmax(0,1.25fr) minmax(0,.9fr);gap:48px;align-items:center;max-width:1160px!important;padding:64px 28px 112px!important}',
-  'html.fe118-home .fe118-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.62);font-weight:600}',
-  'html.fe118-home .fe118-eyebrow span{width:28px;height:1px;background:var(--gold2)}html.fe118-home .fe118-eyebrow em{font-style:normal}',
-  'html.fe118-home .fe118-hl h1{font-family:Georgia,"Noto Serif TC",serif;font-weight:400;color:#fff;font-size:clamp(32px,4.4vw,54px);line-height:1.14;letter-spacing:-.01em;margin:18px 0 0;max-width:none}',
-  'html.fe118-home .fe118-hl h1 span{color:var(--gold2)}',
-  'html.fe118-home .fe118-lede{color:rgba(255,255,255,.66);font-size:15px;line-height:1.7;margin:16px 0 0;max-width:40ch}',
-  'html.fe118-home .fe118-stats{margin-top:34px!important;gap:0!important;display:flex!important}',
-  'html.fe118-home .fe118-stats>div{padding:0 28px;border-left:1px solid rgba(255,255,255,.14)}html.fe118-home .fe118-stats>div:first-child{padding-left:0;border-left:0}',
-  'html.fe118-home .fe118-promo{position:relative;border:1px solid rgba(201,166,97,.32);border-radius:20px;padding:26px 26px 22px;background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.02));box-shadow:0 30px 60px -30px rgba(0,0,0,.55);backdrop-filter:blur(6px)}',
-  'html.fe118-home .fe118-pchip{display:inline-block;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#0B2A20;background:var(--gold2);border-radius:999px;padding:4px 11px;font-weight:800}',
-  'html.fe118-home .fe118-ptitle{font-family:Georgia,"Noto Serif TC",serif;color:#fff;font-size:24px;line-height:1.3;margin-top:14px}html.fe118-home .fe118-ptitle em{font-style:normal;color:var(--gold2)}',
-  'html.fe118-home .fe118-ptext{color:rgba(255,255,255,.62);font-size:13px;line-height:1.7;margin-top:10px}',
-  'html.fe118-home .fe118-pfoot{margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);font-size:11.5px;color:rgba(255,255,255,.5);letter-spacing:.04em}',
-  /* 首頁：訂位主控台 */
-  'html.fe118-home .fe118-searchwrap{max-width:1160px!important;margin-top:-74px!important;padding:0 28px!important}',
-  'html.fe118-home .fe118-console{border-top:0!important;border-radius:22px!important;padding:22px 26px 24px!important;box-shadow:0 24px 60px -24px rgba(11,42,32,.35),0 2px 0 rgba(201,166,97,.55) inset!important}',
+  /* 首頁：主視覺（1118A 第二輪：淺色；左標語、右今日出發看板、左下統計） */
+  'html.fe118-home body,html.fe118-home #app{background:#F6F2E9!important}',
+  'html.fe118-home .fe118-hero{background:radial-gradient(70% 90% at 100% 0%,#EADFC8 0%,rgba(234,223,200,0) 60%),linear-gradient(180deg,#F3EDE0 0%,#F6F2E9 100%)!important;overflow:hidden}',
+  'html.fe118-home .fe118-hero>div:first-child{display:none!important}',
+  'html.fe118-home .fe118-hero>div:nth-child(2){opacity:.4!important}',
+  'html.fe118-home .fe118-hero>div:nth-child(2) path{stroke:#B9A577!important}html.fe118-home .fe118-hero>div:nth-child(2) circle{fill:#A9802F!important}',
+  'html.fe118-home .fe118-hero .k12h-fly .tr{stroke:#A9802F!important;opacity:.55!important}html.fe118-home .fe118-hero .k12h-fly .pl{fill:#A9802F!important}',
+  'html.fe118-home .fe118-hero-in{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 420px;grid-template-areas:"hl bd" "st bd";column-gap:56px;row-gap:34px;align-items:start;max-width:1200px;margin:0 auto;padding:62px 32px 48px}',
+  'html.fe118-home .fe118-hero-in.fe118-noboard{grid-template-columns:1fr;grid-template-areas:"hl" "st"}',
+  'html.fe118-home .fe118-hl{grid-area:hl;padding-top:10px;min-width:0}html.fe118-home .fe118-board{grid-area:bd;min-width:0}html.fe118-home .fe118-stats{grid-area:st}',
+  'html.fe118-home .fe118-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8A7444;font-weight:700}',
+  'html.fe118-home .fe118-eyebrow span{width:28px;height:1px;background:#A9802F}html.fe118-home .fe118-eyebrow em{font-style:normal;color:#9A9384}',
+  'html.fe118-home .fe118-hl h1{font-family:Georgia,"Noto Serif TC",serif;font-weight:400;color:#0B2A20;font-size:clamp(38px,5vw,64px);line-height:1.1;letter-spacing:-.015em;margin:20px 0 0;max-width:none}',
+  'html.fe118-home .fe118-hl h1 span{--gold2:#A9802F;color:#A9802F}',
+  'html.fe118-home .fe118-lede{color:#56635D;font-size:16px;line-height:1.75;margin:20px 0 0;max-width:40ch}',
+  'html.fe118-home .fe118-promo{display:inline-flex;align-items:center;gap:12px;margin-top:26px;padding:7px 18px 7px 7px;border-radius:999px;background:#fff;border:1px solid #E6DCC6;box-shadow:0 10px 24px -18px rgba(80,60,20,.45);max-width:100%;box-sizing:border-box}',
+  'html.fe118-home .fe118-pchip{flex:0 0 auto;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:#0B3D2E;border-radius:999px;padding:5px 11px;font-weight:800}',
+  'html.fe118-home .fe118-ptitle{font-size:13.5px;color:#24352E;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}html.fe118-home .fe118-ptitle em{font-style:normal;color:#A9802F;font-weight:800}',
+  'html.fe118-home .fe118-stats{display:flex;gap:0;flex-wrap:wrap;align-self:end}',
+  'html.fe118-home .fe118-stats>div{padding:0 30px;border-left:1px solid #DCD2BD}html.fe118-home .fe118-stats>div:first-child{padding-left:0;border-left:0}',
+  'html.fe118-home .fe118-stats>div>div:first-child{font-family:Georgia,serif!important;font-size:30px!important;line-height:1;color:#0B3D2E!important}',
+  'html.fe118-home .fe118-stats>div>div:last-child{font-size:10.5px!important;letter-spacing:.16em;text-transform:uppercase;color:#867E6E!important;margin-top:8px!important}',
+  /* 今日桃園出發看板 */
+  'html.fe118-home .fe118-board{position:relative;color:#fff;border-radius:26px;padding:22px 22px 16px;background:linear-gradient(165deg,#114B3A 0%,#0A3428 70%,#082B21 100%);box-shadow:0 40px 70px -40px rgba(8,43,33,.85),0 0 0 1px rgba(201,166,97,.18) inset}',
+  'html.fe118-home .fe118-bh{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.12)}',
+  'html.fe118-home .fe118-bh small{display:block;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#D6B676;font-weight:800}',
+  'html.fe118-home .fe118-bh b{display:block;margin-top:6px;font-size:16px;font-weight:700}html.fe118-home .fe118-bh b span{color:rgba(255,255,255,.5);font-weight:600;font-size:13px;margin-left:4px}',
+  'html.fe118-home .fe118-clock{text-align:right}html.fe118-home .fe118-clock b{font-family:Georgia,serif;font-weight:400;font-size:26px;font-variant-numeric:tabular-nums;line-height:1}',
+  'html.fe118-home .fe118-board ul{list-style:none;margin:4px 0 0;padding:0}',
+  'html.fe118-home .fe118-br{display:grid;grid-template-columns:74px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid rgba(255,255,255,.07)}',
+  'html.fe118-home .fe118-br:last-child{border-bottom:0}',
+  'html.fe118-home .fe118-bt{font-family:Georgia,serif;font-size:21px;font-variant-numeric:tabular-nums;line-height:1}',
+  'html.fe118-home .fe118-bt s,html.fe118-home .fe118-bt em{display:block;font-family:inherit;font-size:10.5px;font-weight:600;line-height:1.2;color:rgba(255,255,255,.45);margin-top:4px;font-style:normal}html.fe118-home .fe118-bt em{color:#D6B676}',
+  'html.fe118-home .fe118-bd{min-width:0}html.fe118-home .fe118-bd b{display:block;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}html.fe118-home .fe118-bd small{display:block;font-size:11px;color:rgba(255,255,255,.5);margin-top:3px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  'html.fe118-home .fe118-bc{font-size:12px;font-weight:800;letter-spacing:.08em;color:#E9CF95;text-align:right;white-space:nowrap}html.fe118-home .fe118-bc i{display:block;font-style:normal;font-size:10.5px;color:#FFB4A8;letter-spacing:.04em;margin-top:3px}',
+  'html.fe118-home .fe118-br.cx .fe118-bt,html.fe118-home .fe118-br.cx .fe118-bd b{opacity:.5;text-decoration:line-through}',
+  'html.fe118-home .fe118-bmore{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:10px;padding:12px 14px;border:1px solid rgba(214,182,118,.35);border-radius:14px;background:rgba(255,255,255,.04);color:#F3E3BE;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s}',
+  'html.fe118-home .fe118-bmore:hover{background:rgba(214,182,118,.14)}',
+  /* 首頁：訂位主控台（獨立一張，不再壓在深色主視覺上） */
+  'html.fe118-home .fe118-searchwrap{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important}',
+  'html.fe118-home .fe118-console{border:1px solid #E7E0D0!important;border-radius:24px!important;padding:24px 28px 26px!important;box-shadow:0 30px 60px -36px rgba(60,48,20,.4)!important;background:#fff!important}',
   'html.fe118-home .fe118-console>div:first-child{display:inline-flex!important;gap:4px!important;border:0!important;background:#EEF3F0;border-radius:999px;padding:4px;margin-bottom:14px!important}',
   'html.fe118-home .fe118-console .ntab{border:0!important;border-radius:999px!important;padding:7px 18px!important;font-size:13px!important;color:#4A5A53!important;background:transparent!important}',
   'html.fe118-home .fe118-console .ntab.act{background:#0B3D2E!important;color:#fff!important;font-weight:700!important;box-shadow:none!important}',
@@ -98,14 +147,15 @@
   'html.fe118-home .fe118-console>div:nth-child(2)>button{border-radius:999px!important;box-shadow:none!important;padding:7px 16px!important;font-size:13px!important;background:transparent!important;color:#6B5A36!important;font-weight:600!important}',
   'html.fe118-home .fe118-console>div:nth-child(2)>button[style*="font-weight:800"]{background:#fff!important;color:#0B3D2E!important;font-weight:800!important;box-shadow:0 1px 4px rgba(0,0,0,.08)!important}',
   'html.fe118-home .fe118-console .btn.btn-g{height:52px;border-radius:14px!important;font-size:15.5px!important;letter-spacing:.06em;background:linear-gradient(180deg,#145A44,#0B3D2E)!important;box-shadow:0 10px 24px -12px rgba(11,61,46,.8)!important;margin-top:16px}',
-  /* 快速服務 */
-  '.fe118-quick{margin:34px 0 8px}.fe118-wrap{max-width:1160px;margin:0 auto;padding:0 28px}',
-  '.fe118-qh{display:flex;align-items:center;gap:12px;margin-bottom:14px}.fe118-qh span{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold,#A88A4E);font-weight:800}.fe118-qh:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(168,138,78,.4),transparent)}',
-  '.fe118-qgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}',
-  '.fe118-q{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:1px solid #E3E9E5;background:#fff;border-radius:16px;padding:16px 16px 15px;cursor:pointer;color:#0F2A21;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;font-family:inherit}',
-  '.fe118-q:hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(11,61,46,.45);border-color:#C9D8CF}',
-  '.fe118-q i{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#EEF4F0;color:#0B3D2E;margin-bottom:8px}',
-  '.fe118-q b{font-size:14px;font-weight:800}.fe118-q small{font-size:11.5px;color:#6A7771;line-height:1.45}',
+  /* 快速服務：一條白卡，六格 */
+  '.fe118-quick{margin:28px 0 6px}.fe118-wrap{max-width:1200px;margin:0 auto;padding:0 32px}',
+  '.fe118-qh{display:flex;align-items:center;gap:12px;margin-bottom:12px}.fe118-qh span{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8A7444;font-weight:800}.fe118-qh:after{content:"";flex:1;height:1px;background:#E3DAC6}',
+  '.fe118-qgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:#fff;border:1px solid #E7E0D0;border-radius:22px;overflow:hidden;box-shadow:0 18px 40px -32px rgba(60,48,20,.45)}',
+  '.fe118-q{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:0;border-left:1px solid #EFE9DC;background:transparent;padding:20px 18px 18px;cursor:pointer;color:#0F2A21;font-family:inherit;transition:background .18s ease}',
+  '.fe118-q:first-child{border-left:0}.fe118-q:hover{background:#FBF8F1}',
+  '.fe118-q i{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;border:1px solid #D9C69A;color:#8A6A2A;background:#FDFBF6;margin-bottom:10px;transition:background .18s,color .18s}',
+  '.fe118-q:hover i{background:#0B3D2E;color:#F3E3BE;border-color:#0B3D2E}',
+  '.fe118-q b{font-size:14px;font-weight:800}.fe118-q small{font-size:11.5px;color:#6E7670;line-height:1.45}',
   /* 目的地卡片：橫式、兩欄 */
   'html.fe118-home .r11-dest-wrap{max-width:1160px!important;padding-left:28px!important;padding-right:28px!important;margin-top:34px!important}',
   '@media (min-width:641px){html.fe118-home .r11-dest-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important}',
@@ -141,22 +191,44 @@
   ' html.fe118-sel tr.fl-row>td:last-child .btn,html.fe118-sel tr.fl-row>td:last-child button{border-radius:12px!important}',
   '}',
   /* 平板 */
-  '@media (max-width:1100px){html.fe118-home .fe118-qgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}',
-  '@media (max-width:900px){html.fe118-home .fe118-hero-in{grid-template-columns:1fr;gap:26px;padding:48px 24px 104px!important}html.fe118-home .fe118-promo{max-width:560px}}',
+  '@media (max-width:1100px){html.fe118-home .fe118-hero-in{grid-template-columns:minmax(0,1fr) 360px;column-gap:36px}.fe118-qgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.fe118-q:nth-child(4){border-left:0}.fe118-q:nth-child(n+4){border-top:1px solid #EFE9DC}}',
+  '@media (max-width:900px){html.fe118-home .fe118-hero-in{grid-template-columns:minmax(0,1fr) 320px;column-gap:28px;row-gap:24px;padding:40px 28px 32px}html.fe118-home .fe118-hl h1{font-size:40px}html.fe118-home .fe118-lede{font-size:15px}',
+  ' html.fe118-home .fe118-board{padding:18px 16px 12px;border-radius:22px}html.fe118-home .fe118-br:nth-child(n+5){display:none}html.fe118-home .fe118-br{grid-template-columns:58px minmax(0,1fr) auto;gap:10px;padding:10px 0}html.fe118-home .fe118-bt{font-size:18px}html.fe118-home .fe118-clock b{font-size:22px}',
+  ' html.fe118-home .fe118-stats>div{padding:0 18px}html.fe118-home .fe118-stats>div>div:first-child{font-size:24px!important}html.fe118-home .fe118-promo{display:flex}}',
   '@media (min-width:641px) and (max-width:900px){html.fe118-home .r11-dest-grid{grid-template-columns:1fr!important}}',
   /* 手機 */
   '@media (max-width:640px){',
-  ' html.fe118-home .fe118-hero-in{padding:30px 18px 92px!important;gap:18px}',
+  ' html.fe118-home .fe118-hero-in{padding:22px 16px 22px;row-gap:18px}',
   ' html.fe118-home .fe118-eyebrow{font-size:10px;letter-spacing:.16em}html.fe118-home .fe118-eyebrow span{width:18px}html.fe118-home .fe118-eyebrow em{display:none}',
-  ' html.fe118-home .fe118-hl h1{font-size:30px;margin-top:12px}html.fe118-home .fe118-lede{font-size:13.5px;margin-top:10px}',
-  ' html.fe118-home .fe118-stats{margin-top:20px!important}html.fe118-home .fe118-stats>div{padding:0 16px}',
-  ' html.fe118-home .fe118-promo{padding:18px 18px 16px;border-radius:16px}html.fe118-home .fe118-ptitle{font-size:19px}html.fe118-home .fe118-ptext{display:none}',
-  ' html.fe118-home .fe118-searchwrap{padding:0 12px!important;margin-top:-64px!important}html.fe118-home .fe118-console{padding:16px 14px 18px!important;border-radius:20px!important}',
+  ' html.fe118-home .fe118-hl{padding-top:0}html.fe118-home .fe118-hl h1{font-size:34px;margin-top:12px}html.fe118-home .fe118-lede{font-size:14px;margin-top:12px}',
+  ' html.fe118-home .fe118-promo{margin-top:16px;display:flex}html.fe118-home .fe118-ptitle{font-size:12.5px}',
+  ' html.fe118-home .fe118-hero-in{grid-template-columns:1fr!important;grid-template-areas:"hl" "st"!important}',
+  ' html.fe118-home .fe118-bwrap{margin-top:16px}html.fe118-home .fe118-board{border-radius:22px;padding:18px 16px 12px}html.fe118-home .fe118-br:nth-child(n+5){display:none}html.fe118-home .fe118-bt{font-size:19px}html.fe118-home .fe118-br{grid-template-columns:62px minmax(0,1fr) auto;padding:11px 0}',
+  ' html.fe118-home .fe118-stats>div{padding:0 16px}html.fe118-home .fe118-stats>div>div:first-child{font-size:24px!important}',
+  ' html.fe118-home .fe118-searchwrap{padding:0 12px!important}html.fe118-home .fe118-console{padding:16px 14px 18px!important;border-radius:20px!important}',
   ' html.fe118-home .fe118-console>div:first-child{display:flex!important;width:100%}html.fe118-home .fe118-console .ntab{flex:1}',
-  ' .fe118-wrap{padding:0 14px}.fe118-qgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}',
-  ' .fe118-q{align-items:center;text-align:center;padding:14px 6px 12px;border-radius:14px}.fe118-q i{margin-bottom:4px}.fe118-q b{font-size:12.5px}.fe118-q small{display:none}',
+  ' .fe118-wrap{padding:0 12px}.fe118-qgrid{border-radius:18px}',
+  ' .fe118-q{align-items:center;text-align:center;padding:16px 6px 14px}.fe118-q i{margin-bottom:4px;width:40px;height:40px}.fe118-q b{font-size:12.5px}.fe118-q small{display:none}',
   ' html.fe118-home .r11-dest-wrap{padding-left:14px!important;padding-right:14px!important}',
   ' .fe118-selbar{padding:14px 16px;border-radius:16px;gap:10px}.fe118-sb-route b{font-size:21px}.fe118-sb-meta{gap:14px;width:100%}.fe118-sb-edit{margin-left:auto}',
+  '}',
+  /* 平板（觸控、寬度超過手機）：最下排五個按鈕也要固定在最下面（使用者：「手機平板那一排一定要在最下面喔 不管什麼尺寸的device」）。
+     手機（≤640）照 mb20b 原本那套；這裡只把同一排按鈕搬到平板（同一個 #kgmTabR1019A，mb20b 本來就每次 render 都畫，只是平板被 CSS 藏起來）。 */
+  '@media (min-width:641px) and (hover:none) and (pointer:coarse){',
+  ' html:not(.kgm-side-admin) #kgmTabR1019A{position:fixed;left:0;right:0;bottom:0;z-index:100060;display:grid;grid-template-columns:repeat(5,minmax(0,140px));justify-content:center;align-items:end;height:calc(66px + env(safe-area-inset-bottom));padding:0 12px env(safe-area-inset-bottom);background:rgba(255,255,255,.96);-webkit-backdrop-filter:saturate(1.6) blur(14px);backdrop-filter:saturate(1.6) blur(14px);border-top:1px solid #e2e8e5;box-shadow:0 -6px 22px -14px rgba(10,50,40,.35)}',
+  ' html:not(.kgm-side-admin) .kt19-i{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:11px;gap:5px;height:66px;border:0;background:none;color:#7d8b85;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}',
+  ' html:not(.kgm-side-admin) .kt19-t{font-size:11.5px;font-weight:600;letter-spacing:.02em;line-height:1}',
+  ' html:not(.kgm-side-admin) .kt19-i.on{color:#0b493b}html:not(.kgm-side-admin) .kt19-i.on .kt19-t{font-weight:800}',
+  ' html:not(.kgm-side-admin) .kt19-i.on:not(.kt19-b-ai)::before{content:"";position:absolute;top:0;left:50%;width:28px;height:3px;margin-left:-14px;border-radius:0 0 3px 3px;background:#b08a3c}',
+  ' html:not(.kgm-side-admin) .kt19-ai{display:flex;align-items:center;justify-content:center;width:52px;height:52px;margin-top:-28px;margin-bottom:1px;border-radius:50%;color:#f3dfae;background:radial-gradient(circle at 30% 25%,#1f6b58,#0b3f33 70%);box-shadow:0 8px 18px -6px rgba(8,52,42,.65),0 0 0 4px #fff}',
+  ' html:not(.kgm-side-admin) .kt19-ai svg{width:26px;height:26px}',
+  ' html:not(.kgm-side-admin) .kt19-i.kt19-b-ai.on::before{display:none}html:not(.kgm-side-admin) .kt19-i.kt19-b-ai.on .kt19-ai{color:#fff;background:radial-gradient(circle at 30% 25%,#c9a24f,#8a6420 75%)}',
+  ' html:not(.kgm-side-admin) #kgmTabToastR1019A{display:block;position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));transform:translate(-50%,8px);z-index:100070;background:#0b3f33;color:#f6ecd2;font-size:13px;font-weight:600;padding:10px 16px;border-radius:999px;box-shadow:0 10px 24px -10px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap}',
+  ' html:not(.kgm-side-admin) #kgmTabToastR1019A.on{opacity:1;transform:translate(-50%,0)}',
+  ' html:not(.kgm-side-admin) #app{padding-bottom:calc(70px + env(safe-area-inset-bottom))}',
+  ' html:not(.kgm-side-admin) #kgmStampC{display:none!important}',
+  ' html:not(.kgm-side-admin) #aiChat>button{display:none!important}',   /* 右下 AI 圓鈕＝下排中間的 AI 助理，平板不重複 */
+  ' html.kgm-aiopen-r1019a:not(.kgm-side-admin) body[data-kgm-ai="on"] #aiChat{display:block!important;bottom:calc(78px + env(safe-area-inset-bottom))!important;z-index:100055!important}',
   '}'
   ].join('\n');
   try{var st=document.createElement('style');st.id='fe118-css';st.textContent=C;(document.head||document.documentElement).appendChild(st)}catch(_){}

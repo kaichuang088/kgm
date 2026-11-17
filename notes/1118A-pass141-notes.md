@@ -44,3 +44,9 @@ gen 新 RW 都在 `# ══ 1118A ══`（`# ══ 新長程式嵌入 ══`
 ## G1／G2 許願
 - 許願總表只列正式組員（S.staff 機師／客艙，436 位）；`kgmCrewPoolR121` 有 2.9 萬（含引擎補人力的虛擬組員），第一版誤用。
 - 外站停留估計 `kgmLayEstR1118A(f,date)`：抵達＋1350 分後最早一班飛回基地的時間（kgmFlightsOnR121，最多看 8 天）。
+
+## 第三則：首頁整個換掉＋平板下排五鈕（js/fe118.js）
+- 使用者說首頁「還是長得一樣」：第一版只是重排深綠主視覺。第二版：hero 背景改淺色（hero 第一個子元素＝原深綠漸層藏起來；航線 svg 改成金褐線）、標語換、右邊「今日桃園出發」看板 `board()`（`kgmTpeBoardRowsR1019A('dep',台北今天)`，只取 `al==='KGM'`、`act` 在現在之後 5 班，不夠補明天；每分鐘快取）、統計數字放 hero 最後一格（mo12 `enter()` 會對最後一格每個子元素的第一個子元素做數字動畫，若是看板會把整列 innerHTML 換成純文字）。
+- 手機（≤640）看板改放在訂位主控台後面（`.fe118-bwrap`），跨過 640 寬度時首頁重畫（matchMedia change）。
+- 平板下排五鈕：mb20b `draw()` 本來就每次畫 `#kgmTabR1019A`，只是 CSS 只在 ≤640 顯示；fe118 在觸控＋>640 加同一組樣式（鈕寬上限 140px 置中）、`#app` 底部留白、收起 `#aiChat>button` 與 `#kgmStampC`、AI 視窗 bottom 留給鈕列。鍵盤收起規則（kgm-kb-r1020b）仍只在 ≤640。
+- 量：`/tmp/j/shot119.js <front.html>`（桌機、iPad 直／橫、iPad Pro 11、iPhone 13、Pixel 7：鈕列 top/bottom、捲 1500px 後再量）。
