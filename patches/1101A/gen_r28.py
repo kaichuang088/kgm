@@ -1006,6 +1006,8 @@ RW('fc legacy steps R1118A',"var rotFinal=function(){return !!window.KGM_ROT_FIN
 
 RW('fc sweep skip R1118A',"    if(S._fleetSweptR13===T())return;","    if(S._fleetSweptR13===T()||window.KGM_FC_BOOT_R1118A)return;   /* 1118A：開頁已放上存好的整年排班（之後整年確認會再放一次），舊的補洞掃描算的也會被蓋掉（實測 2.9 秒） */")
 
+EMB28.append('fe118.js')   # 1118A H1／H3／H4 前台首頁＋選擇航班重新排版
+
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))
