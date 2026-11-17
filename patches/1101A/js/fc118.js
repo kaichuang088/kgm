@@ -83,5 +83,7 @@
           tx.oncomplete=function(){R.save='ok'+(fromCrew?' (crew)':'');R.saveBusyMs=busy;R.saveMs=Date.now()-t0;R.savedAt=Date.now()};tx.onerror=function(){R.save='err'}}catch(e){R.save='err '+e.message}});
     })();
   }
+  /* 開頁放上存好的整年排班之後、20 秒整年重排確認之前，舊層的 _fleetAssignV3（0810P 連續性修補，實測一次 5.5 秒）算的也會被蓋掉 → 這段時間不跑 */
+  (function(){var O=window._fleetAssignV3;if(typeof O!=='function'||O.__fc118)return;var w=function(){if(window.KGM_FC_BOOT_R1118A&&!window.KGM_ROT_FINAL_R913){window.KGM_FC_SKIP_R1118A=(window.KGM_FC_SKIP_R1118A||0)+1;return null}return O.apply(this,arguments)};w.__fc118=1;try{_fleetAssignV3=w}catch(_){}window._fleetAssignV3=w})();
   setInterval(function(){try{trySave()}catch(_){}},5000);
 })();

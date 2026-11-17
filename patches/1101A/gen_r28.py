@@ -972,7 +972,9 @@ RW('crew sig order R1118A',"s=tl+':';for(var i=0;i<L.length;i++){var x=L[i];if(x
 
 # 1118A G5：整年機隊排班沿用（js/fc118.js，IndexedDB kgm118_fleet）：開頁 2.6 秒初排、20 秒整年重排準備好之後，輸入指紋對得上就沿用存好的排班
 RW('fc boot R1118A',"  if(window.KGM_FULLDONE_1006A||window.KGM_FINALRUN_1006A)return;   /* 1006A：主執行緒被別的工作卡住","  if(window.KGM_FULLDONE_1006A||window.KGM_FINALRUN_1006A)return;\n  try{if(window.kgmFleetCacheBootR1118A&&window.kgmFleetCacheBootR1118A())return}catch(_){}   /* 1118A：開頁的輸入跟上次存好的整年排班相同 → 先放上存好的、不做 60 天初排 */\n  /* 1006A：主執行緒被別的工作卡住")
-RW('fc final R1118A',"sig6=window.kgmSig72R1006A(st6,dy6);ty6=window.kgmTypes72R1006A();","sig6=window.kgmSig72R1006A(st6,dy6);ty6=window.kgmTypes72R1006A();\n      try{if(window.kgmFleetCacheFinalR1118A&&window.kgmFleetCacheFinalR1118A(sig6))return}catch(_){}   /* 1118A：輸入跟存好的整年排班相同 → 沿用、不再整年重排 */")
+RW('fc final R1118A',"sig6=window.kgmSig72R1006A(st6,dy6);ty6=window.kgmTypes72R1006A();","sig6=window.kgmSig72R1006A(st6,dy6);ty6=window.kgmTypes72R1006A();\n      try{if(window.kgmFleetCacheFinalR1118A&&window.kgmFleetCacheFinalR1118A(sig6))window.KGM_FC_WARM_R1118A=1}catch(_){}   /* 1118A：輸入跟存好的整年排班相同 → 沿用、不再整年重排；只照原本分段準備每天的航段清單（輪轉檢查、機隊頁都讀這份快取），不建輪轉、不組合 */")
+RW('fc warm days R1118A',"if(di6<rg6.n)next6(days6);else next6(types6)}","if(di6<rg6.n)next6(days6);else if(window.KGM_FC_WARM_R1118A===1){window.KGM_FC_WARM_R1118A=Date.now()}else next6(types6)}   /* 1118A：沿用存好的排班時，每天清單準備好就停 */")
+RW('fc heal wait R1118A',"if(!window.KGM_ROT_FINAL_R913||window.KGM_FINALRUN_1006A){stable=0;return}var st=window.kgmRosterStampR121","if(!window.KGM_ROT_FINAL_R913||window.KGM_FINALRUN_1006A||window.KGM_FC_WARM_R1118A===1){stable=0;return}var st=window.kgmRosterStampR121")
 # 1118A G5：整年重排輸入指紋：沒有資料（undefined）跟讀回來的空物件／空陣列視為相同（第一次開頁 S.fleetRetiredR928 是 undefined、重新整理後是 {} → 指紋不同）
 RW('sig72 empty R1118A',"S.tailStatus||{},","(function(v){var j=JSON.stringify(v==null?{}:v);return (j==='{}'||j==='[]')?0:v})(S.tailStatus),")
 RW('sig72 empty2 R1118A',"S.fleetAddedR928||null,S.fleetRetiredR928||null,S.fleetMaintenanceR830||null,S.customFlights||[],FLIGHTS,man]","[S.fleetAddedR928,S.fleetRetiredR928,S.fleetMaintenanceR830,S.customFlights].map(function(v){var j=JSON.stringify(v==null?{}:v);return (j==='{}'||j==='[]')?0:v}),FLIGHTS,man]")
@@ -995,6 +997,14 @@ RW('crew wish table R1118A',"+'</header>'\n    +'<div class=\"k196-cols\">'","+'
 
 # 1118A G7（使用者：「地勤和客服和組員是都有創建案件的能力對嗎有獨立的tab」）：後台「提出案件」獨立分頁 newcase118（js/cs42.js kgmNewCasePageR1118A）
 RW('newcase tab R1118A',"var tab=S.adminTab||'status',body='';if(tab==='bookings')body=bookingAdminJ();","var tab=S.adminTab||'status',body='';if(tab==='newcase118')body=(typeof window.kgmNewCasePageR1118A==='function'?window.kgmNewCasePageR1118A():'');else if(tab==='bookings')body=bookingAdminJ();")
+
+# 1118A G5（ux43 實測：打開組員班表卡 8～10 秒）：r196 建班表索引時「只差一兩天就直接算」（0923B 寫的時候一天 0.15 秒，現在 1～6 秒）→ 一律交給背景分次算，不在畫面上同步算（1015A 規則）
+RW('r196 no sync day R1118A',"    if(window.kgmCrewHasDayR121&&!window.kgmCrewHasDayR121(_d923)\n       &&(!_c923||D(_c923,2)<_d923)\n       &&window.kgmCrewWarmR923&&window.kgmCrewWarmR923(_d923))return;","    if(window.kgmCrewHasDayR121&&!window.kgmCrewHasDayR121(_d923)){try{if(window.kgmCrewWarmR923)window.kgmCrewWarmR923(_d923)}catch(_){}return}   /* 1118A：那一天還沒算好一律交給背景（一天 1～6 秒，原本差一兩天就在這裡同步算） */")
+
+# 1118A G5：開頁已經放上存好的整年排班（fc118 boot hit）→ 舊層第 2～4 步（_seedTSA／_fleetAssignV3／_assignEQV／_subPass）算完也是被丟掉（0915A 同一個理由），跳過（實測開頁 25～38 秒各卡 4～5 秒）
+RW('fc legacy steps R1118A',"var rotFinal=function(){return !!window.KGM_ROT_FINAL_R913};","var rotFinal=function(){return !!window.KGM_ROT_FINAL_R913||!!window.KGM_FC_BOOT_R1118A};   /* 1118A：沿用存好的整年排班時也一樣 */")
+
+RW('fc sweep skip R1118A',"    if(S._fleetSweptR13===T())return;","    if(S._fleetSweptR13===T()||window.KGM_FC_BOOT_R1118A)return;   /* 1118A：開頁已放上存好的整年排班（之後整年確認會再放一次），舊的補洞掃描算的也會被蓋掉（實測 2.9 秒） */")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
