@@ -444,8 +444,8 @@ RW('pet30 order',"var ORDER7=['status','flightdata','groundops','bookings','grou
 #   ② 卡片改成固定欄寬的格線（勾勾／訂位代號／航線／出發／旅客／狀態），分隔線與各欄每一列對齊；旅客寫總數＋成人／兒童／嬰兒
 RW('trip30 mine',"  return all.filter(function(b){return !b.userId||b.userId===S.user.id});",
    "  var lk30=((S.tripLookR1102A||{})[S.user.id])||[];return all.filter(function(b){return (b.userId===S.user.id||lk30.indexOf(b.pnr)>=0)&&!(window.kgmGrpHideR1108A&&window.kgmGrpHideR1108A(b))});   /* 1102A：只列自己的＋查詢過的（組員 DH 等沒有會員的訂位不算） */   /* 1108A：團體開票前的整團／改艙訂位不列（使用者 G1） */")
-RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),crewWishR1115A:LS.get("kgm40_crewwish",{}),disrR1115A:LS.get("kgm40_disr",{}),tripLookR1102A:LS.get("kgm30_triplook",{}),crewSwapR1108A:LS.get("kgm38_cswap",{recs:{}}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),badgeR1103A:LS.get("kgm31_badge",{}),invR1103A:LS.get("kgm31_inv",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
-RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm40_crewwish",S.crewWishR1115A||{});LS.set("kgm40_disr",S.disrR1115A||{});LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm38_cswap",S.crewSwapR1108A||{recs:{}});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});LS.set("kgm31_badge",S.badgeR1103A||{});LS.set("kgm31_inv",S.invR1103A||{});')
+RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),crewWishR1115A:LS.get("kgm40_crewwish",{}),petCiR1118A:LS.get("kgm118_petci",{}),disrR1115A:LS.get("kgm40_disr",{}),tripLookR1102A:LS.get("kgm30_triplook",{}),crewSwapR1108A:LS.get("kgm38_cswap",{recs:{}}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),badgeR1103A:LS.get("kgm31_badge",{}),invR1103A:LS.get("kgm31_inv",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
+RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm40_crewwish",S.crewWishR1115A||{});LS.set("kgm118_petci",S.petCiR1118A||{});LS.set("kgm40_disr",S.disrR1115A||{});LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm38_cswap",S.crewSwapR1108A||{recs:{}});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});LS.set("kgm31_badge",S.badgeR1103A||{});LS.set("kgm31_inv",S.invR1103A||{});')
 RW('trip30 card',"""    var pax=(b.paxList||[]).length||1;""",
    """    var pl30=b.paxList||[],pax=pl30.length||1,pc30={ADT:0,CHD:0,INF:0};pl30.forEach(function(p){var t=String(p.passengerType||'ADT').toUpperCase();pc30[pc30[t]!=null?t:'ADT']++});   /* 1102A：旅客＝成人＋兒童＋嬰兒 */
     var pxs30=[pc30.ADT?(z()?'成人 ':'Adult ')+pc30.ADT:'',pc30.CHD?(z()?'兒童 ':'Child ')+pc30.CHD:'',pc30.INF?(z()?'嬰兒 ':'Infant ')+pc30.INF:''].filter(Boolean).join(z()?'・':' · ');
@@ -850,7 +850,7 @@ RW('heal12 split R1112B',"""  try{var sp=window.kgmLiveSplitR929();h.split0=sp.n
 RW('heal12 split2 R1112B',"""  try{if(S.view==='admin'&&/fleetsched/.test(String(S.adminTab||'')))render()}catch(_){}}""","""  try{if(S.view==='admin'&&/fleetsched/.test(String(S.adminTab||'')))render()}catch(_){}}}""")
 # ══ 1115A ══
 # 1115A D6（使用者：「怎麼都是里程」）：Residence 模擬出價「四班留一班只有里程」用 seed%4 決定，但 H9 用浮點乘法（h*16777619 超過 2^53）→ 低位元幾乎都是 0 → 約 7 成的班沒有現金出價。改用高位元
-RW('res mock cash gate R1115A',"if(!has9(S.residenceBidsR83,code,date,f.fr,f.to)&&seed%4!==0){","if(!has9(S.residenceBidsR83,code,date,f.fr,f.to)&&(seed>>>13)%4!==0){   /* 1115A：低位元偏 0，改用高位元 */")
+RW('res mock cash gate R1115A',"if(!has9(S.residenceBidsR83,code,date,f.fr,f.to)&&seed%4!==0){","if(!has9(S.residenceBidsR83,code,date,f.fr,f.to)){   /* 1118A G6（使用者：「怎麼可能都是里程 一定有現金啊或是混合」）：每一班都有現金出價（1115A 以前四班留一班只有里程）；已經只有里程出價的班，下一次補資料時補上現金 */")
 
 # 1115A D3：後台可以「提議改用機型」（cf31 kgmCharterProposeHtmlR1115A）→ 排機、報價、核准都照提議的機型
 RW('cr27 plan propose R1115A',"P=Object.assign(P,{kind:'temp',date:leg.date,type:r.type||'',time:pref,round:true,sale:false,at:Date.now()});","P=Object.assign(P,{kind:'temp',date:leg.date,type:(r.typeProposeR1115A||r.type)||'',time:pref,round:true,sale:false,at:Date.now()});")
@@ -914,7 +914,7 @@ RW('c7 create mark R1115A',"  S.staffCasesR1007A=S.staffCasesR1007A||[];S.staffC
 RW('c7 notify sim R1115A',"  if(f.notify!==false){","  if(f.notify!==false&&!b.simR1115A){")
 RW('c7 form export R1115A',"window.kgmCase7Create=function(){","window.kgmCase7FormR1115A=function(){return newForm7()};   /* 1115A D9：航班資料頁也畫得出這張表單 */\nwindow.kgmCase7Create=function(){")
 RW('c7 bag label R1115A',"bag_delayed:['行李延誤','Delayed baggage']","bag_delayed:['行李延誤／未送達','Delayed baggage']")   # 使用者「行李沒有送達」
-RW('r197 case skip R1115A',"if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')))return;","if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')||el.closest('.k115c-bar')||el.closest('#k115cm')||el.closest('.k115w')))return;   /* 1115A D9：為旅客建立案件不是改航班資料，不用送審；1115B：組員許願面板也不用送審 */")
+RW('r197 case skip R1115A',"if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')))return;","if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')||el.closest('.k115c-bar')||el.closest('#k115cm')||el.closest('.k115w')||el.closest('.k118nc')||el.closest('.k118pc')||el.closest('.k118w')))return;   /* 1115A D9：為旅客建立案件不是改航班資料，不用送審；1115B：組員許願面板也不用送審；1118A：提出案件分頁、寵物報到檢查、組員許願總表 */")
 EMB28.append('cs42.js')   # 1115A D9
 
 # ══ 1115B ══
@@ -964,6 +964,37 @@ RW('r196 warm pace R1115B',"      var next=function(f){\n        if(typeof windo
 RW('roster ui chain R1115B',"      try{chain=window.kgmCrewChainR210(empId,start,n)||[]}catch(_){}\n      if(!chain.length)return base;","      var nr15=n;if(window.__kgmRosUI1115B&&window.kgmCrewHasDayR121){nr15=0;while(nr15<n&&window.kgmCrewHasDayR121(D(start,nr15)))nr15++}   /* 1115B：組員班表頁畫面只用已經算好的日子（原本同步算滿 60 天，組員快取一作廢就整頁卡 60 秒以上），其餘背景算好再補 */\n      try{chain=nr15?(window.kgmCrewChainR210(empId,start,nr15)||[]):[]}catch(_){}\n      if(!chain.length)return base;")
 RW('roster ui flag R1115B',"  var ros=window.kgmRosterR196(id,DAYS196);","  var ros;window.__kgmRosUI1115B=1;try{ros=window.kgmRosterR196(id,DAYS196)}finally{window.__kgmRosUI1115B=0}   /* 1115B：畫面路徑（只讀算好的日子） */")
 RW('roster ui base R1115B',"    var d=D(T(),i),ix=null;\n    try{ix=indexDay196(d)}catch(_){ix=IDX196[d]}","    var d=D(T(),i),ix=null;\n    if(window.__kgmRosUI1115B&&window.kgmCrewHasDayR121&&!window.kgmCrewHasDayR121(d))break;   /* 1115B：畫面路徑不在這裡同步算還沒算好的一天 */\n    try{ix=indexDay196(d)}catch(_){ix=IDX196[d]}")
+
+# ══ 1118A ══
+# 1118A G5：機隊「完成」後約 110 秒有背景程式把 115 架的航段重新排順序（內容不變），組員存檔指紋 TAH 把順序算進去 → 重新整理後組員班表讀不回來、每次重算 60 天
+#  → 每架飛機的航段字串排序後再雜湊（只看內容不看順序）
+RW('crew sig order R1118A',"s=tl+':';for(var i=0;i<L.length;i++){var x=L[i];if(x)s+=x.date+x.code+(x.dep||'')+(x.fr||'')+(x.cancelledR1023A?'X':'')+','}a.push(hs(s))});\n        TAH25=hs(a.join(''));","s=tl+':',q18=[];for(var i=0;i<L.length;i++){var x=L[i];if(x)q18.push(x.date+x.code+(x.dep||'')+(x.fr||'')+(x.cancelledR1023A?'X':''))}q18.sort();s+=q18.join(',');a.push(hs(s))});   /* 1118A：只看內容不看順序（機隊完成後約 110 秒有背景程式重排航段順序） */\n        TAH25=hs(a.join(''));")
+
+# 1118A G5：整年機隊排班沿用（js/fc118.js，IndexedDB kgm118_fleet）：開頁 2.6 秒初排、20 秒整年重排準備好之後，輸入指紋對得上就沿用存好的排班
+RW('fc boot R1118A',"  if(window.KGM_FULLDONE_1006A||window.KGM_FINALRUN_1006A)return;   /* 1006A：主執行緒被別的工作卡住","  if(window.KGM_FULLDONE_1006A||window.KGM_FINALRUN_1006A)return;\n  try{if(window.kgmFleetCacheBootR1118A&&window.kgmFleetCacheBootR1118A())return}catch(_){}   /* 1118A：開頁的輸入跟上次存好的整年排班相同 → 先放上存好的、不做 60 天初排 */\n  /* 1006A：主執行緒被別的工作卡住")
+RW('fc final R1118A',"sig6=window.kgmSig72R1006A(st6,dy6);ty6=window.kgmTypes72R1006A();","sig6=window.kgmSig72R1006A(st6,dy6);ty6=window.kgmTypes72R1006A();\n      try{if(window.kgmFleetCacheFinalR1118A&&window.kgmFleetCacheFinalR1118A(sig6))return}catch(_){}   /* 1118A：輸入跟存好的整年排班相同 → 沿用、不再整年重排 */")
+# 1118A G5：整年重排輸入指紋：沒有資料（undefined）跟讀回來的空物件／空陣列視為相同（第一次開頁 S.fleetRetiredR928 是 undefined、重新整理後是 {} → 指紋不同）
+RW('sig72 empty R1118A',"S.tailStatus||{},","(function(v){var j=JSON.stringify(v==null?{}:v);return (j==='{}'||j==='[]')?0:v})(S.tailStatus),")
+RW('sig72 empty2 R1118A',"S.fleetAddedR928||null,S.fleetRetiredR928||null,S.fleetMaintenanceR830||null,S.customFlights||[],FLIGHTS,man]","[S.fleetAddedR928,S.fleetRetiredR928,S.fleetMaintenanceR830,S.customFlights].map(function(v){var j=JSON.stringify(v==null?{}:v);return (j==='{}'||j==='[]')?0:v}),FLIGHTS,man]")
+EMB28.append('fc118.js')   # 1118A G5
+
+# 1118A G3：地勤櫃檯報到視窗，有寵物同行就在最上面跳出寵物現場檢查表（js/pc118.js）
+RW('ci pet panel R1118A',"'+(alerts.length?'<div class=\"r49-alerts\">'+alerts.map(function(x){return '<p>! '+E(x)+'</p>'}).join('')+'</div>':'')+body+'</div></div>';","'+(alerts.length?'<div class=\"r49-alerts\">'+alerts.map(function(x){return '<p>! '+E(x)+'</p>'}).join('')+'</div>':'')+(window.kgmPetCiHtmlR1118A?window.kgmPetCiHtmlR1118A(c):'')+body+'</div></div>';   /* 1118A G3：寵物現場檢查 */")
+EMB28.append('pc118.js')   # 1118A G3
+
+# 1118A G5（profile：重新整理後頭 120 秒主執行緒 88 秒在忙，其中 37 秒是背景預補競標→艙單 DH 列）：
+#   dhRows929 檢查 DH 訂位在不在時，對「每一筆訂位」都重算一次 DH 訂位代號（dhPnr4 又掃一次全部訂位）＝訂位數的平方；dhPnr4、BigDeal curCls 也每次掃全部訂位
+#   → 訂位代號索引 kgmBkPnrR1118A（S.bookings 換陣列、筆數或最後一筆變了才重建），結果跟原本逐筆掃一樣
+RW('bk pnr idx R1118A',"  function dhRows929(f,date,k){","  window.kgmBkPnrR1118A=window.kgmBkPnrR1118A||(function(){var X={a:null,n:-1,l:null,m:null};return function(pnr){var a=S.bookings||[],l=a.length?a[a.length-1]:null;if(X.a!==a||X.n!==a.length||X.l!==l){var m=new Map();for(var i=0;i<a.length;i++){var b=a[i];if(b&&b.pnr!=null){var q=m.get(b.pnr);if(q)q.push(b);else m.set(b.pnr,[b])}}X={a:a,n:a.length,l:l,m:m}}return (X.m.get(pnr)||[]).filter(function(b){return b&&b.pnr===pnr})}})();   /* 1118A：訂位代號索引 */\n  function dhRows929(f,date,k){")
+RW('dh had idx R1118A',"var had=(S.bookings||[]).some(function(x){return x&&x.pnr===dhPnr929(p.empId,date,f.code)});","var had=window.kgmBkPnrR1118A(dhPnr929(p.empId,date,f.code)).length>0;   /* 1118A：原本每一筆訂位都重算一次代號（訂位數平方） */")
+RW('dh pnr4 idx R1118A',"var hit=(S.bookings||[]).filter(function(b){return b&&b.pnr===p})[0];","var hit=window.kgmBkPnrR1118A?window.kgmBkPnrR1118A(p)[0]:(S.bookings||[]).filter(function(b){return b&&b.pnr===p})[0];")
+RW('bd curcls idx R1118A',"function curCls(b){try{var bk=(S.bookings||[]).filter(function(x){return x&&x.pnr===b.pnr})[0];","function curCls(b){try{var bk=window.kgmBkPnrR1118A?window.kgmBkPnrR1118A(b.pnr)[0]:(S.bookings||[]).filter(function(x){return x&&x.pnr===b.pnr})[0];")
+
+# 1118A G1：組員班表頁（CEO）最上面「組員許願總表」（cx38 kgmCrewWishTableR1118A）
+RW('crew wish table R1118A',"+'</header>'\n    +'<div class=\"k196-cols\">'","+'</header>'+(window.kgmCrewWishTableR1118A?window.kgmCrewWishTableR1118A():'')\n    +'<div class=\"k196-cols\">'")
+
+# 1118A G7（使用者：「地勤和客服和組員是都有創建案件的能力對嗎有獨立的tab」）：後台「提出案件」獨立分頁 newcase118（js/cs42.js kgmNewCasePageR1118A）
+RW('newcase tab R1118A',"var tab=S.adminTab||'status',body='';if(tab==='bookings')body=bookingAdminJ();","var tab=S.adminTab||'status',body='';if(tab==='newcase118')body=(typeof window.kgmNewCasePageR1118A==='function'?window.kgmNewCasePageR1118A():'');else if(tab==='bookings')body=bookingAdminJ();")
 
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()

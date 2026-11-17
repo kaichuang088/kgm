@@ -16,7 +16,7 @@
   function verOf(r){return r==='ceo'?'ceo':r==='pilot'?'pilot':/^(cabin|ground|service)$/.test(r)?'cabin':''}
   var VN={ceo:['CEO 完整版','CEO — full'],pilot:['機師飛行版','Flight crew'],cabin:['客艙服務版','Cabin service']};
   /* 章節保留表 */
-  var KEEP={ceo:null,pilot:{'1':1,'2':1,'2A':1,'3':1,'4':1,'5':1,'8':1},cabin:{'1':1,'2A':1,'3':1,'4':1,'5':1,'6':1,'6A':1,'7':1,'8':1,'附錄':1}};
+  var KEEP={ceo:null,pilot:{'1':1,'2':1,'2A':1,'3':1,'4':1,'5':1,'8':1},cabin:{'1':1,'2A':1,'3':1,'4':1,'5':1,'6':1,'6A':1,'7':1,'8':1}};   /* 1118A G4：拿掉「附錄 旅客名單」（全班名單），旅客只列特別注意的 */
   function cur(){var p=String(S.opsSelectedR7||'').split('|');return p.length>=4&&p[0]?{code:p[0],date:p[1],fr:p[2],to:p[3]}:null}
   function age(d){var m=String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return '';var t=new Date(),a=t.getFullYear()-(+m[1]);if(t.getMonth()+1<+m[2]||(t.getMonth()+1===+m[2]&&t.getDate()<+m[3]))a--;return a>=0&&a<120?a:''}
   function mask(ph){ph=String(ph||'').replace(/\s/g,'');return ph.length>4?ph.slice(0,ph.length-4).replace(/\d/g,'•')+ph.slice(-4):ph}
@@ -28,6 +28,18 @@
     return '<h2><span>6A</span>高階會員基本資料<em>PREMIUM &amp; ELITE PASSENGER DETAILS</em></h2>'
       +'<div style="color:#45574f;margin-bottom:4px">鑽石卡、金卡會員與頭等／Residence 旅客 '+L.length+' 位（依艙等、座位排序）；電話只列末四碼，完整資料請在航班資料頁查詢。</div>'
       +(L.length?'<table class="small"><thead><tr><th>座位</th><th>旅客／訂位</th><th>會員卡號</th><th>等級</th><th>國籍</th><th>年齡（生日）</th><th>艙等</th><th>餐點</th><th>電話</th><th>提示</th></tr></thead><tbody>'+rows+'</tbody></table>':'<div style="color:#45574f">本班沒有高階會員或頭等旅客。</div>')}
+  /* 1118A G4（使用者：「餐時要寫喔」）：特別留意旅客表格加「餐點」欄（跟 6A 同一份艙單的 detailedMeal／meal；特殊餐粗體） */
+  function manOf(c){var man=[];try{var f=(FLIGHTS||[]).concat(S.customFlights||[]).filter(function(x){return x&&x.code===c.code&&x.fr===c.fr&&x.to===c.to})[0];window.KGM_NODH_R1023A=1;man=window.manifest7(Object.assign({},f,{date:c.date}),c.date)||[]}catch(_){}finally{window.KGM_NODH_R1023A=0}return man}
+  var CAB18={Residence:'Residence',First:'頭等艙',Business:'商務艙',Premium:'豪華經濟艙',Economy:'經濟艙'};
+  function mealTxt(x){var m=String((x&&(x.detailedMeal||x.meal))||'').trim();if(!m)return {t:(z()?'標準餐（'+(CAB18[x&&x.cabin]||'本艙')+'菜單）':'Standard ('+((x&&x.cabin)||'cabin')+' menu)'),sp:false};var sp=/特殊|素|蛋奶|無麩|糖尿|低|兒童|嬰兒|清真|猶太|印度|海鮮|水果|過敏|[A-Z]{4}ML|VGML|AVML|KSML|MOML|CHML|BBML|DBML|GFML|LFML|NLML|SFML|FPML|VLML|HNML|RVML/i.test(m)&&!/^標準|standard/i.test(m);return {t:m,sp:sp}}
+  function addMeal(h,c){var man=manOf(c),bySeat={},byName={};man.forEach(function(x){if(!x)return;if(x.seat)bySeat[String(x.seat).toUpperCase()]=x;var nm=String((x.last||'')+'/'+(x.first||'')).replace(/\s+/g,'').toUpperCase();if(nm!=='/')byName[nm]=x});
+    var d=document.createElement('div');d.innerHTML=h;
+    [].slice.call(d.querySelectorAll('table')).forEach(function(t){var ths=[].slice.call(t.querySelectorAll('thead th')),i=-1;ths.forEach(function(th,j){if(i<0&&/留意原因|Reason/i.test(th.textContent))i=j});if(i<0)return;
+      var th=document.createElement('th');th.textContent=z()?'餐點':'Meal';ths[i].parentNode.insertBefore(th,ths[i].nextSibling);
+      [].slice.call(t.querySelectorAll('tbody tr')).forEach(function(tr){var tds=[].slice.call(tr.children);if(tds.length<=i){if(tds.length===1&&tds[0].colSpan>1)tds[0].colSpan=tds[0].colSpan+1;return}
+        var seat=String(tds[0].textContent||'').trim().toUpperCase(),x=bySeat[seat];if(!x){var nm=String((tds[1]&&tds[1].textContent)||'').split(/\s|\n/)[0].replace(/\s+/g,'').toUpperCase();x=byName[nm]}
+        var m=mealTxt(x),td=document.createElement('td');td.innerHTML=m.sp?'<b>'+E(m.t)+'</b>':E(m.t);tr.insertBefore(td,tds[i].nextSibling)})});
+    return d.innerHTML}
   function petSec(c){try{var L=window.kgmPetsOnFlightR1108A?window.kgmPetsOnFlightR1108A(c.code,c.date):[];if(!L.length)return '';var SP={dog:'狗',cat:'貓',service:'服務犬'},MD={cabin:'客艙',hold:'托運貨艙',service:'客艙（服務犬）'};
       return '<div style="margin-top:8px"><b>寵物同行 '+L.length+'</b><table class="small"><thead><tr><th>旅客</th><th>寵物</th><th>方式</th><th>座位</th><th>狀態</th></tr></thead><tbody>'+L.map(function(x){return '<tr><td>'+E(x.pax)+'</td><td>'+E((SP[x.species]||x.species||'')+(x.name?'「'+x.name+'」':'')+(x.kg?' '+x.kg+' kg':''))+'</td><td>'+E(MD[x.mode]||x.mode||'')+'</td><td>'+E(x.mode==='hold'?'—':(x.seatShown||'同旅客座位'))+'</td><td>'+(x.ok?'已核准':'審核中')+'</td></tr>'}).join('')+'</tbody></table></div>'}catch(_){return ''}}
   function mapImg(c,cb){try{var f=(FLIGHTS||[]).concat(S.customFlights||[]).filter(function(x){return x&&x.code===c.code&&x.fr===c.fr&&x.to===c.to})[0];if(!f||!window.kgmRouteMapR1025B){cb('');return}
@@ -43,9 +55,10 @@
     idx.forEach(function(x,k){parts.push({n:x.n,h:mid.slice(x.at,k+1<idx.length?idx[k+1].at:mid.length)})});
     var out=[];parts.forEach(function(p){var h=p.h;if(p.n==='附錄'){h=h.replace(/<\/div>\s*$/,'');h='<div class="appx">'+h+'</div>'}
       if(p.n==='5'){if(ver!=='ceo')h=h.replace(/<div><b>給 CEO<\/b><ul>[\s\S]*?<\/ul><\/div>/,'');if(ver==='cabin')h=h.replace(/<div><b>給機長 Captain<\/b><ul>[\s\S]*?<\/ul><\/div>/,'')}
-      if(p.n==='6')h+=petSec(c);
+      if(p.n==='6'){try{h=addMeal(h,c)}catch(e){try{console.warn('pdf38 meal',e)}catch(_){}}h+=petSec(c)}   /* 1118A G4：特別留意旅客加「餐點」欄 */
       out.push({n:p.n,h:h});if(p.n==='2')out.push({n:'2A',h:mapSec(c,u)});if(p.n==='6'){}if(p.n==='7')out.splice(out.length-1,0,{n:'6A',h:eliteSec(c)})});
     if(!out.some(function(p){return p.n==='2A'}))out.splice(1,0,{n:'2A',h:mapSec(c,u)});
+    out=out.filter(function(p){return p.n!=='附錄'});   /* 1118A G4（使用者：「只要列出特別注意的旅客在PDF中」）：全班旅客名單不放 */
     var K=KEEP[ver];if(K)out=out.filter(function(p){return K[p.n]});
     if(ver==='ceo'&&xtra&&xtra.length){var ai=-1;out.forEach(function(p,k){if(p.n==='附錄')ai=k});var add=xtra.map(function(x){return {n:x.n,h:x.h}});if(ai>=0)Array.prototype.splice.apply(out,[ai,0].concat(add));else out=out.concat(add)}   /* 1108B B13：CEO 完整版加航班資料頁全部區塊 */
     var who=me(),badge='<div class="conf" style="background:#0f3d33;color:#fff">'+E(zh?VN[ver][0]:VN[ver][1])+' · '+(zh?'匯出人 ':'Exported by ')+E((who.name||'')+' '+(who.empId||''))+(ver==='pilot'?(zh?' · 不含旅客個資':' · no passenger personal data'):ver==='cabin'?(zh?' · 不含燃油／載重與營運建議':' · no fuel / load / ops advisory'):'')+'</div>';
@@ -54,7 +67,7 @@
   /* ── 1108B B13（使用者：「CEO 看到的航班狀態資料 report 一樣少啊 CEO 要可以看到全部！」）──
      CEO 完整版：把航班資料頁「全部」分頁的每個區塊（載重平衡／Payload 鎖後排、行李改運、報到核對、餐點、完整座位圖、候補名單…）照原樣放進報告（按鈕、輸入框拿掉，填的值留著），
      樣式只帶這些區塊用到的 CSS。報告原本已有的（航班資訊、航路、旅客名單）不重複。 */
-  var SKIP39=/r7-ops-hero|r7-route-card|r7-manifest|k25fd-kpis/;
+  var SKIP39=/r7-ops-hero|r7-route-card|r7-manifest|k25fd-kpis|k23bm/;   /* 1118A G4（使用者：「圖一那種就可以不用」）：行李改運不放進 PDF */
   function cssFor39(root){var cls={};[].slice.call(root.querySelectorAll('[class]')).concat([root]).forEach(function(e){String(e.getAttribute('class')||'').split(/\s+/).forEach(function(k){if(k)cls[k]=1})});
     var keys=Object.keys(cls),out=[],hit=function(sel){if(/data-kgm-tab|^\s*(html|body)[.:\[]/.test(sel))return false;for(var i=0;i<keys.length;i++)if(sel.indexOf('.'+keys[i])>=0)return true;return false};   /* 依頁面狀態藏區塊的規則（body:not([data-kgm-tab=…])）不帶 */
     [].slice.call(document.styleSheets).forEach(function(sh){var R=null;try{R=sh.cssRules}catch(_){return}if(!R)return;[].slice.call(R).forEach(function(r){try{if(r.type===1){if(hit(r.selectorText||''))out.push(r.cssText)}else if(r.type===4&&/print|max-width/.test(r.conditionText||r.media&&r.media.mediaText||'')){}else if(r.type===4){var inner=[].slice.call(r.cssRules).filter(function(x){return x.type===1&&hit(x.selectorText||'')}).map(function(x){return x.cssText});if(inner.length)out.push('@media '+r.media.mediaText+'{'+inner.join('')+'}')}}catch(_){}})});
