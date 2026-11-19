@@ -64,16 +64,16 @@ for t in [
     '① 飛行時間：沿實際航路（避開俄羅斯、烏克蘭、白俄羅斯、伊朗、伊拉克、敘利亞、以色列、巴勒斯坦、黎巴嫩、葉門、阿富汗、北韓空域）＋當季高空風＋該機型巡航速度算空中時間，再加滑行 30 分。'
     '這是物理估算，不是時刻表時間（時刻表本身沒有改）。',
     '② 滿載上限 T0：超過這個輪擋時間才開始少賣。T0＝0.5 小時＋型錄航程 × 係數 ÷ 巡航速度。'
-    '亞洲—歐洲（走中亞／高加索走廊）用華航校正係數 0.684；其他長程（越太平洋、澳紐、中東）沒有校正資料，用型錄航程（係數 1.0）。',
+    '亞洲—歐洲（走中亞／高加索走廊）用實際營運資料校正的係數 0.684；其他長程（越太平洋、澳紐、中東）沒有校正資料，用型錄航程（係數 1.0）。',
     '③ 少賣座位＝全機座位 × 14.8% ×（飛行時間 − T0）小時，四捨五入，最多整個經濟艙；可載旅客＝全機座位 − 少賣；旅客 Payload＝可載旅客 × 100 kg（旅客 77＋手提 7＋行李）。',
     '④ 機型：該季實際派的機型（同一班號冬夏不同機型的照各季）；座位數讀網站各機型座位圖。',
 ]:
     S.append(P(t, 8.8, INK, 13.5)); S.append(Spacer(1, 1.2 * mm))
 S.append(Spacer(1, 3 * mm))
-S.append(P('<b>校正：華航 A359（306 席）台北直飛歐洲，冬季少賣座位（使用者提供）</b>', 11, GREEN, 16))
+S.append(P('<b>校正：A359（306 席）台北直飛歐洲，冬季少賣座位實際參考值（使用者提供）</b>', 11, GREEN, 16))
 cal = {x['to']: x['c'] for x in D['cal']}
 CI = {'LHR': 80, 'AMS': 107, 'FRA': 59, 'VIE': 25, 'PRG': 40, 'FCO': 31}
-tb = [[P('航線', 8.5, colors.white), P('避戰航路 km', 8.5, colors.white), P('估計輪擋', 8.5, colors.white), P('華航少賣', 8.5, colors.white), P('本模型', 8.5, colors.white), P('差', 8.5, colors.white)]]
+tb = [[P('航線', 8.5, colors.white), P('避戰航路 km', 8.5, colors.white), P('估計輪擋', 8.5, colors.white), P('參考值', 8.5, colors.white), P('本模型', 8.5, colors.white), P('差', 8.5, colors.white)]]
 for k in ['LHR', 'AMS', 'FRA', 'VIE', 'PRG', 'FCO']:
     c = cal[k]; d = c['blocked'] - CI[k]
     tb.append([P('台北 → ' + k, 8.5), P('{:,}'.format(c['km']) if c.get('km') else '—', 8.5), P(hm(c['blockMin']), 8.5), P(str(CI[k]), 8.5), P(str(c['blocked']), 8.5), P(('+' if d > 0 else '') + str(d), 8.5, RED if abs(d) >= 10 else INK)])
@@ -81,7 +81,7 @@ t = Table(tb, colWidths=[34 * mm, 30 * mm, 24 * mm, 22 * mm, 22 * mm, 16 * mm])
 t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), GREEN), ('LINEBELOW', (0, 1), (-1, -1), 0.4, LINE), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3)]))
 S.append(t)
 S.append(Spacer(1, 2 * mm))
-S.append(P('誤差約 15 席（RMSE）。AMS 107 比更遠的 LHR 80 還多，任何只看距離、風、航路的模型都對不上（應是華航該線自己的貨郵或機型配置因素）；FRA、VIE、PRG 在 2 席以內。', 8.5, MUT, 13))
+S.append(P('誤差約 15 席（RMSE）。AMS 107 比更遠的 LHR 80 還多，任何只看距離、風、航路的模型都對不上（應是該線自己的貨郵或機型配置因素）；FRA、VIE、PRG 在 2 席以內。', 8.5, MUT, 13))
 S.append(Spacer(1, 4 * mm))
 S.append(P('<b>總覽</b>：共 %d 個航段；冬季有限座 %d 個、夏季 %d 個（其餘飛行時間在滿載上限內，不少賣）。' % (len(R), wb, sb), 9.5, INK, 15))
 top = sorted([(r['code'], r['fr'], r['to'], (r.get('w') or {}).get('type'), (r.get('w') or {}).get('blocked') or 0, (r.get('w') or {}).get('y') or 0) for r in R], key=lambda x: -x[4])[:8]

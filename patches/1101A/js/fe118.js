@@ -48,12 +48,28 @@
         +'<span class="fe118-bd"><b>'+E(cityOf(r.other))+'</b><small>'+E(r.other)+(r.via?' · '+(zh?'續飛 ':'then ')+E(cityOf(r.via)):'')+'</small></span>'
         +'<span class="fe118-bc">'+E(r.code)+(cx?'<i>'+(zh?'取消':'Cancelled')+'</i>':'')+'</span></li>'}).join('');
     var h='<aside class="fe118-board" aria-label="'+(zh?'今日桃園出發':'Departures from Taipei today')+'"><div class="fe118-bh"><div><small>'+(zh?'出發 · DEPARTURES':'DEPARTURES')+'</small><b>'+(zh?'桃園國際機場':'Taipei Taoyuan')+' <span>TPE</span></b></div>'
-      +'<div class="fe118-clock"><small>'+(zh?'台北時間':'Taipei time')+'</small><b data-fe118clock>'+n.hm+'</b></div></div><ul>'+rows+'</ul>'
+      +'<div class="fe118-clock"><small>'+(zh?'台北時間':'Taipei time')+'</small><b data-fe118clock>'+n.hm+'</b></div><button type="button" class="fe118-blink" onclick="nav(\'status\')">'+(zh?'完整機場看板':'Full board')+' →</button></div><ul>'+rows+'</ul>'
       +'<button type="button" class="fe118-bmore" onclick="nav(\'status\')">'+(zh?'完整機場看板與航班動態':'Full departures board & flight status')+' <span aria-hidden="true">→</span></button></aside>';
     BDC={k:k,h:h};return h}
   setInterval(function(){try{var c=document.querySelector('[data-fe118clock]');if(c){var hm=tpeNow().hm;if(c.textContent!==hm)c.textContent=hm}}catch(_){}},15000);
-  function phone(){try{return window.matchMedia('(max-width:640px)').matches}catch(_){return false}}
-  try{window.matchMedia('(max-width:640px)').addEventListener('change',function(){try{if(S.view==='home')render()}catch(_){}})}catch(_){}
+  /* ── 1120A J4（使用者：「上面最新的那個要可以透過KGM航空新聞更改」）：首頁最新消息＝KGM 航空新聞（S.r49.news，後台「KGM 航空新聞」同一份）
+       裡設成「首頁顯示」的那一則；沒有設定就用最新發布的那一則。原本寫死在首頁的「全新 A21X 馬爾地夫・神戶專機」第一次開頁時存成一則新聞（設為首頁），之後一律從後台改。 ── */
+  function newsAll(){try{return ((S.r49&&S.r49.news)||[]).filter(function(n){return n&&n.published!==false})}catch(_){return []}}
+  function homeNews(){var L=newsAll(),h=L.filter(function(n){return n.homeR1120A})[0];if(h)return h;return L.slice().sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''))})[0]||null}
+  function seedNews(){try{if(typeof S==='undefined'||!S)return;S.r49=S.r49||{};S.r49.news=S.r49.news||[];var N=S.r49.news;if(N.some(function(n){return n&&(n.homeR1120A||n.id==='KGM-A21X-1120A')}))return;
+      var d='2026-11-19';try{d=todayISO()}catch(_){}
+      N.unshift({id:'KGM-A21X-1120A',tag:'航班／航線消息',date:d,title:'全新 A21X 馬爾地夫・神戶專機',chipR1120A:'全新機隊',
+        summary:'兩款新廣體客機加入機隊。更安靜的客艙、全座直通走道的平躺式商務艙，全艙提供 Wi-Fi。',
+        body:'兩款新廣體客機加入機隊。\n\n更安靜的客艙、全座直通走道的平躺式商務艙，全艙提供 Wi-Fi。\n\n航班、日期與票價以訂位頁顯示為準。',published:true,homeR1120A:true});
+      try{save()}catch(_){}try{if(S.view==='home'||!S.view)render()}catch(_){}}catch(_){}}
+  setTimeout(seedNews,2500);
+  window.kgmNewsHomeR1120A=function(id){try{var L=(S.r49&&S.r49.news)||[];L.forEach(function(n){if(n)n.homeR1120A=(n.id===id)});try{save()}catch(_){}render()}catch(_){}};
+  window.kgmNewsOpenR1120A=function(id){try{var n=newsAll().filter(function(x){return x.id===id})[0];if(!n)return;var zh=z();
+      var body=typeof window.kgmNewsBodyHtmlR913==='function'?window.kgmNewsBodyHtmlR913(n.body):String(n.body||'').split(/\n+/).map(function(p){return '<p>'+E(p)+'</p>'}).join('');
+      S.modal={title:n.title,html:'<article class="g-news-full fe120-news"><span>'+E(n.tag||'')+'</span><time>'+E(n.date||'')+'</time><p class="lead">'+E(n.summary||'')+'</p>'+body+'</article>'};render()}catch(_){}};
+  function pillHtml(chipTxt,promoTitle){var zh=z(),n=homeNews();
+    if(!n)return '<div class="fe118-promo"><span class="fe118-pchip">'+E(chipTxt||(zh?'全新機隊':'New aircraft'))+'</span><span class="fe118-ptitle">'+promoTitle+'</span></div>';
+    return '<button type="button" class="fe118-promo" onclick="kgmNewsOpenR1120A(\''+E(n.id)+'\')"><span class="fe118-pchip">'+E(n.chipR1120A||(zh?'最新消息':'Latest'))+'</span><span class="fe118-ptitle">'+E(n.title||'')+'</span><span class="fe120-arr" aria-hidden="true">→</span></button>'}
   function reshape(html){
     var d=document.createElement('div');d.innerHTML=html;var root=d.firstElementChild;if(!root)return html;
     var hero=root.firstElementChild,searchWrap=hero&&hero.nextElementSibling;if(!hero||!searchWrap)return html;
@@ -66,14 +82,29 @@
     left.innerHTML='<div class="fe118-eyebrow"><span></span>KGM AIRWAYS<em> · '+(zh?'寰宇一家 oneworld 成員':'A oneworld member')+'</em></div>'
       +'<h1>'+(zh?'把<span>世界</span>，<br>排進你的行程':'Put the <span>world</span><br>on your itinerary')+'</h1>'
       +'<p class="fe118-lede">'+(zh?'訂位、報到、航班動態與里程，一次整理好。':'Booking, check-in, flight status and miles, all in one organised place.')+'</p>'
-      +'<div class="fe118-promo"><span class="fe118-pchip">'+E(chipTxt||(zh?'全新機隊':'New aircraft'))+'</span><span class="fe118-ptitle">'+promoTitle+'</span></div>';
+      +'<div class="fe120-cta"><button type="button" class="fe120-go" onclick="var e=document.querySelector(\'.fe118-searchwrap\');if(e)e.scrollIntoView({behavior:\'smooth\',block:\'start\'})">'+(zh?'開始訂位':'Book a flight')+'</button><button type="button" class="fe120-link" onclick="nav(\'status\')">'+(zh?'航班動態':'Flight status')+' →</button></div>'
+      +pillHtml(chipTxt,promoTitle);
     while(inner.firstChild)inner.removeChild(inner.firstChild);inner.appendChild(left);
-    /* 手機：看板放在訂位主控台下面（不然一進首頁看不到搜尋）；平板以上放主視覺右邊 */
-    var bh=board(),ph=phone();if(bh&&!ph)inner.insertAdjacentHTML('beforeend',bh);else inner.classList.add('fe118-noboard');
-    if(stats&&stats!==chip&&!stats.querySelector('h1')){stats.removeAttribute('style');stats.className='fe118-stats';inner.appendChild(stats)}
+    /* 1120A J1（使用者：「圖一這個不太好看」）：右邊深綠看板拿掉 → 機窗插畫（目的地卡片同一張插畫，每天換一個精選目的地）；今日出發改成搜尋列下面一條淺色看板 */
+    inner.insertAdjacentHTML('beforeend','<aside class="fe120-win"><div class="fe120-frame"><div class="fe120-glass" data-fe120art><span class="fe120-shade"></span></div></div><button type="button" class="fe120-cap" data-fe120cap><small>'+(zh?'今日精選目的地':'Featured today')+'</small><b>—</b></button></aside>');
+    if(stats&&stats!==chip&&!stats.querySelector('h1')){stats.removeAttribute('style');stats.className='fe118-stats';inner.appendChild(stats)}   /* mo12 會把最後一格的數字從 0 數上來 → 統計一定放最後 */
     searchWrap.insertAdjacentHTML('afterend',tiles());
-    if(bh&&ph)searchWrap.insertAdjacentHTML('afterend','<div class="fe118-wrap fe118-bwrap">'+bh+'</div>');
+    var bh=board();if(bh)searchWrap.insertAdjacentHTML('afterend','<div class="fe118-wrap fe118-bwrap">'+bh+'</div>');
     return d.innerHTML}
+  /* 機窗插畫：從首頁目的地卡片拿同一張插畫（每天換一個） */
+  function fillWin(){try{var g=document.querySelector('#app [data-fe120art]'),cap=document.querySelector('#app [data-fe120cap]');if(!g||!cap)return;
+    var cards=[].slice.call(document.querySelectorAll('#app .r11-dest'));if(!cards.length)return;
+    var dn=Math.floor(Date.now()/864e5),c=cards[dn%cards.length],ov=c.querySelector('.r11-oval'),bg=ov&&ov.style.backgroundImage;if(!bg)return;
+    var key=dn+'|'+cards.length+'|'+bg.length;if(g.getAttribute('data-k')===key)return;g.setAttribute('data-k',key);g.style.backgroundImage=bg;
+    var code='',txt=String(c.innerText||'').split(/\s+/);for(var i=0;i<txt.length;i++){if(/^[A-Z]{3}$/.test(txt[i])&&txt[i]!=='TPE'&&txt[i]!=='TWD'){code=txt[i];break}}
+    var nm=code?cityOf(code):'',zh=z();if(!nm||nm===code)nm=(ov.getAttribute('aria-label')||'').trim()||code;cap.innerHTML='<small>'+(zh?'今日精選目的地':'Featured today')+'</small><b>'+E(nm)+(code?' <i>'+E(code)+'</i>':'')+'</b><span>'+(zh?'帶入搜尋':'Search')+' →</span>';
+    cap.onclick=function(){var bt=[].slice.call(c.querySelectorAll('button,[onclick]')).filter(function(x){return /帶入|搜尋|Search|Use/.test(x.textContent||'')})[0];if(bt)bt.click();else{try{var e=document.querySelector('.fe118-searchwrap');if(e)e.scrollIntoView({behavior:'smooth'})}catch(_){}}}}catch(_){}}
+  /* 後台「KGM 航空新聞」：每一則加「設為首頁最新消息」 */
+  function adminNews(){try{if(S.view!=='admin'||S.adminTab!=='news_r49')return;var zh=z();
+    [].slice.call(document.querySelectorAll('#app button[onclick^="kgmEditNewsG("]')).forEach(function(b){var m=/kgmEditNewsG\('([^']+)'\)/.exec(b.getAttribute('onclick')||'');if(!m)return;var id=m[1],n=((S.r49&&S.r49.news)||[]).filter(function(x){return x&&x.id===id})[0];if(!n)return;
+      var on=!!n.homeR1120A,cur=b.parentNode.querySelector('.fe120-nh');var lab=on?(zh?'★ 首頁顯示中':'★ On home page'):(zh?'設為首頁最新消息':'Show on home page');
+      if(cur){if(cur.textContent!==lab){cur.textContent=lab;cur.classList.toggle('on',on)}return}
+      var x=document.createElement('button');x.type='button';x.className='btn btn-sm fe120-nh'+(on?' on':'');x.textContent=lab;x.setAttribute('onclick',"kgmNewsHomeR1120A('"+id.replace(/'/g,'')+"')");b.parentNode.insertBefore(x,b)})}catch(_){}}
   function hookHome(){var H=window.homeView;if(typeof H!=='function'||H.__fe118)return;
     var w=function(){var h=H.apply(this,arguments);try{if(S.view==='home'||!S.view)return reshape(String(h))}catch(e){try{console.warn('fe118 home',e)}catch(_){}}return h};
     try{Object.keys(H).forEach(function(k){if(!(k in w))w[k]=H[k]})}catch(_){}w.__fe118=1;window.homeView=w;try{homeView=w}catch(_){}}
@@ -92,50 +123,78 @@
     h.classList.toggle('fe118-home',!!home);h.classList.toggle('fe118-sel',!!sel);
     if(sel){var h2=document.querySelector('#app .booking-content h2');if(h2){var host=h2.parentElement,old=host.previousElementSibling&&host.previousElementSibling.classList&&host.previousElementSibling.classList.contains('fe118-selbar')?host.previousElementSibling:null,nb=selBar();
         host.classList.add('fe118-h2row');if(!old)host.insertAdjacentHTML('beforebegin',nb);else{var t=document.createElement('div');t.innerHTML=nb;if(old.getAttribute('data-fe118')!==t.firstElementChild.getAttribute('data-fe118'))old.outerHTML=nb}}}
+    if(sel)selSections();
+    if(home)fillWin();adminNews();
   }catch(e){try{console.warn('fe118',e)}catch(_){}}}
+  /* 1120A L7／L8（使用者：「直飛轉機要分開然後要對齊」「全數賣完不要顯示」）：
+     直飛、轉機各一段標題；兩張表的票價欄同寬（卡片對齊）；搜尋的艙等已售完的班次／組合不顯示（只用 CSS 藏，選票價是用清單位置選班，不能從清單拿掉）。 */
+  var SOLD=/所選艙等售[罄完]|Sold out in the selected cabin|Selected cabin sold out/i;
+  function selSections(){try{var zh=z();
+    [['tr.fl-row','d',zh?'直飛':'Nonstop',zh?' 班':' flights'],['tr.k12c-row','c',zh?'轉機':'Connections',zh?' 個組合':' options']].forEach(function(K){
+      var rows=[].slice.call(document.querySelectorAll('#app .booking-content '+K[0]));if(!rows.length)return;var t=rows[0].closest('table');if(!t)return;
+      var vis=0;rows.forEach(function(r){var tds=r.children,last=tds[tds.length-1],so=!!(last&&SOLD.test(last.textContent||''));if(so!==(r.getAttribute('data-fe120so')==='1')){if(so)r.setAttribute('data-fe120so','1');else r.removeAttribute('data-fe120so')}
+        var nx=r.nextElementSibling;if(nx&&!nx.matches(K[0])){if(so)nx.setAttribute('data-fe120so','1');else nx.removeAttribute('data-fe120so')}
+        if(!so&&r.getClientRects().length)vis++});   /* 實際看得到的（篩選 ff19 藏起來的也不算） */
+      var hd=t.previousElementSibling&&t.previousElementSibling.classList&&t.previousElementSibling.classList.contains('fe120-sech')?t.previousElementSibling:null;
+      var txt='<b>'+K[2]+'</b><small>'+vis+K[3]+'</small>'+(vis?'':'<em>'+(zh?'這一天搜尋的艙等都已售完':'Sold out on this date')+'</em>');
+      if(!hd){hd=document.createElement('div');hd.className='fe120-sech';hd.setAttribute('data-k',K[1]);t.parentNode.insertBefore(hd,t)}
+      if(hd.innerHTML!==txt)hd.innerHTML=txt})}catch(e){try{console.warn('fe120 sel',e)}catch(_){}}}
   var PT=0;function hookRender(){var r0=window.render;if(typeof r0!=='function'||r0.__fe118)return;var w=function(){var r=r0.apply(this,arguments);paint();clearTimeout(PT);PT=setTimeout(paint,60);return r};
     try{Object.keys(r0).forEach(function(k){if(!(k in w))w[k]=r0[k]})}catch(_){}w.__fe118=1;window.render=w;try{render=w}catch(_){}}
   hookRender();[0,1500,4000,12000].forEach(function(t){setTimeout(hookRender,t)});setTimeout(paint,300);
   /* ── 樣式 ── */
   var C=[
-  /* 首頁：主視覺（1118A 第二輪：淺色；左標語、右今日出發看板、左下統計） */
-  'html.fe118-home body,html.fe118-home #app{background:#F6F2E9!important}',
-  'html.fe118-home .fe118-hero{background:radial-gradient(70% 90% at 100% 0%,#EADFC8 0%,rgba(234,223,200,0) 60%),linear-gradient(180deg,#F3EDE0 0%,#F6F2E9 100%)!important;overflow:hidden}',
-  'html.fe118-home .fe118-hero>div:first-child{display:none!important}',
-  'html.fe118-home .fe118-hero>div:nth-child(2){opacity:.4!important}',
-  'html.fe118-home .fe118-hero>div:nth-child(2) path{stroke:#B9A577!important}html.fe118-home .fe118-hero>div:nth-child(2) circle{fill:#A9802F!important}',
-  'html.fe118-home .fe118-hero .k12h-fly .tr{stroke:#A9802F!important;opacity:.55!important}html.fe118-home .fe118-hero .k12h-fly .pl{fill:#A9802F!important}',
-  'html.fe118-home .fe118-hero-in{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 420px;grid-template-areas:"hl bd" "st bd";column-gap:56px;row-gap:34px;align-items:start;max-width:1200px;margin:0 auto;padding:62px 32px 48px}',
-  'html.fe118-home .fe118-hero-in.fe118-noboard{grid-template-columns:1fr;grid-template-areas:"hl" "st"}',
-  'html.fe118-home .fe118-hl{grid-area:hl;padding-top:10px;min-width:0}html.fe118-home .fe118-board{grid-area:bd;min-width:0}html.fe118-home .fe118-stats{grid-area:st}',
+  /* 首頁：主視覺（1120A：淺色；左標語＋按鈕＋最新消息、右機窗插畫、左下統計；原本的航線線條不畫（穿過文字）） */
+  'html.fe118-home body,html.fe118-home #app{background:#F7F3EA!important}',
+  'html.fe118-home .fe118-hero{background:radial-gradient(60% 80% at 88% 18%,#EFE4CD 0%,rgba(239,228,205,0) 70%),linear-gradient(180deg,#F4EEE2 0%,#F7F3EA 100%)!important;overflow:hidden}',
+  'html.fe118-home .fe118-hero>div:first-child,html.fe118-home .fe118-hero>div:nth-child(2),html.fe118-home .fe118-hero .k12h-fly{display:none!important}',
+  'html.fe118-home .fe118-hero-in{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"hl win" "st win";column-gap:64px;row-gap:40px;align-items:center;max-width:1200px;margin:0 auto;padding:56px 32px 52px}',
+  'html.fe118-home .fe118-hl{grid-area:hl;min-width:0;align-self:end}html.fe118-home .fe118-stats{grid-area:st;align-self:start}html.fe120-win,html.fe118-home .fe120-win{grid-area:win}',
   'html.fe118-home .fe118-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8A7444;font-weight:700}',
   'html.fe118-home .fe118-eyebrow span{width:28px;height:1px;background:#A9802F}html.fe118-home .fe118-eyebrow em{font-style:normal;color:#9A9384}',
-  'html.fe118-home .fe118-hl h1{font-family:Georgia,"Noto Serif TC",serif;font-weight:400;color:#0B2A20;font-size:clamp(38px,5vw,64px);line-height:1.1;letter-spacing:-.015em;margin:20px 0 0;max-width:none}',
+  'html.fe118-home .fe118-hl h1{font-family:Georgia,"Noto Serif TC",serif;font-weight:400;color:#0B2A20;font-size:clamp(40px,5vw,66px);line-height:1.08;letter-spacing:-.015em;margin:22px 0 0;max-width:none}',
   'html.fe118-home .fe118-hl h1 span{--gold2:#A9802F;color:#A9802F}',
-  'html.fe118-home .fe118-lede{color:#56635D;font-size:16px;line-height:1.75;margin:20px 0 0;max-width:40ch}',
-  'html.fe118-home .fe118-promo{display:inline-flex;align-items:center;gap:12px;margin-top:26px;padding:7px 18px 7px 7px;border-radius:999px;background:#fff;border:1px solid #E6DCC6;box-shadow:0 10px 24px -18px rgba(80,60,20,.45);max-width:100%;box-sizing:border-box}',
+  'html.fe118-home .fe118-lede{color:#56635D;font-size:16.5px;line-height:1.75;margin:18px 0 0;max-width:34ch}',
+  'html.fe118-home .fe120-cta{display:flex;align-items:center;gap:18px;margin-top:28px}',
+  'html.fe118-home .fe120-go{border:0;border-radius:999px;padding:14px 28px;background:linear-gradient(180deg,#145A44,#0B3D2E);color:#fff;font:inherit;font-size:15px;font-weight:800;letter-spacing:.06em;cursor:pointer;box-shadow:0 14px 28px -14px rgba(11,61,46,.75)}',
+  'html.fe118-home .fe120-go:hover{filter:brightness(1.08)}html.fe118-home .fe120-link{border:0;background:none;padding:6px 0;font:inherit;font-size:14px;font-weight:700;color:#0B3D2E;cursor:pointer;border-bottom:1px solid #C9B78F}',
+  'html.fe118-home .fe118-promo{display:flex;align-items:center;gap:12px;margin-top:30px;padding:8px 18px 8px 8px;border-radius:999px;background:#fff;border:1px solid #E6DCC6;box-shadow:0 10px 24px -18px rgba(80,60,20,.45);max-width:100%;width:fit-content;box-sizing:border-box;font:inherit;text-align:left;cursor:pointer;color:inherit}',
+  'html.fe118-home button.fe118-promo:hover{border-color:#C9B78F}',
   'html.fe118-home .fe118-pchip{flex:0 0 auto;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:#0B3D2E;border-radius:999px;padding:5px 11px;font-weight:800}',
   'html.fe118-home .fe118-ptitle{font-size:13.5px;color:#24352E;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}html.fe118-home .fe118-ptitle em{font-style:normal;color:#A9802F;font-weight:800}',
-  'html.fe118-home .fe118-stats{display:flex;gap:0;flex-wrap:wrap;align-self:end}',
+  'html.fe118-home .fe120-arr{color:#A9802F;font-weight:800}',
+  'html.fe118-home .fe118-stats{display:flex;gap:0;flex-wrap:wrap}',
   'html.fe118-home .fe118-stats>div{padding:0 30px;border-left:1px solid #DCD2BD}html.fe118-home .fe118-stats>div:first-child{padding-left:0;border-left:0}',
   'html.fe118-home .fe118-stats>div>div:first-child{font-family:Georgia,serif!important;font-size:30px!important;line-height:1;color:#0B3D2E!important}',
   'html.fe118-home .fe118-stats>div>div:last-child{font-size:10.5px!important;letter-spacing:.16em;text-transform:uppercase;color:#867E6E!important;margin-top:8px!important}',
-  /* 今日桃園出發看板 */
-  'html.fe118-home .fe118-board{position:relative;color:#fff;border-radius:26px;padding:22px 22px 16px;background:linear-gradient(165deg,#114B3A 0%,#0A3428 70%,#082B21 100%);box-shadow:0 40px 70px -40px rgba(8,43,33,.85),0 0 0 1px rgba(201,166,97,.18) inset}',
-  'html.fe118-home .fe118-bh{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.12)}',
+  /* 機窗 */
+  'html.fe118-home .fe120-win{position:relative;justify-self:end;width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center}',
+  'html.fe118-home .fe120-win:before{content:"";position:absolute;width:118%;aspect-ratio:1;border-radius:50%;left:-9%;top:6%;border:1px solid rgba(169,128,47,.28);pointer-events:none}',
+  'html.fe118-home .fe120-frame{position:relative;width:100%;aspect-ratio:3/4;border-radius:46% / 34%;padding:16px;box-sizing:border-box;background:linear-gradient(160deg,#FDFBF6 0%,#ECE3D1 100%);box-shadow:0 60px 90px -55px rgba(70,52,18,.7),0 0 0 1px #E3D8C2 inset,0 2px 0 #fff inset}',
+  'html.fe118-home .fe120-glass{position:relative;width:100%;height:100%;border-radius:44% / 32%;overflow:hidden;background:#123d33 center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14),inset 0 26px 46px rgba(0,0,0,.30)}',
+  'html.fe118-home .fe120-glass:after{content:"";position:absolute;inset:0;background:linear-gradient(125deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 38%);pointer-events:none}',
+  'html.fe118-home .fe120-shade{position:absolute;left:0;right:0;top:0;height:11%;background:linear-gradient(180deg,#F2EBDC,#E3D7BF);box-shadow:0 4px 10px rgba(0,0,0,.2);z-index:1}',
+  'html.fe118-home .fe120-cap{position:relative;margin-top:-30px;display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #E6DCC6;background:#fff;border-radius:18px;padding:10px 22px 11px;font:inherit;color:#0F2A21;cursor:pointer;box-shadow:0 18px 34px -20px rgba(70,52,18,.6);z-index:2}',
+  'html.fe118-home .fe120-cap small{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8A7444;font-weight:800}html.fe118-home .fe120-cap b{font-family:Georgia,"Noto Serif TC",serif;font-size:19px;font-weight:400}html.fe118-home .fe120-cap b i{font-style:normal;font-family:inherit;font-size:13px;color:#8A7444;letter-spacing:.08em;margin-left:4px}html.fe118-home .fe120-cap span{font-size:12px;font-weight:700;color:#0B3D2E}',
+  /* 今日桃園出發（搜尋列下面一條淺色看板） */
+  'html.fe118-home .fe118-bwrap{margin-top:22px}',
+  'html.fe118-home .fe118-board{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:stretch;background:#fff;border:1px solid #E7E0D0;border-radius:22px;overflow:hidden;box-shadow:0 18px 40px -32px rgba(60,48,20,.45);color:#0F2A21}',
+  'html.fe118-home .fe118-bh{display:flex;flex-direction:column;justify-content:space-between;gap:12px;padding:18px 20px;background:#0B3D2E;color:#fff}',
   'html.fe118-home .fe118-bh small{display:block;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#D6B676;font-weight:800}',
-  'html.fe118-home .fe118-bh b{display:block;margin-top:6px;font-size:16px;font-weight:700}html.fe118-home .fe118-bh b span{color:rgba(255,255,255,.5);font-weight:600;font-size:13px;margin-left:4px}',
-  'html.fe118-home .fe118-clock{text-align:right}html.fe118-home .fe118-clock b{font-family:Georgia,serif;font-weight:400;font-size:26px;font-variant-numeric:tabular-nums;line-height:1}',
-  'html.fe118-home .fe118-board ul{list-style:none;margin:4px 0 0;padding:0}',
-  'html.fe118-home .fe118-br{display:grid;grid-template-columns:74px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid rgba(255,255,255,.07)}',
-  'html.fe118-home .fe118-br:last-child{border-bottom:0}',
-  'html.fe118-home .fe118-bt{font-family:Georgia,serif;font-size:21px;font-variant-numeric:tabular-nums;line-height:1}',
-  'html.fe118-home .fe118-bt s,html.fe118-home .fe118-bt em{display:block;font-family:inherit;font-size:10.5px;font-weight:600;line-height:1.2;color:rgba(255,255,255,.45);margin-top:4px;font-style:normal}html.fe118-home .fe118-bt em{color:#D6B676}',
-  'html.fe118-home .fe118-bd{min-width:0}html.fe118-home .fe118-bd b{display:block;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}html.fe118-home .fe118-bd small{display:block;font-size:11px;color:rgba(255,255,255,.5);margin-top:3px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-  'html.fe118-home .fe118-bc{font-size:12px;font-weight:800;letter-spacing:.08em;color:#E9CF95;text-align:right;white-space:nowrap}html.fe118-home .fe118-bc i{display:block;font-style:normal;font-size:10.5px;color:#FFB4A8;letter-spacing:.04em;margin-top:3px}',
+  'html.fe118-home .fe118-bh b{display:block;margin-top:6px;font-size:15px;font-weight:700}html.fe118-home .fe118-bh b span{color:rgba(255,255,255,.55);font-weight:600;font-size:12px;margin-left:4px}',
+  'html.fe118-home .fe118-clock b{font-family:Georgia,serif;font-weight:400;font-size:24px;font-variant-numeric:tabular-nums;line-height:1;margin-top:4px}',
+  'html.fe118-home .fe118-board ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}',
+  'html.fe118-home .fe118-br{display:flex;flex-direction:column;gap:6px;padding:16px 18px 14px;border-left:1px solid #EFE9DC;min-width:0}html.fe118-home .fe118-br:first-child{border-left:0}',
+  'html.fe118-home .fe118-bt{font-family:Georgia,serif;font-size:22px;font-variant-numeric:tabular-nums;line-height:1;color:#0B3D2E}',
+  'html.fe118-home .fe118-bt s,html.fe118-home .fe118-bt em{font-family:inherit;font-size:10.5px;font-weight:600;color:#9A9384;margin-left:6px;font-style:normal}html.fe118-home .fe118-bt em{color:#A9802F}',
+  'html.fe118-home .fe118-bd{min-width:0}html.fe118-home .fe118-bd b{display:block;font-size:14.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}html.fe118-home .fe118-bd small{display:block;font-size:11px;color:#7A857F;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  'html.fe118-home .fe118-bc{font-size:11.5px;font-weight:800;letter-spacing:.08em;color:#A9802F}html.fe118-home .fe118-bc i{font-style:normal;color:#b4412b;margin-left:6px}',
   'html.fe118-home .fe118-br.cx .fe118-bt,html.fe118-home .fe118-br.cx .fe118-bd b{opacity:.5;text-decoration:line-through}',
-  'html.fe118-home .fe118-bmore{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:10px;padding:12px 14px;border:1px solid rgba(214,182,118,.35);border-radius:14px;background:rgba(255,255,255,.04);color:#F3E3BE;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s}',
-  'html.fe118-home .fe118-bmore:hover{background:rgba(214,182,118,.14)}',
+  'html.fe118-home .fe118-bmore{display:none}',
+  'html.fe118-home .fe118-bh .fe118-blink{border:0;background:none;padding:0;color:#F3E3BE;font:inherit;font-size:12px;font-weight:700;cursor:pointer;text-align:left}',
+  /* 1120A J2（使用者：「上排那四個可以平均分散在那一排不要都靠左」）：表頭第二列四個選單平均分散 */
+  '@media (min-width:641px){html:not(.kgm-side-admin) #app>header>div:nth-child(2)>div:first-child{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:0!important}',
+  ' html:not(.kgm-side-admin) #app>header>div:nth-child(2)>div:first-child>button{width:100%;text-align:center;padding:11px 8px!important;font-size:13.5px!important}}',
   /* 首頁：訂位主控台（獨立一張，不再壓在深色主視覺上） */
   'html.fe118-home .fe118-searchwrap{max-width:1200px!important;margin:0 auto!important;padding:0 32px!important}',
   'html.fe118-home .fe118-console{border:1px solid #E7E0D0!important;border-radius:24px!important;padding:24px 28px 26px!important;box-shadow:0 30px 60px -36px rgba(60,48,20,.4)!important;background:#fff!important}',
@@ -143,9 +202,9 @@
   'html.fe118-home .fe118-console .ntab{border:0!important;border-radius:999px!important;padding:7px 18px!important;font-size:13px!important;color:#4A5A53!important;background:transparent!important}',
   'html.fe118-home .fe118-console .ntab.act{background:#0B3D2E!important;color:#fff!important;font-weight:700!important;box-shadow:none!important}',
   'html.fe118-home .fe118-console .ntab:after,html.fe118-home .fe118-console .ntab::before{display:none!important}',
-  'html.fe118-home .fe118-console>div:nth-child(2){display:inline-flex!important;gap:4px!important;margin:0 0 14px 10px!important;padding:4px;border-radius:999px;background:#F6F1E6;vertical-align:top}',
-  'html.fe118-home .fe118-console>div:nth-child(2)>button{border-radius:999px!important;box-shadow:none!important;padding:7px 16px!important;font-size:13px!important;background:transparent!important;color:#6B5A36!important;font-weight:600!important}',
-  'html.fe118-home .fe118-console>div:nth-child(2)>button[style*="font-weight:800"]{background:#fff!important;color:#0B3D2E!important;font-weight:800!important;box-shadow:0 1px 4px rgba(0,0,0,.08)!important}',
+  'html.fe118-home .fe118-console>div:nth-child(2):not(.mc-search){display:inline-flex!important;gap:4px!important;margin:0 0 14px 10px!important;padding:4px;border-radius:999px;background:#F6F1E6;vertical-align:top}',
+  'html.fe118-home .fe118-console>div:nth-child(2):not(.mc-search)>button{border-radius:999px!important;box-shadow:none!important;padding:7px 16px!important;font-size:13px!important;background:transparent!important;color:#6B5A36!important;font-weight:600!important}',
+  'html.fe118-home .fe118-console>div:nth-child(2):not(.mc-search)>button[style*="font-weight:800"]{background:#fff!important;color:#0B3D2E!important;font-weight:800!important;box-shadow:0 1px 4px rgba(0,0,0,.08)!important}',
   'html.fe118-home .fe118-console .btn.btn-g{height:52px;border-radius:14px!important;font-size:15.5px!important;letter-spacing:.06em;background:linear-gradient(180deg,#145A44,#0B3D2E)!important;box-shadow:0 10px 24px -12px rgba(11,61,46,.8)!important;margin-top:16px}',
   /* 快速服務：一條白卡，六格 */
   '.fe118-quick{margin:28px 0 6px}.fe118-wrap{max-width:1200px;margin:0 auto;padding:0 32px}',
@@ -172,6 +231,11 @@
   '.fe118-sb-edit{border:1px solid rgba(214,182,118,.6);background:transparent;color:#F3E3BE;border-radius:999px;padding:8px 16px;font:700 12.5px inherit;cursor:pointer}.fe118-sb-edit:hover{background:rgba(214,182,118,.14)}',
   'html.fe118-sel .fe118-h2row{display:none!important}',
   'html.fe118-sel .booking-content table thead,html.fe118-sel.fe118-sel body #app table:has(>tbody>tr.fl-row)>thead,html.fe118-sel.fe118-sel body #app table:has(>tbody>tr.fl-row)>thead>tr{display:none!important}',   /* 手機那層（mb20b）把表頭改成深色橫條，卡片式不需要 */
+  /* 1120A L7／L8 */
+  'html.fe118-sel .fe120-sech{display:flex;align-items:baseline;gap:10px;margin:22px 0 4px;padding:0 4px}html.fe118-sel .fe120-sech b{font-family:Georgia,"Noto Serif TC",serif;font-size:19px;font-weight:400;color:#0B3D2E}html.fe118-sel .fe120-sech small{font-size:12px;color:#7A857F;font-weight:700}html.fe118-sel .fe120-sech em{font-style:normal;font-size:12px;color:#b4412b;margin-left:6px}',
+  'html.fe118-sel .fe120-sech[data-k="c"]{margin-top:34px;padding-top:18px;border-top:1px solid #E3DAC6}',
+  'html body #app.k221-step tr.fl-row.fl-row[data-fe120so],html body #app tr.fl-row.fl-row[data-fe120so],html body #app tr.k12c-row.k12c-row[data-fe120so],html body #app tr[data-fe120so]{display:none!important}',
+  '@media (min-width:641px){html.fe118-sel .booking-content tr.fl-row>td:last-child,html.fe118-sel .booking-content tr.k12c-row>td:last-child{width:360px!important;min-width:360px!important;max-width:360px!important;box-sizing:border-box}}',
   /* 選擇航班：日期條 */
   'html.fe118-sel .daystrip{border:0!important;background:transparent!important;box-shadow:none!important;gap:8px!important;padding:2px 0!important}',
   'html.fe118-sel .daystrip .daychip{border:1px solid #E1E8E4!important;border-radius:14px!important;background:#fff!important;margin:0!important;transition:border-color .15s,box-shadow .15s}',
@@ -191,20 +255,21 @@
   ' html.fe118-sel tr.fl-row>td:last-child .btn,html.fe118-sel tr.fl-row>td:last-child button{border-radius:12px!important}',
   '}',
   /* 平板 */
-  '@media (max-width:1100px){html.fe118-home .fe118-hero-in{grid-template-columns:minmax(0,1fr) 360px;column-gap:36px}.fe118-qgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.fe118-q:nth-child(4){border-left:0}.fe118-q:nth-child(n+4){border-top:1px solid #EFE9DC}}',
-  '@media (max-width:900px){html.fe118-home .fe118-hero-in{grid-template-columns:minmax(0,1fr) 320px;column-gap:28px;row-gap:24px;padding:40px 28px 32px}html.fe118-home .fe118-hl h1{font-size:40px}html.fe118-home .fe118-lede{font-size:15px}',
-  ' html.fe118-home .fe118-board{padding:18px 16px 12px;border-radius:22px}html.fe118-home .fe118-br:nth-child(n+5){display:none}html.fe118-home .fe118-br{grid-template-columns:58px minmax(0,1fr) auto;gap:10px;padding:10px 0}html.fe118-home .fe118-bt{font-size:18px}html.fe118-home .fe118-clock b{font-size:22px}',
-  ' html.fe118-home .fe118-stats>div{padding:0 18px}html.fe118-home .fe118-stats>div>div:first-child{font-size:24px!important}html.fe118-home .fe118-promo{display:flex}}',
+  '@media (max-width:1100px){html.fe118-home .fe118-hero-in{grid-template-columns:minmax(0,1fr) 320px;column-gap:40px}.fe118-qgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.fe118-q:nth-child(4){border-left:0}.fe118-q:nth-child(n+4){border-top:1px solid #EFE9DC}',
+  ' html.fe118-home .fe118-board{grid-template-columns:1fr}html.fe118-home .fe118-bh{flex-direction:row;align-items:center;padding:14px 18px}html.fe118-home .fe118-clock{display:flex;align-items:baseline;gap:8px}html.fe118-home .fe118-clock b{font-size:20px;margin:0}}',
+  '@media (max-width:900px){html.fe118-home .fe118-hero-in{grid-template-columns:minmax(0,1fr) 250px;column-gap:28px;row-gap:24px;padding:40px 28px 34px}html.fe118-home .fe118-hl h1{font-size:40px}html.fe118-home .fe118-lede{font-size:15px}',
+  ' html.fe118-home .fe120-cap b{font-size:16px}html.fe118-home .fe120-cap{padding:8px 16px 9px}html.fe118-home .fe118-board ul{grid-template-columns:repeat(3,minmax(0,1fr))}html.fe118-home .fe118-br:nth-child(n+4){display:none}',
+  ' html.fe118-home .fe118-stats>div{padding:0 18px}html.fe118-home .fe118-stats>div>div:first-child{font-size:24px!important}}',
   '@media (min-width:641px) and (max-width:900px){html.fe118-home .r11-dest-grid{grid-template-columns:1fr!important}}',
-  /* 手機 */
+  /* 手機：機窗收起（一進首頁先看到搜尋）；今日出發改成直的清單 */
   '@media (max-width:640px){',
-  ' html.fe118-home .fe118-hero-in{padding:22px 16px 22px;row-gap:18px}',
+  ' html.fe118-home .fe118-hero-in{grid-template-columns:1fr!important;grid-template-areas:"hl" "st"!important;padding:24px 16px 24px;row-gap:20px}html.fe118-home .fe120-win{display:none}',
   ' html.fe118-home .fe118-eyebrow{font-size:10px;letter-spacing:.16em}html.fe118-home .fe118-eyebrow span{width:18px}html.fe118-home .fe118-eyebrow em{display:none}',
-  ' html.fe118-home .fe118-hl{padding-top:0}html.fe118-home .fe118-hl h1{font-size:34px;margin-top:12px}html.fe118-home .fe118-lede{font-size:14px;margin-top:12px}',
-  ' html.fe118-home .fe118-promo{margin-top:16px;display:flex}html.fe118-home .fe118-ptitle{font-size:12.5px}',
-  ' html.fe118-home .fe118-hero-in{grid-template-columns:1fr!important;grid-template-areas:"hl" "st"!important}',
-  ' html.fe118-home .fe118-bwrap{margin-top:16px}html.fe118-home .fe118-board{border-radius:22px;padding:18px 16px 12px}html.fe118-home .fe118-br:nth-child(n+5){display:none}html.fe118-home .fe118-bt{font-size:19px}html.fe118-home .fe118-br{grid-template-columns:62px minmax(0,1fr) auto;padding:11px 0}',
+  ' html.fe118-home .fe118-hl h1{font-size:34px;margin-top:12px}html.fe118-home .fe118-lede{font-size:14px;margin-top:10px}',
+  ' html.fe118-home .fe120-cta{margin-top:18px;gap:14px}html.fe118-home .fe120-go{padding:12px 22px;font-size:14px}',
+  ' html.fe118-home .fe118-promo{margin-top:16px;width:100%}html.fe118-home .fe118-ptitle{font-size:12.5px}',
   ' html.fe118-home .fe118-stats>div{padding:0 16px}html.fe118-home .fe118-stats>div>div:first-child{font-size:24px!important}',
+  ' html.fe118-home .fe118-bwrap{margin-top:16px}html.fe118-home .fe118-board ul{grid-template-columns:1fr}html.fe118-home .fe118-br{flex-direction:row;align-items:center;gap:14px;border-left:0;border-top:1px solid #EFE9DC;padding:11px 16px}html.fe118-home .fe118-br:first-child{border-top:0}html.fe118-home .fe118-br:nth-child(n+4){display:flex}html.fe118-home .fe118-br:nth-child(n+5){display:none}html.fe118-home .fe118-bt{font-size:19px;width:60px;flex:0 0 auto}html.fe118-home .fe118-bd{flex:1}',
   ' html.fe118-home .fe118-searchwrap{padding:0 12px!important}html.fe118-home .fe118-console{padding:16px 14px 18px!important;border-radius:20px!important}',
   ' html.fe118-home .fe118-console>div:first-child{display:flex!important;width:100%}html.fe118-home .fe118-console .ntab{flex:1}',
   ' .fe118-wrap{padding:0 12px}.fe118-qgrid{border-radius:18px}',

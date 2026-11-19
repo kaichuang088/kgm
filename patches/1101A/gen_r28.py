@@ -58,7 +58,7 @@ RW('crew28 rank fn',"function natOf196(id){",
    "var RK28={n:-1,p:{},c:{}};function rank28(id,role){try{var P=kgmCrewPoolR121(),n=(P.pilots||[]).length+(P.cabin||[]).length;   /* 1101A：職位（排班引擎職級；飛行員與客艙員編會重複，各查各的） */\n"
    "  if(RK28.n!==n){var mp={},mc={};(P.pilots||[]).forEach(function(c){if(c&&c.empId&&!mp[c.empId])mp[c.empId]=c});(P.cabin||[]).forEach(function(c){if(c&&c.empId&&!mc[c.empId])mc[c.empId]=c});RK28={n:n,p:mp,c:mc}}\n"
    "  var c=(role==='pilot'?RK28.p:RK28.c)[id];if(!c)return '—';var r=z()?(c.rankZH||c.rank):({CP:'Captain',FO:'First Officer',CR:'Cruise Relief',PU:'Purser',DPU:'Deputy Purser',FA:'Flight Attendant'}[c.rank]||c.rank);\n"
-   "  return r+(c.triR1009A?(z()?'・教官':' · TRI'):'')+(c.rating?' · '+c.rating:'')}catch(_){return '—'}}\n"
+   "  return r+(c.triR1009A?(z()?'・教官':' · TRI'):'')+(role==='pilot'&&c.rating?' · '+c.rating:'')}   /* 1120A K8：客艙組員不分機型，不寫機型 */catch(_){return '—'}}\n"
    "function natOf196(id){")
 RW('crew28 rank th',"+'<th>'+(z()?'姓名':'Name')+'</th><th>'+(z()?'國籍':'Nat.')+'</th><th>'+(z()?'員編':'ID')+'</th>'",
    "+'<th>'+(z()?'姓名':'Name')+'</th><th>'+(z()?'職位':'Position')+'</th><th>'+(z()?'國籍':'Nat.')+'</th><th>'+(z()?'員編':'ID')+'</th>'")
@@ -444,8 +444,8 @@ RW('pet30 order',"var ORDER7=['status','flightdata','groundops','bookings','grou
 #   ② 卡片改成固定欄寬的格線（勾勾／訂位代號／航線／出發／旅客／狀態），分隔線與各欄每一列對齊；旅客寫總數＋成人／兒童／嬰兒
 RW('trip30 mine',"  return all.filter(function(b){return !b.userId||b.userId===S.user.id});",
    "  var lk30=((S.tripLookR1102A||{})[S.user.id])||[];return all.filter(function(b){return (b.userId===S.user.id||lk30.indexOf(b.pnr)>=0)&&!(window.kgmGrpHideR1108A&&window.kgmGrpHideR1108A(b))});   /* 1102A：只列自己的＋查詢過的（組員 DH 等沒有會員的訂位不算） */   /* 1108A：團體開票前的整團／改艙訂位不列（使用者 G1） */")
-RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),crewWishR1115A:LS.get("kgm40_crewwish",{}),petCiR1118A:LS.get("kgm118_petci",{}),disrR1115A:LS.get("kgm40_disr",{}),tripLookR1102A:LS.get("kgm30_triplook",{}),crewSwapR1108A:LS.get("kgm38_cswap",{recs:{}}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),badgeR1103A:LS.get("kgm31_badge",{}),invR1103A:LS.get("kgm31_inv",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
-RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm40_crewwish",S.crewWishR1115A||{});LS.set("kgm118_petci",S.petCiR1118A||{});LS.set("kgm40_disr",S.disrR1115A||{});LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm38_cswap",S.crewSwapR1108A||{recs:{}});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});LS.set("kgm31_badge",S.badgeR1103A||{});LS.set("kgm31_inv",S.invR1103A||{});')
+RW('trip30 S init','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),','paxCapAdjR1026C:LS.get("kgm27_paxcap",[]),crewWishR1115A:LS.get("kgm40_crewwish",{}),petCiR1118A:LS.get("kgm118_petci",{}),eqvPoolR198:LS.get("kgm120_eqvpool",{}),weekOpsR1120A:LS.get("kgm120_weekops",{}),simDayR1120A:LS.get("kgm120_simday",{}),disrR1115A:LS.get("kgm40_disr",{}),tripLookR1102A:LS.get("kgm30_triplook",{}),crewSwapR1108A:LS.get("kgm38_cswap",{recs:{}}),cardXferR1103A:LS.get("kgm31_xfer",[]),cardPostR1103A:LS.get("kgm31_cpost",{}),badgeR1103A:LS.get("kgm31_badge",{}),invR1103A:LS.get("kgm31_inv",{}),')   # 1103A：KGM Cards 機場接送、帳單入帳紀錄（kc31.js）
+RW('trip30 save','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);','LS.set("kgm27_paxcap",S.paxCapAdjR1026C||[]);LS.set("kgm40_crewwish",S.crewWishR1115A||{});LS.set("kgm118_petci",S.petCiR1118A||{});LS.set("kgm120_eqvpool",S.eqvPoolR198||{});LS.set("kgm120_weekops",S.weekOpsR1120A||{});LS.set("kgm120_simday",S.simDayR1120A||{});LS.set("kgm40_disr",S.disrR1115A||{});LS.set("kgm30_triplook",S.tripLookR1102A||{});LS.set("kgm38_cswap",S.crewSwapR1108A||{recs:{}});LS.set("kgm31_xfer",S.cardXferR1103A||[]);LS.set("kgm31_cpost",S.cardPostR1103A||{});LS.set("kgm31_badge",S.badgeR1103A||{});LS.set("kgm31_inv",S.invR1103A||{});')
 RW('trip30 card',"""    var pax=(b.paxList||[]).length||1;""",
    """    var pl30=b.paxList||[],pax=pl30.length||1,pc30={ADT:0,CHD:0,INF:0};pl30.forEach(function(p){var t=String(p.passengerType||'ADT').toUpperCase();pc30[pc30[t]!=null?t:'ADT']++});   /* 1102A：旅客＝成人＋兒童＋嬰兒 */
     var pxs30=[pc30.ADT?(z()?'成人 ':'Adult ')+pc30.ADT:'',pc30.CHD?(z()?'兒童 ':'Child ')+pc30.CHD:'',pc30.INF?(z()?'嬰兒 ':'Infant ')+pc30.INF:''].filter(Boolean).join(z()?'・':' · ');
@@ -914,7 +914,7 @@ RW('c7 create mark R1115A',"  S.staffCasesR1007A=S.staffCasesR1007A||[];S.staffC
 RW('c7 notify sim R1115A',"  if(f.notify!==false){","  if(f.notify!==false&&!b.simR1115A){")
 RW('c7 form export R1115A',"window.kgmCase7Create=function(){","window.kgmCase7FormR1115A=function(){return newForm7()};   /* 1115A D9：航班資料頁也畫得出這張表單 */\nwindow.kgmCase7Create=function(){")
 RW('c7 bag label R1115A',"bag_delayed:['行李延誤','Delayed baggage']","bag_delayed:['行李延誤／未送達','Delayed baggage']")   # 使用者「行李沒有送達」
-RW('r197 case skip R1115A',"if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')))return;","if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')||el.closest('.k115c-bar')||el.closest('#k115cm')||el.closest('.k115w')||el.closest('.k118nc')||el.closest('.k118pc')||el.closest('.k118w')))return;   /* 1115A D9：為旅客建立案件不是改航班資料，不用送審；1115B：組員許願面板也不用送審；1118A：提出案件分頁、寵物報到檢查、組員許願總表 */")
+RW('r197 case skip R1115A',"if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')))return;","if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')||el.closest('.k115c-bar')||el.closest('#k115cm')||el.closest('.k115w')||el.closest('.k118nc')||el.closest('.k118pc')||el.closest('.k118w')||el.closest('.fe120-nh')))return;   /* 1120A：首頁新聞設定按鈕不送審；1115A D9：為旅客建立案件不是改航班資料，不用送審；1115B：組員許願面板也不用送審；1118A：提出案件分頁、寵物報到檢查、組員許願總表 */")
 EMB28.append('cs42.js')   # 1115A D9
 
 # ══ 1115B ══
@@ -1008,6 +1008,35 @@ RW('fc sweep skip R1118A',"    if(S._fleetSweptR13===T())return;","    if(S._fle
 
 EMB28.append('fe118.js')   # 1118A H1／H3／H4 前台首頁＋選擇航班重新排版
 
+# ══ 1120A ══
+# J5（使用者：「航班PDF report服務倉等 先列出座艙長/vice座艙長/商務艙/豪經 (if have)/經濟」）：客艙組員表排序
+RW('ops crew order R1120A',"+tbl(['職位','姓名','員工編號','服務艙等'],(crewF.cabin||[]).map(function(c){",
+   "+tbl(['職位','姓名','員工編號','服務艙等'],(crewF.cabin||[]).map(function(c,i){return {c:c,i:i}}).sort(function(a,b){var R=function(c){return c.posCode==='PU'?0:c.posCode==='DPU'?1:/頭等|Residence|First/.test(c.cabinZH||'')?2:/商務|Business/.test(c.cabinZH||'')?3:/豪|Premium/.test(c.cabinZH||'')?4:5};return R(a.c)-R(b.c)||a.i-b.i}).map(function(o){return o.c}).map(function(c){   /* 1120A J5：座艙長→副座艙長→頭等→商務→豪經→經濟 */")
+# J8（使用者：「服務重點要根據那位旅客負評生成重點而不是寫general information，然後就把那個旅客之前的負評寫在那表格裡 不然好亂」）
+RW('ops sec6 neg R1120A',"+tbl(['座位','旅客','訂位代號','會員等級','留意原因','評價','服務重點'],L.map(function(o){var x=o.x,tip=tierAdv18(x.tier,x.cabin);if(o.r.avg!=null&&(+o.r.avg)<2)tip=['評分偏低：座艙長留意，服務保持禮貌一致，事件客觀記錄。'].concat(tip);",
+   "+tbl(['座位','旅客','訂位代號','會員等級','留意原因','評價','過去負評','服務重點'],L.map(function(o){var x=o.x,tip=tierAdv18(x.tier,x.cabin);if(o.r.avg!=null&&(+o.r.avg)<2)tip=['評分偏低：座艙長留意，服務保持禮貌一致，事件客觀記錄。'].concat(tip);"
+   "var negH='—';if(o.bad.length){var seen={},spec=[];o.bad.forEach(function(v){var k=kind18(v.comment);if(seen[k])return;seen[k]=1;spec.push('針對「'+String(v.comment||'').replace(/[。！!]+$/,'').slice(0,26)+'」：'+ADV18[k])});if(o.bad.length>=3)spec.unshift('負評累積 '+o.bad.length+' 筆：座艙長登機後先確認旅客狀況，指派資深組員負責該區服務。');if(/Diamond|Gold/i.test(x.tier||''))spec.push(/Diamond/i.test(x.tier||'')?'仍為鑽石卡會員：以姓氏稱呼。':'仍為金卡會員：以姓氏稱呼。');tip=spec;"
+   "negH=o.bad.map(function(v){return '<div class=\"k120neg\"><b>'+v.score+' 星</b> '+E(String(v.date||String(v.at||'').slice(0,10)))+(v.flight?' '+E(v.flight):'')+'<br>'+E(v.comment||'')+'</div>'}).join('')}   /* 1120A J8：有負評的旅客，服務重點依負評內容產生；負評內容寫在同一列（原本第 7 節併進來） */")
+RW('ops sec6 neg cell R1120A',"o.r.n?(o.r.avg+' / 5（'+o.r.n+' 筆）'):'—',E(tip.join(' ')||'—')]}),'small')}).join('')})()",
+   "o.r.n?(o.r.avg+' / 5（'+o.r.n+' 筆）'):'—',negH,E(tip.join(' ')||'—')]}),'small')}).join('')})()")
+RW('ops sec7 merge R1120A',"+sec('7','負評紀錄與處理建議','NEGATIVE FEEDBACK & HANDLING')\n      +(negs.length?negs.map(",
+   "+(false&&negs.length?negs.map(   /* 1120A J8：第 7 節併進第 6 節（同一列看得到負評與對應的服務重點） */")
+RW('ops sec7 empty R1120A',"本班沒有負評紀錄的旅客。</div>')","')")
+RW('ops sec7 ref R1120A',"服務風險偏高，已附系統建議處理方式（第 7 節）。","服務風險偏高，負評內容與對應的服務重點列在第 6 節。")
+EMB28.append('pdflib120.js')   # 1120A J7 PDF 函式庫（字串，要用才載入）
+EMB28.append('rp120.js')   # 1120A J7／J9／J10 報告 PDF、餐點建議
+# J6（使用者：「感覺整體金卡比例有點高」）：模擬旅客卡等分艙重新設定（同一次亂數，其他抽選結果不變）
+RW('sim tier R1120A','      var _tier=sg.key==="econ"\n        ? (_tierRoll<0.55?"Bronze":_tierRoll<0.83?"Silver":_tierRoll<0.96?"Gold":"Diamond")\n        : (_tierRoll<0.18?"Bronze":_tierRoll<0.45?"Silver":_tierRoll<0.80?"Gold":"Diamond");','      var _tier=sg.key==="econ"   /* 1120A J6：金卡比例調低（原本商務以上金卡 35%＋鑽石卡 20%、經濟 13%＋4%） */\n        ? (_tierRoll<0.72?"Bronze":_tierRoll<0.91?"Silver":_tierRoll<0.975?"Gold":"Diamond")\n        : sg.key==="prem" ? (_tierRoll<0.52?"Bronze":_tierRoll<0.80?"Silver":_tierRoll<0.93?"Gold":"Diamond")\n        : sg.key==="biz" ? (_tierRoll<0.40?"Bronze":_tierRoll<0.70?"Silver":_tierRoll<0.88?"Gold":"Diamond")\n        : (_tierRoll<0.25?"Bronze":_tierRoll<0.50?"Silver":_tierRoll<0.78?"Gold":"Diamond");')
+EMB28.append('chg120.js')   # 1120A J3 已完成航段不能改票
+EMB28.append('nf120.js')   # 1120A K3 新增航班兩步驟／K2 某一週營運日
+EMB28.append('mail120.js')   # 1120A 模擬訂位不寄信（向 Worker 註冊報到提醒的三層閉包都經過 fetch）
+EMB28.append('cs120.js')   # 1120A K5／K6 轉接摘要卡、模擬客服對話每天自動產生
+# K3：r57 航線頁直接呼叫閉包裡的 newRouteHtml7()，window.kgmNewRouteHtmlR57 換掉也不會被叫到 → 改走 window（nf120 包在上面）
+RW('r57 newroute via window R1120A',"+'</tbody></table></div></section>'+newRouteHtml7()+newAirportHtml7();","+'</tbody></table></div></section>'+(window.kgmNewRouteHtmlR57||newRouteHtml7)()+newAirportHtml7();   /* 1120A K3：走 window，nf120 兩步驟表單才看得到 */")
+# L5（使用者：「HKG/MFM/MNL/OKA全數改EQV喔」）：香港、澳門、馬尼拉原本就是 EQV；沖繩五組（原本 B78X／A21N 固定）與馬尼拉 KX253／254（A21N 固定）改 EQV（原始碼寫舊班號）
+RW('map18 oka b78x R1120A',"KX139:'B78X',KX140:'B78X',KX141:'B78X',KX142:'B78X',KX145:'B78X',KX146:'B78X',","KX139:'EQV',KX140:'EQV',KX141:'EQV',KX142:'EQV',KX145:'EQV',KX146:'EQV',   /* 1120A L5：沖繩改 EQV */")
+RW('map18 oka a21n R1120A',"KX143:'A21N',KX144:'A21N',KX147:'A21N',KX148:'A21N',","KX143:'EQV',KX144:'EQV',KX147:'EQV',KX148:'EQV',   /* 1120A L5 */")
+RW('map18 mnl R1120A',"KX253:'A21N',KX254:'A21N',KX103:'A359'","KX253:'EQV',KX254:'EQV',KX103:'A359'")
 # ══ 新長程式嵌入 ══
 _ch27=open('../1026C/js/ch27.js',encoding='utf-8').read()
 RW('r28 embed',_ch27,_ch27+''.join(JS(n) for n in EMB28))

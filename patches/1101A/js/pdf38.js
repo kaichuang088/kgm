@@ -56,7 +56,7 @@
     var out=[];parts.forEach(function(p){var h=p.h;if(p.n==='附錄'){h=h.replace(/<\/div>\s*$/,'');h='<div class="appx">'+h+'</div>'}
       if(p.n==='5'){if(ver!=='ceo')h=h.replace(/<div><b>給 CEO<\/b><ul>[\s\S]*?<\/ul><\/div>/,'');if(ver==='cabin')h=h.replace(/<div><b>給機長 Captain<\/b><ul>[\s\S]*?<\/ul><\/div>/,'')}
       if(p.n==='6'){try{h=addMeal(h,c)}catch(e){try{console.warn('pdf38 meal',e)}catch(_){}}h+=petSec(c)}   /* 1118A G4：特別留意旅客加「餐點」欄 */
-      out.push({n:p.n,h:h});if(p.n==='2')out.push({n:'2A',h:mapSec(c,u)});if(p.n==='6'){}if(p.n==='7')out.splice(out.length-1,0,{n:'6A',h:eliteSec(c)})});
+      out.push({n:p.n,h:h});if(p.n==='2')out.push({n:'2A',h:mapSec(c,u)});if(p.n==='6')out.push({n:'6A',h:eliteSec(c)})});   /* 1120A J8：第 7 節併進第 6 節 → 6A 直接接在 6 後面 */
     if(!out.some(function(p){return p.n==='2A'}))out.splice(1,0,{n:'2A',h:mapSec(c,u)});
     out=out.filter(function(p){return p.n!=='附錄'});   /* 1118A G4（使用者：「只要列出特別注意的旅客在PDF中」）：全班旅客名單不放 */
     var K=KEEP[ver];if(K)out=out.filter(function(p){return K[p.n]});
@@ -95,7 +95,12 @@
       try{if(win&&win.document){win.document.open();win.document.write('<!doctype html><meta charset="utf-8"><title>KGM</title><p style="font:14px sans-serif;padding:30px;color:#0f3d33">'+(zh?'航班作業報告產生中（航線圖與組員名單）…':'Preparing the flight report…')+'</p>')}}catch(_){}
       var go=function(){var html=null;try{html=O.call(this,'none')}catch(e){try{console.warn('pdf38',e)}catch(_){}}if(!html){try{win&&win.close()}catch(_){}return}
         var fin=function(xtra){mapImg(c,function(u){var h2=html;try{h2=filterHtml(html,ver,c,u,xtra)}catch(e){try{console.warn('pdf38 filter',e)}catch(_){}}window.KGM_OPSREPORT_R1108A={ver:ver,len:h2.length,map:!!u,sections:(h2.match(/<h2><span>([^<]+)<\/span>/g)||[]).map(function(x){return x.replace(/<[^>]+>/g,'')})};window.__k38LastReport=h2;
-          if(win){try{win.document.open()}catch(_){}win.document.write(h2);win.document.close();setTimeout(function(){try{win.focus();win.print()}catch(_){}},400)}})};
+          var prt=function(){if(win){try{win.document.open()}catch(_){}win.document.write(h2);win.document.close();setTimeout(function(){try{win.focus();win.print()}catch(_){}},400)}};
+          /* 1120A J7：直接產生受保護的 PDF（每頁是圖、浮水印、只能列印）；失敗才照舊列印 */
+          var who=me(),docNo=(String(h2).match(/KGM-OPS-[A-Z0-9-]+/)||[])[0]||('KGM-OPS-'+c.code+'-'+String(c.date).replace(/-/g,''));
+          if(window.kgmOpsPdfR1120A){try{if(win&&win.document){win.document.open();win.document.write('<!doctype html><meta charset="utf-8"><title>KGM</title><p id="k120p" style="font:14px sans-serif;padding:30px;color:#0f3d33">'+(zh?'產生 PDF 中…':'Building PDF…')+'</p>');win.document.close()}}catch(_){}
+            window.kgmOpsPdfR1120A(h2,win,{docNo:docNo,who:((who.name||'')+' '+(who.empId||'')).trim(),verName:zh?VN[ver][0]:VN[ver][1],code:c.code,date:c.date}).then(function(r){if(win)window.kgmOpsPdfShowR1120A(win,r.blob,docNo)}).catch(function(e){try{console.warn('pdf120',e)}catch(_){}window.__k120LastPdf={err:String(e&&e.message||e)};prt()})}
+          else prt()})};
         if(ver==='ceo')snap39(c,fin);else fin(null)};
       try{if(window.kgmCrewHasDayR121&&!window.kgmCrewHasDayR121(c.date)){setTimeout(function(){try{window.kgmCrewPlanR121(c.date)}catch(_){}go()},40);return}}catch(_){}
       go()};
