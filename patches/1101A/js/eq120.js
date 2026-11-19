@@ -68,7 +68,7 @@
         rest.forEach(function(r){var y=r.x,fr=frOf(y),hit=null;
           Object.keys(TA).some(function(C){if(C===A||TY[C]!==TY[A]||moves.some(function(m){return m[1]===C}))return false;var LC=legsOf(C),last=LC[LC.length-1];if(!last||toOf(last.x)!==fr||last.s[1]+75>r.s[0])return false;hit=C;return true});
           if(hit)moves.push([y,hit]);else keep.push(r)});
-        if(keep.length)break;   /* 有交不出去的（那時候沒有同型機在那個機場）就不動這架：硬改會造成瞬移／重疊（實測 gap 14～43） */
+        if(keep.length)break;   /* 有交不出去的（那時候沒有同型機在那個機場）就不動這架：硬塞給不在那裡的飛機會瞬移；拿掉交給補位會讓排班範圍最後幾天缺 55～88 班（實測），都不採用 */
         moves.forEach(function(m){TA[A]=TA[A].filter(function(q){return q!==m[0]});TA[m[1]].push(m[0])});
         var dur=0;try{dur=Math.max(55,Math.round((distOf(X,'TPE')||1200)/780*60+35))}catch(_){dur=180}
         var dep=arrA+120,ar=loc(dep+dur,'TPE');if(ar.min>=30&&ar.min<360)dep+=(390-ar.min);
@@ -77,7 +77,27 @@
         TA[A].push(f);
         out.fixed++;out.list.push(A+' '+X+' '+a.date+' '+a.time+'→TPE'+(moves.length?'（範圍末 '+moves.length+' 段交給 '+moves.map(function(m){return m[1]}).join('、')+'）':''));break}});
     }catch(e){out.err=String(e&&e.message||e)}if(out.fixed||!window.KGM_STRAND_R1120A)window.KGM_STRAND_R1120A=out;return out};
-  (function watch(){var fd=null,t0=0,cov=null;setInterval(function(){var f=window.KGM_FULLDONE_1006A;if(!f)return;if(f!==fd){fd=f;t0=Date.now();cov=null}var age=Date.now()-t0;if(age<300000)window.kgmStrandHealR1120A();
+  /* ── 閒置分散（L4「整個月備勤」）──
+     夏季用到的同型機比冬季少，多出來的那架排班引擎會整季都放在同一架上（實測 B779 一架 03-28 到 11-17 都停台北）。
+     不改任何航班，只在「兩架同型機同時停在台北」的時候把之後的勤務對調：停很久的那架接手另一架之後的班，另一架開始休 →
+     同一架連續停在台北最多約 7 天，整段閒置分給不同飛機。松山派駐（tsaFleet）、維修中的不動；兩架都在台北才換，不會瞬移、不會重疊。 */
+  window.kgmIdleSpreadR1120A=function(){var out={swaps:0};try{
+    var TA=S.tailAssign||{},TY=typeIdx(),now=Math.round(Date.now()/60000),by={},guard=0;
+    Object.keys(TA).forEach(function(t){if((S.tsaFleet||{})[t]||(S.tailStatus||{})[t]==='maintenance'||!TY[t])return;(by[TY[t]]=by[TY[t]]||[]).push(t)});
+    /* 1120A：不只台北——停在外站很久的（季節交界多出來、卡在西貢／西雅圖那種）也一樣：等同型機落地在同一個機場、之後要從這裡飛走時，
+       停著的那架接手它之後的班、剛落地的那架改停（兩架同時在同一個機場，不瞬移） */
+    Object.keys(by).forEach(function(ty){var tails=by[ty];if(tails.length<2)return;var q=tails.slice();
+      while(q.length&&guard++<600){var I=q.shift(),L=legsOf(I);
+        for(var i=0;i<L.length-1;i++){var a=L[i],nx=L[i+1],at=toOf(a.x);if(!at||a.s[1]<now)continue;var idle=nx.s[0]-a.s[1];if(idle<10*1440)continue;
+          var lo=a.s[1]+5*1440,hi=a.s[1]+9*1440,best=null;
+          tails.forEach(function(C){if(C===I)return;var LC=legsOf(C);for(var j=0;j<LC.length-1;j++){var y=LC[j],z=LC[j+1];if(y.s[1]<lo)continue;if(y.s[1]>hi)break;
+              if(toOf(y.x)!==at||frOf(z.x)!==at)continue;if(z.s[0]<y.s[1])continue;if(!best||y.s[1]<best.P)best={C:C,P:y.s[1]};break}});
+          if(!best)continue;
+          var C=best.C,P=best.P,fI=TA[I].filter(function(x){return x&&x.date&&span(x)[0]>=P}),fC=TA[C].filter(function(x){return x&&x.date&&span(x)[0]>=P});
+          TA[I]=TA[I].filter(function(x){return fI.indexOf(x)<0}).concat(fC);TA[C]=TA[C].filter(function(x){return fC.indexOf(x)<0}).concat(fI);
+          out.swaps++;q.push(C);break}}});
+    }catch(e){out.err=String(e&&e.message||e)}window.KGM_IDLESPREAD_R1120A=out;return out};
+  (function watch(){var fd=null,t0=0,cov=null;setInterval(function(){var f=window.KGM_FULLDONE_1006A;if(!f)return;if(f!==fd){fd=f;t0=Date.now();cov=null;window.__spread120x=null}var age=Date.now()-t0;if(age<300000){window.kgmStrandHealR1120A();if(age>=125000&&!window.__spread120x){window.__spread120x=fd;window.kgmIdleSpreadR1120A()}}
     /* 排完約 2 分鐘（A35K 輪流等後續步驟做完）還有沒派到飛機的班 → 叫引擎自己的補位（kgmCoverGapsR135，同一套規則）補一次。實測補位約 0.5 秒 */
     if(age>=120000&&cov!==fd){cov=fd;try{var c=window.kgmLiveCoverR135&&window.kgmLiveCoverR135();if(c&&c.missing>0&&c.missing<=300&&window.kgmCoverGapsR135){var r=window.kgmCoverGapsR135(true);window.KGM_COVER120={before:c.missing,fixed:(r&&r.fixed||[]).length,left:r&&r.left}}else window.KGM_COVER120={before:c?c.missing:null}}catch(_){}}},10000)})();
   var cl=window.kgmClearEqvPlanR79;if(typeof cl==='function'&&!cl.__eq120){var c2=function(){REC=null;return cl.apply(this,arguments)};c2.__eq120=1;window.kgmClearEqvPlanR79=c2}
