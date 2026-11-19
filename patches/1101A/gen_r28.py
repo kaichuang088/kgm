@@ -1031,6 +1031,9 @@ EMB28.append('chg120.js')   # 1120A J3 已完成航段不能改票
 EMB28.append('nf120.js')   # 1120A K3 新增航班兩步驟／K2 某一週營運日
 EMB28.append('mail120.js')   # 1120A 模擬訂位不寄信（向 Worker 註冊報到提醒的三層閉包都經過 fetch）
 EMB28.append('cs120.js')   # 1120A K5／K6 轉接摘要卡、模擬客服對話每天自動產生
+EMB28.append('eq120.js')   # 1120A L6／L4 台北區域 EQV 航線輪替池改用閒置的 B789／B779／A359
+EMB28.append('mh120.js')   # 1120A M1 無限萬里遊首頁、購買哩程頁重新排版
+EMB28.append('ad120.js')   # 1120A N1 後台外框：頁首寫目前分頁、側邊欄搜尋與黏住
 # K3：r57 航線頁直接呼叫閉包裡的 newRouteHtml7()，window.kgmNewRouteHtmlR57 換掉也不會被叫到 → 改走 window（nf120 包在上面）
 RW('r57 newroute via window R1120A',"+'</tbody></table></div></section>'+newRouteHtml7()+newAirportHtml7();","+'</tbody></table></div></section>'+(window.kgmNewRouteHtmlR57||newRouteHtml7)()+newAirportHtml7();   /* 1120A K3：走 window，nf120 兩步驟表單才看得到 */")
 # L5（使用者：「HKG/MFM/MNL/OKA全數改EQV喔」）：香港、澳門、馬尼拉原本就是 EQV；沖繩五組（原本 B78X／A21N 固定）與馬尼拉 KX253／254（A21N 固定）改 EQV（原始碼寫舊班號）
