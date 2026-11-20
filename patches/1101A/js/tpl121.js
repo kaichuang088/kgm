@@ -81,4 +81,16 @@
   setInterval(paint,700);
   try{var st=document.createElement('style');st.textContent='.tpl121{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 8px}.tpl121>span{font-size:11px;font-weight:800;letter-spacing:.12em;color:#9A8A62}.tpl121 button{border:1px solid #DCD3BE;background:#FBFAF6;border-radius:999px;padding:4px 11px;font:inherit;font-size:12px;color:#33413a;cursor:pointer}.tpl121 button.best{border-color:#C9A24F;color:#7a5608;font-weight:700}.tpl121 button.on{background:#0B3D2E;border-color:#0B3D2E;color:#fff}.tpl121>em{flex-basis:100%;font-style:normal;font-size:11px;color:#8A8F86}';(document.head||document.documentElement).appendChild(st)}catch(_){}
   window.kgmCaseTplR1121A={list:list,fill:fill};
+  /* 1121A Q6：舊的模擬「非自願降艙（換機）」案件（只寫「因換機（座位配置不同）」）——
+     那班那天實際機型真的比班表機型商務艙少 → 補上日期、班號、原機型→新機型；沒有真的換機 → 這件模擬案件拿掉（不留假的換機紀錄）。
+     等整年機隊排班做完（KGM_FULLDONE_1006A）才判斷；真人建立的案件一律不動。 */
+  function fixInvol(){try{if(!window.KGM_FULLDONE_1006A||typeof kgmDayOf72R1006A!=='function')return false;var L=S.staffCasesR1007A||[],ch=0;
+      function bz(t){var c=((typeof AC!=='undefined'&&AC[t])||{}).cabins||{};return c.biz?(+c.biz.seats||0):0}
+      for(var i=L.length-1;i>=0;i--){var c=L[i];if(!c||!c.simR1022A||c.type!=='invol_downgrade'||c.acChgR1121A||c.acChkR1121A)continue;var g=c.segment||{},x=null;
+        try{x=(kgmDayOf72R1006A(g.date)||[]).filter(function(y){return y&&y.f&&y.f.code===g.code&&y.f.fr===g.fr&&y.f.to===g.to})[0]}catch(_){}
+        var a=x&&x.f.acft,b=x&&x.t;
+        if(a&&b&&a!==b&&a!=='EQV'&&bz(a)>0&&bz(b)<bz(a)){c.acChgR1121A={from:a,to:b,bf:bz(a),bt:bz(b)};c.detail=g.date+' '+g.code+' '+g.fr+'→'+g.to+' 原定 '+a+'（商務艙 '+bz(a)+' 席）改由 '+b+'（商務艙 '+bz(b)+' 席）執飛，商務艙少 '+(bz(a)-bz(b))+' 席；旅客由商務艙非自願降為豪華經濟艙。';ch++}
+        else{L.splice(i,1);ch++}}
+      if(ch){try{save()}catch(_){}window.KGM_INVOL_FIX_R1121A=ch}return true}catch(e){try{console.warn('tpl121 invol',e)}catch(_){}return false}}
+  var fx=setInterval(function(){if(fixInvol())clearInterval(fx)},5000);
 })();
