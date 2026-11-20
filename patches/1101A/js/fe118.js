@@ -66,7 +66,14 @@
   window.kgmNewsHomeR1120A=function(id){try{var L=(S.r49&&S.r49.news)||[];L.forEach(function(n){if(n)n.homeR1120A=(n.id===id)});try{save()}catch(_){}render()}catch(_){}};
   window.kgmNewsOpenR1120A=function(id){try{var n=newsAll().filter(function(x){return x.id===id})[0];if(!n)return;var zh=z();
       var body=typeof window.kgmNewsBodyHtmlR913==='function'?window.kgmNewsBodyHtmlR913(n.body):String(n.body||'').split(/\n+/).map(function(p){return '<p>'+E(p)+'</p>'}).join('');
-      S.modal={title:n.title,html:'<article class="g-news-full fe120-news"><span>'+E(n.tag||'')+'</span><time>'+E(n.date||'')+'</time><p class="lead">'+E(n.summary||'')+'</p>'+body+'</article>'};render()}catch(_){}};
+      /* 1121A Q10（使用者：「前台端新聞按下去是白的（主頁那個）」）：原本寫 S.modal={title,html}，網站的視窗只認 type／data → 空白白框。
+         改成自己的覆蓋視窗（不經 render，關掉不會動到首頁） */
+      var old=document.getElementById('fe121news');if(old)old.remove();
+      var ov=document.createElement('div');ov.id='fe121news';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
+      ov.innerHTML='<div class="fe121n-box"><button type="button" class="fe121n-x" aria-label="'+(zh?'關閉':'Close')+'">×</button><div class="fe121n-meta"><span>'+E(n.tag||(zh?'最新消息':'News'))+'</span><time>'+E(n.date||'')+'</time></div><h2>'+E(n.title||'')+'</h2>'+(n.summary&&String(n.body||'').replace(/\s+/g,'').indexOf(String(n.summary).replace(/\s+/g,''))<0?'<p class="fe121n-lead">'+E(n.summary)+'</p>':'')+'<div class="fe121n-body">'+body+'</div></div>';
+      function close(){ov.remove();document.removeEventListener('keydown',esc)}function esc(e){if(e.key==='Escape')close()}
+      ov.addEventListener('click',function(e){if(e.target===ov||e.target.classList.contains('fe121n-x'))close()});document.addEventListener('keydown',esc);
+      document.body.appendChild(ov);try{ov.querySelector('.fe121n-x').focus()}catch(_){}}catch(_){}};
   function pillHtml(chipTxt,promoTitle){var zh=z(),n=homeNews();
     if(!n)return '<div class="fe118-promo"><span class="fe118-pchip">'+E(chipTxt||(zh?'全新機隊':'New aircraft'))+'</span><span class="fe118-ptitle">'+promoTitle+'</span></div>';
     return '<button type="button" class="fe118-promo" onclick="kgmNewsOpenR1120A(\''+E(n.id)+'\')"><span class="fe118-pchip">'+E(n.chipR1120A||(zh?'最新消息':'Latest'))+'</span><span class="fe118-ptitle">'+E(n.title||'')+'</span><span class="fe120-arr" aria-hidden="true">→</span></button>'}
@@ -254,7 +261,17 @@
   /* 1120A L7／L8 */
   'html.fe118-sel .fe120-sech{display:flex;align-items:baseline;gap:10px;margin:22px 0 4px;padding:0 4px}html.fe118-sel .fe120-sech b{font-family:Georgia,"Noto Serif TC",serif;font-size:19px;font-weight:400;color:#0B3D2E}html.fe118-sel .fe120-sech small{font-size:12px;color:#7A857F;font-weight:700}html.fe118-sel .fe120-sech em{font-style:normal;font-size:12px;color:#b4412b;margin-left:6px}',
   'html.fe118-sel .fe120-sech[data-k="c"]{margin-top:34px;padding-top:18px;border-top:1px solid #E3DAC6}',
-  'html body #app [data-fe121nd]{display:none!important}',   /* 1121A P5 */
+  '#fe121news{position:fixed;inset:0;z-index:2147483000;background:rgba(18,28,22,.46);display:flex;align-items:center;justify-content:center;padding:16px;animation:fe121nIn .18s ease-out}'+
+   '@keyframes fe121nIn{from{opacity:0}to{opacity:1}}'+
+   '#fe121news .fe121n-box{position:relative;background:#fff;border-radius:18px;max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:30px 32px 28px;box-shadow:0 24px 60px rgba(0,0,0,.25);color:#1f2a24}'+
+   '#fe121news .fe121n-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid #e3e0d8;background:#fff;font-size:20px;line-height:1;cursor:pointer;color:#4a564f}'+
+   '#fe121news .fe121n-meta{display:flex;gap:10px;align-items:center;font-size:12px;color:#6d7771;margin-bottom:12px}'+
+   '#fe121news .fe121n-meta span{background:#0f4d3a;color:#fff;border-radius:999px;padding:4px 10px;font-weight:700;letter-spacing:.04em}'+
+   '#fe121news h2{font-size:24px;line-height:1.35;margin:0 40px 12px 0;color:#0f3d2e}'+
+   '#fe121news .fe121n-lead{font-size:15px;color:#4a564f;margin:0 0 14px;line-height:1.7}'+
+   '#fe121news .fe121n-body{font-size:14.5px;line-height:1.8;color:#2b3530}#fe121news .fe121n-body p{margin:0 0 10px}'+
+   '@media (max-width:640px){#fe121news .fe121n-box{padding:24px 18px 20px;border-radius:16px}#fe121news h2{font-size:20px}}'+
+   'html body #app [data-fe121nd]{display:none!important}',   /* 1121A P5 */
   'html body #app.k221-step tr.fl-row.fl-row[data-fe120so],html body #app tr.fl-row.fl-row[data-fe120so],html body #app tr.k12c-row.k12c-row[data-fe120so],html body #app tr[data-fe120so]{display:none!important}',
   '@media (min-width:641px){html.fe118-sel .booking-content tr.fl-row>td:last-child,html.fe118-sel .booking-content tr.k12c-row>td:last-child{width:360px!important;min-width:360px!important;max-width:360px!important;box-sizing:border-box}}',
   /* 選擇航班：日期條 */

@@ -29,7 +29,49 @@
     var k=(z()?'KGM 管理後台':'KGM ADMIN')+(grp?' · '+grp:'');if(sp&&sp.textContent!==k)sp.textContent=k;
     hd.classList.add('ad120-hd')}catch(_){}}
   function hook(){var r0=window.render;if(typeof r0!=='function'||r0.__ad120)return;var w=function(){var r=r0.apply(this,arguments);paint();return r};try{Object.keys(r0).forEach(function(k){if(!(k in w))w[k]=r0[k]})}catch(_){}w.__ad120=1;window.render=w;try{render=w}catch(_){}}
-  hook();[0,1500,4000,12000].forEach(function(t){setTimeout(hook,t)});setInterval(paint,1500);
+  /* 1121A Q1（使用者：「圖一無法往右滑」＝航班資料旅客名單）：表格比卡片寬時卡片本身可以橫捲，但捲軸在卡片最底（265 位旅客要捲到最下面才看得到），
+     用滑鼠的人等於不能往右滑 → 卡片下面加一條黏在畫面底部的橫向捲軸（跟卡片同步；卡片底已經在畫面裡就藏起來）。只在後台、只在真的比較寬的卡片 */
+  function hbars(){try{if(!(S.view==='admin'&&S.adminAuthed)||innerWidth<=640)return;
+    [].forEach.call(document.querySelectorAll('#app .p-admin-main .r7-ops-card, #app .p-admin-main .table-wrap, #app .p-admin-main [data-ad121hs]'),function(c){
+      var cs=getComputedStyle(c);if(cs.overflowX!=='auto'&&cs.overflowX!=='scroll')return;
+      var bar=c.nextElementSibling&&c.nextElementSibling.classList.contains('ad121-hs')?c.nextElementSibling:null;
+      var wide=c.scrollWidth>c.clientWidth+8&&c.offsetHeight>240;
+      if(!wide){if(bar)bar.remove();return}
+      if(!bar){bar=document.createElement('div');bar.className='ad121-hs';
+        bar.innerHTML='<button type="button" class="ad121-l" aria-label="'+(z()?'往左':'Scroll left')+'">‹</button><div class="ad121-tr"><i></i></div><button type="button" class="ad121-r" aria-label="'+(z()?'往右':'Scroll right')+'">›</button><span>'+(z()?'表格較寬，可拖曳或按 ‹ › 左右移動':'Wide table — drag or use ‹ ›')+'</span>';
+        c.after(bar);var tr=bar.querySelector('.ad121-tr'),th=tr.firstChild;
+        bar.querySelector('.ad121-l').onclick=function(){c.scrollBy({left:-Math.round(c.clientWidth*0.6),behavior:'smooth'})};
+        bar.querySelector('.ad121-r').onclick=function(){c.scrollBy({left:Math.round(c.clientWidth*0.6),behavior:'smooth'})};
+        var drag=null;th.addEventListener('pointerdown',function(e){drag={x:e.clientX,sl:c.scrollLeft};th.setPointerCapture(e.pointerId);e.preventDefault()});
+        th.addEventListener('pointermove',function(e){if(!drag)return;var k=(c.scrollWidth-c.clientWidth)/Math.max(1,tr.clientWidth-th.offsetWidth);c.scrollLeft=drag.sl+(e.clientX-drag.x)*k});
+        th.addEventListener('pointerup',function(){drag=null});
+        tr.addEventListener('pointerdown',function(e){if(e.target!==tr)return;var r=tr.getBoundingClientRect(),f=(e.clientX-r.left-th.offsetWidth/2)/Math.max(1,r.width-th.offsetWidth);c.scrollTo({left:Math.max(0,Math.min(1,f))*(c.scrollWidth-c.clientWidth),behavior:'smooth'})});
+        c.addEventListener('scroll',function(){pos(c,bar)},{passive:true})}
+      bar.style.width=c.clientWidth+'px';pos(c,bar)})}catch(_){}}
+  function pos(c,bar){try{var tr=bar.querySelector('.ad121-tr'),th=tr.firstChild,w=tr.clientWidth,f=c.clientWidth/c.scrollWidth,tw=Math.max(40,Math.round(w*f)),m=c.scrollWidth-c.clientWidth;
+    th.style.width=tw+'px';th.style.transform='translateX('+Math.round(m>0?c.scrollLeft/m*(w-tw):0)+'px)';
+    bar.querySelector('.ad121-l').disabled=c.scrollLeft<=1;bar.querySelector('.ad121-r').disabled=c.scrollLeft>=m-1}catch(_){}}
+  /* 1121A Q2（使用者：「圖二is this working now? 我查幾個都是no flight欸」＝登機門／櫃檯頁的停機位查詢）：
+     我這邊各種開法（合併檔、後台檔、1120A 交付檔、真的點選）TPE 2026-11-21 每個門都有 1～5 班，重現不出來。
+     → 下拉選單每個門後面寫「N 班」（同一個查詢函式 kgmStandLookupR74 逐門算，分段在閒置時算、依機場＋日期快取），
+       選到沒有航班的門時，下面列出這天有航班的門（點了直接查）；整天所有門都是 0 會直接寫出來，不再只看到一個門說沒有。 */
+  var SC={};
+  function standCounts(){try{if(!(S.view==='admin'&&S.adminAuthed))return;var sec=document.querySelector('#app .k74-stand');if(!sec)return;
+    var sel=sec.querySelector('select'),di=sec.querySelector('input[type=date]');if(!sel||!di||typeof window.kgmStandLookupR74!=='function')return;
+    var em=sec.querySelector('.k74-empty'),apm=em&&/^([A-Z]{3})\s/.exec(em.textContent.trim()),ap=(apm&&apm[1])||S._cr74StandAp||(typeof S._cr74Ap==='string'&&S._cr74Ap)||'TPE';
+    var key=ap+'|'+di.value,c=SC[key];
+    if(!c){c=SC[key]={n:{},todo:[].map.call(sel.options,function(o){return o.value}).filter(Boolean),done:false};}
+    if(!c.done&&!c.busy){c.busy=1;var run=function(dl){var t0=performance.now();while(c.todo.length&&(performance.now()-t0<30)){var g=c.todo.shift();try{c.n[g]=window.kgmStandLookupR74(ap,di.value,g).rows.length}catch(_){c.n[g]=0}}
+        if(c.todo.length){(window.requestIdleCallback||function(f){return setTimeout(f,60)})(run,{timeout:1500})}else{c.done=true;c.busy=0;standCounts()}};
+      (window.requestIdleCallback||function(f){return setTimeout(f,60)})(run,{timeout:1500});return}
+    if(!c.done)return;var zh=z();
+    [].forEach.call(sel.options,function(o){if(!o.value)return;var n=c.n[o.value];if(n==null)return;var base=o.getAttribute('data-ad121')||o.textContent;o.setAttribute('data-ad121',base);var t=base+' · '+n+(zh?' 班':(n===1?' flight':' flights'));if(o.textContent!==t)o.textContent=t});
+    var g=sel.value;if(em&&g&&!c.n[g]&&!sec.querySelector('.ad121-alt')){var has=Object.keys(c.n).filter(function(k){return c.n[k]>0});var d=document.createElement('div');d.className='ad121-alt';
+      d.innerHTML=has.length?((zh?'這天有航班的停機位（點一下直接查）：':'Stands with flights on this date: ')+has.map(function(k){return '<button type="button" onclick="kgmCrGateR74(\''+k+'\')">'+k+' <b>'+c.n[k]+'</b></button>'}).join(''))
+        :(zh?'這一天 '+ap+' 所有停機位都查不到航班——這不正常，請把這個畫面截圖給我。':'No stand at '+ap+' has any flight on this date.');
+      em.after(d)}}catch(_){}}
+  setInterval(standCounts,900);
+  hook();[0,1500,4000,12000].forEach(function(t){setTimeout(hook,t)});setInterval(paint,1500);setInterval(hbars,700);
   var CSS='@media(min-width:641px){'
     +'#app .p-admin-grid{align-items:start}'
     +'html.ad120-on body,html.ad120-on #app{overflow-x:clip!important;overflow-y:visible!important}'
@@ -40,6 +82,8 @@
     +'#app .p-admin-side .ad120-hide{display:none!important}'
     +'.ad120-q{margin:4px 0 12px}.ad120-q input{width:100%;box-sizing:border-box;border:1px solid #E3DCCB;border-radius:10px;padding:8px 10px;font:inherit;font-size:12.5px;background:#FBFAF6;outline:none}.ad120-q input:focus{border-color:#0B3D2E;background:#fff}'
     +'.ad120-none{font-size:12px;color:#9A948A;margin:0 0 10px 4px}'
+    +'.ad121-alt{margin:10px 0 0;font-size:12.5px;color:#5d665f;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.ad121-alt button{border:1px solid #DCD3BE;background:#FBFAF6;border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}.ad121-alt button b{color:#0B3D2E;margin-left:3px}.ad121-alt button:hover{border-color:#0B3D2E}'
+    +'.ad121-hs{position:sticky;bottom:0;z-index:30;display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;background:rgba(255,255,255,.97);border:1px solid #E7E1D3;border-top:0;border-radius:0 0 12px 12px;box-shadow:0 -4px 12px rgba(20,40,30,.06)}'+'.ad121-hs button{flex:none;width:28px;height:24px;border:1px solid #DCD3BE;background:#FBFAF6;border-radius:8px;font-size:17px;line-height:1;color:#0B3D2E;cursor:pointer}.ad121-hs button:disabled{opacity:.35;cursor:default}'+'.ad121-tr{position:relative;flex:1;height:10px;border-radius:999px;background:#EEEAE0;cursor:pointer}.ad121-tr>i{position:absolute;left:0;top:0;height:10px;border-radius:999px;background:#0B3D2E;opacity:.75;cursor:grab;touch-action:none}.ad121-tr>i:active{cursor:grabbing;opacity:.9}'+'.ad121-hs>span{flex:none;font-size:11.5px;color:#8A8F86}'
     +'#app .p-admin-title.ad120-hd h1{font-size:30px!important;line-height:1.2}#app .p-admin-title.ad120-hd div>span{letter-spacing:.14em}'
     +'}';
   try{var st=document.createElement('style');st.id='ad120-css';st.textContent=CSS;(document.head||document.documentElement).appendChild(st)}catch(_){}
