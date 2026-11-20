@@ -127,8 +127,9 @@
     var M=function(o,role,text,by){return {id:it.id+'x'+o,role:role,text:text,by:by||'',byId:role==='agent'?ag[1]:'',at:new Date(t+o*60000).toISOString()}};
     if(it.status==='waiting'&&age>=15){it.status='active';it.agent=ag[1];it.agentName=ag[0];it.takenAt=new Date(t+15*60000).toISOString();
       it.msgs.push(M(15,'sys',(z()?'客服 ':'Agent ')+ag[0]+(z()?' 接手':' joined')),M(16,'agent',(z()?'您好，我是客服'+ag[0]+'，正在幫您查詢，請稍候。':'Hi, this is '+ag[0]+'. Checking for you now.'),ag[0]));ch=true}
-    if(it.status==='active'&&it.agent===ag[1]&&age>=90){it.msgs.push(M(40,'agent',fill(T0[3],V),ag[0]),M(44,'user',fill(T0[4],V)),M(46,'sys',z()?'客服結束對話':'Closed by agent'));
-      it.status='closed';it.closedAt=new Date(t+46*60000).toISOString();it.closedBy=ag[1];ch=true}
+    if(it.status==='active'&&it.agent===ag[1]&&age>=90){var hb=H(it.id+'bye');   /* 1121A Q8：結束前先問還有沒有其他需求，旅客說沒有，再送結束感謝訊息 */
+      it.msgs.push(M(40,'agent',fill(T0[3],V),ag[0]),M(44,'user',fill(T0[4],V)),M(45,'agent',ASK[hb%ASK.length],ag[0]),M(47,'user',NO[(hb>>>4)%NO.length]),M(48,'agent',bye(ag[0]),ag[0]),M(48,'sys',z()?'客服結束對話':'Closed by agent'));
+      it.status='closed';it.closedAt=new Date(t+48*60000).toISOString();it.closedBy=ag[1];ch=true}
     return ch}
   function tick(){try{
     if(window.KGM_SIDE==='front'||!S||!S.bookings)return;
@@ -146,6 +147,33 @@
     if(added||changed)persist();
     if(added)setTimeout(tick,4000);   /* 頁面本身的 mount 也會叫 csPnr12（可能用中文名先建）→ 4 秒後再把姓名改成拼音 */
     window.KGM_CS120={added:added,changed:changed,total:Object.keys(q).length,sim120:Object.keys(q).filter(function(k){return q[k]&&q[k].sim120}).length}}catch(e){try{console.warn('cs120 tick',e)}catch(_){}}}
+  /* ── 1121A Q8（使用者：「這種要結束對話都要多問是否有其他需求等等確認沒有要自動發送對話關閉感謝訊息」）──
+     模擬對話：解決後 → 客服問「還有其他需要協助的嗎？」→ 旅客回沒有 → 客服送結束感謝訊息 → 結束（上面 advance）。
+     真人客服按「結束對話」（kgmCsCloseR1006A，最外層包一層）：
+       第一次按 → 不直接結束，先替客服送出「還有其他需要協助的嗎？」，記下詢問時間（it.closeAskR1121A），按鈕改「確認結束」；
+       旅客之後回「沒有／不用了／謝謝…」→ 自動送結束感謝訊息並結束（每分鐘的 tick＋旅客送訊息時檢查）；
+       旅客回別的問題 → 取消這次詢問，對話繼續；
+       客服再按一次（確認結束）→ 送結束感謝訊息並結束。 */
+  function ASKT(){return z()?['請問還有其他需要協助的地方嗎？','請問還有其他問題需要幫您處理嗎？']:['Is there anything else I can help you with?','Anything else I can help with today?']}
+  var ASK=ASKT(),NO=z()?['沒有了，謝謝','不用了，謝謝','沒有了～謝謝您','暫時沒有，謝謝']:['No, that is all. Thanks!','Nothing else, thank you.'];
+  function bye(n){return z()?'感謝您聯繫 KGM 航空客服，很高興能為您服務。本次對話將在此結束，如有其他需要，歡迎隨時再與我們聯繫，祝您旅途愉快！':'Thank you for contacting KGM Airways. This chat will now close — reach out any time. Have a pleasant journey!'}
+  var NEG=/^(沒有|没有|沒了|不用|不需要|暫時沒有|沒問題了|OK|ok|好的?|謝謝|感謝|no\b|nope|nothing|that'?s all|no thanks|all good)/i;
+  function me121(){try{var u=S.adminUser||{};return {id:u.empId||'',name:u.name||''}}catch(_){return {id:'',name:''}}}
+  function nid121(){return 'M'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+  function finish(it,by){it.msgs.push({id:nid121(),role:'agent',text:bye(by.name),by:by.name,byId:by.id,at:new Date().toISOString(),autoByeR1121A:true});delete it.closeAskR1121A}
+  function wrapClose(){var C0=window.kgmCsCloseR1006A;if(typeof C0!=='function'||C0.__q8)return;
+    var w=function(id){var it=Q()[id];if(!it||it.status==='closed')return C0.apply(this,arguments);var m=me121();
+      if(!it.closeAskR1121A){it.msgs.push({id:nid121(),role:'agent',text:ASKT()[0],by:m.name||it.agentName||'',byId:m.id,at:new Date().toISOString(),askR1121A:true});it.closeAskR1121A=new Date().toISOString();persist();try{render()}catch(_){}return}
+      finish(it,{id:m.id,name:m.name||it.agentName||''});return C0.apply(this,arguments)};
+    w.__q8=1;window.kgmCsCloseR1006A=w}
+  function checkAsk(){try{var q=Q(),ch=0;Object.keys(q).forEach(function(id){var it=q[id];if(!it||it.status==='closed'||!it.closeAskR1121A)return;
+      var after=(it.msgs||[]).filter(function(m){return m&&m.role==='user'&&String(m.at||'')>it.closeAskR1121A});if(!after.length)return;var last=after[after.length-1];
+      var lt=String(last.text||'').trim();if(NEG.test(lt)&&lt.length<=16&&!/[?？]|還有|另外|想問|請問|but|also/i.test(lt)){finish(it,{id:it.agent||'',name:it.agentName||''});it.msgs.push({id:nid121(),role:'sys',text:z()?'客服結束對話':'Closed by agent',at:new Date().toISOString()});it.status='closed';it.closedAt=new Date().toISOString();it.closedBy=it.agent||'';ch++}
+      else{delete it.closeAskR1121A;ch++}});if(ch){persist();try{if(S.view==='admin')render()}catch(_){}}}catch(_){}}
+  window.kgmCsCheckAskR1121A=checkAsk;
+  wrapClose();[1500,5000,15000].forEach(function(t){setTimeout(wrapClose,t)});setInterval(checkAsk,5000);
+  /* 按鈕字：已經問過 → 「確認結束」 */
+  setInterval(function(){try{if(!(S.view==='admin'))return;var q=Q();[].forEach.call(document.querySelectorAll('button[onclick^="kgmCsCloseR1006A("]'),function(b){var m=/kgmCsCloseR1006A\('([^']+)'/.exec(b.getAttribute('onclick')||'');var it=m&&q[m[1]];var want=it&&it.closeAskR1121A?(z()?'確認結束（送感謝訊息）':'Confirm close'):(z()?'結束對話':'Close');if(b.textContent!==want)b.textContent=want})}catch(_){}},800);
   window.kgmCsSimTickR1120A=tick;
   setTimeout(tick,7000);setInterval(tick,60000);
 
