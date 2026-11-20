@@ -13,10 +13,11 @@
   function H(s){var h=2166136261;s=String(s);for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
   function me(){return S.adminUser||{}}
   function roleOf(){var u=me();if(u.empId==='MASTER'||u.role==='ceo')return 'ceo';return String(u.role||'')}
-  function verOf(r){return r==='ceo'?'ceo':r==='pilot'?'pilot':/^(cabin|ground|service)$/.test(r)?'cabin':''}
-  var VN={ceo:['CEO 完整版','CEO — full'],pilot:['機師飛行版','Flight crew'],cabin:['客艙服務版','Cabin service']};
+  function verOf(r){return r==='ceo'?'ceo':/^(pilot|cabin)$/.test(r)?'flight':/^(ground|service)$/.test(r)?'ground':''}   /* 1121A Q5：機師與客艙組員同一份（飛行列印版）；地勤／客服＝地勤餐食版 */
+  function allowOf(v){return v==='ceo'?['ceo','flight','ground']:v?[v]:[]}
+  var VN={ceo:['CEO 完整版','CEO — full'],pilot:['機師飛行版','Flight crew'],cabin:['客艙服務版','Cabin service'],flight:['飛行列印版（機師・客艙組員）','Flight crew print'],ground:['地勤餐食版','Ground — catering']};
   /* 章節保留表 */
-  var KEEP={ceo:null,pilot:{'1':1,'2':1,'2A':1,'3':1,'4':1,'5':1,'8':1},cabin:{'1':1,'2A':1,'3':1,'4':1,'5':1,'6':1,'6A':1,'7':1,'8':1}};   /* 1118A G4：拿掉「附錄 旅客名單」（全班名單），旅客只列特別注意的 */
+  var KEEP={ceo:null,pilot:{'1':1,'2':1,'2A':1,'3':1,'4':1,'5':1,'8':1},cabin:{'1':1,'2A':1,'3':1,'4':1,'5':1,'6':1,'6A':1,'7':1,'8':1},flight:{'1':1,'2':1,'2A':1,'3':1,'4':1,'5':1,'6':1,'6A':1,'8':1},ground:{'1':1}};   /* 1118A G4：拿掉「附錄 旅客名單」（全班名單），旅客只列特別注意的 */
   function cur(){var p=String(S.opsSelectedR7||'').split('|');return p.length>=4&&p[0]?{code:p[0],date:p[1],fr:p[2],to:p[3]}:null}
   function age(d){var m=String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return '';var t=new Date(),a=t.getFullYear()-(+m[1]);if(t.getMonth()+1<+m[2]||(t.getMonth()+1===+m[2]&&t.getDate()<+m[3]))a--;return a>=0&&a<120?a:''}
   function mask(ph){ph=String(ph||'').replace(/\s/g,'');return ph.length>4?ph.slice(0,ph.length-4).replace(/\d/g,'•')+ph.slice(-4):ph}
@@ -61,7 +62,14 @@
     out=out.filter(function(p){return p.n!=='附錄'});   /* 1118A G4（使用者：「只要列出特別注意的旅客在PDF中」）：全班旅客名單不放 */
     var K=KEEP[ver];if(K)out=out.filter(function(p){return K[p.n]});
     if(ver==='ceo'&&xtra&&xtra.length){var ai=-1;out.forEach(function(p,k){if(p.n==='附錄')ai=k});var add=xtra.map(function(x){return {n:x.n,h:x.h}});if(ai>=0)Array.prototype.splice.apply(out,[ai,0].concat(add));else out=out.concat(add)}   /* 1108B B13：CEO 完整版加航班資料頁全部區塊 */
-    var who=me(),badge='<div class="conf" style="background:#0f3d33;color:#fff">'+E(zh?VN[ver][0]:VN[ver][1])+' · '+(zh?'匯出人 ':'Exported by ')+E((who.name||'')+' '+(who.empId||''))+(ver==='pilot'?(zh?' · 不含旅客個資':' · no passenger personal data'):ver==='cabin'?(zh?' · 不含燃油／載重與營運建議':' · no fuel / load / ops advisory'):'')+'</div>';
+    /* 1121A：地勤餐食版只放餐點統計；第 6 節併入基本資料（6A 不再單列）；候補名單改報告格式；簽核與保密聲明放第一頁 */
+    if(ver==='ground'&&xtra&&xtra.length)out=out.concat(xtra.filter(function(x){return /餐點統計|Catering|Meal/i.test(String(x.h).slice(0,300))}).map(function(x){return {n:x.n,h:x.h}}));
+    if(window.kgmPdfMergeR1121A&&out.some(function(p){return p.n==='6'})){out=out.map(function(p){if(p.n==='6'){try{return {n:p.n,h:window.kgmPdfMergeR1121A(p.h,c)}}catch(e){try{console.warn('rp121 merge',e)}catch(_){}}}return p}).filter(function(p){return p.n!=='6A'})}
+    if(window.kgmPdfWaitR1121A)out=out.map(function(p){if(/<h2><span>[^<]+<\/span>(候補名單|Standby)/.test(String(p.h).slice(0,200))){try{return {n:p.n,h:window.kgmPdfWaitR1121A(p.h)}}catch(e){}}return p});
+    if(window.kgmPdfSignR1121A&&(ver==='ceo'||ver==='flight')){out=out.filter(function(p){return p.n!=='8'});var sg='';try{sg=window.kgmPdfSignR1121A(c,ver)}catch(e){try{console.warn('rp121 sign',e)}catch(_){}}
+      if(sg){if(out[0])out[0]={n:out[0].n,h:out[0].h.replace(/^\s*<h2/,'<h2 class="rp121-after"')};out.unshift({n:'0',h:sg})}}
+    head=head.replace('</style>',(window.KGM_PDF_CSS_R1121A||'')+'</style>');
+    var who=me(),badge='<div class="conf" style="background:#0f3d33;color:#fff">'+E(zh?VN[ver][0]:VN[ver][1])+' · '+(zh?'匯出人 ':'Exported by ')+E((who.name||'')+' '+(who.empId||''))+(ver==='pilot'?(zh?' · 不含旅客個資':' · no passenger personal data'):ver==='cabin'?(zh?' · 不含燃油／載重與營運建議':' · no fuel / load / ops advisory'):ver==='flight'?(zh?' · 全體機組人員須簽署保密聲明':' · all crew sign the confidentiality statement'):ver==='ground'?(zh?' · 只含餐點統計、不含旅客個資':' · catering only, no passenger personal data'):'')+'</div>';
     head=head.replace('<div class="conf">',badge+'<div class="conf">');
     return head+out.map(function(p){return p.h}).join('')+tail}
   /* ── 1108B B13（使用者：「CEO 看到的航班狀態資料 report 一樣少啊 CEO 要可以看到全部！」）──
@@ -89,19 +97,24 @@
         if(L.length)L[0].h='<style>'+css+'.k39fd{margin:6px 0 14px;font-size:11px}.k39fd .k39v{display:inline-block;min-width:18px;padding:0 4px;border-bottom:1px solid #ccd}.k39fd *{max-width:100%;box-shadow:none!important;position:static!important}.k39fd *{max-height:none!important;overflow:visible!important}.k39fd>section,.k39fd>div{display:block!important;visibility:visible!important;opacity:1!important}</style>'+L[0].h}catch(e){try{console.warn('pdf38 snap',e)}catch(_){}}
       try{S.fdTabR1025B=pt;S.adminTab=pa;S.view=pv;render()}catch(_){}cb(L)},900)}
   function wrap(){var O=window.kgmOpsReportR1018A;if(typeof O!=='function'||O.__pdf38)return;
-    var w=function(pre){var c=cur(),zh=z();if(!c)return O.apply(this,arguments);var ver=verOf(roleOf());
+    var w=function(pre,opt121){var c=cur(),zh=z();if(!c)return O.apply(this,arguments);var ver=verOf(roleOf());
+      /* 1121A：先跳下載視窗（版本、語言、保密條款）；測試或程式呼叫（'none'）用 window.__kgmPdfOptR1121A 或預設值 */
+      if(ver&&!opt121&&window.kgmPdfDialogR1121A){if(pre==='none'){opt121=window.__kgmPdfOptR1121A||{ver:ver,lang:zh?'zh':'en',ack:true}}else{var self=this;window.kgmPdfDialogR1121A(allowOf(ver),ver,function(o){w.call(self,undefined,o)});return}}
+      if(opt121&&opt121.ver&&allowOf(ver).indexOf(opt121.ver)>=0)ver=opt121.ver;
+      var L0=null;try{L0=LANG;if(opt121&&opt121.lang){LANG=opt121.lang==='en'?'en':'zh';zh=z()}}catch(_){}
+      var back=function(){try{if(L0!=null&&LANG!==L0){LANG=L0;try{render()}catch(_){}}}catch(_){}};
       if(!ver){alert(zh?'航班作業報告只開放 CEO（完整版）、機師（飛行版）與客艙組員／地勤／客服（客艙服務版）匯出。':'Flight report export is limited to the CEO, pilots and cabin / ground / service staff.');return}
       var win=pre&&pre!=='none'?pre:(pre==='none'?null:window.open('','_blank'));
       try{if(win&&win.document){win.document.open();win.document.write('<!doctype html><meta charset="utf-8"><title>KGM</title><p style="font:14px sans-serif;padding:30px;color:#0f3d33">'+(zh?'航班作業報告產生中（航線圖與組員名單）…':'Preparing the flight report…')+'</p>')}}catch(_){}
-      var go=function(){var html=null;try{html=O.call(this,'none')}catch(e){try{console.warn('pdf38',e)}catch(_){}}if(!html){try{win&&win.close()}catch(_){}return}
-        var fin=function(xtra){mapImg(c,function(u){var h2=html;try{h2=filterHtml(html,ver,c,u,xtra)}catch(e){try{console.warn('pdf38 filter',e)}catch(_){}}window.KGM_OPSREPORT_R1108A={ver:ver,len:h2.length,map:!!u,sections:(h2.match(/<h2><span>([^<]+)<\/span>/g)||[]).map(function(x){return x.replace(/<[^>]+>/g,'')})};window.__k38LastReport=h2;
+      var go=function(){var html=null;try{html=O.call(this,'none')}catch(e){try{console.warn('pdf38',e)}catch(_){}}if(!html){back();try{win&&win.close()}catch(_){}return}
+        var fin=function(xtra){mapImg(c,function(u){var h2=html;try{h2=filterHtml(html,ver,c,u,xtra)}catch(e){try{console.warn('pdf38 filter',e)}catch(_){}}if(opt121&&opt121.lang==='en'&&window.kgmPdfEnR1121A){try{h2=window.kgmPdfEnR1121A(h2)}catch(e){try{console.warn('rp121 en',e)}catch(_){}}}window.KGM_OPSREPORT_R1108A={ver:ver,len:h2.length,map:!!u,sections:(h2.match(/<h2><span>([^<]+)<\/span>/g)||[]).map(function(x){return x.replace(/<[^>]+>/g,'')})};window.__k38LastReport=h2;
           var prt=function(){if(win){try{win.document.open()}catch(_){}win.document.write(h2);win.document.close();setTimeout(function(){try{win.focus();win.print()}catch(_){}},400)}};
           /* 1120A J7：直接產生受保護的 PDF（每頁是圖、浮水印、只能列印）；失敗才照舊列印 */
           var who=me(),docNo=(String(h2).match(/KGM-OPS-[A-Z0-9-]+/)||[])[0]||('KGM-OPS-'+c.code+'-'+String(c.date).replace(/-/g,''));
           if(window.kgmOpsPdfR1120A){try{if(win&&win.document){win.document.open();win.document.write('<!doctype html><meta charset="utf-8"><title>KGM</title><p id="k120p" style="font:14px sans-serif;padding:30px;color:#0f3d33">'+(zh?'產生 PDF 中…':'Building PDF…')+'</p>');win.document.close()}}catch(_){}
-            window.kgmOpsPdfR1120A(h2,win,{docNo:docNo,who:((who.name||'')+' '+(who.empId||'')).trim(),verName:zh?VN[ver][0]:VN[ver][1],code:c.code,date:c.date}).then(function(r){if(win)window.kgmOpsPdfShowR1120A(win,r.blob,docNo)}).catch(function(e){try{console.warn('pdf120',e)}catch(_){}window.__k120LastPdf={err:String(e&&e.message||e)};prt()})}
+            window.kgmOpsPdfR1120A(h2,win,{docNo:docNo,who:((who.name||'')+' '+(who.empId||'')).trim(),verName:zh?VN[ver][0]:VN[ver][1],code:c.code,date:c.date}).then(function(r){back();if(win)window.kgmOpsPdfShowR1120A(win,r.blob,docNo)}).catch(function(e){back();try{console.warn('pdf120',e)}catch(_){}window.__k120LastPdf={err:String(e&&e.message||e)};prt()})}
           else prt()})};
-        if(ver==='ceo')snap39(c,fin);else fin(null)};
+        if(ver==='ceo')snap39(c,fin);else if(ver==='ground'){var u0=S.adminUser;try{S.adminUser=Object.assign({},u0,{role:'ceo'})}catch(_){}snap39(c,function(x){S.adminUser=u0;try{render()}catch(_){}fin(x)})}else fin(null)};   /* 1121A：地勤自己的航班資料頁看不到餐點統計 → 只為了取餐點那一塊，暫時用完整檢視截一次，報告裡只留餐點 */
       try{if(window.kgmCrewHasDayR121&&!window.kgmCrewHasDayR121(c.date)){setTimeout(function(){try{window.kgmCrewPlanR121(c.date)}catch(_){}go()},40);return}}catch(_){}
       go()};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__pdf38=1;window.kgmOpsReportR1018A=w;try{window.kgmPrintOpsR41=w;window.printOpsR7=w}catch(_){}}
