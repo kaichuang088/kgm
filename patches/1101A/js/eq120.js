@@ -99,7 +99,7 @@
     }catch(e){out.err=String(e&&e.message||e)}window.KGM_IDLESPREAD_R1120A=out;return out};
   (function watch(){var fd=null,t0=0,cov=null;setInterval(function(){var f=window.KGM_FULLDONE_1006A;if(!f)return;if(f!==fd){fd=f;t0=Date.now();cov=null;window.__spread120x=null}var age=Date.now()-t0;if(age<300000){window.kgmStrandHealR1120A();if(age>=125000&&!window.__spread120x){window.__spread120x=fd;window.kgmIdleSpreadR1120A()}}
     /* 排完約 2 分鐘（A35K 輪流等後續步驟做完）還有沒派到飛機的班 → 叫引擎自己的補位（kgmCoverGapsR135，同一套規則）補一次。實測補位約 0.5 秒 */
-    if(age>=120000&&cov!==fd){cov=fd;cover('120s')}},10000)})();
+    var step=Math.floor(age/30000);if(step>=1&&step<=4&&cov!==fd+':'+step){cov=fd+':'+step;cover(step*30+'s')}},10000)})();   /* 30／60／90／120 秒各補一次：換季那天（03-29）曼谷出發 B779 偶爾在排完之後才被別的步驟拿掉，時機不固定 */
   /* 1120A 第二輪：vfy6 H19 在整年排班完成後 5 秒就量，原本 120 秒才補 → 缺 2～11 班（換季那天 B779、A35K KX55／KX36）。整年排班一完成 2.5 秒就補一次；
      不先呼叫 kgmLiveCoverR135（實測一次 7.7 秒主執行緒），直接叫補位（實測 1.75 秒，沒有缺的班就幾乎不做事） */
   function legs(){var n=0,TA=S.tailAssign||{};for(var t in TA)n+=(TA[t]||[]).length;return n}   /* 拆機收尾有沒有讓航段變少（變少＝有班沒派到飛機）：數一次 196 架，幾乎不花時間 */
