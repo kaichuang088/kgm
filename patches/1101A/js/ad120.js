@@ -51,6 +51,11 @@
   function pos(c,bar){try{var tr=bar.querySelector('.ad121-tr'),th=tr.firstChild,w=tr.clientWidth,f=c.clientWidth/c.scrollWidth,tw=Math.max(40,Math.round(w*f)),m=c.scrollWidth-c.clientWidth;
     th.style.width=tw+'px';th.style.transform='translateX('+Math.round(m>0?c.scrollLeft/m*(w-tw):0)+'px)';
     bar.querySelector('.ad121-l').disabled=c.scrollLeft<=1;bar.querySelector('.ad121-r').disabled=c.scrollLeft>=m-1}catch(_){}}
+  /* 1121A R2（使用者：「選位系統的寵物和兒童還在嗎？」）：航班資料座位圖原本只標寵物（🐾），兒童沒有任何標示 →
+     依旅客生日（manifest7 的 dob，跟旅客名單「生日」欄同一份）算搭機當天年齡：未滿 2 歲＝嬰兒、未滿 12 歲＝兒童，座位格角落加標記、滑過寫出來 */
+  window.kgmKidSeatR1121A=function(k,p,mode){try{var dob=p&&p.dob;if(!dob)return '';var m=/\d{4}-\d{2}-\d{2}/.exec(String(k||''));var d=m?m[0]:(typeof todayISO==='function'?todayISO():'');
+    var a=(new Date(d+'T12:00:00Z')-new Date(String(dob).slice(0,10)+'T12:00:00Z'))/31557600000;if(!(a>=0&&a<12))return '';var inf=a<2;
+    if(mode==='c')return inf?' inf121':' kid121';return z()?(inf?'・👶 嬰兒':'・🧒 兒童（'+Math.floor(a)+' 歲）'):(inf?' · infant':' · child')}catch(_){return ''}};
   /* 1121A Q2（使用者：「圖二is this working now? 我查幾個都是no flight欸」＝登機門／櫃檯頁的停機位查詢）：
      我這邊各種開法（合併檔、後台檔、1120A 交付檔、真的點選）TPE 2026-11-21 每個門都有 1～5 班，重現不出來。
      → 下拉選單每個門後面寫「N 班」（同一個查詢函式 kgmStandLookupR74 逐門算，分段在閒置時算、依機場＋日期快取），
@@ -82,6 +87,7 @@
     +'#app .p-admin-side .ad120-hide{display:none!important}'
     +'.ad120-q{margin:4px 0 12px}.ad120-q input{width:100%;box-sizing:border-box;border:1px solid #E3DCCB;border-radius:10px;padding:8px 10px;font:inherit;font-size:12.5px;background:#FBFAF6;outline:none}.ad120-q input:focus{border-color:#0B3D2E;background:#fff}'
     +'.ad120-none{font-size:12px;color:#9A948A;margin:0 0 10px 4px}'
+    +'.r7-map-seat.kid121,.r7-map-seat.inf121{position:relative;box-shadow:inset 0 0 0 2px #3E7CB1!important}.r7-map-seat.kid121::after,.r7-map-seat.inf121::after{content:"兒";position:absolute;left:-6px;bottom:-7px;background:#3E7CB1;color:#fff;font-size:9px;font-weight:800;line-height:1;padding:2px 3px;border-radius:6px}.r7-map-seat.inf121::after{content:"嬰";background:#8A4FB0}.r7-map-seat.inf121{box-shadow:inset 0 0 0 2px #8A4FB0!important}'
     +'.ad121-alt{margin:10px 0 0;font-size:12.5px;color:#5d665f;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.ad121-alt button{border:1px solid #DCD3BE;background:#FBFAF6;border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}.ad121-alt button b{color:#0B3D2E;margin-left:3px}.ad121-alt button:hover{border-color:#0B3D2E}'
     +'.ad121-hs{position:sticky;bottom:0;z-index:30;display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;background:rgba(255,255,255,.97);border:1px solid #E7E1D3;border-top:0;border-radius:0 0 12px 12px;box-shadow:0 -4px 12px rgba(20,40,30,.06)}'+'.ad121-hs button{flex:none;width:28px;height:24px;border:1px solid #DCD3BE;background:#FBFAF6;border-radius:8px;font-size:17px;line-height:1;color:#0B3D2E;cursor:pointer}.ad121-hs button:disabled{opacity:.35;cursor:default}'+'.ad121-tr{position:relative;flex:1;height:10px;border-radius:999px;background:#EEEAE0;cursor:pointer}.ad121-tr>i{position:absolute;left:0;top:0;height:10px;border-radius:999px;background:#0B3D2E;opacity:.75;cursor:grab;touch-action:none}.ad121-tr>i:active{cursor:grabbing;opacity:.9}'+'.ad121-hs>span{flex:none;font-size:11.5px;color:#8A8F86}'
     +'#app .p-admin-title.ad120-hd h1{font-size:30px!important;line-height:1.2}#app .p-admin-title.ad120-hd div>span{letter-spacing:.14em}'

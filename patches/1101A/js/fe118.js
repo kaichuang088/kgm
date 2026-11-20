@@ -155,7 +155,14 @@
     if(ALL){[].slice.call(document.querySelectorAll('#app .booking-content span,#app .booking-content em,#app .booking-content div')).some(function(el){if(el.children.length)return false;var m=/^(顯示 )?\d+／\d+ 個航班|^\d+ of \d+ flights/.exec(String(el.textContent||'').trim());if(!m)return false;
       var t=zh?'顯示 '+VIS+'／'+(ALL-SO)+' 個航班'+(SO?'・全部售完 '+SO+' 班不顯示':''):VIS+' of '+(ALL-SO)+' flights'+(SO?' · '+SO+' sold out hidden':'');if(el.textContent!==t)el.textContent=t;return true})}
   }catch(e){try{console.warn('fe120 sel',e)}catch(_){}}}
-  var PT=0;function hookRender(){var r0=window.render;if(typeof r0!=='function'||r0.__fe118)return;var w=function(){var r=r0.apply(this,arguments);paint();clearTimeout(PT);PT=setTimeout(paint,60);return r};
+  /* 1121A R1（使用者：「圖一邊匡沒對齊」＝多航段附加服務頁）：上面「行程總覽」(.k134-rail) 是整個訂位區的寬度，
+     下面附加服務卡片 (.r28-addons .r7-flight) 在較窄的置中欄位裡 → 只在附加服務頁把行程總覽的左右邊對齊到卡片（量實際位置，不猜寬度） */
+  function alignRail(){try{var rail=document.querySelector('#app .k134-rail'),card=document.querySelector('#app .r28-addons .r7-flight');
+      if(!rail){return}if(!card){if(rail.style.width){rail.style.width='';rail.style.marginLeft=''}return}
+      var rr=rail.getBoundingClientRect(),base=rr.left-(parseFloat(getComputedStyle(rail).marginLeft)||0),cr=card.getBoundingClientRect();if(!cr.width)return;
+      var ml=Math.round(cr.left-base)+'px',w=Math.round(cr.width)+'px';if(rail.style.marginLeft!==ml)rail.style.marginLeft=ml;if(rail.style.width!==w)rail.style.width=w;rail.style.boxSizing='border-box'}catch(_){}}
+  setInterval(alignRail,500);window.addEventListener('resize',alignRail);
+  var PT=0;function hookRender(){var r0=window.render;if(typeof r0!=='function'||r0.__fe118)return;var w=function(){var r=r0.apply(this,arguments);paint();alignRail();clearTimeout(PT);PT=setTimeout(paint,60);return r};
     try{Object.keys(r0).forEach(function(k){if(!(k in w))w[k]=r0[k]})}catch(_){}w.__fe118=1;window.render=w;try{render=w}catch(_){}}
   hookRender();[0,1500,4000,12000].forEach(function(t){setTimeout(hookRender,t)});setTimeout(paint,300);
   /* ── 樣式 ── */
