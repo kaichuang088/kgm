@@ -99,9 +99,12 @@
     }catch(e){out.err=String(e&&e.message||e)}window.KGM_IDLESPREAD_R1120A=out;return out};
   (function watch(){var fd=null,t0=0,cov=null;setInterval(function(){var f=window.KGM_FULLDONE_1006A;if(!f)return;if(f!==fd){fd=f;t0=Date.now();cov=null;window.__spread120x=null}var age=Date.now()-t0;if(age<300000){window.kgmStrandHealR1120A();if(age>=125000&&!window.__spread120x){window.__spread120x=fd;window.kgmIdleSpreadR1120A()}}
     /* 排完約 2 分鐘（A35K 輪流等後續步驟做完）還有沒派到飛機的班 → 叫引擎自己的補位（kgmCoverGapsR135，同一套規則）補一次。實測補位約 0.5 秒 */
-    var step=Math.floor(age/30000);if(step>=1&&step<=4&&cov!==fd+':'+step){cov=fd+':'+step;cover(step*30+'s')}},10000)})();   /* 30／60／90／120 秒各補一次：換季那天（03-29）曼谷出發 B779 偶爾在排完之後才被別的步驟拿掉，時機不固定 */
+    var step=Math.floor(age/30000);if(step>=1&&step<=4&&cov!==fd+':'+step){cov=fd+':'+step;idleCover(step*30+'s',0)}},10000)})();   /* 30／60／90／120 秒各補一次：換季那天（03-29）曼谷出發 B779 偶爾在排完之後才被別的步驟拿掉，時機不固定 */
   /* 1120A 第二輪：vfy6 H19 在整年排班完成後 5 秒就量，原本 120 秒才補 → 缺 2～11 班（換季那天 B779、A35K KX55／KX36）。整年排班一完成 2.5 秒就補一次；
      不先呼叫 kgmLiveCoverR135（實測一次 7.7 秒主執行緒），直接叫補位（實測 1.75 秒，沒有缺的班就幾乎不做事） */
+  /* 1121A：定時那幾次補位（0.5 秒左右）等瀏覽器空閒才做、使用者 2 秒內有操作就再等（vfy6 H31 換頁動畫偶爾被這一下卡到） */
+  function idleCover(tag,n){var go=function(){if(Date.now()-(window.KGM_LAST_INPUT_R1025B||0)<2000&&n<10){setTimeout(function(){idleCover(tag,n+1)},2500);return}cover(tag)};
+    try{if(window.requestIdleCallback){requestIdleCallback(go,{timeout:8000});return}}catch(_){}setTimeout(go,0)}
   function legs(){var n=0,TA=S.tailAssign||{};for(var t in TA)n+=(TA[t]||[]).length;return n}   /* 拆機收尾有沒有讓航段變少（變少＝有班沒派到飛機）：數一次 196 架，幾乎不花時間 */
   function cover(tag){try{if(!window.kgmCoverGapsR135)return;var t=performance.now(),r=window.kgmCoverGapsR135(true);(window.KGM_COVER120=window.KGM_COVER120||[]).push({tag:tag,fixed:(r&&r.fixed||[]).length,left:r&&r.left,ms:Math.round(performance.now()-t)})}catch(_){}}
   (function early(){try{var v=window.KGM_FULLDONE_1006A,d=Object.getOwnPropertyDescriptor(window,'KGM_FULLDONE_1006A');if(d&&(d.get||d.configurable===false))return;
