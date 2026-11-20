@@ -96,9 +96,10 @@
     var cards=[].slice.call(document.querySelectorAll('#app .r11-dest'));if(!cards.length)return;
     var dn=Math.floor(Date.now()/864e5),c=cards[dn%cards.length],ov=c.querySelector('.r11-oval'),bg=ov&&ov.style.backgroundImage;if(!bg)return;
     var key=dn+'|'+cards.length+'|'+bg.length;if(g.getAttribute('data-k')===key)return;g.setAttribute('data-k',key);g.style.backgroundImage=bg;
-    var code='',txt=String(c.innerText||'').split(/\s+/);for(var i=0;i<txt.length;i++){if(/^[A-Z]{3}$/.test(txt[i])&&txt[i]!=='TPE'&&txt[i]!=='TWD'){code=txt[i];break}}
+    var code='',mo=/kgmUseDestR129\('([A-Z]{3})'\)/.exec(c.getAttribute('onclick')||''),txt=String(c.innerText||'').split(/\s+/);if(mo)code=mo[1];else for(var i=0;i<txt.length;i++){if(/^[A-Z]{3}$/.test(txt[i])&&txt[i]!=='TPE'&&txt[i]!=='TWD'){code=txt[i];break}}
     var nm=code?cityOf(code):'',zh=z();if(!nm||nm===code)nm=(ov.getAttribute('aria-label')||'').trim()||code;cap.innerHTML='<small>'+(zh?'今日精選目的地':'Featured today')+'</small><b>'+E(nm)+(code?' <i>'+E(code)+'</i>':'')+'</b><span>'+(zh?'帶入搜尋':'Search')+' →</span>';
-    cap.onclick=function(){var bt=[].slice.call(c.querySelectorAll('button,[onclick]')).filter(function(x){return /帶入|搜尋|Search|Use/.test(x.textContent||'')})[0];if(bt)bt.click();else{try{var e=document.querySelector('.fe118-searchwrap');if(e)e.scrollIntoView({behavior:'smooth'})}catch(_){}}}}catch(_){}}
+    /* 1121A P6（使用者：「這個不會真的帶入搜尋」）：卡片本身就是按鈕（onclick＝kgmUseDestR129('代號')），原本在卡片『裡面』找按鈕找不到 → 只捲動畫面。改成直接用同一個函式帶入（跟按下面那張卡片一模一樣） */
+    cap.setAttribute('data-fe121c',code);cap.onclick=function(){var cd=cap.getAttribute('data-fe121c');if(cd&&typeof window.kgmUseDestR129==='function'){window.kgmUseDestR129(cd);return}var live=document.querySelector('#app .r11-dest[onclick*="\''+cd+'\'"]');if(live){live.click();return}try{var e=document.querySelector('.fe118-searchwrap');if(e)e.scrollIntoView({behavior:'smooth'})}catch(_){}}}catch(_){}}
   /* 後台「KGM 航空新聞」：每一則加「設為首頁最新消息」 */
   function adminNews(){try{if(S.view!=='admin'||S.adminTab!=='news_r49')return;var zh=z();
     [].slice.call(document.querySelectorAll('#app button[onclick^="kgmEditNewsG("]')).forEach(function(b){var m=/kgmEditNewsG\('([^']+)'\)/.exec(b.getAttribute('onclick')||'');if(!m)return;var id=m[1],n=((S.r49&&S.r49.news)||[]).filter(function(x){return x&&x.id===id})[0];if(!n)return;
@@ -139,6 +140,10 @@
       var txt='<b>'+K[2]+'</b><small>'+vis+K[3]+'</small>'+(vis?'':'<em>'+(zh?'這一天搜尋的艙等都已售完':'Sold out on this date')+'</em>');
       if(!hd){hd=document.createElement('div');hd.className='fe120-sech';hd.setAttribute('data-k',K[1]);t.parentNode.insertBefore(hd,t)}
       if(hd.innerHTML!==txt)hd.innerHTML=txt});
+    /* 1121A P5（使用者：「這種沒有直飛的就不要有直飛那個category」）：這一天沒有直飛、只有轉機 → 直飛那一格（只剩一列「此日期沒有直飛航班」）整格不顯示 */
+    [].slice.call(document.querySelectorAll('#app .booking-content td[colspan]')).forEach(function(td){if(!/沒有直飛航班|No nonstop/.test(td.textContent||''))return;var t=td.closest('table');if(!t||t.querySelector('tr.fl-row'))return;
+      var box=(t.parentElement&&t.parentElement.children.length===1&&!t.parentElement.classList.contains('booking-content'))?t.parentElement:t,on=!!document.querySelector('#app .booking-content tr.k12c-row');
+      if(on!==box.hasAttribute('data-fe121nd')){if(on)box.setAttribute('data-fe121nd','1');else box.removeAttribute('data-fe121nd')}});
     /* ff19 右上角「顯示 n／m 個航班」原本把售完藏起來的也算進去（顯示 6／6，畫面只有 5 個）→ 改成實際看得到的／可訂的，售完幾班另外寫 */
     if(ALL){[].slice.call(document.querySelectorAll('#app .booking-content span,#app .booking-content em,#app .booking-content div')).some(function(el){if(el.children.length)return false;var m=/^(顯示 )?\d+／\d+ 個航班|^\d+ of \d+ flights/.exec(String(el.textContent||'').trim());if(!m)return false;
       var t=zh?'顯示 '+VIS+'／'+(ALL-SO)+' 個航班'+(SO?'・全部售完 '+SO+' 班不顯示':''):VIS+' of '+(ALL-SO)+' flights'+(SO?' · '+SO+' sold out hidden':'');if(el.textContent!==t)el.textContent=t;return true})}
@@ -249,6 +254,7 @@
   /* 1120A L7／L8 */
   'html.fe118-sel .fe120-sech{display:flex;align-items:baseline;gap:10px;margin:22px 0 4px;padding:0 4px}html.fe118-sel .fe120-sech b{font-family:Georgia,"Noto Serif TC",serif;font-size:19px;font-weight:400;color:#0B3D2E}html.fe118-sel .fe120-sech small{font-size:12px;color:#7A857F;font-weight:700}html.fe118-sel .fe120-sech em{font-style:normal;font-size:12px;color:#b4412b;margin-left:6px}',
   'html.fe118-sel .fe120-sech[data-k="c"]{margin-top:34px;padding-top:18px;border-top:1px solid #E3DAC6}',
+  'html body #app [data-fe121nd]{display:none!important}',   /* 1121A P5 */
   'html body #app.k221-step tr.fl-row.fl-row[data-fe120so],html body #app tr.fl-row.fl-row[data-fe120so],html body #app tr.k12c-row.k12c-row[data-fe120so],html body #app tr[data-fe120so]{display:none!important}',
   '@media (min-width:641px){html.fe118-sel .booking-content tr.fl-row>td:last-child,html.fe118-sel .booking-content tr.k12c-row>td:last-child{width:360px!important;min-width:360px!important;max-width:360px!important;box-sizing:border-box}}',
   /* 選擇航班：日期條 */
