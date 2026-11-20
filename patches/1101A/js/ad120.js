@@ -16,7 +16,9 @@
     var none=side.querySelector('.ad120-none');var cnt=side.querySelectorAll(':scope>section:not(.ad120-hide)').length;if(q&&!cnt){if(!none){none=document.createElement('p');none.className='ad120-none';side.querySelector('.ad120-q').after(none)}none.textContent=z()?'沒有符合「'+Q+'」的功能':'No match'}else if(none)none.remove()}
   window.kgmAdNavQR1120A=function(v){Q=String(v||'').trim();var side=document.querySelector('#app .p-admin-side');if(side)filter(side)};
   function paint(){try{
-    if(S.view!=='admin'||!S.adminAuthed)return;var side=document.querySelector('#app .p-admin-side');if(!side)return;
+    var on=S.view==='admin'&&!!S.adminAuthed;document.documentElement.classList.toggle('ad120-on',on);   /* 1120A：#app／body 原本 overflow-x:hidden → sticky 只黏在 #app 裡、捲動時跟著跑掉；後台時改 clip（同 1025B 航班資料頁） */
+    if(!on)return;    try{var hb=document.elementFromPoint(innerWidth/2,2),top=0;while(hb&&hb!==document.body){var ps=getComputedStyle(hb).position;if(ps==='fixed'||ps==='sticky'){top=Math.round(hb.getBoundingClientRect().bottom);break}hb=hb.parentElement}document.documentElement.style.setProperty('--ad120-top',Math.max(0,Math.min(120,top))+'px')}catch(_){}   /* 頁首固定在上方 → 側欄黏在頁首下面 */
+    var side=document.querySelector('#app .p-admin-side');if(!side)return;
     if(!side.querySelector('.ad120-q')){var w=document.createElement('div');w.className='ad120-q';
       w.innerHTML='<input type="search" placeholder="'+(z()?'搜尋功能（例：組員、Payload）':'Find a page')+'" oninput="kgmAdNavQR1120A(this.value)" onkeydown="if(event.key===\'Escape\'){this.value=\'\';kgmAdNavQR1120A(\'\')}">';
       var first=side.querySelector(':scope>section');if(first)side.insertBefore(w,first);else side.appendChild(w);var inp=w.querySelector('input');if(Q)inp.value=Q}
@@ -30,7 +32,8 @@
   hook();[0,1500,4000,12000].forEach(function(t){setTimeout(hook,t)});setInterval(paint,1500);
   var CSS='@media(min-width:641px){'
     +'#app .p-admin-grid{align-items:start}'
-    +'#app .p-admin-side{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;scrollbar-width:thin}'
+    +'html.ad120-on body,html.ad120-on #app{overflow-x:clip!important;overflow-y:visible!important}'
+    +'#app .p-admin-side{position:sticky;top:calc(var(--ad120-top,0px) + 14px);max-height:calc(100vh - var(--ad120-top,0px) - 28px);overflow:auto;scrollbar-width:thin}'
     +'#app .p-admin-side>section{margin:0 0 10px!important;padding:0 0 8px;border-bottom:1px solid #F0EBDF}#app .p-admin-side>section:last-of-type{border-bottom:0}'
     +'#app .p-admin-side>section>label{display:block;font-size:10.5px!important;letter-spacing:.16em;color:#9A8A62!important;font-weight:800!important;margin:6px 0 4px 10px!important;text-transform:uppercase}'
     +'#app .p-admin-side button.on{position:relative;box-shadow:inset 3px 0 0 #C9A24F!important}'

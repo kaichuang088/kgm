@@ -28,8 +28,8 @@
         if(b&&L.length){var k=norm(b,seg),s=L.filter(function(x){return x.key===k})[0]||L[0],zh=z();
           if(done(s)){var nx=L.filter(function(x){return !done(x)})[0];
             if(!nx){alert(zh?'這筆行程的航段都已完成，已完成的航段無法改票。':'All sectors of this trip have been flown; completed sectors cannot be changed.');return}
-            S.chgNoteR1120A={pnr:pnr,k:nx.key,msg:(zh?'已完成的航段 '+lbl(s)+' 無法改票，已帶到下一段 '+lbl(nx)+'。':'Completed sector '+lbl(s)+' cannot be changed — showing the next sector '+lbl(nx)+'.')};k=nx.key}
-          else k=s.key;
+            S.chgNoteR1120A={pnr:pnr,k:nx.key,at:Date.now(),msg:(zh?'已完成的航段 '+lbl(s)+' 無法改票，已帶到下一段 '+lbl(nx)+'。':'Completed sector '+lbl(s)+' cannot be changed — showing the next sector '+lbl(nx)+'.')};k=nx.key}
+          else{k=s.key;var N0=S.chgNoteR1120A;if(!(N0&&N0.pnr===pnr&&N0.k===k&&Date.now()-(N0.at||0)<3000))S.chgNoteR1120A=null}   /* 直接選還沒飛的航段：不顯示「已帶到下一段」 */
           return O.call(this,pnr,k,tab)}}
       return O.apply(this,arguments)};
     try{Object.keys(O).forEach(function(k){if(!(k in w))w[k]=O[k]})}catch(_){}w.__chg120=1;window.openTicketService=w;try{openTicketService=w}catch(_){}}

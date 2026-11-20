@@ -129,16 +129,20 @@
   /* 1120A L7／L8（使用者：「直飛轉機要分開然後要對齊」「全數賣完不要顯示」）：
      直飛、轉機各一段標題；兩張表的票價欄同寬（卡片對齊）；搜尋的艙等已售完的班次／組合不顯示（只用 CSS 藏，選票價是用清單位置選班，不能從清單拿掉）。 */
   var SOLD=/所選艙等售[罄完]|Sold out in the selected cabin|Selected cabin sold out/i;
-  function selSections(){try{var zh=z();
+  function selSections(){try{var zh=z(),ALL=0,SO=0,VIS=0;
     [['tr.fl-row','d',zh?'直飛':'Nonstop',zh?' 班':' flights'],['tr.k12c-row','c',zh?'轉機':'Connections',zh?' 個組合':' options']].forEach(function(K){
       var rows=[].slice.call(document.querySelectorAll('#app .booking-content '+K[0]));if(!rows.length)return;var t=rows[0].closest('table');if(!t)return;
       var vis=0;rows.forEach(function(r){var tds=r.children,last=tds[tds.length-1],so=!!(last&&SOLD.test(last.textContent||''));if(so!==(r.getAttribute('data-fe120so')==='1')){if(so)r.setAttribute('data-fe120so','1');else r.removeAttribute('data-fe120so')}
         var nx=r.nextElementSibling;if(nx&&!nx.matches(K[0])){if(so)nx.setAttribute('data-fe120so','1');else nx.removeAttribute('data-fe120so')}
-        if(!so&&r.getClientRects().length)vis++});   /* 實際看得到的（篩選 ff19 藏起來的也不算） */
+        if(!so&&r.getClientRects().length)vis++;ALL++;if(so)SO++});   /* 實際看得到的（篩選 ff19 藏起來的也不算） */VIS+=vis;
       var hd=t.previousElementSibling&&t.previousElementSibling.classList&&t.previousElementSibling.classList.contains('fe120-sech')?t.previousElementSibling:null;
       var txt='<b>'+K[2]+'</b><small>'+vis+K[3]+'</small>'+(vis?'':'<em>'+(zh?'這一天搜尋的艙等都已售完':'Sold out on this date')+'</em>');
       if(!hd){hd=document.createElement('div');hd.className='fe120-sech';hd.setAttribute('data-k',K[1]);t.parentNode.insertBefore(hd,t)}
-      if(hd.innerHTML!==txt)hd.innerHTML=txt})}catch(e){try{console.warn('fe120 sel',e)}catch(_){}}}
+      if(hd.innerHTML!==txt)hd.innerHTML=txt});
+    /* ff19 右上角「顯示 n／m 個航班」原本把售完藏起來的也算進去（顯示 6／6，畫面只有 5 個）→ 改成實際看得到的／可訂的，售完幾班另外寫 */
+    if(ALL){[].slice.call(document.querySelectorAll('#app .booking-content span,#app .booking-content em,#app .booking-content div')).some(function(el){if(el.children.length)return false;var m=/^(顯示 )?\d+／\d+ 個航班|^\d+ of \d+ flights/.exec(String(el.textContent||'').trim());if(!m)return false;
+      var t=zh?'顯示 '+VIS+'／'+(ALL-SO)+' 個航班'+(SO?'・全部售完 '+SO+' 班不顯示':''):VIS+' of '+(ALL-SO)+' flights'+(SO?' · '+SO+' sold out hidden':'');if(el.textContent!==t)el.textContent=t;return true})}
+  }catch(e){try{console.warn('fe120 sel',e)}catch(_){}}}
   var PT=0;function hookRender(){var r0=window.render;if(typeof r0!=='function'||r0.__fe118)return;var w=function(){var r=r0.apply(this,arguments);paint();clearTimeout(PT);PT=setTimeout(paint,60);return r};
     try{Object.keys(r0).forEach(function(k){if(!(k in w))w[k]=r0[k]})}catch(_){}w.__fe118=1;window.render=w;try{render=w}catch(_){}}
   hookRender();[0,1500,4000,12000].forEach(function(t){setTimeout(hookRender,t)});setTimeout(paint,300);

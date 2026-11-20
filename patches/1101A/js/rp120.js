@@ -47,9 +47,9 @@
     var h='';if(!F.length)h=zh?'查無 '+E(code)+' 這個航班號。':'No flight '+E(code)+'.';
     else{var fl=function(x){return F.some(function(f){try{return flyOn(f,new Date(x+'T00:00:00'))}catch(_){return false}})},rt=F[0].fr+'→'+F[0].to;
       if(fl(d)){h=(zh?E(code)+'（'+rt+'）'+d+' 有飛，組員班表還在計算這一天，算好會自動顯示。':'Crew for this day is still being computed.');setTimeout(function(){try{if(window.kgmCrewHasDayR121&&window.kgmCrewHasDayR121(d))render();else setTimeout(cqFix,3000)}catch(_){}},3000)}
-      else{var ds=[],days={};for(var i=-7;i<=28&&ds.length<6;i++){var x=add(d,i);if(fl(x)){days[wd(x)]=1;if(i>0||ds.length<2)ds.push(x)}}for(var j=0;j<=28;j++){var y=add(d,j);if(fl(y))days[wd(y)]=1}
+      else{var ds=[],days={};for(var i=-7;i<=366&&ds.length<6;i++){var x=add(d,i);if(fl(x)){days[wd(x)]=1;if(i>0||ds.length<2)ds.push(x)}}var first=ds.filter(function(x){return x>d})[0];if(first)for(var j=0;j<28;j++){var y=add(first,j);if(fl(y))days[wd(y)]=1}   /* 1120A：28 天內沒飛（季節航線）的也找得到，營運日依下一次有飛那段算 */
         var near=ds.filter(function(x){return x>=todayISO()}).slice(0,5);
-        h=(zh?'<b>'+E(code)+'（'+rt+'）'+d+'（週'+wd(d)+'）不飛</b>，所以沒有組員。營運日：週'+W.filter(function(w){return days[w]}).join('、')+'。':'<b>'+E(code)+' does not operate on '+d+'.</b>')
+        h=(zh?'<b>'+E(code)+'（'+rt+'）'+d+'（週'+wd(d)+'）不飛</b>，所以沒有組員。'+(Object.keys(days).length?'營運日：週'+W.filter(function(w){return days[w]}).join('、'):'一年內都沒有營運（可能已停飛或尚未開航）')+'。'+(first&&first>add(d,28)?'下一次營運是 '+first+'（季節航線）。':''):'<b>'+E(code)+' does not operate on '+d+'.</b>')
           +(near.length?'<div class="k120cq">'+(zh?'最近有飛：':'Next: ')+near.map(function(x){return '<button type="button" class="btn btn-sm" onclick="S._cqDate=\''+x+'\';S._cqRun=1;render()">'+x.slice(5).replace('-','/')+'（'+wd(x)+'）</button>'}).join('')+'</div>':'')}}
     el.innerHTML=h;el.setAttribute('data-k120','1')}catch(_){}}
   window.kgmCqFixR1120A=cqFix;
