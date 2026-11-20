@@ -99,6 +99,14 @@
     }catch(e){out.err=String(e&&e.message||e)}window.KGM_IDLESPREAD_R1120A=out;return out};
   (function watch(){var fd=null,t0=0,cov=null;setInterval(function(){var f=window.KGM_FULLDONE_1006A;if(!f)return;if(f!==fd){fd=f;t0=Date.now();cov=null;window.__spread120x=null}var age=Date.now()-t0;if(age<300000){window.kgmStrandHealR1120A();if(age>=125000&&!window.__spread120x){window.__spread120x=fd;window.kgmIdleSpreadR1120A()}}
     /* 排完約 2 分鐘（A35K 輪流等後續步驟做完）還有沒派到飛機的班 → 叫引擎自己的補位（kgmCoverGapsR135，同一套規則）補一次。實測補位約 0.5 秒 */
-    if(age>=120000&&cov!==fd){cov=fd;try{var c=window.kgmLiveCoverR135&&window.kgmLiveCoverR135();if(c&&c.missing>0&&c.missing<=300&&window.kgmCoverGapsR135){var r=window.kgmCoverGapsR135(true);window.KGM_COVER120={before:c.missing,fixed:(r&&r.fixed||[]).length,left:r&&r.left}}else window.KGM_COVER120={before:c?c.missing:null}}catch(_){}}},10000)})();
+    if(age>=120000&&cov!==fd){cov=fd;cover('120s')}},10000)})();
+  /* 1120A 第二輪：vfy6 H19 在整年排班完成後 5 秒就量，原本 120 秒才補 → 缺 2～11 班（換季那天 B779、A35K KX55／KX36）。整年排班一完成 2.5 秒就補一次；
+     不先呼叫 kgmLiveCoverR135（實測一次 7.7 秒主執行緒），直接叫補位（實測 1.75 秒，沒有缺的班就幾乎不做事） */
+  function legs(){var n=0,TA=S.tailAssign||{};for(var t in TA)n+=(TA[t]||[]).length;return n}   /* 拆機收尾有沒有讓航段變少（變少＝有班沒派到飛機）：數一次 196 架，幾乎不花時間 */
+  function cover(tag){try{if(!window.kgmCoverGapsR135)return;var t=performance.now(),r=window.kgmCoverGapsR135(true);(window.KGM_COVER120=window.KGM_COVER120||[]).push({tag:tag,fixed:(r&&r.fixed||[]).length,left:r&&r.left,ms:Math.round(performance.now()-t)})}catch(_){}}
+  (function early(){try{var v=window.KGM_FULLDONE_1006A,d=Object.getOwnPropertyDescriptor(window,'KGM_FULLDONE_1006A');if(d&&(d.get||d.configurable===false))return;
+    Object.defineProperty(window,'KGM_FULLDONE_1006A',{configurable:true,enumerable:true,get:function(){return v},set:function(x){v=x;if(x)setTimeout(function(){cover('fd+0')},0)}})}catch(_){}})();   /* 整年排班完成（設 FULLDONE）的當下補一次 */
+  /* 整年排班之後另外排的拆機收尾（kgmFixSplitR929，1015A KGM_DEFER_SPLIT_R1015A，時間不固定）會把換季那天幾班搬掉 → 它做完馬上再補一次 */
+  (function hookSplit(n){var f=window.kgmFixSplitR929;if(typeof f==='function'&&!f.__eq120){var w=function(){var n0=legs(),r=f.apply(this,arguments);if(window.KGM_FULLDONE_1006A&&legs()<n0)cover('split');return r};try{Object.keys(f).forEach(function(k){w[k]=f[k]})}catch(_){}w.__eq120=1;window.kgmFixSplitR929=w}if(n<20)setTimeout(function(){hookSplit(n+1)},3000)})(0);
   var cl=window.kgmClearEqvPlanR79;if(typeof cl==='function'&&!cl.__eq120){var c2=function(){REC=null;return cl.apply(this,arguments)};c2.__eq120=1;window.kgmClearEqvPlanR79=c2}
 })();
