@@ -1,0 +1,168 @@
+// ===== 1008B：KGM Airways Worker 的兩個 AI 路由 —— 後台 /ai/admin ＋ 前台 /ai/front（整段取代 1008A 那一段）=====
+// 貼進現有 Worker：把下面整段放在檔案最上面（或原本 1008A／1007A 那段 ADMIN_AI_TOOLS／handleAdminAi／handleFrontAi 的位置，整段取代），
+// 再到 export default { async fetch(request, env) { ... } } 的最前面加三行（見檔案最下面）。
+// 需要的 Secret：ANTHROPIC_API_KEY（Cloudflare 後台 → Worker → Settings → Variables）。選用：ALLOWED_ORIGIN
+// （注意：直接用檔案打開網站時網址是 null，若設定了 ALLOWED_ORIGIN 就會被擋；不確定就不要設）。
+//
+// 1008A 改了什麼：
+//  1. 新增工具 crew_trip_change（組員跨日改班：原本某天某班 → 改成另一天另一條航線，回程 DH 或執勤），有完整參數，
+//     例如「K10597 想把 KX152 10-22 改 TPE-KIX 並且改到 10-21 回程 10-23 可以 DH 可以服務 KIX-TPE/UKB-TPE」。
+//  2. system prompt 加一句什麼時候用 crew_trip_change。
+//  3. 網站端：連不上 Worker 時會在回覆下方寫出原因（沒有 /ai/admin 路由、沒有 API Key、ALLOWED_ORIGIN 不符、逾時 45 秒…），
+//     不用再猜是哪一段出問題。
+//
+// 1008B 改了什麼：
+//  1. Claude Opus 5.5 一定會先思考，思考也算在 max_tokens 裡：後台 1024 → 16000、前台 600 → 8000（原本可能還沒呼叫工具就被截斷）。
+//  2. 加上 fallbacks: "default"（被安全分類婉拒時由 Anthropic 自動改用合適的模型重跑），婉拒時回傳明確的錯誤而不是空白。
+//  3. 前台備援模型改成 claude-haiku-5-5（原本寫的是舊的帶日期型號）。
+//  4. 網站 1008B 起也可以不經 Worker、直接用後台這台電腦的 API 金鑰連線；Worker 仍是沒有金鑰時的路線。
+//
+// 1006A／1007A 的內容（工具自動建立、即時營運摘要、前台 /ai/front）照舊。
+
+const ADMIN_AI_TOOLS = [
+  { name: "fare_rule_add", description: "新增特殊票價規則。fr/toAp 可填機場三碼或國家碼(TW/JP/KR/CN/HK/MO)；from/to 是 YYYY-MM-DD；cabin 是 Economy/Premium/Business/First；mul 是倍率(1.15=漲15%，0.9=打9折)；firstSegOnly=true 表示只套在行程第一段",
+    input_schema: { type: "object", properties: { fr:{type:"string"}, toAp:{type:"string"}, from:{type:"string"}, to:{type:"string"}, cabin:{type:"string"}, code:{type:"string"}, mul:{type:"number"}, firstSegOnly:{type:"boolean"}, note:{type:"string"} }, required: ["mul"] } },
+  { name: "fare_rule_list", description: "列出目前生效的特殊票價規則", input_schema: { type: "object", properties: {} } },
+  { name: "fare_rule_remove", description: "停用特殊票價規則（id 或 all=true）", input_schema: { type: "object", properties: { id:{type:"string"}, all:{type:"boolean"} } } },
+  { name: "price_override", description: "艙等全域或航線倍率。scope=global 或 route；route 要 fr、to", input_schema: { type: "object", properties: { scope:{type:"string"}, fr:{type:"string"}, to:{type:"string"}, cabin:{type:"string"}, mul:{type:"number"} }, required: ["cabin","mul"] } },
+  { name: "holiday_add", description: "新增方向性連假：c 國家碼，from/to 日期，zh 名稱，mul 選填", input_schema: { type: "object", properties: { c:{type:"string"}, from:{type:"string"}, to:{type:"string"}, zh:{type:"string"}, mul:{type:"number"} }, required: ["c","from","to"] } },
+  { name: "seat_inventory", description: "設定某班某日某艙等代碼(例如 E-C)的可售座位", input_schema: { type: "object", properties: { code:{type:"string"}, date:{type:"string"}, fare:{type:"string"}, seats:{type:"number"} }, required: ["code","date","fare","seats"] } },
+  { name: "aircraft_swap", description: "某班某日換機型(例如 B789)", input_schema: { type: "object", properties: { code:{type:"string"}, date:{type:"string"}, type:{type:"string"} }, required: ["code","date","type"] } },
+  { name: "crew_swap", description: "組員換班。text 放原始需求（要含員工編號與日期，例如 K60012 10/12 想換到東京的班）；pick 是第幾位候選", input_schema: { type: "object", properties: { text:{type:"string"}, pick:{type:"number"} }, required: ["text"] } },
+  { name: "crew_trip_change", description: "組員跨日改班：把某位組員原本某天的班改成另一天、另一條航線的去程，並安排回程（DH 以旅客身分搭乘或執勤）。網站會在現有班表上列出去程班次、回程選項與原班可接手的同職級組員",
+    input_schema: { type: "object", properties: { empId:{type:"string"}, code:{type:"string",description:"原本的班號，例如 KX152"}, fromDate:{type:"string",description:"原本那班的日期 YYYY-MM-DD"}, toFr:{type:"string"}, toTo:{type:"string"}, toDate:{type:"string",description:"新去程日期 YYYY-MM-DD"}, returnDate:{type:"string"}, returnRoutes:{type:"array",items:{type:"string"},description:"回程可接受的航線，例如 [\"KIX-TPE\",\"UKB-TPE\"]"}, dh:{type:"boolean",description:"回程可以 DH"} }, required: ["empId","toTo","toDate"] } },
+  { name: "crew_swap_approve", description: "核准目前的換班方案並通知組員", input_schema: { type: "object", properties: {} } },
+  { name: "news_post", description: "發布網站新聞", input_schema: { type: "object", properties: { title:{type:"string"}, body:{type:"string"}, tag:{type:"string"} }, required: ["title"] } },
+  { name: "coupon_create", description: "建立優惠碼。type=percent 或 fixed，value 是折扣%或金額，expiry 是 YYYY-MM-DD", input_schema: { type: "object", properties: { code:{type:"string"}, type:{type:"string"}, value:{type:"number"}, expiry:{type:"string"} }, required: ["code","value"] } },
+  { name: "member_suspend", description: "會員停權(on=true)或恢復(on=false)", input_schema: { type: "object", properties: { id:{type:"string"}, on:{type:"boolean"} }, required: ["id","on"] } },
+  { name: "bigdeal_settle", description: "BigDeal 結標", input_schema: { type: "object", properties: { code:{type:"string"}, date:{type:"string"}, cabin:{type:"string"} }, required: ["code","date"] } },
+  { name: "pending_overview", description: "列出目前所有還沒處理的事項（案件、里程購買審查、退款、換班、請假、報帳、旅客回饋…），回答「還有沒有我沒處理的」這類問題時用", input_schema: { type: "object", properties: {} } },
+  { name: "crew_remove", description: "移除某位組員某段日期的班表（例如病假、訓練），系統會自動找人接手並通知所有異動組員。empId 員工編號，from/to 是 YYYY-MM-DD，reason 原因", input_schema: { type: "object", properties: { empId:{type:"string"}, from:{type:"string"}, to:{type:"string"}, reason:{type:"string"} }, required: ["empId","from","reason"] } },
+  { name: "crew_restore", description: "恢復先前被移除的班表。empId 員工編號；id 選填（crew_off_list 列出的編號）", input_schema: { type: "object", properties: { empId:{type:"string"}, id:{type:"string"} } } },
+  { name: "crew_off_list", description: "列出目前被移除中的班表", input_schema: { type: "object", properties: {} } },
+  { name: "crew_update", description: "排班更新：依最新航班、機隊與請假立即重算組員班表", input_schema: { type: "object", properties: {} } },
+  { name: "stx_seats", description: "查某班某日給員工票的剩餘座位（已先扣 DH 組員與哩程升等），code 班號例如 KX20，date 是 YYYY-MM-DD", input_schema: { type: "object", properties: { code:{type:"string"}, date:{type:"string"} }, required: ["code"] } },
+  { name: "go_tab", description: "切換到後台某個分頁，tab 填分頁名稱（例如 票價分析、員工票狀態、組員班表、旅客回饋、里程購買審查）", input_schema: { type: "object", properties: { tab:{type:"string"} }, required: ["tab"] } },
+  { name: "fare_bucket", description: "關閉或重新開放票價家族（基本 Basic／超值 Value／豪華 Deluxe）。action=close 或 open；family 是 Basic/Value/Deluxe；cabin 是 Economy/Premium/Business/First（省略＝所有艙等）；fr、toAp 機場三碼（省略＝所有航線）；from/to 是 YYYY-MM-DD。例：「關閉 2027-01-21～02-10 所有航線經濟艙基本票價」→ action=close, family=Basic, cabin=Economy, from=2027-01-21, to=2027-02-10",
+    input_schema: { type: "object", properties: { action:{type:"string",enum:["close","open"]}, family:{type:"string",enum:["Basic","Value","Deluxe"]}, cabin:{type:"string"}, fr:{type:"string"}, toAp:{type:"string"}, from:{type:"string"}, to:{type:"string"} }, required: ["action","family"] } },
+  { name: "crew_swap_pick", description: "換班時選定第 n 個方案（1–3）並寫入班表。使用者說「選方案 2」「用第二個」時呼叫", input_schema: { type: "object", properties: { n:{type:"number"} }, required: ["n"] } },
+  { name: "set_state", description: "直接修改網站資料 S 的任一欄位（只限系統人員與 CEO）。path 例如 S.priceOverrides.global_Economy", input_schema: { type: "object", properties: { path:{type:"string"}, value:{} }, required: ["path","value"] } }
+];
+
+function corsOf(request, env) {
+  const origin = request.headers.get("Origin") || "*";
+  return {
+    "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json; charset=utf-8"
+  };
+}
+function historyToMessages(history, text) {
+  const h = (history || []).slice(-8).filter(m => m && m.text)
+    .map(m => ({ role: m.role === "user" ? "user" : "assistant", content: String(m.text).slice(0, 2000) }));
+  // Anthropic 要求第一則是 user、user/assistant 交替；最後一則是這次的需求
+  const msgs = [];
+  for (const m of h) { if (!msgs.length && m.role !== "user") continue; if (msgs.length && msgs[msgs.length-1].role === m.role) msgs[msgs.length-1].content += "\n" + m.content; else msgs.push(m); }
+  if (msgs.length && msgs[msgs.length-1].role === "user") msgs.pop();
+  msgs.push({ role: "user", content: String(text || "").slice(0, 2000) });
+  return msgs;
+}
+async function callClaude(env, model, system, tools, messages, maxTokens) {
+  const body = { model, max_tokens: maxTokens || 16000, system, messages, fallbacks: "default" };
+  if (tools && tools.length) body.tools = tools;
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-beta": "server-side-fallback-2026-07-01", "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error("anthropic " + r.status + " " + (await r.text()).slice(0, 200));
+  const j = await r.json();
+  if (j.stop_reason === "refusal") throw new Error("declined by safety classifier" + (j.stop_details && j.stop_details.category ? " (" + j.stop_details.category + ")" : ""));
+  return j;
+}
+async function callWithFallback(env, primary, fallback, system, tools, messages, maxTokens) {
+  try { return { j: await callClaude(env, primary, system, tools, messages, maxTokens), used: primary }; }
+  catch (e1) { return { j: await callClaude(env, fallback, system, tools, messages, maxTokens), used: fallback }; }
+}
+
+async function handleAdminAi(request, env) {
+  const cors = corsOf(request, env), origin = request.headers.get("Origin") || "*";
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  if (request.method !== "POST") return new Response(JSON.stringify({ error: "POST only" }), { status: 405, headers: cors });
+  if (env.ALLOWED_ORIGIN && origin !== env.ALLOWED_ORIGIN) return new Response(JSON.stringify({ error: "origin" }), { status: 403, headers: cors });
+  if (!env.ANTHROPIC_API_KEY) return new Response(JSON.stringify({ error: "no key" }), { status: 500, headers: cors });
+  let b;
+  try { b = await request.json(); } catch (e) { return new Response(JSON.stringify({ error: "bad json" }), { status: 400, headers: cors }); }
+
+  // 網站送來的工具清單（名稱＋說明）：這裡有寫參數的用這裡的；沒有的自動建立（參數由 Claude 依說明填）
+  const site = (b.tools || []).filter(t => t && t.name);
+  const known = new Map(ADMIN_AI_TOOLS.map(t => [t.name, t]));
+  const tools = site.length
+    ? site.map(t => known.get(t.name) || { name: t.name, description: String(t.desc || t.name).slice(0, 400), input_schema: { type: "object", properties: {}, additionalProperties: true } })
+    : ADMIN_AI_TOOLS;
+
+  const system =
+    "你是 KGM Airways 管理後台的 AI 助理。今天是 " + (b.today || "") + "。登入者職務：" + (b.role || "") + "，員工編號 " + (b.empId || "") + "。\n" +
+    "要改資料就呼叫工具；一次需求可以呼叫多個工具。日期一律用 YYYY-MM-DD（沒寫年份就用今天之後最近的那一天；寫了年份就照寫的年份）。\n" +
+    "權限由網站端依職務檢查，沒有權限的工具網站會回覆「無權限」，你不用自己判斷。\n" +
+    "只是問問題（例如營運概況、還有什麼沒處理）就直接用文字回答，依下面的即時營運摘要，不要編造摘要裡沒有的數字；要看某個頁面才呼叫 go_tab。\n" +
+    "關閉或重新開放某個票價家族（基本／超值／豪華）一定用 fare_bucket，不要用 fare_rule_add。\n" +
+    "組員請假、生病、要拿掉某幾天的班：用 crew_remove（一定要有員工編號、日期與原因，缺就反問）；反悔用 crew_restore。換班選方案用 crew_swap_pick。\n" +
+    "同一天兩位組員對調用 crew_swap；某位組員要把某天的班改到另一天、另一條航線（含回程 DH）用 crew_trip_change，參數照需求填。\n" +
+    "問員工票還有幾位、某班能不能上員工票：用 stx_seats。\n" +
+    "看不懂或缺資料時不要亂猜，直接用一句中文反問。回覆一律用繁體中文，簡短。\n\n" +
+    "【即時營運摘要（網站提供）】\n" + String(b.context || "（無）").slice(0, 3000);
+
+  let out;
+  try { out = await callWithFallback(env, b.model || "claude-opus-5-5", b.fallbackModel || "claude-sonnet-5-5", system, tools, historyToMessages(b.history, b.text), 16000); }
+  catch (e) { return new Response(JSON.stringify({ error: String(e.message || e) }), { status: 502, headers: cors }); }
+  const j = out.j;
+  const reply = (j.content || []).filter(c => c.type === "text").map(c => c.text).join("\n").trim();
+  const actions = (j.content || []).filter(c => c.type === "tool_use").map(c => ({ tool: c.name, args: c.input || {} }));
+  return new Response(JSON.stringify({ reply, actions, model: out.used }), { headers: cors });
+}
+
+const FRONT_AI_TOOLS = [
+  { name: "search_flights", description: "幫旅客打開航班搜尋結果。fr、to 是機場三碼（台北桃園 TPE、松山 TSA、東京成田 NRT、羽田 HND、首爾仁川 ICN、金浦 GMP…；說「東京」就用 NRT）；date、ret 是 YYYY-MM-DD（ret 省略＝單程）；cabin 是 economy/premium/business/first；pax 人數",
+    input_schema: { type: "object", properties: { fr:{type:"string"}, to:{type:"string"}, date:{type:"string"}, ret:{type:"string"}, cabin:{type:"string"}, pax:{type:"number"} }, required: ["fr","to","date"] } },
+  { name: "open_page", description: "打開網站頁面：trips（行程管理）、upgrade（里程升等）、status（航班動態）、profile（會員／里程）", input_schema: { type: "object", properties: { page:{type:"string",enum:["trips","upgrade","status","profile"]} }, required: ["page"] } },
+  { name: "handoff_agent", description: "旅客要找真人客服，或問題需要人工處理（改名、特殊退款、客訴、需要查訂位細節）時呼叫", input_schema: { type: "object", properties: {} } }
+];
+
+async function handleFrontAi(request, env) {
+  const cors = corsOf(request, env), origin = request.headers.get("Origin") || "*";
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  if (request.method !== "POST") return new Response(JSON.stringify({ error: "POST only" }), { status: 405, headers: cors });
+  if (env.ALLOWED_ORIGIN && origin !== env.ALLOWED_ORIGIN) return new Response(JSON.stringify({ error: "origin" }), { status: 403, headers: cors });
+  if (!env.ANTHROPIC_API_KEY) return new Response(JSON.stringify({ error: "no key" }), { status: 500, headers: cors });
+  let b;
+  try { b = await request.json(); } catch (e) { return new Response(JSON.stringify({ error: "bad json" }), { status: 400, headers: cors }); }
+  const en = b.lang === "en";
+  const pol = (b.policy || []).slice(0, 3).map((p, i) => (i + 1) + ". " + String(p).slice(0, 1200)).join("\n");
+  const mem = b.member ? ("旅客已登入：卡等 " + (b.member.tier || "—") + "，可用里程 " + (b.member.miles || 0) + "。") : "旅客未登入。";
+  const sr = b.search && b.search.fr ? ("旅客目前的搜尋條件：" + b.search.fr + "→" + b.search.to + " " + (b.search.dep || "") + (b.search.ret ? " 回程 " + b.search.ret : "") + "。") : "";
+  const system =
+    "你是 KGM Airways 官網的客服小幫手。今天是 " + (b.today || "") + "。旅客正在看「" + (b.page || "home") + "」頁。" + mem + sr + "\n" +
+    "回答依據只限下面的 KGM 規章條文與網站提供的資料；條文沒寫的（票價、剩餘座位、航班是否有位）不要猜，請旅客用 search_flights 打開搜尋結果看，或轉真人客服。\n" +
+    "引用規定時說明是哪一份規定第幾條。旅客要查航班就呼叫 search_flights（日期沒寫年份就用今天之後最近的那一天；「下個月」「最便宜哪天」先挑下個月中旬的一天打開，提醒旅客可以在結果頁切換日期比價）。\n" +
+    "旅客要找真人、或需要人工處理的事就呼叫 handoff_agent。不要承諾退款或賠償金額。\n" +
+    (en ? "Reply in English, briefly." : "一律用繁體中文回答，口吻親切、簡短（三到五句）。") + "\n\n" +
+    "【相關規章條文】\n" + (pol || "（沒有找到相關條文）");
+  let out;
+  try { out = await callWithFallback(env, b.model || "claude-sonnet-5-5", b.fallbackModel || "claude-haiku-5-5", system, FRONT_AI_TOOLS, historyToMessages(b.history, b.text), 8000); }
+  catch (e) { return new Response(JSON.stringify({ error: String(e.message || e) }), { status: 502, headers: cors }); }
+  const j = out.j;
+  const reply = (j.content || []).filter(c => c.type === "text").map(c => c.text).join("\n").trim();
+  const tu = (j.content || []).filter(c => c.type === "tool_use")[0];
+  let action = null;
+  if (tu && tu.name === "search_flights") action = Object.assign({ type: "search" }, tu.input || {});
+  if (tu && tu.name === "open_page") action = { type: "open", page: (tu.input || {}).page };
+  if (tu && tu.name === "handoff_agent") action = { type: "handoff" };
+  return new Response(JSON.stringify({ reply, action, model: out.used }), { headers: cors });
+}
+
+// ===== 在現有的 export default { async fetch(request, env) { ... } } 最前面加這三行 =====
+//   const url = new URL(request.url);
+//   if (url.pathname === "/ai/admin") return handleAdminAi(request, env);
+//   if (url.pathname === "/ai/front") return handleFrontAi(request, env);

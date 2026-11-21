@@ -1,0 +1,8 @@
+        +'<section><h4>🤖 '+(Z()?'AI 換班':'AI swap')+'</h4><p>'+(Z()?'直接寫需求，例如「K60012 10/12 想換到東京的班」「K60012 和 K60045 10/12 對調」。':'e.g. "K60012 wants a Tokyo flight on 10/12".')+'</p>'
+          +'<textarea id="k928aiTxt" class="inp" rows="2" placeholder="'+(Z()?'K60012 10/12 想換到 LAX 的班':'K60012 10/12 to LAX')+'">'+E(window.__k928aiTxt||(r&&r.text)||'')+'</textarea>'
+          +'<div class="k928-ct-act"><button class="btn btn-g btn-sm" onclick="kgmCrewAiAskR928()">'+(Z()?'請 AI 規劃':'Ask AI')+'</button>'+(r?'<button class="btn btn-sm" onclick="kgmCrewAiClearR928()">'+(Z()?'清除':'Clear')+'</button>':'')+'</div>'
+          +(r?'<div class="k928-ai-r '+(r.ok?'ok':'bad')+'">'+r.msgs.map(function(m){return '<p>'+E(m)+'</p>'}).join('')
+            +(r.X&&r.Y?'<div class="k928-ai-two">'+rosterTbl(r.X)+rosterTbl(r.Y)+'</div>':'')
+            +(r.ok&&!r.approved?'<button class="btn btn-g" onclick="kgmCrewAiApproveR928()">'+(Z()?'核准，更新班表並通知':'Approve & notify')+'</button>':'')
+            +(r.approved?'<p class="k928-ok">✓ '+(Z()?'已核准寫入，':'Approved, ')+E(r.approvedAt.replace('T',' ').slice(0,16))+'</p>':'')+'</div>':'')
+        +'</section>'

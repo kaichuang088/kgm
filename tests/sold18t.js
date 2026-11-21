@@ -1,0 +1,20 @@
+const {chromium}=require('playwright');
+(async()=>{const f=process.argv[2];const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:1400,height:1000}});const p=await ctx.newPage();
+const errs=[];p.on('pageerror',e=>errs.push(String(e.message).slice(0,150)));
+await p.goto('file://'+f,{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(15000);
+const found=await p.evaluate(()=>{const out=[];const T0=todayISO();
+ for(let i=1;i<40&&out.length<6;i++){const d=addDays(T0,i);FLIGHTS.forEach(x=>{if(!x||x.partner||x.via||out.length>=6)return;let on=false;try{on=flyOn(x,new Date(d+'T12:00:00'))}catch(_){}if(!on)return;
+   const g=Object.assign({},x,{date:d});let vc=[];try{vc=validCodes(g)}catch(_){}const eco=CAB_CODES('Economy').filter(c=>vc.includes(c));if(!eco.length)return;
+   const so=kgmSoldFamR1018B('Economy',eco);if(so.length)out.push({code:x.code,fr:x.fr,to:x.to,date:d,avail:eco,sold:so})})}return out});
+console.log(JSON.stringify(found));
+const t=found[0];if(!t){console.log('none');await b.close();return}
+await p.evaluate((t)=>{S.view='booking';S.phase='sel_out';S.search=Object.assign(S.search||{},{fr:t.fr,to:t.to,dep:t.date,type:'OW',pax:1,cabin:'Economy',useMiles:false});render()},t);
+await p.waitForTimeout(2500);
+const op=await p.evaluate((t)=>{const btns=[...document.querySelectorAll('button[id^="fb"]')];for(const bt of btns){const tr=bt.closest('tr');if(tr&&tr.textContent.includes(t.code)){bt.click();return bt.id}}return null},t);
+await p.waitForTimeout(1500);console.log('opened',op);
+const cards=await p.evaluate(()=>[...document.querySelectorAll('.k929-fare')].filter(e=>e.getBoundingClientRect().width>0).map(a=>(a.classList.contains('sold')?'[SOLD] ':'')+a.querySelector('.k929-nm')?.textContent+' | '+a.querySelector('.k929-pr')?.textContent+' | '+a.querySelector('.k929-sub')?.textContent+' | '+(a.querySelector('button')?.textContent)+' disabled='+!!a.querySelector('button[disabled]')));
+console.log(JSON.stringify(cards,null,1));
+const rc=await p.evaluate(()=>{const a=[...document.querySelectorAll('.k929-fare.sold')].filter(e=>e.getBoundingClientRect().width>0);if(!a.length)return null;a[0].scrollIntoView({block:'center'});const r=a[0].parentElement.parentElement.getBoundingClientRect();return {y:r.y,h:r.height,n:a.length}});
+console.log('rc',JSON.stringify(rc));await p.waitForTimeout(500);
+if(rc)await p.screenshot({path:'/tmp/claude-0/-home-user-kgm/1b8a8568-8f05-5001-a981-2589b9539787/scratchpad/sold18.png',clip:{x:0,y:Math.max(0,rc.y-90),width:1400,height:Math.min(900,1000-Math.max(0,rc.y-90))}});
+console.log('ERR',JSON.stringify(errs));await b.close()})();

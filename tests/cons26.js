@@ -1,0 +1,10 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext()).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file:///tmp/j/'+(process.argv[2]||'kgm.html'),{waitUntil:'domcontentloaded'});await p.waitForTimeout(15000);
+const r=await p.evaluate(()=>{const dates=['2026-11-02','2027-01-15','2027-04-20','2027-07-15','2027-10-05'];const own=FLIGHTS.filter(f=>f&&!f.partner&&/^KX\d+$/.test(f.code));
+ const pairs=[...new Set(own.map(f=>f.fr+'|'+f.to))];let n=0,bad=[];
+ dates.forEach(d=>pairs.forEach(pq=>{const [fr,to]=pq.split('|');const L=sortedFlights(fr,to,d)||[];L.forEach(it=>{if(!it||it.partner||!/^KX\d+$/.test(it.code))return;
+   const rows=own.filter(f=>f.code===it.code&&f.fr===it.fr&&f.to===it.to&&(f.via||'')===(it.via||''));if(!rows.length)return;n++;
+   const ok=rows.some(f=>{const s=kgmSeasonFlightR48(f,d);return s.dep===it.dep&&s.arr===it.arr});if(!ok&&bad.length<30){const s=kgmSeasonFlightR48(rows[0],d);bad.push(d+' '+it.code+' '+fr+to+(it.via?'/'+it.via:'')+' sf '+it.dep+'-'+it.arr+' season '+s.dep+'-'+s.arr)}})}));
+ return {n,bad}});
+console.log(JSON.stringify(r,null,1),errs.slice(0,2));await b.close()})();

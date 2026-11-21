@@ -1,0 +1,10 @@
+const {chromium}=require('playwright');const SP='/tmp/claude-0/-home-user-kgm/1b8a8568-8f05-5001-a981-2589b9539787/scratchpad/fd22/';
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();const errs=[];p.on('pageerror',e=>{if(!/寄信/.test(e.message))errs.push(e.message)});p.on('dialog',d=>d.accept());
+await p.goto('file://'+process.argv[2],{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(8000);
+await p.evaluate(()=>{S.view='admin';S.adminAuthed=true;S.adminUser={empId:'MASTER',name:'主控管理員',role:'ceo'};S.adminTab='cases0831B';render()});
+await p.waitForTimeout(30000);
+console.log(await p.evaluate(()=>{const L=(S.staffCasesR1007A||[]).filter(c=>c.simR1022A);const ty={};L.forEach(c=>ty[c.type]=(ty[c.type]||0)+1);
+ const bk=L.every(c=>(S.bookings||[]).some(b=>b.pnr===c.pnr));return 'sim cases '+L.length+' types '+JSON.stringify(ty)+' all PNRs exist '+bk+' sample '+JSON.stringify(L.slice(0,2).map(c=>({no:c.caseNo,pnr:c.pnr,t:c.type,st:c.status,seg:c.segment,prog:c.progress.length})))}));
+await p.evaluate(()=>{render()});await p.waitForTimeout(800);await p.screenshot({path:SP+'cases.png'});
+console.log(await p.evaluate(()=>{const n0=(S.staffCasesR1007A||[]).length;const k=kgmCaseSimR1022A(6);return 'more '+k+' total '+(S.staffCasesR1007A||[]).length+' (was '+n0+') btn '+!!document.querySelector('.k22-csim')}));
+console.log('errs',errs.slice(0,3));await b.close()})();

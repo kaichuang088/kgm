@@ -1,0 +1,11 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1500,height:1000}})).newPage();
+ const errs=[];p.on('pageerror',e=>errs.push(String(e.message).slice(0,120)));
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});
+ await p.waitForFunction(()=>{const a=document.getElementById("app");return a&&a.innerHTML.length>5000},null,{timeout:300000});
+ await p.waitForTimeout(45000);
+ console.log('TITLE',await p.title());
+ console.log('BADGE',await p.evaluate(()=>{const b=document.getElementById('kgmBuildBadge');return b?b.textContent:null}));
+ console.log('BUILD',await p.evaluate(()=>window.KGM_BUILD||window.BUILD));
+ console.log('ERR',errs.filter(e=>!/寄信服務/.test(e)).slice(0,5));
+ await b.close();})();

@@ -1,0 +1,177 @@
+import json
+out=[]
+def R(label,old,new,cnt=1):
+    out.append('R(%s,%s,%s,%d);'%(json.dumps(label),json.dumps(old,ensure_ascii=False),json.dumps(new,ensure_ascii=False),cnt))
+hdr='''/* 0928B · 所有輸入信用卡的地方都用訂機票那一版的信用卡介面（使用者：「所有要輸入信用卡的地方都要用新版信用卡輸入介面（訂機票的輸入信用卡介面）」「圖四是正確的所有信用卡付款頁面應有的格式」）
+   做法：不另做一套 —— 訂位付款頁的 kgmCardFormR923 本身加上參數（各頁自己的欄位 id、是否要持卡人聯絡資訊），
+   卡片預覽／卡別判斷／月年下拉／畫面重畫不洗掉輸入，都用同一份程式（kgmCardLiveR923 改成找「所在的那張卡」而不是寫死 id）。
+   訂位付款頁不給參數 → 跟原本一模一樣（id、草稿、Residence 說明都不變）。
+   套用到實際在用的四個地方：購買里程付款視窗、付款連結頁（r45）、預購行李付款（r7）、會員資料變更加急費（r2）。
+   舊的 bigdealCC／changePay 視窗與 r11 Residence 分卡付款已經沒有入口（死碼），沒有動。 */
+'''
+old_live_start="""function kgmCardLiveR923(el){
+  try{
+    var d=kgmCardDraftR923(),g=function(id){return document.getElementById(id)};
+    if(el&&el.id==='cnum'){
+      var raw=el.value.replace(/\\D/g,'').slice(0,19);
+      var f=raw.replace(/(.{4})/g,'$1 ').trim();
+      if(f!==el.value)el.value=f;
+    }
+    if(el&&el.id==='cname'){var up=el.value.toUpperCase();if(up!==el.value)el.value=up}
+    if(el&&el.id==='ccvv'){var cv=el.value.replace(/\\D/g,'').slice(0,4);if(cv!==el.value)el.value=cv}
+    var m=(g('cexpM')||{}).value||'',y=(g('cexpY')||{}).value||'';
+    /* 只有動到月／年下拉時才改寫到期日；其他欄位輸入不能把已填好的到期日洗掉 */
+    if(g('cexp')&&el&&(el.id==='cexpM'||el.id==='cexpY'))g('cexp').value=(m&&y)?(m+'/'+y):'';
+    var ex=((g('cexp')||{}).value||'').split('/');
+    if(!m&&ex.length===2)m=ex[0];if(!y&&ex.length===2)y=ex[1];
+    ['cname','cnum','cexpM','cexpY','ccEmail','ccCc','ccTel'].forEach(function(id){var e=g(id);if(e)d[id]=e.value});
+    var num=(g('cnum')||{}).value||'';
+    var br=kgmCardBrandR923(num);
+    var pn=g('k923ccNum');if(pn)pn.textContent=(num.replace(/\\D/g,'')+'••••••••••••••••').slice(0,16).replace(/(.{4})/g,'$1 ').trim();
+    var pm=g('k923ccName');if(pm)pm.textContent=((g('cname')||{}).value||'').trim()||(LANG==='en'?'CARDHOLDER NAME':'持卡人姓名');
+    var pe=g('k923ccExp');if(pe)pe.textContent=(m||'MM')+'/'+(y||'YY');
+    var pb=g('k923ccBrand');if(pb)pb.textContent=br||'CARD';
+    var box=g('k923ccCard');if(box)box.setAttribute('data-brand',br||'');
+    [].slice.call(document.querySelectorAll('.k923cc-brands i')).forEach(function(i){
+      i.classList.toggle('on',!!br&&i.getAttribute('data-b')===br)});
+  }catch(_){}
+}"""
+new_live_start="""/* 0928B：其他付款頁用自己的草稿（依 key 分開，只在記憶體） */
+function kgmCardDraftXR928(k){var a=(window.__kgmCardDraft928=window.__kgmCardDraft928||{});return (a[k]=a[k]||{})}
+function kgmCardLiveR923(el){
+  try{
+    /* 0928B：找輸入框所在的那一張卡（.k923cc），用 data-k／data-p 找欄位與預覽；訂位頁照舊用原本的 id */
+    var wrap=(el&&el.closest)?el.closest('.k923cc'):null,ID={num:'cnum',name:'cname',expM:'cexpM',expY:'cexpY',exp:'cexp',cvv:'ccvv',email:'ccEmail',cc:'ccCc',tel:'ccTel'};
+    var g=function(k){return (wrap&&wrap.querySelector('[data-k="'+k+'"]'))||(wrap&&wrap.getAttribute('data-key')?null:document.getElementById(ID[k]))};
+    var P=function(k){return (wrap&&wrap.querySelector('[data-p="'+k+'"]'))||(wrap&&wrap.getAttribute('data-key')?null:document.getElementById('k923cc'+k))};
+    var dk=wrap&&wrap.getAttribute('data-key'),d=dk?kgmCardDraftXR928(dk):kgmCardDraftR923();
+    var role=el?(el.getAttribute('data-k')||({cnum:'num',cname:'name',ccvv:'cvv',cexpM:'expM',cexpY:'expY'})[el.id]||''):'';
+    if(role==='num'){
+      var raw=el.value.replace(/\\D/g,'').slice(0,19);
+      var f=raw.replace(/(.{4})/g,'$1 ').trim();
+      if(f!==el.value)el.value=f;
+    }
+    if(role==='name'){var up=el.value.toUpperCase();if(up!==el.value)el.value=up}
+    if(role==='cvv'){var cv=el.value.replace(/\\D/g,'').slice(0,4);if(cv!==el.value)el.value=cv}
+    var m=(g('expM')||{}).value||'',y=(g('expY')||{}).value||'';
+    /* 只有動到月／年下拉時才改寫到期日；其他欄位輸入不能把已填好的到期日洗掉 */
+    if(g('exp')&&el&&(role==='expM'||role==='expY'))g('exp').value=(m&&y)?(m+'/'+y):'';
+    var ex=((g('exp')||{}).value||'').split('/');
+    if(!m&&ex.length===2)m=ex[0];if(!y&&ex.length===2)y=ex[1];
+    [['name','cname'],['num','cnum'],['expM','cexpM'],['expY','cexpY'],['email','ccEmail'],['cc','ccCc'],['tel','ccTel']].forEach(function(x){var e=g(x[0]);if(e)d[x[1]]=e.value});
+    var num=(g('num')||{}).value||'';
+    var br=kgmCardBrandR923(num);
+    var pn=P('Num');if(pn)pn.textContent=(num.replace(/\\D/g,'')+'••••••••••••••••').slice(0,16).replace(/(.{4})/g,'$1 ').trim();
+    var pm=P('Name');if(pm)pm.textContent=((g('name')||{}).value||'').trim()||(LANG==='en'?'CARDHOLDER NAME':'持卡人姓名');
+    var pe=P('Exp');if(pe)pe.textContent=(m||'MM')+'/'+(y||'YY');
+    var pb=P('Brand');if(pb)pb.textContent=br||'CARD';
+    var box=P('Card');if(box)box.setAttribute('data-brand',br||'');
+    [].slice.call((wrap||document).querySelectorAll('.k923cc-brands i')).forEach(function(i){
+      i.classList.toggle('on',!!br&&i.getAttribute('data-b')===br)});
+  }catch(_){}
+}"""
+R('card live generic',old_live_start,new_live_start)
+
+R('card form head',
+"""function kgmCardFormR923(){
+  var en=(typeof LANG!=='undefined'&&LANG==='en'),d=kgmCardDraftR923();
+  var p=((S.paxList||[])[0])||{};""",
+"""function kgmCardFormR923(o){
+  /* 0928B：o = {key, ids:{num,name,expM,expY,exp,cvv,email,cc,tel}, contact, email, tel, ssl}；不給 o 就是訂位付款頁原樣 */
+  o=o||{};var I=Object.assign({num:'cnum',name:'cname',expM:'cexpM',expY:'cexpY',exp:'cexp',cvv:'ccvv',email:'ccEmail',cc:'ccCc',tel:'ccTel'},o.ids||{}),X=!!o.key;
+  var en=(typeof LANG!=='undefined'&&LANG==='en'),d=X?kgmCardDraftXR928(o.key):kgmCardDraftR923();
+  var p=X?{email:o.email||'',phone:o.tel||'',countryCode:o.cc||''}:(((S.paxList||[])[0])||{});
+  var pid=function(k){return X?'':' id="k923cc'+k+'"'};""")
+R('card form res note',
+"""  var res=null;try{res=S.resBidSegR923&&(S.resBidSegR923.out||S.resBidSegR923.inb)}catch(_){}""",
+"""  var res=null;try{res=!X&&S.resBidSegR923&&(S.resBidSegR923.out||S.resBidSegR923.inb)}catch(_){}""")
+# container query for embedded forms
+R('card form css x',
+"""   +'@media(max-width:760px){.k923cc{padding:16px 14px}""",
+"""   +'.k923cc-x{container-type:inline-size;margin:14px 0}.k923cc-x .k923cc-grid{grid-template-columns:minmax(230px,300px) minmax(0,1fr)}'
+   +'@container (max-width:560px){.k923cc-x .k923cc-grid{grid-template-columns:1fr}.k923cc-x .k923cc-card{max-width:330px}}'
+   +'@media(max-width:760px){.k923cc{padding:16px 14px}""")
+R('card form wrap',
+"""   +'<div class="k923cc">'
+   +'<div class="k923cc-h"><b>'+L('信用卡付款','Pay by card')+'</b>'""",
+"""   +'<div class="k923cc'+(X?' k923cc-x" data-key="'+esc(o.key):'')+'">'
+   +'<div class="k923cc-h"><b>'+L('信用卡付款','Pay by card')+'</b>'""")
+R('card form preview ids',
+"""       +'<div class="k923cc-card" id="k923ccCard" data-brand="'+esc(br)+'">'
+         +'<div class="k923cc-top"><span class="k923cc-logo">KGM <em>AIRWAYS</em></span><span class="k923cc-br" id="k923ccBrand">'+esc(br||'CARD')+'</span></div>'
+         +'<div class="k923cc-chip"></div>'
+         +'<div class="k923cc-num" id="k923ccNum">'+esc((num.replace(/\\D/g,'')+'••••••••••••••••').slice(0,16).replace(/(.{4})/g,'$1 ').trim())+'</div>'
+         +'<div class="k923cc-bot"><div><small>CARDHOLDER</small><span id="k923ccName">'+esc(d.cname||L('持卡人姓名','CARDHOLDER NAME'))+'</span></div>'
+           +'<div style="text-align:right"><small>VALID THRU</small><span id="k923ccExp">'+esc((m||'MM')+'/'+(y||'YY'))+'</span></div></div>'""",
+"""       +'<div class="k923cc-card"'+pid('Card')+' data-p="Card" data-brand="'+esc(br)+'">'
+         +'<div class="k923cc-top"><span class="k923cc-logo">KGM <em>AIRWAYS</em></span><span class="k923cc-br"'+pid('Brand')+' data-p="Brand">'+esc(br||'CARD')+'</span></div>'
+         +'<div class="k923cc-chip"></div>'
+         +'<div class="k923cc-num"'+pid('Num')+' data-p="Num">'+esc((num.replace(/\\D/g,'')+'••••••••••••••••').slice(0,16).replace(/(.{4})/g,'$1 ').trim())+'</div>'
+         +'<div class="k923cc-bot"><div><small>CARDHOLDER</small><span'+pid('Name')+' data-p="Name">'+esc(d.cname||L('持卡人姓名','CARDHOLDER NAME'))+'</span></div>'
+           +'<div style="text-align:right"><small>VALID THRU</small><span'+pid('Exp')+' data-p="Exp">'+esc((m||'MM')+'/'+(y||'YY'))+'</span></div></div>'""")
+R('card form fields',
+"""         +'<input id="cnum" class="inp" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" value="'+v('cnum')+'" oninput="kgmCardLiveR923(this)"></div>'
+       +'<div class="k923cc-row k923cc-r3">'
+         +'<div><label>'+L('有效期限（月）','Expiry month')+'<span class="req">*</span></label><select id="cexpM" class="inp" autocomplete="cc-exp-month" onchange="kgmCardLiveR923(this)"><option value="">MM</option>'+mo+'</select></div>'
+         +'<div><label>'+L('有效期限（年）','Expiry year')+'<span class="req">*</span></label><select id="cexpY" class="inp" autocomplete="cc-exp-year" onchange="kgmCardLiveR923(this)"><option value="">YYYY</option>'+yo+'</select></div>'
+         +'<div><label>'+L('安全碼 CVV','CVV')+'<span class="req">*</span></label><input id="ccvv" class="inp" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4" oninput="kgmCardLiveR923(this)"></div>'
+       +'</div>'
+       +'<input type="hidden" id="cexp" value="'+esc((m&&y)?(m+'/'+y):'')+'">'
+       +'<div class="k923cc-row"><label>'+L('持卡人姓名（與卡片上相同）','Name on card')+'<span class="req">*</span></label>'
+         +'<input id="cname" class="inp" autocomplete="cc-name" placeholder="CHUANG MING JIE" value="'+v('cname')+'" oninput="kgmCardLiveR923(this)"></div>'
+       +'<div class="k923cc-sec"><h4>'+L('持卡人聯絡資訊','Cardholder contact')+'</h4>'
+         +'<div class="k923cc-row"><label>'+L('電子郵件','Email')+'</label><input id="ccEmail" class="inp" type="email" value="'+v('ccEmail',p.email||'')+'" oninput="kgmCardLiveR923(this)"></div>'
+         +'<div class="k923cc-row k923cc-r2"><div><label>'+L('國家/地區碼','Country code')+'</label><select id="ccCc" class="inp" onchange="kgmCardLiveR923(this)">'
+           +ccs.map(function(c){return '<option'+(c===ccSel?' selected':'')+'>'+c+'</option>'}).join('')+'</select></div>'
+           +'<div><label>'+L('電話號碼','Phone')+'</label><input id="ccTel" class="inp" inputmode="tel" value="'+v('ccTel',p.phone||'')+'" oninput="kgmCardLiveR923(this)"></div></div>'
+       +'</div>'
+     +'</div>'
+   +'</div>'
+   +'<div class="k923cc-ssl"><b>SSL</b>'+L('256-bit 加密傳輸。按下「確認付款」後才會扣款。','256-bit encrypted. Your card is charged only when you press Confirm payment.')+'</div>'""",
+"""         +'<input id="'+I.num+'" data-k="num" class="inp" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" value="'+v('cnum')+'" oninput="kgmCardLiveR923(this)"></div>'
+       +'<div class="k923cc-row k923cc-r3">'
+         +'<div><label>'+L('有效期限（月）','Expiry month')+'<span class="req">*</span></label><select id="'+I.expM+'" data-k="expM" class="inp" autocomplete="cc-exp-month" onchange="kgmCardLiveR923(this)"><option value="">MM</option>'+mo+'</select></div>'
+         +'<div><label>'+L('有效期限（年）','Expiry year')+'<span class="req">*</span></label><select id="'+I.expY+'" data-k="expY" class="inp" autocomplete="cc-exp-year" onchange="kgmCardLiveR923(this)"><option value="">YYYY</option>'+yo+'</select></div>'
+         +'<div><label>'+L('安全碼 CVV','CVV')+'<span class="req">*</span></label><input id="'+I.cvv+'" data-k="cvv" class="inp" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4" oninput="kgmCardLiveR923(this)"></div>'
+       +'</div>'
+       +'<input type="hidden" id="'+I.exp+'" data-k="exp" value="'+esc((m&&y)?(m+'/'+y):'')+'">'
+       +'<div class="k923cc-row"><label>'+L('持卡人姓名（與卡片上相同）','Name on card')+'<span class="req">*</span></label>'
+         +'<input id="'+I.name+'" data-k="name" class="inp" autocomplete="cc-name" placeholder="CHUANG MING JIE" value="'+v('cname')+'" oninput="kgmCardLiveR923(this)"></div>'
+       +(o.contact===false?'':'<div class="k923cc-sec"><h4>'+L('持卡人聯絡資訊','Cardholder contact')+'</h4>'
+         +'<div class="k923cc-row"><label>'+L('電子郵件','Email')+'</label><input id="'+I.email+'" data-k="email" class="inp" type="email" value="'+v('ccEmail',p.email||'')+'" oninput="kgmCardLiveR923(this)"></div>'
+         +'<div class="k923cc-row k923cc-r2"><div><label>'+L('國家/地區碼','Country code')+'</label><select id="'+I.cc+'" data-k="cc" class="inp" onchange="kgmCardLiveR923(this)">'
+           +ccs.map(function(c){return '<option'+(c===ccSel?' selected':'')+'>'+c+'</option>'}).join('')+'</select></div>'
+           +'<div><label>'+L('電話號碼','Phone')+'</label><input id="'+I.tel+'" data-k="tel" class="inp" inputmode="tel" value="'+v('ccTel',p.phone||'')+'" oninput="kgmCardLiveR923(this)"></div></div>'
+       +'</div>')
+     +'</div>'
+   +'</div>'
+   +'<div class="k923cc-ssl"><b>SSL</b>'+(o.ssl||L('256-bit 加密傳輸。按下「確認付款」後才會扣款。','256-bit encrypted. Your card is charged only when you press Confirm payment.'))+'</div>'""")
+
+# ---- apply: buy miles modal (0809D) ----
+R('card bm modal',
+"""<div><label>信用卡號碼</label><input id="bmCC" class="inp" placeholder="1234 5678 9012 3456"></div><div><label>有效期限</label><input id="bmExp" class="inp" placeholder="MM/YY"></div><div><label>CVV</label><input id="bmCVV" class="inp" placeholder="123" type="password"></div></div>""",
+"""</div>'+kgmCardFormR923({key:'bm',ids:{num:'bmCC',name:'bmCardName',expM:'bmExpM',expY:'bmExpY',exp:'bmExp',cvv:'bmCVV',email:'bmEmail',cc:'bmCc',tel:'bmTel'},email:u.email||'',tel:u.phone||'',cc:u.phoneCc||u.countryCode||'',ssl:(LANG==='en'?'256-bit encrypted. Your card is charged only when you press the pay button.':'256-bit 加密傳輸。按下付款按鈕後才會扣款。')})+'""")
+R('card bm modal width',
+""".miles-verify-form0809d{max-width:720px!important}""",
+""".miles-verify-form0809d{max-width:900px!important;width:min(900px,94vw)!important;max-height:92vh;overflow:auto}""")
+# ---- r45 payment link page ----
+R('card r45',
+"""    +'<div class="r45-form">'
+      +'<label class="full">'+(z()?'持卡人姓名':'Cardholder name')+'<input id="r45Name" class="inp" autocomplete="cc-name"></label>'
+      +'<label class="full">'+(z()?'信用卡號':'Card number')+'<input id="r45Num" class="inp" inputmode="numeric" placeholder="4111 1111 1111 1111" autocomplete="cc-number"></label>'
+      +'<label>'+(z()?'有效期限':'Expiry')+'<input id="r45Exp" class="inp" placeholder="MM/YY" autocomplete="cc-exp"></label>'
+      +'<label>'+(z()?'安全碼':'CVV')+'<input id="r45Cvv" class="inp" inputmode="numeric" placeholder="123" autocomplete="cc-csc"></label>'
+    +'</div>'""",
+"""    +kgmCardFormR923({key:'r45',ids:{num:'r45Num',name:'r45Name',expM:'r45ExpM',expY:'r45ExpY',exp:'r45Exp',cvv:'r45Cvv'},contact:false})   /* 0928B：跟訂位付款頁同一個信用卡介面 */""")
+# ---- r7 baggage ----
+R('card r7',
+"""<div class="r7-pay-grid"><label class="full">'+(z7()?'持卡人姓名':'Cardholder name')+'<input id="r7BagName" class="inp" autocomplete="cc-name"></label><label class="full">'+(z7()?'信用卡號':'Card number')+'<input id="r7BagCard" class="inp" inputmode="numeric" autocomplete="cc-number" placeholder="4111 1111 1111 1111"></label><label>'+(z7()?'有效期限':'Expiry')+'<input id="r7BagExp" class="inp" autocomplete="cc-exp" placeholder="MM/YY"></label><label>CVV<input id="r7BagCvv" class="inp" inputmode="numeric" autocomplete="cc-csc"></label></div>""",
+"""'+kgmCardFormR923({key:'r7bag',ids:{num:'r7BagCard',name:'r7BagName',expM:'r7BagExpM',expY:'r7BagExpY',exp:'r7BagExp',cvv:'r7BagCvv'},contact:false,ssl:(z7()?'256-bit 加密傳輸。按下「付款並完成加購」後才會扣款。':'256-bit encrypted. Your card is charged only when you press Pay & add baggage.')})+'""")
+# ---- r2 profile change tier fee ----
+R('card r2',
+"""    var pay=info.fee?('<div class="r2-tier-pay"><label>'+(Z()?'持卡人姓名':'Name on card')+'<input id="r2CardName" class="inp"></label>'
+      +'<label>'+(Z()?'卡號':'Card number')+'<input id="r2CardNo" class="inp" maxlength="19" placeholder="4111 1111 1111 1111"></label>'
+      +'<label>'+(Z()?'有效期限':'Expiry')+'<input id="r2CardExp" class="inp" placeholder="MM/YY" maxlength="5"></label>'
+      +'<label>CVV<input id="r2CardCvv" class="inp" maxlength="4"></label></div>'):'';""",
+"""    var pay=info.fee?kgmCardFormR923({key:'r2tier',ids:{num:'r2CardNo',name:'r2CardName',expM:'r2CardExpM',expY:'r2CardExpY',exp:'r2CardExp',cvv:'r2CardCvv'},contact:false,ssl:(Z()?'256-bit 加密傳輸。按下「送交客服審核」後才會扣款。':'256-bit encrypted. Your card is charged only when you submit the request.')}):'';   /* 0928B：跟訂位付款頁同一個信用卡介面 */""")
+open('p_e_card.js','w').write(hdr+'\n'.join(out)+'\n')
