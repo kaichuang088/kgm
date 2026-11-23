@@ -7,6 +7,6 @@ f.onchange=function(){var r=new FileReader();r.onload=function(){try{var d=JSON.
   var ifr=document.createElement('iframe');ifr.style.display='none';document.body.appendChild(ifr);var NS=ifr.contentWindow.Storage.prototype.setItem,NR=ifr.contentWindow.Storage.prototype.removeItem;
   var ok=0,bad=[];Object.keys(d.keys).forEach(function(k){try{NS.call(localStorage,k,d.keys[k]);ok++}catch(e){bad.push(k)}});
   /* 匯入後這一頁不能再寫：網頁關閉／重新整理前會把記憶體裡的舊資料（空的）存回去，蓋掉剛匯入的 */
-  try{var N=function(){};Storage.prototype.setItem=N;Storage.prototype.removeItem=N;Storage.prototype.clear=N;localStorage.setItem=N}catch(_){}window.onbeforeunload=null;
+  try{var N=function(){};Storage.prototype.setItem=N;Storage.prototype.removeItem=N;Storage.prototype.clear=N}catch(_){}window.onbeforeunload=null;
   alert('匯入完成：'+ok+' 筆'+(bad.length?'；寫不進去 '+bad.length+' 筆（儲存空間不足）':'')+'。按確定後重新整理。');location.reload()}catch(e){alert('匯入失敗：'+e.message)}};r.readAsText(f.files[0])};
 document.body.appendChild(b);document.body.appendChild(f)})();

@@ -32,7 +32,7 @@ const {chromium}=require('playwright');const fs=require('fs');const {spawn}=requ
  await Promise.all([q.waitForNavigation({timeout:60000}).catch(()=>null),fc.setFiles(fpath)]);
  await q.waitForTimeout(15000);
  console.log('raw after',await q.evaluate((PNR0)=>{const v=localStorage.getItem('kgmbk4')||'';return {len:v.length,has:v.indexOf(PNR0)>=0,head:v.slice(0,80)}},PNR));
- const post=await q.evaluate((PNR0)=>{const u=(S.users||[]).find(u=>u.id==='KGM777001');return {has:!!u,miles:u&&u.miles,tier:u&&u.tier,bk:!!(S.bookings||[]).find(x=>x.pnr===PNR0),u:S.users.length,b:S.bookings.length}},PNR);
+ const post=await q.evaluate((PNR0)=>{const u=(S.users||[]).find(u=>u.id==='KGM777001');return {stray:localStorage.getItem('setItem'),has:!!u,miles:u&&u.miles,tier:u&&u.tier,bk:!!(S.bookings||[]).find(x=>x.pnr===PNR0),u:S.users.length,b:S.bookings.length}},PNR);
  // 後台同網域也看得到
  const r=await ctx.newPage();await r.goto('http://127.0.0.1:8765/admin/',{waitUntil:'domcontentloaded',timeout:300000});await r.waitForTimeout(12000);
  const adm=await r.evaluate((PNR0)=>({has:!!(S.users||[]).find(u=>u.id==='KGM777001'),bk:!!(S.bookings||[]).find(x=>x.pnr===PNR0),side:window.KGM_SIDE}),PNR);
