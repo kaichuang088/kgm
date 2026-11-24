@@ -1,6 +1,6 @@
-R('ver ||', "||'1004B')", "||'1121A')", 29);
-R('ver BUILD', "var BUILD='1004B'", "var BUILD='1121A'", 118);
-R('ver V', "var V='1004B';", "var V='1121A';", 4);
-R('ver data', "'data-kgm-build','1004B')", "'data-kgm-build','1121A')", 1);
-R('ver title', "· 1004B</title>", "· 1121A</title>", 1);
-R('ver doctitle', "· 1004B'", "· 1121A'", 1);
+R('ver ||', "||'1004B')", "||'1124A')", 29);
+R('ver BUILD', "var BUILD='1004B'", "var BUILD='1124A'", 118);
+R('ver V', "var V='1004B';", "var V='1124A';", 4);
+R('ver data', "'data-kgm-build','1004B')", "'data-kgm-build','1124A')", 1);
+R('ver title', "· 1004B</title>", "· 1124A</title>", 1);
+R('ver doctitle', "· 1004B'", "· 1124A'", 1);

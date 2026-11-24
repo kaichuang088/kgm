@@ -914,7 +914,7 @@ RW('c7 create mark R1115A',"  S.staffCasesR1007A=S.staffCasesR1007A||[];S.staffC
 RW('c7 notify sim R1115A',"  if(f.notify!==false){","  if(f.notify!==false&&!b.simR1115A){")
 RW('c7 form export R1115A',"window.kgmCase7Create=function(){","window.kgmCase7FormR1115A=function(){return newForm7()};   /* 1115A D9：航班資料頁也畫得出這張表單 */\nwindow.kgmCase7Create=function(){")
 RW('c7 bag label R1115A',"bag_delayed:['行李延誤','Delayed baggage']","bag_delayed:['行李延誤／未送達','Delayed baggage']")   # 使用者「行李沒有送達」
-RW('r197 case skip R1115A',"if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')))return;","if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')||el.closest('.k115c-bar')||el.closest('#k115cm')||el.closest('.k115w')||el.closest('.k118nc')||el.closest('.k118pc')||el.closest('.k118w')||el.closest('.fe120-nh')||el.closest('#st121m')||el.closest('.st121-hb')||el.closest('.tpl121')||el.closest('.ad121-hs')||el.closest('.ad121-alt')||el.closest('.k121-tg')||el.closest('.k121-all')||el.closest('.k40lv-gh')||el.closest('#rp121m')))return;   /* 1121A：員工連動帳號、案件範本、橫向捲軸、停機位快速選、競標收合都不是改資料，不送審；1120A：首頁新聞設定按鈕不送審；1115A D9：為旅客建立案件不是改航班資料，不用送審；1115B：組員許願面板也不用送審；1118A：提出案件分頁、寵物報到檢查、組員許願總表 */")
+RW('r197 case skip R1115A',"if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')))return;","if(el.closest&&(el.closest('.p-admin-side')||el.closest('.k197')||el.closest('.k123-vbar')||el.closest('.k115c-bar')||el.closest('#k115cm')||el.closest('.k115w')||el.closest('.k118nc')||el.closest('.k118pc')||el.closest('.k118w')||el.closest('.fe120-nh')||el.closest('#st121m')||el.closest('.st121-hb')||el.closest('.tpl121')||el.closest('.ad121-hs')||el.closest('.ad121-alt')||el.closest('.k121-tg')||el.closest('.k121-all')||el.closest('.k40lv-gh')||el.closest('#rp121m')||el.closest('#mv123m')||el.closest('.mv123-l')))return;   /* 1121A：員工連動帳號、案件範本、橫向捲軸、停機位快速選、競標收合都不是改資料，不送審；1120A：首頁新聞設定按鈕不送審；1115A D9：為旅客建立案件不是改航班資料，不用送審；1115B：組員許願面板也不用送審；1118A：提出案件分頁、寵物報到檢查、組員許願總表 */")
 EMB28.append('cs42.js')   # 1115A D9
 
 # ══ 1115B ══
@@ -1038,6 +1038,7 @@ EMB28.append('tpl121.js')   # 1121A Q7 案件「給旅客的說明」範本（�
 EMB28.append('ai121.js')   # 1121A R6 後台 AI 入口前整理：他＝上一位員工、多個日期、XXX 換成其他／某區域
 EMB28.append('st121.js')   # 1121A R5 員工自己連動 KGM 會員帳號（後台右上角）；前台綁定帳號直接訂員工票、不再用優惠碼
 EMB28.append('rp121.js')   # 1121A Q3–Q5 航班報告 PDF：下載前視窗（版本／語言／保密）、第一頁簽核與保密、第 6 節併基本資料、候補名單表格、英文版翻譯
+EMB28.append('mv123.js')   # 工作代號 1123A 資料搬家：本機檔案 → 線上版（postMessage）或備份檔；原生 setItem 寫入
 # K3：r57 航線頁直接呼叫閉包裡的 newRouteHtml7()，window.kgmNewRouteHtmlR57 換掉也不會被叫到 → 改走 window（nf120 包在上面）
 RW('r57 newroute via window R1120A',"+'</tbody></table></div></section>'+newRouteHtml7()+newAirportHtml7();","+'</tbody></table></div></section>'+(window.kgmNewRouteHtmlR57||newRouteHtml7)()+newAirportHtml7();   /* 1120A K3：走 window，nf120 兩步驟表單才看得到 */")
 # L5（使用者：「HKG/MFM/MNL/OKA全數改EQV喔」）：香港、澳門、馬尼拉原本就是 EQV；沖繩五組（原本 B78X／A21N 固定）與馬尼拉 KX253／254（A21N 固定）改 EQV（原始碼寫舊班號）
