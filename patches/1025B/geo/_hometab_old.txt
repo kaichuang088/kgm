@@ -1,0 +1,4 @@
+`<button onclick="S.search.useMiles=${v};S.openFare=null;render()" style="border:none;cursor:pointer;padding:10px 22px;font-size:14px;
+           font-weight:${(!!s.useMiles)===v?"800":"600"};color:${(!!s.useMiles)===v?"var(--g)":"var(--sub)"};
+           background:${(!!s.useMiles)===v?"#fff":"transparent"};border-radius:10px 10px 0 0;
+           box-shadow:${(!!s.useMiles)===v?"0 0 0 1px var(--border) inset":"none"}">${lab}</button>`).join("")}<button onclick="nav('group23')" style="border:none;cursor:pointer;padding:10px 22px;font-size:14px;font-weight:600;color:var(--sub);background:transparent;border-radius:10px 10px 0 0">${LANG==="en"?"Group (10+)":"團體訂位"}<small style="font-size:11px;margin-left:4px;color:#9A7B2F">${LANG==="en"?"":"10 位以上"}</small></button>

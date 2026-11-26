@@ -1,0 +1,16 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:1360,height:950}})).newPage();
+ const errs=[];p.on('pageerror',e=>errs.push(String(e).slice(0,200)));p.on('dialog',d=>d.accept());
+ await p.goto('file:///tmp/j/kgm.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(8000);
+ const ids=await p.evaluate(()=>{const us=S.users;const mk=(i,o)=>{us[i].groupAccountR1025B=Object.assign({type:'agency',taxId:'22099131',contact:{name:'李小華',phone:'0922333444',email:us[i].email},caseNo:'KG26102600'+i+'M',boundAt:new Date().toISOString()},o)};
+   mk(0,{status:'pending',company:'雄獅測試旅行社',license:'交觀甲 5678'});mk(1,{status:'active',type:'corp',company:'台積測試企業',from:'2026-10-01',to:'2027-09-30'});
+   if(us[2])mk(2,{status:'active',type:'school',company:'建國高中畢業旅行',from:'2025-01-01',to:'2026-06-30'});
+   S.adminAuthed=true;S.adminUser={name:'CEO',empId:'MASTER',role:'ceo'};S.view='admin';S.adminTab='groups23';S.k27gdTab='acct';render();return us.slice(0,3).map(u=>u.id)});
+ await p.waitForTimeout(1200);await p.screenshot({path:'/tmp/j/gq27_1.png',fullPage:true});
+ await p.fill('[id="k27gp'+ids[1]+'E"]','2026-12-31');await p.click('.k27gq-card:has([id="k27gp'+ids[1]+'E"]) .k27gq-btns button:first-child');await p.waitForTimeout(700);
+ console.log('period',await p.evaluate(()=>S.users[1].groupAccountR1025B.to),await p.evaluate(()=>(document.querySelector('.k27gq-msg')||{}).innerText));
+ await p.click('.k27gq-card.pend .k27gq-btns button:first-child');await p.waitForTimeout(700);
+ console.log('approved',await p.evaluate(()=>S.users[0].groupAccountR1025B.status+' '+S.users[0].groupAccountR1025B.from+'~'+S.users[0].groupAccountR1025B.to));
+ await p.evaluate(()=>{S.k27gaTab='add';render()});await p.waitForTimeout(600);await p.screenshot({path:'/tmp/j/gq27_2.png',fullPage:true});
+ await p.setViewportSize({width:390,height:844});await p.waitForTimeout(800);console.log('mobile sw',await p.evaluate(()=>document.documentElement.scrollWidth));await p.screenshot({path:'/tmp/j/gq27_m.png',fullPage:true});
+ console.log('errors',errs);await b.close()})();

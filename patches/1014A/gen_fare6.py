@@ -1,0 +1,157 @@
+from common import *
+# ══ 1006A #22：票價卡 ══
+#   使用者：「圖四要對齊喔就是彼此表格每一欄都要對到不管有沒有剩餘幾席　豪華的話地勤現場改票1200/段　超值的話1500/段
+#   如果是像是japan出發要自動換成日幣喔所有顯示的價錢，然後優先登機和免費Wifi不要寫-可以直接寫不可跟上面統一。
+#   經濟艙超值可以有文字訊息Wifi，豪經基本沒有Free Wifi，豪經超值一樣免費訊息wifi，豪經豪華就是無限流，商務艙以後全都有無限流無限制，
+#   但沒有優先登機三個全部打勾for商務艙因為商務艙是一起登機」
+#   ① 對齊：「剩餘 N 席」標籤改成騎在分隔線上、不佔高度；卡片之間逐列等高（豪華的選位文字兩行時，其他卡同一列一起變高）。
+#   ② 地勤現場改票依票價方案：基本 NT$1,800／超值 NT$1,500／豪華 NT$1,200（每航段）—— 單一來源 KGM_FEE_TIERS_R155.ground.byFam，
+#      實際收費（r82 客服後台改票、r155 地勤報價）與所有說明文字一起改。
+#   ③ 出發地幣別：卡片上所有金額（改票費、地勤費、退票費、未登機費）都換成出發地幣別（日本出發＝日圓），跟票價同一個 fmtAmt。
+#   ④ 優先登機、免費 Wi-Fi 沒有的寫「不可」。
+#   ⑤ Wi-Fi／優先登機：經濟超值＝文字訊息；豪經基本＝無；豪經超值＝文字訊息；豪經豪華＝無限；商務三種＝無限＋優先登機。
+R('card counter fee by family + currency',
+ "(chgLabel||\"—\")+(_staffFare?\"\":`<small class=\"k929-chgn\">${LANG===\"en\"?\"Airport counter NT$1,800\":\"機場櫃檯現場 NT$1,800\"}</small>`),true)}",
+ "_cv6(chgLabel||\"—\")+(_staffFare?\"\":`<small class=\"k929-chgn\">${(LANG===\"en\"?\"Airport counter \":\"機場櫃檯現場 \")+fmtAmt(window.kgmFeeTierR155?window.kgmFeeTierR155('ground',_famU||'Basic'):1800,curr)}</small>`),true)}")
+R('card refund currency',
+ "_staffFare?refLabel:((LANG===\"en\"?\"Fee \":\"手續費 \")+(refLabel||\"—\")),",
+ "_staffFare?refLabel:((LANG===\"en\"?\"Fee \":\"手續費 \")+_cv6(refLabel||\"—\")),")
+R('card noshow currency',
+ "_staffFare?(LANG===\"en\"?\"No fee\":\"不收費\"):_ns929,true)}",
+ "_staffFare?(LANG===\"en\"?\"No fee\":\"不收費\"):_cv6(_ns929),true)}")
+R('card prio 不可',
+ "(!_staffFare&&_zn<=2)?\"✓\":\"—\",!_staffFare&&_zn<=2)}",
+ "(!_staffFare&&_zn<=2)?\"✓\":(LANG===\"en\"?\"Not included\":\"不可\"),!_staffFare&&_zn<=2)}")
+R('card wifi 不可',
+ "_staffFare?\"—\":(_wf?\"✓\":(fareInfo?.msg?(LANG===\"en\"?\"Messaging only\":\"僅免費文字訊息\"):\"—\")),",
+ "_staffFare?(LANG===\"en\"?\"Not included\":\"不可\"):(_wf?\"✓\":(fareInfo?.msg?(LANG===\"en\"?\"Messaging only\":\"僅免費文字訊息\"):(LANG===\"en\"?\"Not included\":\"不可\"))),")
+R('card currency helper',
+ "          const _row929=function(ic,label,val,good){",
+ "          /* 1006A #22：卡片上的費用（原本寫死 NT$）一律換成出發地幣別，跟票價同一個 fmtAmt */\n"
+ "          const _cv6=function(t){t=String(t==null?\"\":t);if(!curr||curr===\"TWD\")return t;return t.replace(/NT\\$\\s?([\\d,]+)/g,function(_m,n){return fmtAmt(+String(n).replace(/,/g,\"\"),curr)})};\n"
+ "          const _row929=function(ic,label,val,good){")
+
+# ── ② 地勤費率單一來源 ──
+RL('ground fee by family','kgm-0908a-r155',
+ "window.kgmFeeTierR155=function(kind){\n  var t=(window.KGM_FEE_TIERS_R155||{})[kind==='ground'?'ground':'service'];\n  return t?(+t.fee||0):1200;\n};",
+ "/* 1006A #22：地勤現場改票依票價方案（每航段）：基本 NT$1,800、超值 NT$1,500、豪華 NT$1,200。fee 仍是基本（最高）那一級。 */\n"
+ "window.KGM_FEE_TIERS_R155.ground.byFam={Basic:1800,Value:1500,Deluxe:1200};\n"
+ "window.KGM_FEE_TIERS_R155.ground.noteZH='於機場櫃檯現場受理，含人工作業與即時開票；可跨機場組合（例如 TPE–ICN 改 TSA–GMP）。每更改一個航段依票價方案收取：基本 NT$1,800、超值 NT$1,500、豪華 NT$1,200。';\n"
+ "window.kgmFeeTierR155=function(kind,fam){\n  var t=(window.KGM_FEE_TIERS_R155||{})[kind==='ground'?'ground':'service'];\n"
+ "  if(kind==='ground'&&fam&&t&&t.byFam&&t.byFam[fam]!=null)return +t.byFam[fam];\n"
+ "  return t?(+t.fee||0):1200;\n};\n"
+ "window.kgmFamOfR1006A=function(cls){try{var f=FARES[cls]||(typeof AWARD_FARES!=='undefined'&&AWARD_FARES[cls])||{};return f.familyR48||f.family||'Basic'}catch(_){return 'Basic'}};")
+RL('ground offers by family','kgm-0908a-r155',
+ "          var fee=window.kgmFeeTierR155('ground')*pax;",
+ "          var b6=(S.bookings||[]).filter(function(x){return x&&x.pnr===st.pnr})[0],c6='';\n"
+ "          try{c6=b6?(st.seg==='inb'?b6.inbC:(st.seg&&st.seg!=='out'&&b6.segmentFare0826A&&b6.segmentFare0826A[st.seg])||b6.outC):''}catch(_){}\n"
+ "          var fee=window.kgmFeeTierR155('ground',window.kgmFamOfR1006A(c6))*pax;   /* 1006A #22：依票價方案 */")
+RL('ground tier card','kgm-0908a-r155',
+ "+'<b>'+(k==='service'?'NT$1,200／900／0':('NT$'+N(t.fee)))+'</b><i>'+(z()?(k==='service'?'每航段・基本／超值／豪華':'每更改一個航段'):'per changed sector')\n"
+ "      +(pax>1&&k!=='service'?('　×　'+pax+' '+(z()?'位旅客':'pax')+'　=　NT$'+N(t.fee*pax)):'')+'</i>'",
+ "+'<b>'+(k==='service'?'NT$1,200／900／0':'NT$1,800／1,500／1,200')+'</b><i>'+(z()?'每航段・基本／超值／豪華':'per changed sector · Basic / Value / Deluxe')   /* 1006A #22 */\n"
+ "      +(pax>1?('　×　'+pax+' '+(z()?'位旅客':'pax')):'')+'</i>'")
+RL('ground badge','kgm-0908a-r155',
+ "b.textContent=(z()?('地勤現場費率　NT$'+N(window.kgmFeeTierR155('ground'))+' / 航段（客服／線上為 NT$'+N(window.kgmFeeTierR155('service'))+'）')\n"
+ "                    :('COUNTER RATE NT$'+N(window.kgmFeeTierR155('ground'))+' per sector (online NT$'+N(window.kgmFeeTierR155('service'))+')'));",
+ "b.textContent=(z()?('地勤現場費率　基本 NT$1,800／超值 NT$1,500／豪華 NT$1,200 / 航段（客服／線上為 NT$1,200／900／0）')   /* 1006A #22 */\n"
+ "                    :('COUNTER RATE NT$1,800 / 1,500 / 1,200 per sector (online NT$1,200 / 900 / 0)'));")
+RL('r82 ground fee by family','kgm-0823p-r82',
+ "  try{if(window.kgmReissueIdentR914()==='ground')fee=+(((window.KGM_FEE_TIERS_R155||{}).ground||{}).fee)||1800}catch(_){}",
+ "  /* 1006A #22：機場櫃檯現場改為依票價方案：基本 1,800／超值 1,500／豪華 1,200（每航段） */\n"
+ "  try{if(window.kgmReissueIdentR914()==='ground')fee=window.kgmFeeTierR155?window.kgmFeeTierR155('ground',fam):1800}catch(_){}")
+RL('r164 fee by family','kgm-0905b-r164',
+ "window.kgmReissueFeeR164=function(pax){\n  var t={};try{t=window.KGM_FEE_TIERS_R155||{}}catch(_){}\n  var f=isGround164()?((t.ground||{}).fee||1800):((t.service||{}).fee||1200);",
+ "window.kgmReissueFeeR164=function(pax,fam){\n  var t={};try{t=window.KGM_FEE_TIERS_R155||{}}catch(_){}\n"
+ "  var f=isGround164()?((fam&&window.kgmFeeTierR155)?window.kgmFeeTierR155('ground',fam):((t.ground||{}).fee||1800)):((t.service||{}).fee||1200);   /* 1006A #22 */")
+RL('r164 cards','kgm-0905b-r164',
+ "        +'<b>NT$'+N((t.ground||{}).fee||1800)+'</b><i>'+(z()?'每更改一個航段 · 可換機場組合':'per sector · airport pair may change')+'</i></div>'",
+ "        +'<b>NT$1,800／1,500／1,200</b><i>'+(z()?'每航段・基本／超值／豪華 · 可換機場組合':'per sector · Basic/Value/Deluxe · airport pair may change')+'</i></div>'")
+RL('r164 applies now','kgm-0905b-r164',
+ "        +'<b>NT$'+N(window.kgmReissueFeeR164(pax))+'</b><i>'+pax+' '+(z()?'位旅客':'pax')+'</i></div>'",
+ "        +'<b>NT$'+N(window.kgmReissueFeeR164(pax,(function(){try{return window.kgmFamOfR1006A(b&&sg?(sg.key==='inb'?b.inbC:b.outC):'')}catch(_){return ''}})()))+'</b><i>'+pax+' '+(z()?'位旅客':'pax')+'</i></div>'")
+RL('r186 card','kgm-0907B-r186',
+ "        +'<div class=\"fee\">NT$'+N(fG)+'</div>'",
+ "        +'<div class=\"fee\">NT$1,800／1,500／1,200</div>'   /* 1006A #22：依票價方案 */")
+RL('r201 card','kgm-0907B-r201',
+ "+'<div class=\"k201-fee\">'+(g?('NT$'+N(f)):'NT$1,200／900／0')+'</div>'",
+ "+'<div class=\"k201-fee\">'+(g?'NT$1,800／1,500／1,200':'NT$1,200／900／0')+'</div>'   /* 1006A #22 */")
+RL('r151 text','kgm-0907a-r151',
+ "機場櫃檯現場一律 NT$1,800）';",
+ "機場櫃檯現場：基本 NT$1,800／超值 NT$1,500／豪華 NT$1,200）';   /* 1006A #22 */")
+RL('r227 text','kgm-0909E-r227',
+ "+(g?'每更改一個航段收一次（一律 NT$1,800）。':",
+ "+(g?'每更改一個航段依票價方案收一次：基本 NT$1,800、超值 NT$1,500、豪華 NT$1,200。':")
+
+# ── ⑤ Wi-Fi／優先登機 ＋ ① 對齊（版面）──
+RL('fare attrs + align','kgm-0909E-r229',
+ "/* 把暫扣的里程改掛到改票後的新日期 */\nwindow.kgmMileMoveR923=function(id,newDate,newCode){",
+ "/* ══ 1006A #22：票價卡 Wi-Fi／優先登機設定、卡片逐列對齊 ══ */\n"
+ "(function(){\n"
+ "  function fix(){\n"
+ "    try{Object.keys(FARES).forEach(function(k){\n"
+ "      var f=FARES[k];if(!f||!/^[EPBF]-/.test(k))return;var fam=f.familyR48,cab=f.cabin;\n"
+ "      if(cab==='Economy'&&fam==='Value'){f.wifi=false;f.msg=true}          /* 經濟超值：免費文字訊息 */\n"
+ "      if(cab==='Premium'&&fam==='Basic'){f.wifi=false;f.msg=false}         /* 豪經基本：沒有免費 Wi-Fi */\n"
+ "      if(cab==='Premium'&&fam==='Value'){f.wifi=false;f.msg=true}          /* 豪經超值：免費文字訊息 */\n"
+ "      if(cab==='Premium'&&fam==='Deluxe'){f.wifi=true}                     /* 豪經豪華：無限 */\n"
+ "      if(cab==='Business'){f.wifi=true;f.zone=Math.min(+f.zone||1,1)}      /* 商務：全部無限 Wi-Fi，一起優先登機 */\n"
+ "    })}catch(_){}\n"
+ "  }\n"
+ "  fix();setTimeout(fix,0);setTimeout(fix,1500);\n"
+ "  if(!document.getElementById('k6-fare-css')){var s=document.createElement('style');s.id='k6-fare-css';\n"
+ "    s.textContent='.k929-leftw{height:0;margin:0!important;align-items:flex-start}.k929-leftw .k929-left{flex:none;transform:translateY(-50%)}'   /* 剩餘席標籤騎在分隔線上，不佔高度 */\n"
+ "      +'.k929-rows,.k929-leftw+.k929-rows{padding-top:14px}';\n"
+ "    (document.head||document.documentElement).appendChild(s)}\n"
+ "  /* 同一排卡片逐列等高：哪一張卡的某一列換行，其他卡的同一列跟著變高 */\n"
+ "  function eq(){\n"
+ "    try{\n"
+ "      var groups=[];\n"
+ "      document.querySelectorAll('#app .k929-fare').forEach(function(a){var p=a.parentElement;if(!p)return;var g=groups.filter(function(x){return x.p===p})[0];if(!g){g={p:p,a:[]};groups.push(g)}g.a.push(a)});\n"
+ "      groups.forEach(function(g){\n"
+ "        if(g.a.length<2)return;\n"
+ "        if(!g.a[0].offsetParent)return;   /* 收合（隱藏）中的卡量不到高度，展開後再對齊 */\n"
+ "        var parts=[['.k929-hd'],['.k929-fr']];\n"
+ "        var hd=g.a.map(function(c){return c.querySelector('.k929-hd')}).filter(Boolean);\n"
+ "        hd.forEach(function(x){x.style.minHeight=''});\n"
+ "        var mh=Math.max.apply(null,hd.map(function(x){return x.offsetHeight}));hd.forEach(function(x){x.style.minHeight=mh+'px'});\n"
+ "        var rows=g.a.map(function(c){return [].slice.call(c.querySelectorAll('.k929-fr'))});\n"
+ "        rows.forEach(function(r){r.forEach(function(x){x.style.minHeight=''})});\n"
+ "        var n=Math.max.apply(null,rows.map(function(r){return r.length}));\n"
+ "        for(var i=0;i<n;i++){var col=rows.map(function(r){return r[i]}).filter(Boolean);var m=Math.max.apply(null,col.map(function(x){return x.offsetHeight}));col.forEach(function(x){x.style.minHeight=m+'px'})}\n"
+ "      });\n"
+ "    }catch(_){}\n"
+ "  }\n"
+ "  window.kgmFareEqR1006A=eq;\n"
+ "  if(typeof render==='function'){var rd6=render;render=window.render=function(){var r=rd6.apply(this,arguments);setTimeout(eq,0);setTimeout(eq,250);return r}}\n"
+ "  try{window.addEventListener('resize',function(){setTimeout(eq,50)})}catch(_){}\n"
+ "  /* 票價卡在重畫時就全部建好、只是收合；展開「選擇票價」只切換顯示，不經過 render()。點擊之後（展開、切換日期、艙等…）再對齊一次看得到的卡 */\n"
+ "  try{document.addEventListener('click',function(){setTimeout(eq,60);setTimeout(eq,400)},true)}catch(_){}\n"
+ "})();\n"
+ "/* 把暫扣的里程改掛到改票後的新日期 */\nwindow.kgmMileMoveR923=function(id,newDate,newCode){")
+# ── 轉機（兩段）票價卡：同樣換幣別、地勤費率依方案、優先登機／Wi-Fi 寫「不可」 ──
+R('conn card currency helper',
+ 'var EN=LANG==="en";\n  var cards=codes.map(function(k){',
+ 'var EN=LANG==="en";\n'
+ '  /* 1006A #22：轉機卡的費用也換成出發地幣別，跟票價同一個 fmtAmt */\n'
+ '  var cv6=function(t){t=String(t==null?"":t);if(!curr2||curr2==="TWD")return t;return t.replace(/NT\\$\\s?([\\d,]+)/g,function(_m,n){return fmtAmt(+String(n).replace(/,/g,""),curr2)})};\n'
+ '  var cards=codes.map(function(k){')
+R('conn card chg + counter',
+ 'row929("chg",EN?"Change fee per sector":"改票手續費（每航段）",chg||"—",true)',
+ 'row929("chg",EN?"Change fee per sector":"改票手續費（每航段）",cv6(chg||"—")+\'<small class="k929-chgn">\'+(EN?"Airport counter ":"機場櫃檯現場 ")+fmtAmt(window.kgmFeeTierR155?window.kgmFeeTierR155("ground",fam||"Basic"):1800,curr2)+\'</small>\',true)')
+R('conn card refund currency',
+ '+row929("ref",EN?"Refund":"退票",(EN?"Fee ":"手續費 ")+(ref||"—"),',
+ '+row929("ref",EN?"Refund":"退票",(EN?"Fee ":"手續費 ")+cv6(ref||"—"),')
+R('conn card noshow currency',
+ '+row929("ns",EN?"No show":"未登機",ns,true)',
+ '+row929("ns",EN?"No show":"未登機",cv6(ns),true)')
+R('conn card prio/wifi 不可',
+ '(fi.zone||4)<=2?"✓":"—",(fi.zone||4)<=2)+row929("wifi",EN?"Free Wi-Fi":"免費 Wi-Fi",fi.wifi?"✓":(fi.msg?(EN?"Messaging only":"僅免費文字訊息"):"—"),',
+ '(fi.zone||4)<=2?"✓":(EN?"Not included":"不可"),(fi.zone||4)<=2)+row929("wifi",EN?"Free Wi-Fi":"免費 Wi-Fi",fi.wifi?"✓":(fi.msg?(EN?"Messaging only":"僅免費文字訊息"):(EN?"Not included":"不可")),')
+
+# ── 轉機列「不需住宿」標籤重複兩顆：外層 div 與內層 span 各掛一次（外層先掛，內層再掛）——祖先已掛過就跳過 ──
+RL('r189 stay chip once','kgm-0907B-r189',
+ "      if(e.getAttribute('data-r189'))continue;\n      var h=+(m[1]||m[3]||0)",
+ "      if(e.getAttribute('data-r189')||(e.closest&&e.closest('[data-r189]')))continue;   /* 1006A：祖先已掛標籤就不要再掛一顆 */\n      var h=+(m[1]||m[3]||0)")
+
+save('p_h_fare.js','/* 1006A · 票價卡：對齊、地勤費率依方案、出發地幣別、不可、Wi-Fi／優先登機 */\n')

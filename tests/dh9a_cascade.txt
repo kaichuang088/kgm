@@ -1,0 +1,15 @@
+// 1009A：DH 艙等順位逐步測試（貼進 srv.js 的 /eval，用 ev2.sh 執行；開頭先設 var SC="A" 或 "B"）
+var dt=addDays(todayISO(),20),day=window.kgmDayOf72R1006A(dt)||[],row=day.find(r=>r.f&&r.f.code==='KX72')||day.find(r=>r.f&&window.kgmSellsPremiumR71&&window.kgmSellsPremiumR71(r.f));
+var m={code:row.f.code,fr:row.f.fr,to:row.f.to,type:row.t||row.f.acft,date:dt},key=[dt,m.code,m.fr,m.to].join('|');
+var P=window.kgmCrewPoolR121(),pk=(f)=>P.pilots.concat(P.cabin).find(f);
+var cp=pk(p=>p.rank==='CP'&&!p.triR1009A),tri=pk(p=>p.triR1009A),fo=pk(p=>p.rank==='FO'),cp2=P.pilots.filter(p=>p.rank==='CP'&&!p.triR1009A)[1],pu=pk(p=>p.rank==='PU'),dpu=pk(p=>p.rank==='DPU'),fa=pk(p=>p.rank==='FA');
+var SEATS={Business:['1A','1K'],Premium:['20A','20C'],Economy:['40A','40B','40C']};
+var orig=window.kgmCabinInventory54,bak=S.crewPositioningR121[key];
+window.kgmCabinInventory54=function(f,d,c){var s=SEATS[c]||[];return {capacity:s.length,sold:0,left:s.length,seats:s.slice()}};
+S.crewPositioningR121[key]=[];var L=S.crewPositioningR121[key],log=[];
+function add(tag,p,pos){var r=window.kgmDhSlotR1007A({empId:p.empId,role:p.role,posR1009A:pos},m,dt,{cabin:'Economy',seat:''});L.push({empId:p.empId,name:p.name,role:p.role,posR1009A:pos,cabin:r.cabin,seat:r.seat,tag:tag});log.push(tag+' → '+r.cabin+' '+(r.seat||'(待騰位)')+'　｜目前：'+L.map(x=>x.tag+'='+x.cabin[0]+(x.seat||'-')).join(' '))}
+try{
+ if(SC==='A'){add('機長',cp,'PIC');add('副機長',fo,'SIC');add('副座艙長',dpu,'');add('巡航',cp2,'CRZ');add('教官',tri,'TRI');add('座艙長',pu,'');}
+ else {add('副機長',fo,'SIC');add('機長',cp,'PIC');add('教官',tri,'TRI');add('座艙長',pu,'');add('副座艙長',dpu,'');add('空服員',fa,'');}
+}finally{window.kgmCabinInventory54=orig;if(bak)S.crewPositioningR121[key]=bak;else delete S.crewPositioningR121[key]}
+return {flight:m.code+' '+m.fr+'-'+m.to+' '+dt+' '+m.type,log:log};

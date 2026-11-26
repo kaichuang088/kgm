@@ -1,0 +1,6 @@
+from common import *
+# ── 1006A #1：KX106／KX105 營運期間。使用者：「前台我在販售平台沒有看到KX106/KX105然後KX106/KX105要營運整個10-11月、寒假」
+R('kx105 ops period',
+ "function kgmPeakOpsR929(d){var m=+String(d).slice(5,7),x=+String(d).slice(8,10);return (m===1&&x>=20)||(m===2&&x<=15)||m===7||m===8||(m===10&&x<=10)}\nwindow.KGM_PEAK_OPS_TEXT_R929='春節 1/20–2/15、暑假 7–8 月、國慶連假 10/1–10/10';",
+ "/* 1006A：使用者「KX106/KX105要營運整個10-11月、寒假」—— 原本 10 月只飛到 10/10，10/11 起前台就買不到。\n   改成 10/1–11/30 整段＋寒假（春節）1/20–2/15，暑假 7–8 月照舊；每週一、四、五、日四班不變。 */\nfunction kgmPeakOpsR929(d){var m=+String(d).slice(5,7),x=+String(d).slice(8,10);return (m===1&&x>=20)||(m===2&&x<=15)||m===7||m===8||m===10||m===11}\nwindow.KGM_PEAK_OPS_TEXT_R929='10/1–11/30、寒假 1/20–2/15、暑假 7–8 月';")
+save('p_h_ops.js','/* 1006A · KX106／KX105 營運期間 */\n')

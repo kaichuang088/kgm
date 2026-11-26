@@ -1,0 +1,15 @@
+const {chromium}=require('playwright');const {spawn}=require('child_process');
+(async()=>{const srv=spawn('python3',['-m','http.server','8765','--bind','127.0.0.1'],{cwd:'/tmp/j/nf123',stdio:'ignore'});
+ const b=await chromium.launch();const errs=[],dlg=[];
+ const mk=async()=>{const c=await b.newContext({acceptDownloads:true,viewport:{width:390,height:844}});await c.route(/workers\.dev/,r=>r.abort());await c.addInitScript(()=>{window.KGM_MOVE_URL_R1123A='http://127.0.0.1:8765/'});c.on('page',pg=>{pg.on('pageerror',e=>errs.push(String(e.message).slice(0,120)));pg.on('dialog',d=>{dlg.push(d.message().slice(0,80));d.accept()})});return c};
+ const c1=await mk();const p=await c1.newPage();await p.goto('file:///tmp/j/loc123/KGM_new_front.html',{waitUntil:'domcontentloaded',timeout:300000});await p.waitForTimeout(20000);
+ await p.evaluate(()=>{S.staff.push({empId:'K99002',name:'WANG XIAO',email:'wang@kgm.com.tw',password:'pw2',role:'cabin',active:true});save()});await p.waitForTimeout(1500);
+ await p.locator('footer .mv123-l').scrollIntoViewIfNeeded();await p.locator('footer .mv123-l').click();
+ const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#mv123m [data-a=dl]')]);const f='/tmp/j/mv123-backup.json';await dl.saveAs(f);console.log('downloaded',dl.suggestedFilename());
+ const c2=await mk();const q=await c2.newPage();await q.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded',timeout:300000});await q.waitForTimeout(15000);
+ await q.locator('footer .mv123-l').scrollIntoViewIfNeeded();await q.locator('footer .mv123-l').click();await q.waitForTimeout(400);
+ await q.screenshot({path:'/tmp/claude-0/-home-user-kgm/1b8a8568-8f05-5001-a981-2589b9539787/scratchpad/mv123_online_phone.png'});
+ const [fc]=await Promise.all([q.waitForEvent('filechooser'),q.click('#mv123m [data-a=file]')]);await fc.setFiles(f);
+ await q.waitForSelector('#mv123m [data-a=yes]');await Promise.all([q.waitForNavigation({timeout:60000}),q.click('#mv123m [data-a=yes]')]);await q.waitForTimeout(12000);
+ console.log('after',JSON.stringify(await q.evaluate(()=>({staff:!!S.staff.find(x=>x.email==='wang@kgm.com.tw'),n:S.staff.length}))));
+ console.log('DLG',JSON.stringify(dlg),'ERR',JSON.stringify(errs));await b.close();srv.kill()})();

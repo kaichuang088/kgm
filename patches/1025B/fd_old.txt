@@ -1,0 +1,1 @@
+'<section class="r7-ops-card" style="text-align:center;margin-top:12px;padding:35px"><b>'+(q?(z()?'該日無航班':'No flight on this date'):(z()?'輸入航班號碼或航線開始':'Enter a flight or route to begin'))+'</b></section></div>';

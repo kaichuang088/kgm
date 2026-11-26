@@ -1,0 +1,164 @@
+// ===== 1115B：KGM Airways Worker「/ai/messages」路由 —— 免費版（Cloudflare Workers AI），不用買 API =====
+// 這一段取代 1115A 那份 Worker_ai_1115A.txt（同一個路由名稱，網站不用改）。原本的 /ai/admin、/ai/front、寄信路由全部照舊保留、不要刪。
+//
+// 哪一條路：
+//   · Worker 有設定 ANTHROPIC_API_KEY → 照 1115A 轉給 Claude（要付費）。
+//   · 沒有設定 ANTHROPIC_API_KEY、但有綁 Workers AI（綁定名稱 AI）→ 走 Cloudflare Workers AI（免費額度：每天 10,000 Neurons，
+//     Workers 免費方案超過額度當天會失敗、不會扣錢；每天 00:00 UTC 重置）。預設模型 @cf/google/gemma-4-26b-a4b-it（支援工具呼叫、最省額度，
+//     一次後台 AI 對話約 100 Neurons → 一天約 90 次）。想換聰明一點的：設定變數 KGM_FREE_MODEL=@cf/openai/gpt-oss-120b（一天約 25～30 次）。
+//   · 「根據時事自動調整」：免費模型不能上網搜尋，所以 Worker 自己抓兩個免費公開來源（FAA 美國航管 NAS 狀態、Google 新聞 RSS 標題），
+//     附在提示裡給模型判斷。其他國家的禁飛令只能靠新聞標題，沒有官方來源那麼準。
+//
+// 怎麼裝（三步，都在 Cloudflare 後台點，不用寫程式）：
+//  1. Workers & Pages → 你的 Worker（kgm-email）→ Settings → Bindings → Add → Workers AI → 變數名稱填 AI → 儲存。
+//  2. 把下面「function kgmCors1115A …」到檔案最後整段，貼在 Worker 檔案最上面（如果 1115A 那段已經貼過，整段換成這份）。
+//  3. 在 export default { async fetch(request, env) { ... } } 的最前面加這兩行（1115A 已經加過就不用再加）：
+//        const url = new URL(request.url);
+//        if (url.pathname === "/ai/messages") return handleAiMessages1115A(request, env);
+//  不需要任何金鑰。選用：ALLOWED_ORIGIN（直接用檔案打開網站時網址是 null，設了會被擋；不確定就不要設）。
+
+function kgmCors1115A(request, env) {
+  const origin = request.headers.get("Origin") || "*";
+  return {
+    "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json; charset=utf-8"
+  };
+}
+
+async function handleAiMessages1115A(request, env) {
+  const cors = kgmCors1115A(request, env), origin = request.headers.get("Origin") || "*";
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  if (request.method !== "POST") return new Response(JSON.stringify({ error: "POST only" }), { status: 405, headers: cors });
+  if (env.ALLOWED_ORIGIN && origin !== env.ALLOWED_ORIGIN) return new Response(JSON.stringify({ error: "origin" }), { status: 403, headers: cors });
+
+  let b;
+  try { b = await request.json(); } catch (e) { return new Response(JSON.stringify({ error: "bad json" }), { status: 400, headers: cors }); }
+  if (!b || !Array.isArray(b.messages) || !b.messages.length) return new Response(JSON.stringify({ error: "no messages" }), { status: 400, headers: cors });
+
+  if (env.ANTHROPIC_API_KEY) return claudeProxy1115A(b, env, cors);   // 有金鑰才走 Claude（付費）
+  if (env.AI && typeof env.AI.run === "function") return freeAi1115B(b, env, cors);   // 免費：Workers AI
+  return new Response(JSON.stringify({ error: "no key and no Workers AI binding (Settings → Bindings → Workers AI，名稱 AI)" }), { status: 500, headers: cors });
+}
+
+// ── Claude（跟 1115A 相同） ──
+async function claudeProxy1115A(b, env, cors) {
+  const MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
+  const body = {
+    model: MODELS.includes(b.model) ? b.model : "claude-opus-5-5",
+    max_tokens: Math.min(Math.max(+b.max_tokens || 16000, 1000), 32000),
+    messages: b.messages,
+    fallbacks: "default"
+  };
+  if (b.system) body.system = b.system;
+  if (Array.isArray(b.tools) && b.tools.length) body.tools = b.tools.filter(t => t && (!t.type || t.type === "custom" || t.type === "web_search_20260209"));
+  if (b.output_config && b.output_config.effort) body.output_config = { effort: String(b.output_config.effort) };
+  let r;
+  try {
+    r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-beta": "server-side-fallback-2026-07-01", "content-type": "application/json" },
+      body: JSON.stringify(body)
+    });
+  } catch (e) { return new Response(JSON.stringify({ error: "upstream " + String(e && e.message || e) }), { status: 502, headers: cors }); }
+  return new Response(await r.text(), { status: r.status, headers: cors });
+}
+
+// ── 免費：Workers AI。把網站送來的（Claude 格式）請求翻成 Workers AI 格式，回應再翻回 Claude 格式 → 網站的工具迴圈不用改 ──
+function txtOf1115B(c) {
+  if (typeof c === "string") return c;
+  if (!Array.isArray(c)) return "";
+  return c.map(x => {
+    if (!x) return "";
+    if (x.type === "text") return x.text || "";
+    if (x.type === "tool_use") return "【我呼叫了工具】" + x.name + " 參數：" + JSON.stringify(x.input || {});
+    if (x.type === "tool_result") return "【工具結果】" + (typeof x.content === "string" ? x.content : txtOf1115B(x.content)) + (x.is_error ? "（失敗）" : "");
+    return "";   // thinking、網路搜尋結果等不送
+  }).filter(Boolean).join("\n");
+}
+
+async function newsText1115B() {
+  // FAA NAS 狀態（美國航管：地面停止、地面延誤、機場關閉）＋ Google 新聞 RSS 標題。抓不到就略過，不讓整個請求失敗。
+  const out = [];
+  const get = async (u, ms) => {
+    const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), ms);
+    try { const r = await fetch(u, { signal: ctl.signal, headers: { "User-Agent": "Mozilla/5.0 (KGM airline ops demo)" } }); return r.ok ? await r.text() : ""; }
+    catch (e) { return ""; } finally { clearTimeout(tm); }
+  };
+  const strip = s => String(s || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
+  const faa = await get("https://nasstatus.faa.gov/api/airport-status-information", 6000);
+  if (faa) out.push("【FAA NAS 狀態（官方，" + new Date().toISOString().slice(0, 16) + "Z 抓取）】" + strip(faa).slice(0, 5000));
+  const qs = ["FAA ground stop", "airport closed flights suspended", "airspace closed flights", "ban on flights airline suspended"];
+  for (const q of qs) {
+    const x = await get("https://news.google.com/rss/search?q=" + encodeURIComponent(q + " when:2d") + "&hl=en-US&gl=US&ceid=US:en", 6000);
+    if (!x) continue;
+    const items = x.split("<item>").slice(1, 9).map(it => {
+      const t = (it.match(/<title>([\s\S]*?)<\/title>/) || [])[1], d = (it.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1];
+      return t ? "- " + strip(t) + (d ? "（" + strip(d) + "）" : "") : "";
+    }).filter(Boolean);
+    if (items.length) out.push("【新聞標題：" + q + "】\n" + items.join("\n"));
+  }
+  return out.length ? out.join("\n\n") : "（Worker 這次抓不到任何公開來源；請回答沒有可確認的事件。）";
+}
+
+async function freeAi1115B(b, env, cors) {
+  const model = env.KGM_FREE_MODEL || "@cf/google/gemma-4-26b-a4b-it";
+  let sys = typeof b.system === "string" ? b.system : txtOf1115B(b.system);
+  const wantsWeb = Array.isArray(b.tools) && b.tools.some(t => t && /^web_search/.test(String(t.type || "")));
+  if (wantsWeb) sys += "\n\n（免費模式沒有網路搜尋。以下是 Worker 剛抓到的公開資訊，只能根據這些判斷；看不出明確時間或範圍的就標成低可信度或不要回報。）\n" + await newsText1115B();
+  sys += "\n\n（需要時請直接呼叫提供的工具；工具結果會以「【工具結果】」開頭交回給你。回答用繁體中文、簡短。）";
+
+  // 歷史訊息攤平成純文字（各模型對 tool 訊息的格式不一樣，攤平最穩），相同角色連續的合併
+  const msgs = [{ role: "system", content: sys }];
+  for (const m of b.messages) {
+    const role = m && m.role === "assistant" ? "assistant" : "user";
+    const t = txtOf1115B(m && m.content);
+    if (!t) continue;
+    const last = msgs[msgs.length - 1];
+    if (last.role === role) last.content += "\n" + t; else msgs.push({ role, content: t });
+  }
+  if (msgs.length < 2 || msgs[1].role !== "user") msgs.splice(1, 0, { role: "user", content: "（開始）" });
+
+  const tools = (Array.isArray(b.tools) ? b.tools : []).filter(t => t && t.name && t.input_schema && (!t.type || t.type === "custom"))
+    .map(t => ({ type: "function", function: { name: t.name, description: String(t.description || "").slice(0, 1000), parameters: t.input_schema } }));
+
+  const req = { messages: msgs, max_tokens: Math.min(Math.max(+b.max_tokens || 2048, 256), 4096) };
+  if (tools.length) req.tools = tools;
+
+  let out;
+  try { out = await env.AI.run(model, req); }
+  catch (e) {
+    const m = String(e && e.message || e);
+    const quota = /neuron|quota|limit|4006|daily/i.test(m);
+    return new Response(JSON.stringify({ type: "error", error: { type: quota ? "rate_limit_error" : "api_error", message: (quota ? "Workers AI 今天的免費額度用完了（每天 00:00 UTC 重置）：" : "Workers AI 錯誤：") + m.slice(0, 300) } }), { status: quota ? 429 : 502, headers: cors });
+  }
+
+  // 兩種回應格式都吃：{response, tool_calls} 或 OpenAI 式 {choices:[{message:{content, tool_calls}}]}
+  let text = "", calls = [];
+  if (out && Array.isArray(out.choices) && out.choices[0]) {
+    const msg = out.choices[0].message || {};
+    text = typeof msg.content === "string" ? msg.content : txtOf1115B(msg.content);
+    calls = msg.tool_calls || [];
+  } else if (out) {
+    text = typeof out.response === "string" ? out.response : (out.response ? JSON.stringify(out.response) : "");
+    calls = out.tool_calls || [];
+  }
+  const content = [];
+  if (text && text.trim()) content.push({ type: "text", text: text.replace(/<think>[\s\S]*?<\/think>/g, "").trim() });
+  let n = 0;
+  for (const c of calls) {
+    const name = (c && c.function && c.function.name) || (c && c.name);
+    let args = (c && c.function && c.function.arguments !== undefined) ? c.function.arguments : (c && c.arguments);
+    if (typeof args === "string") { try { args = JSON.parse(args || "{}"); } catch (e) { args = {}; } }
+    if (!name) continue;
+    content.push({ type: "tool_use", id: "toolu_free_" + Date.now().toString(36) + "_" + (n++), name, input: args && typeof args === "object" ? args : {} });
+  }
+  if (!content.length) content.push({ type: "text", text: "（免費模型沒有回覆內容）" });
+  const usage = (out && out.usage) || {};
+  return new Response(JSON.stringify({
+    id: "msg_free_" + Date.now().toString(36), type: "message", role: "assistant", model: model,
+    content, stop_reason: n ? "tool_use" : "end_turn",
+    usage: { input_tokens: usage.prompt_tokens || 0, output_tokens: usage.completion_tokens || 0 }
+  }), { status: 200, headers: cors });
+}
